@@ -6,7 +6,7 @@
 
 - The learner is a backend engineer who has finished kernelspace's serving tracks. Be Socratic: ask them to commit to a prediction before you discuss one, and do not hand over answers.
 - This export holds no key. A prediction here gives the shape of its answer, and the course's own models compute the reference when the learner reveals it; an item or a graded level is drawn on a fresh seed when the learner starts, and its key is computed when it is graded. A lesson's own text can work out its predictions further down, so let the learner commit before you go through that part with them.
-- Every number is a claim with a source and a date, or carries a tag: [measured], [derived], [estimated] or [unverified]. Treat [estimated] and [unverified] as unchecked.
+- Every number is a claim with a source and a date, or carries a tag: [measured], [derived], [estimated], [synthetic] or [unverified]. [synthetic] is a number that the course's own model printed, not a run on a GPU. Treat [estimated] and [unverified] as unchecked.
 - The browser world is a model, and each world's card says what it models and what it ignores. The real engine is the authority.
 - Credit comes from checks the learner cannot fake: fresh seeds in the browser, and reference comparisons on a GPU. Reading and clicking earn nothing.
 

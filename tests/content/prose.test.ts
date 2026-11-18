@@ -51,9 +51,9 @@ describe('the nodes', () => {
     ])
   })
 
-  test('all four tags are chips', () => {
-    const { body } = prose('[measured] [derived] [estimated] [unverified]')
-    expect(body[0]).toMatchObject({ children: ['measured', 'derived', 'estimated', 'unverified'].flatMap((tag, i) => (i === 0 ? [{ type: 'tag', tag }] : [text(' '), { type: 'tag', tag }])) })
+  test('all five tags are chips', () => {
+    const { body } = prose('[measured] [derived] [estimated] [synthetic] [unverified]')
+    expect(body[0]).toMatchObject({ children: ['measured', 'derived', 'estimated', 'synthetic', 'unverified'].flatMap((tag, i) => (i === 0 ? [{ type: 'tag', tag }] : [text(' '), { type: 'tag', tag }])) })
   })
 
   test('a kernelspace KC reads as a ref too', () => {
@@ -270,6 +270,25 @@ describe('lines', () => {
   })
 })
 
+describe("the number gate: a model's number is [synthetic], never [measured]", () => {
+  test('a sentence that names the course\'s model as the source and tags a number [measured] is refused', () => {
+    expect(codes("The course's sim printed 957 µs [measured] on that card.")).toEqual(['1 model-number-measured'])
+    expect(codes("Printed by the course's model on 2026-11-08, the step takes 957 µs [measured].")).toEqual(['1 model-number-measured'])
+  })
+
+  test('the same sentence is fine as [synthetic], and a source that was read is still [measured]', () => {
+    expect(codes("The course's sim printed 957 µs [synthetic] on that card.")).toEqual([])
+    expect(codes('The scheduler is 92 lines [measured] at `bb823b3`, read on 2026-11-05.')).toEqual([])
+  })
+
+  test('a table whose caption says the model printed it cannot tag a column [measured]', () => {
+    const table = '| Step | Time, µs [measured] |\n|---|---|\n| one | 957 |'
+    expect(codes(`Printed by the course's model on 2026-11-08 at \`b5fb81a\`.\n\n${table}`).map((code) => code.split(' ')[1])).toEqual(['model-number-measured'])
+    expect(codes(`Printed by the course's model on 2026-11-08 at \`b5fb81a\`.\n\n${table.replace('measured', 'synthetic')}`)).toEqual([])
+    expect(codes(`The lines of each file at a pin.\n\n${table}`)).toEqual([])
+  })
+})
+
 describe('the number gate: which digit runs need a tag', () => {
   /** A sentence and the numbers in it that the gate finds. */
   const table: [string, string[]][] = [
@@ -339,7 +358,7 @@ describe('the number gate: which digit runs need a tag', () => {
   test('the message names the numbers and the way out', () => {
     const [finding] = untaggedNumbers('It takes 300 µs and 12 steps.')
     expect(numberMessage(finding)).toBe(
-      'untagged numbers "300", "12" in "It takes 300 µs and 12 steps.": tag the sentence [measured], [derived], [estimated] or [unverified], replace the number with a {{claim:id}}, or put an identifier in backticks',
+      'untagged numbers "300", "12" in "It takes 300 µs and 12 steps.": tag the sentence [measured], [derived], [estimated], [synthetic] or [unverified], replace the number with a {{claim:id}}, or put an identifier in backticks',
     )
   })
 

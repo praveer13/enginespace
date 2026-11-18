@@ -10,7 +10,7 @@ Decisions are D-nnn and owner questions O-n in [DECISIONS.md](DECISIONS.md); cou
 
 **Sources.** `PRODUCT.md` (owner-confirmed 2026-11-03); D-001 and D-010 (2026-11-03); kernelspace `SPECIALIZATIONS.md` §7 (untracked, 2026-10-24); kernelspace at `origin/master` d478f91: `PLAN-100X.md` §5.1 (V1-V6), §5.6 (H4), §5.7 (K1, K2) and §10, `src/lib/learner/provenance.ts`, `src/lib/forge/prove2.ts`, `src/lib/world/fleet-ex/{broken-bench,knee,push-luck}.ts`; statespace at 7b6938c: `docs/ASSESSMENT.md` and `docs/PLAN.md` §7 (receipts never trust an exit code); this workflow's research ([upstream-vllm.md](../research/upstream-vllm.md), [upstream-sglang.md](../research/upstream-sglang.md)), cited by row.
 
-**Tags.** [measured], [derived], [estimated] and [unverified], as in A§0. Every pass bar, tolerance, sample size and seed count here is a design parameter and carries [estimated] once per table or rule; measured values replace them as named tasks record them. Identifiers and counts of named things carry no tag.
+**Tags.** [measured], [derived], [estimated], [synthetic] and [unverified], as in A§0. [measured] is a run on hardware or a source that was read; a number that the course's own model printed is [synthetic]. Every pass bar, tolerance, sample size and seed count here is a design parameter and carries [estimated] once per table or rule; measured values replace them as named tasks record them. Identifiers and counts of named things carry no tag.
 
 ---
 

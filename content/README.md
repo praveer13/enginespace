@@ -139,11 +139,18 @@ A family is a `Gen` in `packages/play/items/` (ARCHITECTURE §8.2), registered i
 
 ## Numbers
 
-Every number is a claim or carries a tag (ARCHITECTURE §4.4). In prose, a digit run needs one of `[measured]`, `[derived]`, `[estimated]` or `[unverified]` in its sentence, written before the full stop. In a table, a tag in a column's header tags the column. The tag is the word in brackets and nothing else: the source and the date belong in a claim.
+Every number is a claim or carries a tag (ARCHITECTURE §4.4). In prose, a digit run needs one of `[measured]`, `[derived]`, `[estimated]`, `[synthetic]` or `[unverified]` in its sentence, written before the full stop. In a table, a tag in a column's header tags the column. The tag is the word in brackets and nothing else: the source and the date belong in a claim.
 
 A number does not need a tag in code, inside a reference, in an identifier (`H100`, `p99`, `tr2.l3`, `v0.33.0`, `§4.2`), or in an ISO date. Anything else does, including a version without its `v`, a size with its unit (`80GB`) and a year. When a number is a fact about an engine, make it a claim, give it a source with the source's own words, and cite it.
 
-A number that the course's own simulator gives is [measured], and its sentence or its table's caption says on what day and at which commit it was read. A test recomputes it from the generator and holds the lesson's text to the result, so that a change to the generator that moves the number fails on the lesson that printed it. `tests/content/tr8-module.test.ts` and `tests/content/tr8-demos.ts` are the pattern, and `tests/content/tr6-module.test.ts` adds the two other things a module can owe: a prediction's reference answer, which a content file never stores (`PREDICTIONS` in `tests/content/tr6-demos.ts`), and a figure drawn from a model. The date and the commit go in the text and never inside the brackets, which hold the tag and nothing else.
+What each tag means for a learner:
+- `[measured]` is a run on a real machine, or a source that was read (a file at a pin, a release feed, a paper's figure, a count a script made over the repository), with its date. The number is someone's observation, never the course's model's output.
+- `[derived]` is arithmetic on tagged numbers.
+- `[estimated]` is a judgment or a design target.
+- `[synthetic]` is a number that the course's own model printed: its simulator, its step loop, its port of an engine's rules. It says nothing about a real GPU.
+- `[unverified]` was not checked against a primary source.
+
+A number that the course's own simulator gives is `[synthetic]`, and its sentence or its table's caption says on what day and at which commit it was printed ("Printed by the course's model on 2026-11-08 at `b5fb81a`.", the line above the table). `verify:numbers` refuses a `[measured]` tag in a sentence, or on a table whose caption, that names the course's sim, simulator, step loop, port or model as where the number came from. A number that someone else measured and the course quotes (a paper's figure, an upstream README's example) is a claim with its source and stays `[measured]`, and the sentence says whose run it was. A test recomputes it from the generator and holds the lesson's text to the result, so that a change to the generator that moves the number fails on the lesson that printed it. `tests/content/tr8-module.test.ts` and `tests/content/tr8-demos.ts` are the pattern, and `tests/content/tr6-module.test.ts` adds the two other things a module can owe: a prediction's reference answer, which a content file never stores (`PREDICTIONS` in `tests/content/tr6-demos.ts`), and a figure drawn from a model. The date and the commit go in the text and never inside the brackets, which hold the tag and nothing else.
 
 ## Claims
 

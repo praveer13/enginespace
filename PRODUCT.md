@@ -102,7 +102,7 @@ The source specification is `kernelspace/SPECIALIZATIONS.md` §3.5 (an untracked
 ## Product Principles
 
 1. **Play the mechanism before reading it, where the play can succeed.** A game's rule is the concept itself, never decoration around a quiz. *Reworded in wave R (REDESIGN P3); proposed, for the owner's confirmation.*
-2. **Prove, don't claim.** Numbers are measured or sourced, dated, and labelled when synthetic.
+2. **Prove, don't claim.** Numbers are measured or sourced, dated, and labelled when synthetic. A number that the course's own model printed is tagged synthetic, never measured: measured means a real machine or a real source.
 3. **The real engine is the final judge.** The browser world teaches; the GPU confirms.
 4. **Zero servers, local-first.** Nothing about the learner leaves their machine unless they export it.
 5. **The first minute is hands-on.** The front page opens on something the visitor plays, not on a pitch.

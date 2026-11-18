@@ -92,16 +92,16 @@ The `adapters` level plays one run four ways, all with the reference policy's ch
 
 The shelf as the debrief draws it costs no pages, and a real slot does cost memory. It is as wide as the biggest adapter, which is 26 pages here [derived], and it comes out of the same GPU, so the fourth way takes two such slots out of the pool before the run starts.
 
-The price of a run is the tokens recomputed, plus 24 for each step that a request stalled for its adapter [estimated]. Measured by the course's sim on 2026-11-05 at `c98a353`, with the level's practice seed `0`.
+The price of a run is the tokens recomputed, plus 24 for each step that a request stalled for its adapter [estimated]. Printed by the course's model on 2026-11-05 at `c98a353`, with the level's practice seed `0`.
 
-| The adapters are | Pages left [measured] | Tokens recomputed [measured] | Stall steps [measured] | Price [measured] |
+| The adapters are | Pages left [synthetic] | Tokens recomputed [synthetic] | Stall steps [synthetic] | Price [synthetic] |
 |---|---|---|---|---|
 | pages in the pool | 160 | 1,082 | 2 | 1,130 |
 | one slot, outside it | 160 | 1,018 | 9 | 1,234 |
 | two slots, outside it | 160 | 1,018 | 2 | 1,066 |
 | two slots, paid for first | 108 | 1,322 | 2 | 1,370 |
 
-On the first eight seeds that the level's band accepts [estimated], the prices of the eight runs add up to 11,031 for pages, 12,759 for one slot, 9,799 for two free slots and 14,951 for two slots that are paid for first [measured]. One slot costs less than pages on 0 of the eight runs, two free slots on 7, and the paid pair on 0 [measured]. A pair of slots that has to be paid for costs 36% more than pages over the eight [derived]. It is a synthetic world, and it measures the ideas and no engine. The S-LoRA paper has a headline of its own, a throughput gain over the baselines of its day. **up to 4 times** [measured]
+On the first eight seeds that the level's band accepts [estimated], the prices of the eight runs add up to 11,031 for pages, 12,759 for one slot, 9,799 for two free slots and 14,951 for two slots that are paid for first [synthetic]. One slot costs less than pages on 0 of the eight runs, two free slots on 7, and the paid pair on 0 [synthetic]. A pair of slots that has to be paid for costs 36% more than pages over the eight [derived]. It is a synthetic world, and it measures the ideas and no engine. The S-LoRA paper has a headline of its own, a throughput gain over the baselines of its day. **up to 4 times** [measured]
 
 > **The paper's baseline is not the pin.** The S-LoRA paper reports up to 4 times the throughput of vLLM with naive support for LoRA serving [measured]. That is the authors' own run, against a vLLM with naive support for LoRA and not the pinned one, and the course has not reproduced it. The baseline here is the slot design of the pinned engines, in a synthetic world.
 
@@ -113,7 +113,7 @@ Check the slots on a new deployment before you read on.
 
 Slots win when they are enough and free. With as many slots as the batch has distinct adapters, an adapter costs no pages and never waits for a slot, and that is the third row. They lose in three ways, and each is in the table.
 
-- **Too few slots.** One slot and two adapters means that a request for the other adapter stalls while an adapter is swapped in, 9 steps against 2 [measured].
+- **Too few slots.** One slot and two adapters means that a request for the other adapter stalls while an adapter is swapped in, 9 steps against 2 [synthetic].
 - **Slots are as wide as the widest adapter.** A rank-8 adapter in a slot sized for rank 64 uses an eighth of it, and the slot's other 87.5% [derived] is idle, so a deployment that mixes ranks pays for the largest in every slot. **max_loras x max_lora_rank** [measured]
 - **Slots are paid for before the first request.** The memory they hold is memory the KV pool never has, whether or not an adapter is loaded, which is the fourth row.
 

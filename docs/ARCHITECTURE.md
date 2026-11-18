@@ -16,8 +16,9 @@
 - `research/upstream-vllm.md` and `research/upstream-sglang.md`, written by this workflow's research agents on 2026-11-03. Their row ids are cited as (vllm R4), (sglang X6) and so on.
 
 **Tags.**
-- [measured]: read or measured from the named source, on 2026-11-03 unless a date is given.
+- [measured]: measured on a real machine, or read from the named source, on 2026-11-03 unless a date is given. It is never a number that the course's own model printed.
 - [derived]: arithmetic on tagged inputs.
+- [synthetic]: a number that the course's own model printed, at a stated commit and day (prose and tables; a claim of the invented world says `synthetic: true` instead and keeps one of the four tags above).
 - [estimated]: a judgment or a design target. Every budget is a design target and carries [estimated] or [derived].
 - [unverified]: not checked against a primary source. Such a value is never load-bearing until a named task checks it.
 

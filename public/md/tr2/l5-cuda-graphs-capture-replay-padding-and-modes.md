@@ -10,7 +10,7 @@ The third lesson left nine steps on the small card with a bubble that overlap co
 
 ## One launch for every kernel
 
-A forward pass is not one operation. It is a sequence of kernels, and an eager engine launches each of them from Python, one call at a time. The course's model gives a layer 12 kernels [estimated] and a launch 6 µs [estimated] of the CPU's time, which are round figures, and the small model has 28 layers [estimated]. A step then makes 336 calls [derived] and spends 2,016 µs [derived] of CPU time launching them. The GPU's own work for a step of 12 rows on that card is 1,225 µs [measured], from the `async` level's practice run, read on 2026-11-08 at `b5fb81a`, so the launching is longer than the computing. In the level's first stage that sequence is drawn as one launch for every kernel of every layer. The model draws the whole launch before the forward starts. A real eager launch lets the GPU begin on the first kernels while the CPU is still launching the rest, so on a step with a long forward the model overstates what launching costs, and its card lists this among what it ignores.
+A forward pass is not one operation. It is a sequence of kernels, and an eager engine launches each of them from Python, one call at a time. The course's model gives a layer 12 kernels [estimated] and a launch 6 µs [estimated] of the CPU's time, which are round figures, and the small model has 28 layers [estimated]. A step then makes 336 calls [derived] and spends 2,016 µs [derived] of CPU time launching them. The GPU's own work for a step of 12 rows on that card is 1,225 µs [synthetic], from the `async` level's practice run, printed by the course's model on 2026-11-08 at `b5fb81a`, so the launching is longer than the computing. In the level's first stage that sequence is drawn as one launch for every kernel of every layer. The model draws the whole launch before the forward starts. A real eager launch lets the GPU begin on the first kernels while the CPU is still launching the rest, so on a step with a long forward the model overstates what launching costs, and its card lists this among what it ignores.
 
 A CUDA graph removes those launches. The GPU work is recorded once, as a graph of kernels with their arguments, and replayed later with much lower launch overhead. **record once, replay** [measured] TensorRT-LLM's overview says it as a count: a sequence of CUDA operations captured as one graph can be launched with one API call. **one API call** [measured] vLLM's compile guide gives the purpose in a line: it applies CUDA graphs to reduce CPU overheads. **to reduce CPU overheads** [measured] And its note on CUDA graphs for the vision encoder says when the overhead hurts most: the overhead is more significant when the batch or the image is small, and the cure is to capture the forward pass at several sizes when the model is initialized and replay the right graph at run time. **more significant when the batch is small** [measured]
 
@@ -90,7 +90,7 @@ vLLM does not capture a forward pass one way. Its `CUDAGraphMode` has five membe
 | `FULL_DECODE_ONLY` | A full graph for uniform decode batches, and nothing for the rest. | Suits the decode instances of a prefill and decode setup, and saves the memory that piecewise graphs need. **saves the memory of the piecewise graphs** [measured] |
 | `FULL_AND_PIECEWISE` | Full graphs for uniform decode batches, and piecewise graphs for the rest. | The default. Generally the most performant, and it requires the most memory and takes the longest to capture. **the most performant, and the most memory** [measured] |
 
-A graph with N operations that cannot be captured splits into N+1 partitions, and a piecewise replay is a run of N+1 graph launches with the N operations launched one by one between them. **N+1 partitions** [measured] For the small model's 28 layers that is 57 calls [measured], where an eager launch makes 336 and a full graph makes 1 [measured]. The model counts it as 29 replays and 28 attention launches [measured], which is the second row of the figure above. The flag takes the mode's name: `--compilation-config` with a JSON object whose `cudagraph_mode` is one of the five. **--compilation-config** [measured] The `-O` levels set it for you, and the default `-O2` gives `FULL_AND_PIECEWISE`. **FULL_AND_PIECEWISE** [measured]
+A graph with N operations that cannot be captured splits into N+1 partitions, and a piecewise replay is a run of N+1 graph launches with the N operations launched one by one between them. **N+1 partitions** [measured] For the small model's 28 layers that is 57 calls [synthetic], where an eager launch makes 336 and a full graph makes 1 [synthetic]. The model counts it as 29 replays and 28 attention launches [synthetic], which is the second row of the figure above. The flag takes the mode's name: `--compilation-config` with a JSON object whose `cudagraph_mode` is one of the five. **--compilation-config** [measured] The `-O` levels set it for you, and the default `-O2` gives `FULL_AND_PIECEWISE`. **FULL_AND_PIECEWISE** [measured]
 
 Which mode runs is not always the mode you asked for. That is the sixth lesson's, with the memory that every mode takes.
 
@@ -100,23 +100,23 @@ Open the `graphs` level, "CUDA graphs: launches against replay". It has three st
 
 > **Play.** The game `loop`, level `graphs`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
-Here are the two stages on their practice seed, `0`, read on 2026-11-08 at `b5fb81a`. The first stage is the small model's run, served with no graph and then with the default mode.
+Here are the two stages on their practice seed, `0`, printed by the course's model on 2026-11-08 at `b5fb81a`. The first stage is the small model's run, served with no graph and then with the default mode.
 
-| The first stage's run | No graph [measured] | The default mode [measured] |
+| The first stage's run | No graph [synthetic] | The default mode [synthetic] |
 |---|---|---|
 | Calls to launch one steady step | 336 | 1 |
 | Clock, µs | 140,123 | 79,375 |
 | Median time per output token, µs | 2,750 | 1,493 |
 | The GPU's idle time while the CPU worked, µs | 72,734 | 11,982 |
 
-The default mode removes 83.5% [derived] of the bubbles, 45.7% [derived] of the median token and 43.4% [derived] of the run. The 11,982 µs [measured] that remain are the nine steps of the third lesson. The `sizes` stage is a different world: a run of 40 decode steps [estimated], drawn from a histogram whose batches are 7 to 11 rows [measured], with room to capture three sizes [estimated].
+The default mode removes 83.5% [derived] of the bubbles, 45.7% [derived] of the median token and 43.4% [derived] of the run. The 11,982 µs [synthetic] that remain are the nine steps of the third lesson. The `sizes` stage is a different world: a run of 40 decode steps [estimated], drawn from a histogram whose batches are 7 to 11 rows [synthetic], with room to capture three sizes [estimated].
 
-| The `sizes` stage | The captured sizes [measured] | Capture cost, µs [measured] |
+| The `sizes` stage | The captured sizes [synthetic] | Capture cost, µs [synthetic] |
 |---|---|---|
 | vLLM's own list cut to three | 1, 2, 4 | 79,440 |
 | The best three | 8, 9, 11 | 406 |
 
-The capture cost is the padded rows' time plus the time of the steps that no captured size holds, which are launched one by one. Cutting the default list to its first three sizes holds none of the 40 steps, because every batch is above 4 rows [measured], so each is launched kernel by kernel. The best three are close to the sizes the run has: they pad a batch of 7 up to 8 and a batch of 10 up to 11 [measured], and hold the rest exactly. The default list is good for a server that does not know its traffic. It is a bad one when the room is too small to hold it, and the best three are found by looking at every list of three.
+The capture cost is the padded rows' time plus the time of the steps that no captured size holds, which are launched one by one. Cutting the default list to its first three sizes holds none of the 40 steps, because every batch is above 4 rows [synthetic], so each is launched kernel by kernel. The best three are close to the sizes the run has: they pad a batch of 7 up to 8 and a batch of 10 up to 11 [synthetic], and hold the rest exactly. The default list is good for a server that does not know its traffic. It is a bad one when the room is too small to hold it, and the best three are found by looking at every list of three.
 
 > **Practice.** Items from the generator family `tr2.graph-hit`, level `1`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

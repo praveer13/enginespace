@@ -28,18 +28,18 @@ After the run, one check decides whether the window was long enough. The median 
 
 Both halves are deliberate. The window is fixed first, so that nobody can pick a cut that flatters the number. The check is the only thing allowed to say the window was too short, and what it says is to run again, never to cut more.
 
-Here is the rule on a synthetic server that starts cold. For its first 12 s [estimated] it takes three times [estimated] as long to serve a step as it will later. The run sends 1,600 requests [estimated] at half of what the server can finish. A second server takes 20 s [estimated] to warm. Each p99 is the time to first token from the due time, measured by the course's sim on 2026-11-04 at `fd168df`, with the seed `5`.
+Here is the rule on a synthetic server that starts cold. For its first 12 s [estimated] it takes three times [estimated] as long to serve a step as it will later. The run sends 1,600 requests [estimated] at half of what the server can finish. A second server takes 20 s [estimated] to warm. Each p99 is the time to first token from the due time, printed by the course's model on 2026-11-04 at `fd168df`, with the seed `5`.
 
-| First requests left out [estimated] | 12 s warm-up: p99, ms [measured] | Settled? | 20 s warm-up: p99, ms [measured] | Settled? |
+| First requests left out [estimated] | 12 s warm-up: p99, ms [synthetic] | Settled? | 20 s warm-up: p99, ms [synthetic] | Settled? |
 |---|---|---|---|---|
 | 0 | 1,416 | no | 3,987 | no |
 | 20 | 1,416 | no | 3,987 | no |
 | 128, the rule's window | 139 | yes | 3,604 | no |
 | 400 | 146 | yes | 141 | yes |
 
-Read the first column down. Leaving out nothing, or 20 requests [estimated], changes nothing: the slowest hundredth of the run is deep in the cold stretch, and 20 requests do not reach it. The rule's 128 removes it, and 139 ms [measured] is what the engine does once it is warm. Leaving out 400 costs 272 requests of data [derived] for a p99 that moves by 5% [derived], so the extra cut buys nothing.
+Read the first column down. Leaving out nothing, or 20 requests [estimated], changes nothing: the slowest hundredth of the run is deep in the cold stretch, and 20 requests do not reach it. The rule's 128 removes it, and 139 ms [synthetic] is what the engine does once it is warm. Leaving out 400 costs 272 requests of data [derived] for a p99 that moves by 5% [derived], so the extra cut buys nothing.
 
-The second server shows what the check is for. Its warm-up outlasts the rule's window, so the p99 after 128 requests is 3,604 ms [measured], which is not the warm engine's number, and the run is flagged as still warming. Leaving out 400 from the same log would give 141 ms [measured], and the temptation is real. But a cut chosen after the log has been seen is the move the rule exists to stop. The honest response is to declare the longer window and run again.
+The second server shows what the check is for. Its warm-up outlasts the rule's window, so the p99 after 128 requests is 3,604 ms [synthetic], which is not the warm engine's number, and the run is flagged as still warming. Leaving out 400 from the same log would give 141 ms [synthetic], and the temptation is real. But a cut chosen after the log has been seen is the move the rule exists to stop. The honest response is to declare the longer window and run again.
 
 > **The test you re-ran until it passed.** Re-running a flaky test until it goes green, and then reporting the green run, is choosing your sample after you have seen the result. A warm-up cut chosen after you have looked at the latencies is the same move. The data got a vote on which data counts.
 >
@@ -72,9 +72,9 @@ Now play the `sure` level: it deals a report whose p99 may rest on too few reque
 
 A p99 from n requests is one draw. It depends on which requests the run happened to hold, and a second run would give another. A bootstrap interval says how far another draw might land. The course's method is the percentile bootstrap: resample the n latencies with replacement, take the p99 of the resample by nearest rank, repeat 1,000 times [estimated], and read the 2.5th and the 97.5th percentiles of those p99s as a 95% interval [estimated]. The resampler is seeded, so the same log always gives the same interval.
 
-The width of the interval says how many requests you needed. Here the latencies come from the course's exponential table, with a mean of 100 ms [estimated], and the table gives the median, over seeds, of the width of the 95% interval on the p99. Measured by the course's sim on 2026-11-04 at `fd168df`.
+The width of the interval says how many requests you needed. Here the latencies come from the course's exponential table, with a mean of 100 ms [estimated], and the table gives the median, over seeds, of the width of the 95% interval on the p99. Printed by the course's model on 2026-11-04 at `fd168df`.
 
-| Requests, n [estimated] | Seeds [estimated] | Median width of the interval, ms [measured] |
+| Requests, n [estimated] | Seeds [estimated] | Median width of the interval, ms [synthetic] |
 |---|---|---|
 | 250 | 40 | 197 |
 | 1,000 | 40 | 110 |
@@ -82,7 +82,7 @@ The width of the interval says how many requests you needed. Here the latencies 
 
 Four times the requests roughly halves the interval [derived]: the ratios of the widths are 197 ÷ 110 = 1.8 and 110 ÷ 57 = 1.9 [derived]. That is the square-root law, and it is the price of precision: to halve the interval, quadruple the run. Read the width before you read the number. A p99 of 900 ms [estimated] with an interval from 600 to 1,500 ms [estimated] cannot tell an engine that is really at 700 ms from one that is really at 1,300 ms.
 
-One more honest fact about the method. The textbook percentile bootstrap is a little short in the far tail. Its nominal 95% interval [estimated] on a p99 covers the true p99 92.6% of the time at 1,000 requests and 94.6% at 5,000 [measured]. These are exact coverages for any continuous distribution, averaged over 100 resampler seeds at 1,000 requests and over 20 at 5,000 [estimated], from the course's sim on 2026-11-04 at `fd168df`. So the minimum of 1,000 requests [estimated] is a minimum and not a comfort, and an interval from fewer requests should be read as wider than it looks.
+One more honest fact about the method. The textbook percentile bootstrap is a little short in the far tail. Its nominal 95% interval [estimated] on a p99 covers the true p99 92.6% of the time at 1,000 requests and 94.6% at 5,000 [synthetic]. These are exact coverages for any continuous distribution, averaged over 100 resampler seeds at 1,000 requests and over 20 at 5,000 [estimated], printed by the course's model on 2026-11-04 at `fd168df`. So the minimum of 1,000 requests [estimated] is a minimum and not a comfort, and an interval from fewer requests should be read as wider than it looks.
 
 > **An interval covers noise, not mistakes.** A bootstrap interval says how far one run's own sampling noise could move the p99. It does not cover a server restarted between two runs, a GPU that throttled, or a flaw in the setup. Report the interval with the setup it belongs to, and compare two runs only when their setups are the same.
 

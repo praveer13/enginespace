@@ -84,9 +84,9 @@ There is a third way to hold a request back, and it needs no stall: a cap on how
 
 Where the timer starts decides whether that wait is ever seen. SGLang's request function takes its start time as it begins, after the semaphore, so the wait for a permit is in no latency it reports. **st = time.perf_counter()** [measured] vLLM records the wait apart, as `client_queue_time`, and starts the request's own clock at the send. **client_queue_time** [measured] The third lesson reads both flag by flag. Here is what a cap does in the course's own world.
 
-Every row uses the same server and the same offered traffic, and the freeze rows add a freeze of 3 s [estimated] in the middle of the run. The open loop sends 1,500 requests [estimated] at half of what the server can finish, which is 8.6 requests a second [measured]. The other harness has the same schedule and a cap of 24 requests in flight [estimated]. Measured by the course's sim on 2026-11-04 at `fd168df`, with the seed `7`.
+Every row uses the same server and the same offered traffic, and the freeze rows add a freeze of 3 s [estimated] in the middle of the run. The open loop sends 1,500 requests [estimated] at half of what the server can finish, which is 8.6 requests a second [synthetic]. The other harness has the same schedule and a cap of 24 requests in flight [estimated]. Printed by the course's model on 2026-11-04 at `fd168df`, with the seed `7`.
 
-| Harness | The run | Timer starts at | p99 time to first token, ms [measured] |
+| Harness | The run | Timer starts at | p99 time to first token, ms [synthetic] |
 |---|---|---|---|
 | Open loop | no freeze | the send, which is the due time | 136 |
 | Open loop | freeze | the send, which is the due time | 2,187 |
@@ -95,9 +95,9 @@ Every row uses the same server and the same offered traffic, and the freeze rows
 | Capped | freeze | the send | 140 |
 | Capped | freeze | the due time | 2,599 |
 
-The capped harness's own timer reported 140 ms [measured] for a run in which the users who fell due during the freeze waited seconds. Timed from the due time it agrees with the open loop, within a fifth [derived]. Even without a freeze, the cap hides a queue: Poisson arrivals come in clumps, a clump that takes the number in flight past the cap waits for permits, and the timer starts only when a permit is granted. That is 124 ms from the send against 920 ms from the due time [measured].
+The capped harness's own timer reported 140 ms [synthetic] for a run in which the users who fell due during the freeze waited seconds. Timed from the due time it agrees with the open loop, within a fifth [derived]. Even without a freeze, the cap hides a queue: Poisson arrivals come in clumps, a clump that takes the number in flight past the cap waits for permits, and the timer starts only when a permit is granted. That is 124 ms from the send against 920 ms from the due time [synthetic].
 
-You can read the slip off a log, if the log keeps both times: subtract due from sent for every row. An open loop that keeps up has a slip of about zero. The course's rule for a receipt allows at most 2 ms [estimated] for 99.9% [estimated] of the rows and at most 20 ms [estimated] for all of them, and a run that falls further behind is coordinated omission. In the table's runs the open loop sent no request late. The capped harness sent 345 of its 1,500 requests [measured] more than 2 ms [estimated] late in the calm run, and 497 [measured] in the freeze run, so it fails the rule in both. A log with no due column cannot be checked at all, and that is the first thing to say about it.
+You can read the slip off a log, if the log keeps both times: subtract due from sent for every row. An open loop that keeps up has a slip of about zero. The course's rule for a receipt allows at most 2 ms [estimated] for 99.9% [estimated] of the rows and at most 20 ms [estimated] for all of them, and a run that falls further behind is coordinated omission. In the table's runs the open loop sent no request late. The capped harness sent 345 of its 1,500 requests [synthetic] more than 2 ms [estimated] late in the calm run, and 497 [synthetic] in the freeze run, so it fails the rule in both. A log with no due column cannot be checked at all, and that is the first thing to say about it.
 
 > **The thread pool you wrote.** A closed-loop load test is the harness most of us wrote first, a fixed pool of worker threads that each loop on call, record, call. It behaves like a bounded queue in front of a pool, where the producers stop adding work when every worker is busy.
 >

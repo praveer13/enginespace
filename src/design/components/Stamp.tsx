@@ -15,10 +15,10 @@ import '../parts.css'
 
 /** The four provenance words of the legend, in its order, with what each means. */
 export const TAG_LEGEND = [
-  { word: 'measured', means: 'Read or measured from the named source, on the stated date.' },
+  { word: 'measured', means: 'Measured on a real machine, or read from a named source, on the stated date. Never the course\'s own model.' },
   { word: 'derived', means: 'Arithmetic on numbers that carry tags of their own.' },
   { word: 'estimated', means: 'A judgment or a design target, not a measurement.' },
-  { word: 'synthetic', means: 'Made by the seeded model in your browser: the same seed gives the same number.' },
+  { word: 'synthetic', means: 'Printed by the course\'s own model: the same seed gives the same number. It says nothing about a real GPU.' },
 ] as const satisfies readonly { word: Exclude<NumberTag, 'unverified'>; means: string }[]
 
 export const UNVERIFIED_MEANS = 'Not yet checked against a primary source, so nothing rests on it.'

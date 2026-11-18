@@ -769,15 +769,15 @@ describe('lesson 4: adapters as pages, and as slots', () => {
     // Every night is served, and a slot costs no pans on the shelf.
     for (const [, night] of rows) expect(night.unserved).toBe(0)
     expect(demo.oneSlot.stalls).toBeGreaterThan(demo.twoSlots.stalls)
-    mentions('tr5a.l4', 'too few slots', 'a request for the other adapter stalls while an adapter is swapped in, 9 steps against 2 [measured]')
+    mentions('tr5a.l4', 'too few slots', 'a request for the other adapter stalls while an adapter is swapped in, 9 steps against 2 [synthetic]')
     expect([demo.oneSlot.stalls, demo.twoSlots.stalls]).toEqual([9, 2])
   })
 
   test('over the first eight banded seeds: the totals, who costs less, and the paid pair 36% over pages', () => {
     const sweep = shelfSweep(8)
     expect(sweep.seeds).toEqual(bandedSeeds(8))
-    mentions('tr5a.l4', 'the totals', `the prices of the eight runs add up to ${fmt(sweep.total.pages)} for pages, ${fmt(sweep.total.oneSlot)} for one slot, ${fmt(sweep.total.twoSlots)} for two free slots and ${fmt(sweep.total.twoSlotsPaid)} for two slots that are paid for first [measured]`)
-    mentions('tr5a.l4', 'who is cheaper', `One slot costs less than pages on ${sweep.oneSlotCheaper} of the eight runs, two free slots on ${sweep.twoSlotsCheaper}, and the paid pair on ${sweep.twoSlotsPaidCheaper} [measured]`)
+    mentions('tr5a.l4', 'the totals', `the prices of the eight runs add up to ${fmt(sweep.total.pages)} for pages, ${fmt(sweep.total.oneSlot)} for one slot, ${fmt(sweep.total.twoSlots)} for two free slots and ${fmt(sweep.total.twoSlotsPaid)} for two slots that are paid for first [synthetic]`)
+    mentions('tr5a.l4', 'who is cheaper', `One slot costs less than pages on ${sweep.oneSlotCheaper} of the eight runs, two free slots on ${sweep.twoSlotsCheaper}, and the paid pair on ${sweep.twoSlotsPaidCheaper} [synthetic]`)
     const over = Math.round((100 * (sweep.total.twoSlotsPaid - sweep.total.pages)) / sweep.total.pages)
     mentions('tr5a.l4', 'the paid pair', `costs ${over}% more than pages over the eight [derived]`)
     expect(over).toBe(36)
@@ -832,7 +832,7 @@ describe('the commit that the numbers name', () => {
 
   test('the lesson that prints the course\'s own measurements names one commit, in code, and the day', () => {
     expect(cited.length).toBe(1)
-    expect(lessonOf('tr5a.l4').text).toContain("Measured by the course's sim on 2026-11-05 at `")
+    expect(lessonOf('tr5a.l4').text).toContain("Printed by the course's model on 2026-11-05 at `")
   })
 
   test('it is a commit of this repository, when the history is here to say so', () => {

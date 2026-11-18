@@ -614,7 +614,7 @@ describe('lesson 1: one step, and what the GPU waits for', () => {
     // The idle time before a step is the CPU's work of the step before it, row for row, when nothing overlaps.
     expect([big.bubbleUs, small.bubbleUs]).toEqual([big.cpuUs, small.cpuUs])
     expect([big.rows, small.rows]).toEqual([12, 12])
-    mentions('tr2.l1', 'the busy shares', `${fmt(big.cpuUs)} µs and ${fmt(small.cpuUs)} µs [measured]`)
+    mentions('tr2.l1', 'the busy shares', `${fmt(big.cpuUs)} µs and ${fmt(small.cpuUs)} µs [synthetic]`)
     mentions('tr2.l1', 'the busy share of the big card', `busy for ${fmt((100 * big.forwardUs) / (big.forwardUs + big.cpuUs), 1)}% [derived]`)
     mentions('tr2.l1', 'the busy share of the small card', `busy for ${fmt((100 * small.forwardUs) / (small.forwardUs + small.cpuUs), 1)}% [derived]`)
   })
@@ -636,7 +636,7 @@ describe('lesson 2: one token budget', () => {
     expect(steps[1].promptTokens).toBe(PREDICTIONS['tr2.l2.p1'].reference())
     mentions('tr2.l2', 'the arithmetic', `take ${fmt(steps[1].decodeRows)} tokens [derived], so the prompt gets what is left, ${fmt(steps[1].promptTokens)} tokens [derived], and the ${fmt(BUDGET.prompt - steps[1].promptTokens)} [derived] that remain go in the next step`)
     mentions('tr2.l2', 'the idle budget', `leaves ${fmt(BUDGET.budget - steps[2].tokens)} tokens [derived] of its budget unused`)
-    mentions('tr2.l2', 'the cost of a chunk', `${fmt(steps[1].forwardUs)} µs [measured], where a decode-only step is ${fmt(steps[0].forwardUs)} µs [measured]`)
+    mentions('tr2.l2', 'the cost of a chunk', `${fmt(steps[1].forwardUs)} µs [synthetic], where a decode-only step is ${fmt(steps[0].forwardUs)} µs [synthetic]`)
   })
 
   test("the same command on two GPUs: the offline class's budget on a 4090 against the server's, and a quarter of the budget and of the sequences", () => {
@@ -685,7 +685,7 @@ describe('lesson 3: async scheduling closes the bubble, and costs a token', () =
 
   test('the nine fires of the small card that still have a dark stretch: all admit a ticket, seven are launched one by one, two in pieces', () => {
     const dark = darkFires('small')
-    mentions('tr2.l3', 'nine of the fires', `${dark.length} of its ${small.on.fires} steps [measured] still have a bubble before them`)
+    mentions('tr2.l3', 'nine of the fires', `${dark.length} of its ${small.on.fires} steps [synthetic] still have a bubble before them`)
     expect(dark.every((fire) => fire.admits > 0)).toBe(true)
     expect(dark.filter((fire) => fire.mode === 'NONE').length).toBe(7)
     expect(dark.filter((fire) => fire.mode === 'PIECEWISE').length).toBe(2)
@@ -693,10 +693,10 @@ describe('lesson 3: async scheduling closes the bubble, and costs a token', () =
     const launch = comb().eagerLaunchUs
     const forwards = dark.map((fire) => fire.forwardUs)
     const about = Math.round(forwards.reduce((a, b) => a + b, 0) / forwards.length / 10) * 10
-    mentions('tr2.l3', 'the launch and the forward', `the launch alone takes ${fmt(launch)} µs [measured] against a forward of about ${fmt(about)} µs [measured]`)
+    mentions('tr2.l3', 'the launch and the forward', `the launch alone takes ${fmt(launch)} µs [synthetic] against a forward of about ${fmt(about)} µs [synthetic]`)
     const pieces = dark.filter((fire) => fire.mode === 'PIECEWISE').map((fire) => fire.bubbleUs)
     const short = Math.round(pieces.reduce((a, b) => a + b, 0) / pieces.length / 50) * 50
-    mentions('tr2.l3', 'the pieces', `fall short by about ${fmt(short)} µs [measured]`)
+    mentions('tr2.l3', 'the pieces', `fall short by about ${fmt(short)} µs [synthetic]`)
     expect(launch).toBeGreaterThan(about)
   })
 
@@ -751,9 +751,9 @@ describe('lesson 5: CUDA graphs', () => {
 
   test('the comb: 336 calls and 2,016 µs eagerly, 57 calls in pieces, 1 call as one graph, against a forward of 1,225 µs', () => {
     mentions('tr2.l5', 'the comb', `A step then makes ${fmt(c.eagerCalls)} calls [derived] and spends ${fmt(c.eagerLaunchUs)} µs [derived] of CPU time launching`)
-    mentions('tr2.l5', 'the forward', `${fmt(steadyFire('small').forwardUs)} µs [measured], from the \`async\` level's practice run`)
-    mentions('tr2.l5', 'the calls', `For the small model's 28 layers that is ${fmt(c.piecewiseCalls)} calls [measured], where an eager launch makes ${fmt(c.eagerCalls)} and a full graph makes 1 [measured]`)
-    mentions('tr2.l5', 'the pieces', `The model counts it as ${c.layers + 1} replays and ${c.piecewiseCalls - c.layers - 1} attention launches [measured]`)
+    mentions('tr2.l5', 'the forward', `${fmt(steadyFire('small').forwardUs)} µs [synthetic], from the \`async\` level's practice run`)
+    mentions('tr2.l5', 'the calls', `For the small model's 28 layers that is ${fmt(c.piecewiseCalls)} calls [synthetic], where an eager launch makes ${fmt(c.eagerCalls)} and a full graph makes 1 [synthetic]`)
+    mentions('tr2.l5', 'the pieces', `The model counts it as ${c.layers + 1} replays and ${c.piecewiseCalls - c.layers - 1} attention launches [synthetic]`)
     expect([c.piecewiseCalls, c.fullLaunchUs]).toEqual([57, 30])
   })
 
@@ -776,13 +776,13 @@ describe('lesson 5: CUDA graphs', () => {
     mentions('tr2.l5', 'idle', `| The GPU's idle time while the CPU worked, µs | ${fmt(night.eager.bubbleUs)} | ${fmt(night.graphs.bubbleUs)} |`)
     const cut = (before: number, after: number): string => fmt((100 * (before - after)) / before, 1)
     mentions('tr2.l5', 'the cuts', `removes ${cut(night.eager.bubbleUs, night.graphs.bubbleUs)}% [derived] of the bubbles, ${cut(night.eager.tpotP50Us, night.graphs.tpotP50Us)}% [derived] of the median token and ${cut(night.eager.clockUs, night.graphs.clockUs)}% [derived] of the run`)
-    mentions('tr2.l5', 'what remains', `The ${fmt(night.graphs.bubbleUs)} µs [measured] that remain are the nine steps of the third lesson`)
+    mentions('tr2.l5', 'what remains', `The ${fmt(night.graphs.bubbleUs)} µs [synthetic] that remain are the nine steps of the third lesson`)
     const sizes = sizesNight()
     mentions('tr2.l5', 'naive molds', `| vLLM's own list cut to three | ${sizes.naiveMolds.join(', ')} | ${fmt(sizes.naiveCost)} |`)
     mentions('tr2.l5', 'best molds', `| The best three | ${sizes.houseMolds.join(', ')} | ${fmt(sizes.houseCost)} |`)
     expect([sizes.batches.length, Math.min(...sizes.batches), Math.max(...sizes.batches), sizes.molds]).toEqual([40, 7, 11, 3])
     expect(sizes.uncapturedByNaive).toBe(40)
-    mentions('tr2.l5', 'the histogram', `drawn from a histogram whose batches are ${Math.min(...sizes.batches)} to ${Math.max(...sizes.batches)} rows [measured]`)
+    mentions('tr2.l5', 'the histogram', `drawn from a histogram whose batches are ${Math.min(...sizes.batches)} to ${Math.max(...sizes.batches)} rows [synthetic]`)
   })
 })
 
@@ -843,9 +843,9 @@ describe('lesson 6: dispatch keys, modes and memory', () => {
     for (const row of graphCounts()) mentions('tr2.l6', row.mode, `| \`${row.mode}\` | ${row.graphs} | ${fmt(row.mib, 1)} |`)
     const withLora = graphCounts(true).find((row) => row.mode === 'FULL_AND_PIECEWISE')!
     expect(withLora.graphs).toBe(2 * graphCounts().find((row) => row.mode === 'FULL_AND_PIECEWISE')!.graphs)
-    mentions('tr2.l6', 'doubling', `doubles the graphs, from ${graphCounts().find((row) => row.mode === 'FULL_AND_PIECEWISE')!.graphs} [measured] to ${withLora.graphs} [measured] in \`FULL_AND_PIECEWISE\``)
+    mentions('tr2.l6', 'doubling', `doubles the graphs, from ${graphCounts().find((row) => row.mode === 'FULL_AND_PIECEWISE')!.graphs} [synthetic] to ${withLora.graphs} [synthetic] in \`FULL_AND_PIECEWISE\``)
     const all = defaultGraphs()
-    mentions('tr2.l6', 'the default list', `captures ${all.graphs} graphs [measured], which the model prices at ${fmt(all.mib)} MiB [estimated]`)
+    mentions('tr2.l6', 'the default list', `captures ${all.graphs} graphs [synthetic], which the model prices at ${fmt(all.mib)} MiB [estimated]`)
   })
 
   test('the memory: 8 MiB and 16 KiB a graph, and the KV cache with the graphs ignored and taken off first', () => {
@@ -868,9 +868,9 @@ describe('lesson 6: dispatch keys, modes and memory', () => {
     const close = closePractice()
     expect(CLOSE_PRACTICE_SEED).toBe(16)
     expect([close.card, close.rail, close.budget]).toEqual(['small', 8, 128])
-    mentions('tr2.l6', 'the night', `on ${close.rail} batch slots [measured] with a budget of ${close.budget} tokens [measured], and the room is ${fmt(close.graphRoomMiB, 3)} MiB [measured]`)
-    mentions('tr2.l6', 'the naive night', `loses ${close.naiveDarkPercent}% [measured] of its clock to bubbles: ${fmt(close.naiveDarkUs)} µs [measured] of ${fmt(close.naiveClockUs)} µs [measured]`)
-    mentions('tr2.l6', 'the house', `\`FULL\` graphs at the sizes ${close.houseSizes.join(' and ')} [measured]. Its run takes ${fmt(close.houseClockUs)} µs [measured] with no bubble, and its two graphs take ${fmt(close.graphRoomMiB, 3)} MiB [derived], the whole room`)
+    mentions('tr2.l6', 'the night', `on ${close.rail} batch slots [synthetic] with a budget of ${close.budget} tokens [synthetic], and the room is ${fmt(close.graphRoomMiB, 3)} MiB [synthetic]`)
+    mentions('tr2.l6', 'the naive night', `loses ${close.naiveDarkPercent}% [synthetic] of its clock to bubbles: ${fmt(close.naiveDarkUs)} µs [synthetic] of ${fmt(close.naiveClockUs)} µs [synthetic]`)
+    mentions('tr2.l6', 'the house', `\`FULL\` graphs at the sizes ${close.houseSizes.join(' and ')} [synthetic]. Its run takes ${fmt(close.houseClockUs)} µs [synthetic] with no bubble, and its two graphs take ${fmt(close.graphRoomMiB, 3)} MiB [derived], the whole room`)
     expect([close.houseMode, close.houseDarkUs, close.houseLevers.async, close.houseLevers.inputIds, close.houseLevers.runner]).toEqual(['FULL', 0, true, 'device', 'mrv2'])
     expect([close.naiveLevers.async, close.naiveLevers.inputIds, close.naiveLevers.runner, close.naiveLevers.graphMode]).toEqual([false, 'host', 'v1', 'NONE'])
     const refused = closeRefusals()
@@ -878,7 +878,7 @@ describe('lesson 6: dispatch keys, modes and memory', () => {
     expect(Object.values(refused.defaultSizesRefused)).toEqual([true, true, true, true])
     expect(refused.defaultModeAtHouseSizesRefused).toBe(true)
     mentions('tr2.l6', 'the default sizes', `vLLM's default sizes for those ${close.rail} slots are ${refused.defaultSizes.slice(0, 4).join(', ')} and ${refused.defaultSizes[4]} [derived], and the engine refuses to start in each of the four modes that use graphs`)
-    mentions('tr2.l6', 'the hand ids', `the run is served and has ${refused.handIdsViolations} dependency violations [measured]`)
+    mentions('tr2.l6', 'the hand ids', `the run is served and has ${refused.handIdsViolations} dependency violations [synthetic]`)
     expect(refused.handIdsViolations).toBeGreaterThan(0)
   })
 })
@@ -938,13 +938,13 @@ describe('the figures', () => {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 describe('the commit that the numbers name', () => {
-  /** The day and the commit that each "Read on <day> at `<commit>`" names, once each. */
+  /** The day and the commit that each "Printed by the course's model on <day> at `<commit>`" names, once each. */
   const named = [...new Set(lessons.flatMap((l) => [...l.text.matchAll(/(\d{4}-\d{2}-\d{2}) at `([0-9a-f]{7,40})`/g)].map((m) => `${m[1]} ${m[2]}`)))]
   const cited = named.map((pair) => pair.split(' ')[1])
 
   test('the lessons that print the course\'s own measurements name one commit, in code, and the day', () => {
     expect(named.length).toBe(1)
-    for (const id of ['tr2.l1', 'tr2.l2', 'tr2.l3', 'tr2.l4', 'tr2.l5', 'tr2.l6', 'tr2.l7']) expect([id, /[Rr]ead on \d{4}-\d{2}-\d{2} at `[0-9a-f]{7,40}`/.test(lessonOf(id).text)]).toEqual([id, true])
+    for (const id of ['tr2.l1', 'tr2.l2', 'tr2.l3', 'tr2.l4', 'tr2.l5', 'tr2.l6', 'tr2.l7']) expect([id, /[Pp]rinted by the course's model on \d{4}-\d{2}-\d{2} at `[0-9a-f]{7,40}`/.test(lessonOf(id).text)]).toEqual([id, true])
   })
 
   test('it is a commit of this repository, when the history is here to say so', () => {

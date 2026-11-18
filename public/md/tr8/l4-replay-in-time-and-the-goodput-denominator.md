@@ -14,9 +14,9 @@ A trace is a list of requests, and each row says two things: what the request is
 
 The reason to keep the times is that queues form in bursts. The file's busiest minute holds **1095 requests** [measured], and an average minute of its busiest hour holds **555.08 requests per minute** [derived], a ratio of about **1.97 x** [derived]. The two fall in different parts of the file, so this sets two peaks side by side. It shows the point all the same: a replay at an hour's mean rate has no such minute in it.
 
-Here is the effect in the course's own world, on a synthetic rush. The trace runs 70 s [estimated] at 40% [estimated] of what the server can finish, then 8 s [estimated] at 160% [estimated], then 70 s [estimated] at 40% [estimated]. It holds 1,159 requests [measured], so 11 lie beyond its p99 [derived]. The two runs send the same requests to the same server. One replays the trace in time, and the other sends the requests at the trace's mean rate, which is 45% [measured] of the server's capacity, as `--request-rate` would. Measured by the course's sim on 2026-11-04 at `fd168df`, with the seed `7`.
+Here is the effect in the course's own world, on a synthetic rush. The trace runs 70 s [estimated] at 40% [estimated] of what the server can finish, then 8 s [estimated] at 160% [estimated], then 70 s [estimated] at 40% [estimated]. It holds 1,159 requests [synthetic], so 11 lie beyond its p99 [derived]. The two runs send the same requests to the same server. One replays the trace in time, and the other sends the requests at the trace's mean rate, which is 45% [synthetic] of the server's capacity, as `--request-rate` would. Printed by the course's model on 2026-11-04 at `fd168df`, with the seed `7`.
 
-| Replay | p50, ms [measured] | p90, ms [measured] | p99, ms [measured] |
+| Replay | p50, ms [synthetic] | p90, ms [synthetic] | p99, ms [synthetic] |
 |---|---|---|---|
 | in time, at the trace's own pace | 63 | 1,883 | 3,814 |
 | at the trace's mean rate | 59 | 92 | 127 |
@@ -43,9 +43,9 @@ Goodput counts the requests that met every objective, per second. kernelspace T7
 
 vLLM divides by the benchmark duration, which runs from just before the first request is generated to just after the last has returned. **good_completed / dur_s** [measured] SGLang divides by the time from the first send to the last completion. **good requests / benchmark duration** [measured] Both put the drain tail in the denominator, the time a backed-up queue takes to empty after the last arrival. kernelspace's knee does not. It divides by its arrival window and counts the requests that met the SLO wherever they finish. **SLO-met requests ÷ the arrival window** [measured] The reason is in the exercise's own comment. **a longer window would not do** [measured]
 
-The course reports the window's goodput and shows the other beside it, labelled. The table runs one server at four loads for 60 s [estimated] of Poisson arrivals each, with a time-to-first-token objective of 500 ms [estimated] and a time-per-output-token objective of 50 ms [estimated]. Measured by the course's sim on 2026-11-04 at `fd168df`, with the seed `11`.
+The course reports the window's goodput and shows the other beside it, labelled. The table runs one server at four loads for 60 s [estimated] of Poisson arrivals each, with a time-to-first-token objective of 500 ms [estimated] and a time-per-output-token objective of 50 ms [estimated]. Printed by the course's model on 2026-11-04 at `fd168df`, with the seed `11`.
 
-| Load, times capacity [estimated] | Offered [measured] | Met both [measured] | Over the arrival window, requests/s [measured] | Over the whole run, requests/s [measured] | The whole run, s [measured] |
+| Load, times capacity [estimated] | Offered [synthetic] | Met both [synthetic] | Over the arrival window, requests/s [synthetic] | Over the whole run, requests/s [synthetic] | The whole run, s [synthetic] |
 |---|---|---|---|---|---|
 | 0.5 | 483 | 483 | 8.05 | 7.75 | 62.3 |
 | 1 | 971 | 835 | 13.92 | 13.42 | 62.2 |
@@ -66,14 +66,14 @@ Little's law says that the long-term average number of requests in a stationary 
 
 The same four runs, read through the law, over their arrival windows and counting a request from its send.
 
-| Load, times capacity [estimated] | In flight, L [measured] | Throughput times mean latency [measured] | Residual [measured] |
+| Load, times capacity [estimated] | In flight, L [synthetic] | Throughput times mean latency [synthetic] | Residual [synthetic] |
 |---|---|---|---|
 | 0.5 | 16.7 | 16.4 | 1.8% |
 | 1 | 57.0 | 55.1 | 3.4% |
 | 2 | 511.5 | 265.3 | 48% |
 | 3 | 1,013.4 | 345.3 | 66% |
 
-The run at half the capacity is steady, and the two sides agree to within 2% [measured]. The course allows 5% [estimated]. At capacity the residual starts to show, and beyond it the run is not stationary, because the queue is still growing when the window ends, so the sides part. A failed check does not say which of the log or the run is at fault. It says that one of them is, and that the number should not be published yet. The third lesson's guess was this law at work: eight permits held for 1.2 s each is 6.7 sends a second [derived], so a cap is Little's law written as a flag.
+The run at half the capacity is steady, and the two sides agree to within 2% [synthetic]. The course allows 5% [estimated]. At capacity the residual starts to show, and beyond it the run is not stationary, because the queue is still growing when the window ends, so the sides part. A failed check does not say which of the log or the run is at fault. It says that one of them is, and that the number should not be published yet. The third lesson's guess was this law at work: eight permits held for 1.2 s each is 6.7 sends a second [derived], so a cap is Little's law written as a flag.
 
 > **Practice.** Items from the generator family `tr8.littles-law`, level `0`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

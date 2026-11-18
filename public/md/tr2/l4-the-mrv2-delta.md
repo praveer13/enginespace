@@ -41,14 +41,14 @@ Check which phase a change shortens before you go on.
 
 ## Where the saving shows
 
-Your answer to the prediction is a saving per step, and it is the sum of the three phases, 304 µs [derived]. The level's answer is a smaller number, and on one of its two cards it is zero. Read on 2026-11-08 at `b5fb81a`; the run is the `mrv2` level's, on its practice seed `0`.
+Your answer to the prediction is a saving per step, and it is the sum of the three phases, 304 µs [derived]. The level's answer is a smaller number, and on one of its two cards it is zero. Printed by the course's model on 2026-11-08 at `b5fb81a`; the run is the `mrv2` level's, on its practice seed `0`.
 
-| Median time per output token | On V1, µs [measured] | On MRV2, µs [measured] | MRV2 saves, µs [measured] |
+| Median time per output token | On V1, µs [synthetic] | On MRV2, µs [synthetic] | MRV2 saves, µs [synthetic] |
 |---|---|---|---|
 | Small model | 1,561 | 1,493 | 68 |
 | `70B on H100` | 11,982 | 11,982 | 0 |
 
-The saving is 4.4% [derived] of the small model's token and nothing on the big model's. The reason is the third lesson's rule. With async scheduling on, which is how both stages are served, the CPU's work hides behind the forward, so a runner that does that work faster changes the time per token only where the CPU's work is the longer lane. On the big card the forward is about twelve times [derived] the CPU's work and hides all of it for either runner. On the small card the CPU is the longer lane only on the steps that admit a request, and that is where the 68 µs [measured] come from.
+The saving is 4.4% [derived] of the small model's token and nothing on the big model's. The reason is the third lesson's rule. With async scheduling on, which is how both stages are served, the CPU's work hides behind the forward, so a runner that does that work faster changes the time per token only where the CPU's work is the longer lane. On the big card the forward is about twelve times [derived] the CPU's work and hides all of it for either runner. On the small card the CPU is the longer lane only on the steps that admit a request, and that is where the 68 µs [synthetic] come from.
 
 Put the same rule in a table. This is the closed form of the third lesson on the small model's host work for 12 rows, which is 1,068 µs [derived] on V1 and 764 µs [derived] on MRV2, and a forward that gets shorter and shorter.
 
