@@ -5,12 +5,12 @@ import type { SceneView } from '@es/play/broken-bench/types'
 import type { BenchRun } from './types'
 
 /*
- * The inspector's desk on the page (GAMES.md §11, "Controls"): what the learner has set the stopwatch and the cut to, and which order of
- * the log the lamp is on. These are the board's own, held above the shell with the page and not in the session: the session's actions are
- * the ones GAMES.md §11 lists, and the court never reads the desk. A setting is kept only while its case is on the board. The key names
+ * The desk on the page (GAMES.md §11, "Controls"): what the learner has set the clock switch and the cut to, and which request of
+ * the log is selected. These are the board's own, held above the shell with the page and not in the session: the session's actions are
+ * the ones GAMES.md §11 lists, and the reference never reads the desk. A setting is kept only while its case is on the board. The key names
  * the case, so a new case starts with the report's own settings and nothing is cleared by an effect.
  *
- * The desk starts as the report read the log: the harness's clock and its own warm-up. Moving the stopwatch to the due time, or the cut to
+ * The desk starts as the report read the log: the harness's clock and its own warm-up. Moving the clock to the due time, or the cut to
  * the course's rule, is the learner's act, and the tail and the sheets answer at once.
  */
 
@@ -104,11 +104,11 @@ export function deskFor(settings: DeskSettings, set: Dispatch<SetStateAction<Des
   }
 }
 
-/** Orders the tape prints at once, around the selection: a phone's height holds fewer, and each prints as a block of its own there. */
-export const TAPE_ORDERS = { landscape: 21, portrait: 9 } as const
+/** Requests the log lists at once, around the selection: a phone's height holds fewer. */
+export const LOG_ROWS = { landscape: 21, portrait: 9 } as const
 
-/** The first order the tape prints: the stretch holds the selection in its middle, or starts at the cut when nothing is selected. */
-export function tapeStart(count: number, selected: number | null, cut: number, size: number): number {
+/** The first request the log lists: the stretch holds the selection in its middle, or starts at the cut when nothing is selected. */
+export function logStart(count: number, selected: number | null, cut: number, size: number): number {
   const centre = selected ?? cut + Math.floor(size / 2)
   return Math.max(0, Math.min(centre - Math.floor(size / 2), count - size))
 }

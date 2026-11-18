@@ -1,0 +1,44 @@
+/*
+ * Broken benchmark's exhibits, drawn in the diagram at a result (REDESIGN §2.6). They load with the result and not before.
+ */
+
+/* ------------------------------------------------------------------------------------------------ the exhibits, drawn at a result */
+
+.es-bench-exhibits {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-3);
+  min-width: 0;
+}
+
+@media (min-width: 64rem) {
+  .es-bench-exhibits {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+.es-bench-exhibit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+  min-width: 0;
+  margin: 0;
+}
+
+.es-bench-sheetnote {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  line-height: 1.4;
+}
+
+.es-bench-flags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-1) var(--es-space-4);
+  margin: 0;
+  font-size: var(--es-size-caption);
+}
+

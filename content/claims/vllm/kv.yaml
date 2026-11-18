@@ -74,7 +74,7 @@
 
 - id: vllm.hybrid-kv.n-group-lookup
   value: iterative fixed point
-  text: At v0.33.0 HybridKVCacheCoordinator.find_longest_cache_hit handles a list of attention types, not only two, with an iterative fixed-point algorithm. Each type either accepts the candidate length or shortens it, and any shortening restarts the pass over all the types. The loop converges because the length only falls and stops at 0.
+  text: At v0.33.0 HybridKVCacheCoordinator.find_longest_cache_hit handles a list of attention types, not only two, with an iterative fixed-point algorithm. Each type either accepts the candidate length or shortens it, and any shortening restarts the scan over all the types. The loop converges because the length only falls and stops at 0.
   tag: measured
   source:
     url: https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_coordinator.py#L811-L816

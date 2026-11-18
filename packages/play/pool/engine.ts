@@ -409,7 +409,7 @@ function tick(w: PoolWork): void {
  */
 export function advance(w: PoolWork): void {
   for (let guard = 0; ; guard++) {
-    if (guard > GUARD) throw new Error('internal: the night does not advance')
+    if (guard > GUARD) throw new Error('internal: the run does not advance')
     if (w.done || w.ask !== null) return
     switch (w.phase) {
       case 'arrive':
@@ -518,7 +518,7 @@ function beginLoad(w: PoolWork, adapter: number): void {
  * violation can only come from a log that was edited. The prediction may come first, once, before any decision.
  */
 export function applyAction(w: PoolWork, action: PoolAction): void {
-  if (w.done) throw new RangeError('the night is over, so no action can follow')
+  if (w.done) throw new RangeError('the run is over, so no action can follow')
   w.dumped = []
   switch (action.t) {
     case 'commit': {
@@ -529,12 +529,12 @@ export function applyAction(w: PoolWork, action: PoolAction): void {
     }
     case 'admit': {
       const ask = w.ask
-      if (ask === null || ask.kind !== 'admit') throw new RangeError('no ticket is being offered to hang')
+      if (ask === null || ask.kind !== 'admit') throw new RangeError('no request is being offered to admit')
       if (action.req === null) {
         w.ask = null
         w.phase = 'prefetch'
       } else {
-        if (!ask.candidates.includes(action.req)) throw new RangeError(`ticket ${action.req} cannot hang now`)
+        if (!ask.candidates.includes(action.req)) throw new RangeError(`request ${action.req} cannot be admitted now`)
         w.ask = null
         beginAdmit(w, action.req)
       }
@@ -543,15 +543,15 @@ export function applyAction(w: PoolWork, action: PoolAction): void {
     }
     case 'evict': {
       const ask = w.ask
-      if (ask === null || ask.kind !== 'evict') throw new RangeError('no pans are being asked for')
-      if (!Array.isArray(action.pages) || action.pages.length !== ask.need) throw new RangeError(`dump exactly ${ask.need} pans`)
-      if (new Set(action.pages).size !== action.pages.length) throw new RangeError('a pan can be dumped once')
-      for (const page of action.pages) if (!ask.candidates.includes(page)) throw new RangeError(`pan ${page} is not a cached pan that can be dumped`)
+      if (ask === null || ask.kind !== 'evict') throw new RangeError('no pages are being asked for')
+      if (!Array.isArray(action.pages) || action.pages.length !== ask.need) throw new RangeError(`evict exactly ${ask.need} pages`)
+      if (new Set(action.pages).size !== action.pages.length) throw new RangeError('a page can be evicted once')
+      for (const page of action.pages) if (!ask.candidates.includes(page)) throw new RangeError(`page ${page} is not a cached page that can be evicted`)
       for (const page of action.pages) w.mgr.dump(page)
       w.dumped = action.pages.slice().sort((a, b) => a - b)
       const pending = w.pending
       w.ask = null
-      if (pending === null) throw new Error('internal: pans were dumped for nothing')
+      if (pending === null) throw new Error('internal: pages were evicted for nothing')
       if (pending.kind === 'admit') commitAdmit(w, pending.req)
       else commitLoad(w, pending.adapter)
       w.turns += 1
@@ -559,8 +559,8 @@ export function applyAction(w: PoolWork, action: PoolAction): void {
     }
     case 'preempt': {
       const ask = w.ask
-      if (ask === null || ask.kind !== 'preempt') throw new RangeError('no ticket is being asked for')
-      if (!ask.candidates.includes(action.req)) throw new RangeError(`ticket ${action.req} is not on the line`)
+      if (ask === null || ask.kind !== 'preempt') throw new RangeError('no request is being asked for')
+      if (!ask.candidates.includes(action.req)) throw new RangeError(`request ${action.req} is not running`)
       apply(w, { op: 'finish', req: action.req })
       const req = w.reqs[action.req]
       req.status = 'waiting'
@@ -591,7 +591,7 @@ export function applyAction(w: PoolWork, action: PoolAction): void {
       break
     }
     default:
-      throw new RangeError(`The Reach-In has no action "${String((action as { t?: unknown }).t)}"`)
+      throw new RangeError(`The KV page pool has no action "${String((action as { t?: unknown }).t)}"`)
   }
   w.history.push(action)
 }
@@ -611,8 +611,8 @@ export type Policy = (w: PoolWork, ask: PoolAsk) => PoolAction
 export function playPolicy(w: PoolWork, policy: Policy, until?: (w: PoolWork) => boolean): PoolWork {
   advance(w)
   for (let decisions = 0; !w.done; decisions++) {
-    if (decisions > GUARD) throw new Error('internal: the policy does not finish the night')
-    if (w.ask === null) throw new Error('internal: the night is not over, and nothing is asked')
+    if (decisions > GUARD) throw new Error('internal: the policy does not finish the run')
+    if (w.ask === null) throw new Error('internal: the run is not over, and nothing is asked')
     if (until !== undefined && until(w)) break
     applyAction(w, policy(w, w.ask))
     advance(w)

@@ -1,29 +1,34 @@
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router'
-import type { Claim, CompiledModule, IndexLesson, IndexModule, MapKc } from '@es/schema'
-import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
+import type { Claim, CompiledModule, IndexLesson, IndexModule, MapKc, MapLesson } from '@es/schema'
+import { ContinueLink } from '@/design/components/Header'
 import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
-import { TapeLabel } from '@/design/components/TapeLabel'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
 import { useClaims, useDocumentTitle, useIndex } from '@/content/load'
 import { useModule } from '@/content/load-lessons'
 import { useMap } from '@/content/load-map'
-import { Blocks } from '@/content/render/Blocks'
-import { citedClaimIds, decimals, laneName, renderEnv, titled, todayIso } from '@/content/render/model'
-import { Columns, LinkRow, PageHeader, PageNotice, RefLink, Scope } from '@/content/render/Page'
-import '@/content/render/content.css'
-import { Kcs, Loop } from '@/map/ModuleProgress'
-import type { ModuleProgress } from '@/progress/derive'
+import { citedClaimIds, decimals, pendingLab, renderEnv, titled, todayIso } from '@/content/render/model'
+import { MODULE } from '@/map/copy'
+import { Outcomes, Rows, type LabRef } from '@/map/ModuleProgress'
+import { needsLine, referenceParts, saysHours, twoSentences } from '@/map/moduleWords'
+import { outcomesPassed } from '@/map/outcomes'
+import { Reference } from '@/map/ModuleReference'
+import type { KcState, ModuleProgress } from '@/progress/derive'
+import { needsWords, type LessonState, type Step } from '@/progress/next'
 import { useProgress } from '@/progress/useProgress'
+import { LEGENDS, LESSON_WORDS, moduleCode } from '@/progress/words'
+import './module.css'
 
 /*
- * /m/:module (ARCHITECTURE §3.1): a module's page. Its title, the printer's tape of facts, the module's own words, what you
- * will be able to do, the loop it runs and what you hold of it, and its lessons as tickets, each with a stub that opens it. A module
- * that `course.yaml` names and nobody has written yet ("planned") shows what the index knows of it.
- * The loop and the evidence (W1-T06) are derived from the learner's events and the compiled map each time the page draws, and are
- * never stored (src/progress). `ModuleView` is the page once it has its content, and takes everything it shows as props.
+ * /m/:module (REDESIGN section 3.3): a module's page, in the order a learner needs it. The title with its size beside it, two sentences of
+ * what the module is and why, the amber button, and the lessons, all in the first screen. Beside the lessons, what you will be able to do,
+ * each outcome with a tick once its knowledge components are passed. Under them the Game, Build, Prove and Keep rows, and last the Reference:
+ * closed disclosures that hold the module's own essays, the hours, the model's card and the sources. Nothing about the module's metadata
+ * stands above the lessons.
+ *
+ * The way on, the lessons' states, the ticks and the rows are derived from the learner's events and the compiled map each time the page draws,
+ * and are never stored (src/progress). `ModuleView` is the page once it has its content, and takes everything it shows as props. A module that
+ * `course.yaml` names and nobody has written yet ("planned") shows what the index knows of it.
  */
 
 export function Component() {
@@ -34,22 +39,22 @@ export function Component() {
   const cites = loaded !== null && citedClaimIds(loaded.blocks).size > 0
   const claims = useClaims(cites)
   const map = useMap()
-  const { ready, progress } = useProgress(map.status === 'ready' ? map.value : null)
+  const { ready, progress, next, last, lessons } = useProgress(map.status === 'ready' ? map.value : null)
   const [today] = useState(todayIso)
   const entry = index.status === 'ready' ? index.value.modules.find((candidate) => candidate.id === id) : undefined
   const title = loaded?.title ?? entry?.title ?? null
   useDocumentTitle(title === null ? null : titled(title))
 
   if (module.status === 'error' || (index.status === 'error' && loaded === null)) {
-    return <PageNotice kind="failed" title="The module did not load" ticket={id} message="The module would not print. Check your connection and reload the page." />
+    return <Notice title="The module did not load" message="The module would not load. Check your connection and reload the page." />
   }
   if (module.status === 'loading' || index.status === 'loading' || map.status === 'loading' || (cites && claims.status === 'loading')) {
-    return <PageNotice kind="loading" title="Module" ticket={id} what="module" />
+    return <Notice title="Module" message="Loading the module" loading />
   }
   if (loaded === null && entry === undefined) {
-    return <PageNotice kind="missing" title="Module not found" ticket={id} message={`No module called ${id}.`} back={{ to: '/map', label: 'Course map' }} />
+    return <Notice title="Module not found" message={`No module called ${id}.`} back />
   }
-  // A map that did not load leaves the loop and the evidence out; the rest of the page does not need it.
+  // A map that did not load leaves the ticks, the way on and the rows out; the rest of the page does not need it.
   const kcs = map.status === 'ready' ? map.value.kcs.filter((kc) => kc.module === id) : undefined
   return (
     <ModuleView
@@ -61,7 +66,22 @@ export function Component() {
       kcs={kcs}
       progress={progress?.modules.get(id)}
       ready={ready}
+      way={map.status === 'ready' ? { step: next, last, states: lessons, lessons: map.value.lessons.filter((lesson) => lesson.module === id) } : undefined}
     />
+  )
+}
+
+/** The page while the module loads, when there is none at the address, and when it did not load: its name as the `h1`, and a sentence. */
+function Notice({ title, message, loading = false, back = false }: { title: string; message: string; loading?: boolean; back?: boolean }) {
+  useDocumentTitle(loading ? null : titled(title))
+  return (
+    <div className="es-module" data-notice={loading ? 'loading' : 'missing'}>
+      <h1 className="es-module__title">{title}</h1>
+      <p className="es-module__sentences" role={loading ? 'status' : undefined}>
+        {message}
+      </p>
+      {back ? <TextLink to="/map">Open the course</TextLink> : null}
+    </div>
   )
 }
 
@@ -71,173 +91,196 @@ export interface ModuleViewProps {
   module: CompiledModule | null
   /** The module's entry in the course index: its lessons, and everything a planned module has. Undefined if the index did not load. */
   entry?: IndexModule
-  /** The claims by id, or null when they did not load: each chip then says so. */
+  /** The claims by id, or null when they did not load: the Reference then says so. */
   claims: ReadonlyMap<string, Claim> | null
   today: string
-  /** The module's KCs from the compiled map. Undefined when the map did not load, and the page then shows neither the loop nor the evidence. */
+  /** The module's KCs from the compiled map. Undefined when the map did not load, and the page then shows no ticks. */
   kcs?: readonly MapKc[]
   /** What the learner's ledger holds of the module, derived. Undefined until it has been. */
   progress?: ModuleProgress
   /** True once the ledger has been read. Until then the page says so, and does not say the learner has done nothing. */
   ready?: boolean
+  /** The way on and each lesson's state, from the ledger and the map's lessons table. Undefined when the map did not load. */
+  way?: ModuleWay
 }
 
-/** Hours, printed through the readout. They are [estimated] (docs/PLAN.md §4). */
-function hoursReadout(hours: number) {
-  return <Readout value={hours} digits={decimals(hours)} tag="estimated" size="sm" />
+export interface ModuleWay {
+  /** `nextStep`'s answer, or null until the ledger has been read. */
+  step: Step | null
+  last: string | null
+  states: ReadonlyMap<string, LessonState>
+  /** This module's rows of the lessons table, in order. */
+  lessons: readonly MapLesson[]
 }
 
-export function ModuleView({ id, module, entry, claims, today, kcs, progress, ready = false }: ModuleViewProps) {
+/** The lesson the amber mark is on: the one `nextStep` points at when it points into this module, else the first not done. */
+function nextLesson(id: string, way: ModuleWay | undefined, list: readonly IndexLesson[]): IndexLesson | undefined {
+  if (way === undefined || way.step === null) return list[0]
+  const { step, states } = way
+  if (step.module === id && step.lesson !== null) return list.find((lesson) => lesson.id === step.lesson)
+  return list.find((lesson) => states.get(lesson.id) !== 'done')
+}
+
+/**
+ * The module's way on (REDESIGN sections 2.4 and 3.3): Continue when `nextStep` points into this module, with its words and its link;
+ * otherwise a local way on that names its target, the first lesson not done, and never says Continue. It waits for the ledger, and says so.
+ * With no map there is no pointer to read, and the first lesson is the way on.
+ */
+function WayOn({ id, way, ready, lessons }: { id: string; way: ModuleWay | undefined; ready: boolean; lessons: readonly IndexLesson[] }) {
+  if (way !== undefined && (!ready || way.step === null)) {
+    return (
+      <p className="es-module__way-wait" role="status">
+        {MODULE.reading}
+      </p>
+    )
+  }
+  const at = way === undefined ? 0 : lessons.findIndex((lesson) => way.states.get(lesson.id) !== 'done')
+  const target = lessons[at]
+  const step = way?.step ?? null
+  if (step !== null && (step.module === id || target === undefined)) {
+    const sentence = step.module === id ? (way?.last === null || way?.last === undefined ? undefined : `${way.last} Next: ${step.reason}.`) : `Every lesson of ${moduleCode(id)} is done. Next: ${step.reason}.`
+    return (
+      <>
+        {sentence === undefined ? null : <p className="es-module__last">{sentence}</p>}
+        <ContinueLink target={step} emphasis="primary" minutes={step.minutes} />
+      </>
+    )
+  }
+  if (target === undefined) return null
+  // A local way on names its target and never says Continue (REDESIGN section 2.4).
+  return <ContinueLink target={{ href: target.route, label: `Open lesson ${at + 1}: ${target.title}`, word: 'Open' }} emphasis="primary" minutes={target.minutes} />
+}
+
+/** Hours, printed through the readout. They are [estimated] (docs/PLAN.md section 4). */
+const hoursText = (hours: number): string => hours.toLocaleString('en-US', { maximumFractionDigits: decimals(hours) })
+
+function HoursPart({ hours, byLane }: { hours: number | undefined; byLane: { B?: number; L?: number; F?: number } | undefined }) {
+  if (hours === undefined) return <p>The hours are not set yet.</p>
+  const lanes = (['B', 'L', 'F'] as const).filter((lane) => byLane?.[lane] !== undefined)
+  return (
+    <p>
+      <Readout value={hours} digits={decimals(hours)} tag="estimated" size="sm" /> hours in all
+      {lanes.length === 0
+        ? '.'
+        : ': '}
+      {lanes.map((lane, at) => (
+        <span key={lane}>
+          {at === 0 ? '' : ', '}
+          <Readout value={byLane?.[lane] ?? 0} digits={decimals(byLane?.[lane] ?? 0)} tag="estimated" size="sm" /> {lane === 'B' ? 'in the browser' : lane === 'L' ? 'on a laptop' : 'on a GPU'}
+          {at === lanes.length - 1 ? '.' : ''}
+        </span>
+      ))}
+    </p>
+  )
+}
+
+export function ModuleView({ id, module, entry, claims, today, kcs, progress, ready = false, way }: ModuleViewProps) {
   const env = useMemo(() => renderEnv(module?.blocks ?? [], claims, today), [module, claims, today])
   const title = module?.title ?? entry?.title ?? id
   const status = module?.status ?? entry?.status ?? 'planned'
   const hours = module?.hours ?? entry?.hours
   const byLane = module?.hours_by_lane ?? entry?.hours_by_lane
-  const prereqs = module?.prereqs ?? entry?.prereqs ?? []
   const games = module?.games ?? entry?.games ?? []
-  const labs = module?.labs ?? []
-
-  const lines: PrinterTapeLine[] = []
-  if (hours !== undefined) lines.push({ id: 'hours', label: 'hours', value: hoursReadout(hours) })
-  for (const lane of ['B', 'L', 'F'] as const) {
-    const laneHours = byLane?.[lane]
-    if (laneHours !== undefined) lines.push({ id: `lane-${lane}`, label: `${laneName(lane)} (${lane})`, value: hoursReadout(laneHours) })
-  }
-  lines.push({ id: 'status', label: 'status', value: status, tone: status === 'live' ? 'ink' : 'ink-2' })
-  if (kcs !== undefined && kcs.length > 0) {
-    const counts = progress?.counts
-    const held = ready && counts !== undefined
-    lines.push({
-      id: 'earned',
-      label: 'earned',
-      value: held ? (
-        <>
-          <Readout value={counts.earned} tag="measured" size="sm" /> of {counts.total}
-        </>
-      ) : (
-        'reading your ledger'
-      ),
-    })
-    lines.push({ id: 'kept', label: 'kept', value: held ? <Readout value={counts.kept} tag="measured" size="sm" /> : 'reading your ledger' })
-  }
-  if (prereqs.length > 0) {
-    lines.push({
-      id: 'prereqs',
-      label: 'advised first',
-      value: <LinkRow>{prereqs.map((ref) => <RefLink key={ref} to={ref} />)}</LinkRow>,
-    })
-  }
-  if (module !== null && module.pins.length > 0) lines.push({ id: 'pins', label: 'pins', value: module.pins.join(', ') })
-  if (games.length > 0) {
-    lines.push({
-      id: 'games',
-      label: 'games',
-      value: (
-        <LinkRow>
-          {games.map((game) => (
-            <TextLink key={game} to={`/play/${game}`}>
-              {game}
-            </TextLink>
-          ))}
-        </LinkRow>
-      ),
-    })
-  }
-  if (labs.length > 0) {
-    lines.push({
-      id: 'labs',
-      label: 'labs',
-      value: (
-        <LinkRow>
-          {labs.map((lab) => (
-            <TextLink key={lab} to={`/labs/${lab}`}>
-              {lab}
-            </TextLink>
-          ))}
-        </LinkRow>
-      ),
-    })
-  }
+  const lessons = entry?.lessons ?? null
+  const sentences = module === null ? '' : twoSentences(module.blocks)
+  const size = [moduleCode(id), hours === undefined ? null : `${hoursText(hours)} h estimated`, needsLine(byLane, hoursText) || null].filter((part) => part !== null)
+  const labs: LabRef[] = (module?.labs ?? []).map((lab) => ({
+    id: lab,
+    lane: module?.blocks.flatMap((block) => (block.type === 'lab' && block.id === lab ? [block.lane] : []))[0] ?? 'B',
+    waiting: pendingLab(lab) !== null,
+  }))
+  const states = useMemo(() => new Map<string, KcState>((progress?.kcs ?? []).map((kc) => [kc.id, kc.state])), [progress])
+  const passed = useMemo(() => outcomesPassed(id, module?.outcomes.length ?? 0, states, ready && kcs !== undefined), [id, module, states, ready, kcs])
+  const mark = lessons === null ? undefined : nextLesson(id, way, lessons)
+  const parts = useMemo(() => (module === null ? [] : referenceParts(module.blocks)), [module])
+  const cited = useMemo(() => (module === null ? [] : [...citedClaimIds(module.blocks)]), [module])
 
   return (
-    <article className="es-doc" data-rev={module?.rev}>
-      <PageHeader crumbs={[{ to: '/map', label: 'Course map' }]} current={id} title={title} tapes={[status]} />
-      <Columns side={<PrinterTape label="About this module" lines={lines} />}>
-        {module === null ? (
-          <Ticket as="section" width="wide" head={id} state="empty" empty="Planned: not written yet." />
+    <article className="es-module" data-rev={module?.rev} data-status={status}>
+      <header className="es-module__head">
+        <nav aria-label="Breadcrumb" className="es-module__crumbs">
+          <ol>
+            <li>
+              <TextLink to="/map">Course</TextLink>
+            </li>
+            <li aria-current="page">{`${moduleCode(id)} ${title}`}</li>
+          </ol>
+        </nav>
+        <div className="es-module__titleline">
+          <h1 className="es-module__title">{title}</h1>
+          <p className="es-module__size">{size.join(' · ')}</p>
+        </div>
+        {sentences === '' ? (
+          status === 'planned' ? (
+            <p className="es-module__sentences">Not published yet.</p>
+          ) : null
         ) : (
-          <>
-            <Blocks blocks={module.blocks} env={env} scope={module.id} />
-            <Ticket as="section" width="wide" head={<Scope id={module.id} />} meta="outcomes" title="You will be able to" titleAs="h2" className="es-c-block" data-block="outcomes">
-              <ol className="es-c-outcomes">
-                {module.outcomes.map((outcome) => (
-                  <li key={outcome}>{outcome}</li>
-                ))}
-              </ol>
-            </Ticket>
-            {kcs === undefined ? null : <Loop module={module.id} games={games} labs={labs} progress={progress} ready={ready} />}
-          </>
+          <p className="es-module__sentences">{sentences}</p>
         )}
-        {kcs === undefined || kcs.length === 0 ? null : <Kcs module={id} kcs={kcs} progress={progress} ready={ready} />}
-        <Lessons lessons={entry?.lessons ?? null} scope={id} />
-        {module === null ? null : <Artifacts artifacts={module.artifacts} scope={module.id} />}
-      </Columns>
+        <div className="es-module__way">
+          <WayOn id={id} way={way} ready={ready} lessons={lessons ?? []} />
+        </div>
+      </header>
+      <div className="es-module__grid">
+        <Lessons lessons={lessons} scope={id} states={ready ? way?.states : undefined} mark={mark?.id} />
+        {module === null ? null : <Outcomes outcomes={module.outcomes} passed={passed} />}
+      </div>
+      {module === null ? null : <Rows games={games} labs={labs} progress={progress} ready={ready} />}
+      {module === null ? null : (
+        <Reference
+          parts={parts}
+          env={env}
+          hours={saysHours(parts) ? null : <HoursPart hours={hours} byLane={byLane} />}
+          builds={module.prereqs.length === 0 && module.pins.length === 0 ? null : { prereqs: module.prereqs, pins: module.pins }}
+          cited={cited}
+        />
+      )}
     </article>
   )
 }
 
-/** A module's lessons, each a ticket with a stub that opens it. */
-function Lessons({ lessons, scope }: { lessons: readonly IndexLesson[] | null; scope: string }) {
+/** A module's lessons: number, title, minutes, what it needs and its state in a word, once the ledger has been read. The next one carries the amber mark. */
+function Lessons({ lessons, scope, states, mark }: { lessons: readonly IndexLesson[] | null; scope: string; states?: ReadonlyMap<string, LessonState>; mark?: string }) {
   return (
-    <section aria-labelledby="lessons" className="es-doc__lessons">
-      <h2 id="lessons" className="es-doc__heading">
-        Lessons
+    <section aria-labelledby="lessons" className="es-module__lessons">
+      <h2 id="lessons" className="es-module__h">
+        {MODULE.lessons}
       </h2>
       {lessons === null ? (
-        <Ticket width="wide" head={scope} state="error" error="The list of lessons did not load. Reload the page." />
+        <p className="es-module__note" role="alert">
+          The list of lessons did not load. Reload the page.
+        </p>
       ) : lessons.length === 0 ? (
-        <Ticket width="wide" head={scope} state="empty" empty="No lessons yet." />
+        <p className="es-module__note">No lessons yet.</p>
       ) : (
-        <ol className="es-doc__lesson-list">
-          {lessons.map((lesson) => (
-            <Ticket
-              key={lesson.id}
-              as="li"
-              width="wide"
-              head={<Scope id={lesson.id} />}
-              meta={lesson.status}
-              title={lesson.title}
-              titleAs="h3"
-              className="es-c-block"
-              data-block="lesson"
-              stub={<Stub to={lesson.route}>Open lesson</Stub>}
-            >
-              <p className="es-c-line">
-                <TicketLine qty={<Readout value={lesson.minutes} tag="estimated" size="sm" />}>minutes</TicketLine>
-              </p>
-            </Ticket>
-          ))}
+        <ol className="es-module__lesson-list" data-module={scope}>
+          {lessons.map((lesson, at) => {
+            const state = states === undefined ? undefined : (states.get(lesson.id) ?? 'not-started')
+            return (
+              <li key={lesson.id} className="es-module__lesson" data-lesson={lesson.id} data-next={lesson.id === mark ? 'true' : undefined}>
+                <a href={lesson.route} className="es-module__lesson-link" aria-current={lesson.id === mark ? 'step' : undefined}>
+                  <span className="es-module__n">{at + 1}</span>
+                  <span className="es-module__lesson-title">{lesson.title}</span>
+                  <span className="es-module__lesson-facts">
+                    <span className="es-module__minutes">
+                      <span className="es-num" data-tag="estimated">
+                        {lesson.minutes}
+                        <span className="sr-only"> (estimated)</span>
+                      </span>{' '}
+                      min
+                    </span>
+                    <span className="es-module__needs">{lesson.needs === undefined ? '' : needsWords(lesson.needs)}</span>
+                    <span className="es-module__state" data-lesson-state={state}>
+                      {state === undefined ? '' : LESSON_WORDS[state]}
+                    </span>
+                  </span>
+                </a>
+              </li>
+            )
+          })}
         </ol>
       )}
+      {states === undefined ? null : <p className="es-module__legend">{LEGENDS.lesson}</p>}
     </section>
-  )
-}
-
-/** What the module asks you to build and prove, with the lane each is worked in. */
-function Artifacts({ artifacts, scope }: { artifacts: CompiledModule['artifacts']; scope: string }) {
-  return (
-    <Ticket as="section" width="wide" head={<Scope id={scope} />} meta="artifacts" title="Artifacts" titleAs="h2" className="es-c-block" data-block="artifacts">
-      <ul className="es-c-artifacts">
-        {artifacts.map((artifact) => (
-          <li key={artifact.id}>
-            <TapeLabel size="sm" tilt="none">
-              {artifact.lane} · {laneName(artifact.lane)}
-            </TapeLabel>
-            <span>{artifact.title}</span>
-            <code>{artifact.id}</code>
-          </li>
-        ))}
-      </ul>
-    </Ticket>
   )
 }

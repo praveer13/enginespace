@@ -13,6 +13,7 @@
 import type { Seed } from '@es/sim/core'
 import type { Debrief, Grade, Session } from '../types'
 import { askOf, avoidableEmpties, canHang, countersOf, hang, houseTurn, hungCount, initState, levelDone, measured, onLine, runToDecision, setBatching, setOverlap, step } from './engine'
+import { LOOP_COPY } from './copy'
 import { LEVEL_IDS, PASS_SCORE, buildLevel, inLevelBand } from './levels'
 import type { ClipView, FireView, LoopAction, LoopAsk, LoopCounters, LoopLevel, LoopLevelId, LoopState, LoopView, PlaceOutcome, PlaceView } from './types'
 
@@ -33,7 +34,7 @@ const isLevelId = (id: string): id is LoopLevelId => (LEVEL_IDS as readonly stri
  * opening must also leave the level open, so that the visitor has something to do.
  */
 export function loopInBand(id: string, seed: Seed): boolean {
-  if (!isLevelId(id)) throw new RangeError(`Service has no level "${id}"`)
+  if (!isLevelId(id)) throw new RangeError(`Step loop has no level "${id}"`)
   if (!inLevelBand(id, seed)) return false
   return id === 'first-4-par' || !levelDone(initState(buildLevel(id, seed)))
 }
@@ -56,9 +57,9 @@ export function loopReduce(s: LoopState, a: LoopAction): LoopState {
         if (a.value !== 'static' && a.value !== 'continuous') throw new RangeError('the batching lever is "static" or "continuous"')
         return setBatching(s, a.value)
       }
-      throw new RangeError(`Service has no lever "${String(a.name)}"`)
+      throw new RangeError(`Step loop has no lever "${String(a.name)}"`)
     default:
-      throw new RangeError(`Service has no action "${String((a as { t?: unknown }).t)}"`)
+      throw new RangeError(`Step loop has no action "${String((a as { t?: unknown }).t)}"`)
   }
 }
 
@@ -85,7 +86,7 @@ export function loopView(s: LoopState): LoopView {
     outcome === 'empty' || req === null ? { state: 'empty', req: null } : { state: outcome === 'binned' ? 'binned' : 'plate', req }
   const fires: FireView[] = s.fires.map((fire, index) => {
     const forward = fire.record.forward
-    if (forward === null) throw new Error('internal: a fire with no forward')
+    if (forward === null) throw new Error('internal: a step with no forward')
     return {
       index,
       startUs: forward.startUs,
@@ -107,8 +108,8 @@ export function loopView(s: LoopState): LoopView {
   const counters = countersOf(s, sim)
   return {
     level: s.level.id,
-    title: s.level.title,
-    prompt: s.level.prompt,
+    title: LOOP_COPY[s.level.id].title,
+    prompt: LOOP_COPY[s.level.id].prompt,
     synthetic: true,
     slots: s.level.slots,
     clockUs: counters.clockUs,
@@ -192,31 +193,31 @@ export function loopDebrief(mine: LoopState, ghost: LoopState): Debrief {
     case 'first-1-fill': {
       const hungInFirst = mine.fires.length > 0 ? mine.fires[0].record.seqs : 0
       return hungInFirst >= level.slots
-        ? { sentence: 'Every clip was hung before the bell, so the fire cooked a course for every ticket. A fire costs the line about the same for one ticket as for four, so a full rail is the point: that is batching.', names: null }
+        ? { sentence: 'Every slot was filled, so the step ran a token for every request. A step costs the GPU about the same for one request or four: that is batching.', names: null }
         : {
             sentence:
-              'Some clips were empty when the bell rang. The line paid for those places and nobody ate them: a fire costs about the same for one ticket as for four, so hang a ticket in every clip you can. That is batching.',
+              'Some slots were empty when the step ran, and the GPU paid for them anyway. A step costs about the same for one request or four, so fill every slot you can: that is batching.',
             names: { lever: 'batching' },
           }
     }
     case 'first-2-slot':
       return grade.ok
-        ? { sentence: 'You hung the next ticket as soon as the clip opened. Refilling a slot the moment a request ends, at every step, is continuous batching: no clip rides empty while a ticket waits.', names: null }
+        ? { sentence: 'You admitted the next request the moment a slot freed. Refilling at every step is continuous batching: no slot runs empty while a request waits.', names: null }
         : {
             sentence:
-              'A clip rode empty while a ticket waited. The line paid for that place and nobody ate it. Hanging the next ticket the moment a clip opens is continuous batching.',
+              'A slot ran empty while a request waited. Admitting the next request the moment a slot frees is continuous batching.',
             names: { lever: 'batching' },
           }
     case 'first-3-gap':
       return overlapUsed(mine) && grade.ok
         ? {
             sentence:
-              'The next call was written during the fire, so the stations stayed lit. The price is the binned plate: the expo had already fired one more course for a ticket that had asked for the check. That is overlap, vLLM\'s async scheduling.',
+              'The next step was planned while this one ran, so the GPU stayed busy. The price is a ghost token: a token computed for a request that had finished. That is async scheduling.',
             names: null,
           }
         : {
             sentence:
-              'The stations went dark between fires while the expo wrote the next call. Writing it during the fire closes the dark stretches, at the price of one binned plate for each ticket that ends. That is overlap, vLLM\'s async scheduling.',
+              'The GPU sat idle between steps while the CPU planned the next: a bubble. Planning during the step closes it, at the price of a ghost token per finished request. That is async scheduling.',
             names: { lever: 'async' },
           }
     case 'first-4-par': {
@@ -225,7 +226,7 @@ export function loopDebrief(mine: LoopState, ghost: LoopState): Debrief {
       if (grade.ok) {
         return {
           sentence:
-            'You served the night at par or close to it: refilling kept every clip live and overlap wrote each call during the fire, at the price of one binned plate for each ticket that ended.',
+            'You matched the reference run or came close: refilling kept every slot live, and async scheduling planned each step during the last, at the price of a ghost token per finished request.',
           names: null,
         }
       }
@@ -234,18 +235,18 @@ export function loopDebrief(mine: LoopState, ghost: LoopState): Debrief {
       if (darkTicks >= emptyTicks && darkTicks > 0) {
         return {
           sentence:
-            'The stations sat dark while the expo wrote each call after the last fire ended. Writing the next call during the fire (overlap, async scheduling) is what par does, at the price of one binned plate for each ticket that ends.',
+            'The GPU sat idle while the CPU planned each step after the last ended. The reference run plans during the step (async scheduling), at the price of a ghost token per finished request.',
           names: { lever: 'async' },
         }
       }
       if (emptyTicks > 0) {
         return {
           sentence:
-            'Clips rode empty while tickets waited, and the line paid for every empty place. Refilling a slot the moment a request ends (continuous batching) is what par does.',
+            'Slots ran empty while requests waited, and the GPU paid for every one. The reference run refills a slot the moment its request finishes (continuous batching).',
           names: { lever: 'batching' },
         }
       }
-      return { sentence: 'The night ran longer than par. The counters beside this say where the line sat dark and where a clip rode empty.', names: null }
+      return { sentence: 'The run took longer than the reference run. The counters beside this say where the GPU sat idle and where a slot ran empty.', names: null }
     }
   }
 }

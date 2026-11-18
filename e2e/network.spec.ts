@@ -44,24 +44,24 @@ test.describe('the front-page walk', () => {
     test(`makes no request outside the origin, ${name}`, async ({ page, context, watch }) => {
       test.setTimeout(180_000)
       if (!threeD) await withSettings(context, { view3d: false })
+      // The 3D pass at a desk's width: the step loop offers no 3D on a phone's (build B's finish review).
+      else await page.setViewportSize({ width: 1280, height: 800 })
       await open(page, '/')
       if (threeD) await settled3d(page)
 
-      // Start service, play the first level, read its debrief, and, with 3D off, play on to the end card. A frame of the 3D pass takes a
-      // software renderer most of a second, so the pass is walked through one level, and the four levels through the 2D pass.
-      await front.start(page).focus()
-      await page.keyboard.press('Enter')
-      const levels = threeD ? ['Fill the rail'] : ['Fill the rail', 'A clip empties', 'Mind the gap', 'Your turn']
+      // Play the first level and read its result, and, with 3D off, play on to the last. A frame of the 3D view takes a software renderer
+      // most of a second, so the 3D view is walked through one level, and the four levels through the diagram.
+      const levels = threeD ? ['Fill the batch'] : ['Fill the batch', 'Refill a slot', 'Close a bubble', 'Both levers']
       for (const [index, title] of levels.entries()) {
         await expect(front.level(page)).toContainText(title)
         await playToTheDebrief(page)
-        await expect(front.verdict(page)).toHaveText('Well fired.')
+        await expect(front.verdict(page)).toHaveText('Passed.')
         if (index < levels.length - 1) {
-          await page.getByRole('button', { name: /^Next: / }).focus()
+          await front.next(page).focus()
           await page.keyboard.press('Enter')
         }
       }
-      if (!threeD) await expect(page.getByText('The same night, served three ways')).toBeVisible()
+      if (!threeD) await expect(page.getByText('You just ran the step loop by hand.')).toBeVisible()
 
       // The net was in place and the walk was real: the site's own files came, and among them the faces and, in 3D, the scene's chunks.
       expect(watch.requests.length, 'requests to the site').toBeGreaterThan(10)
@@ -77,10 +77,24 @@ test.describe('the routes', () => {
       test.setTimeout(120_000)
       // A level page whose scene this run does not look at (the full service's other levels) is visited in 2D, so it does not draw one for nothing.
       if (HAS_3D(route) && !SCENE_IN_RUN(route)) await withSettings(context, { view3d: false })
+      // The step loop's, the pool's and the sampler's 3D are drawn at a desk's width: on a phone's they offer no 3D (build B's finish review,
+      // and wave R's finish review, round 1, for the pool and the sampler).
+      const GAMES_2D_ON_A_PHONE = ['/play/loop', '/play/pool', '/play/verifier']
+      if (SCENE_IN_RUN(route) && (route === '/' || GAMES_2D_ON_A_PHONE.some((game) => route.startsWith(game)))) await page.setViewportSize({ width: 1280, height: 800 })
       await open(page, route)
       await page.waitForLoadState('networkidle')
       // A 3D pass loads its chunks and draws a first frame: all of it is part of the visit.
-      if (SCENE_IN_RUN(route)) await expect(page.locator('[data-stage][data-stage-phase="live"]').first()).toBeAttached({ timeout: 60_000 })
+      // A game in the instrument frame opens on its diagram (REDESIGN §2.9): its 3D switch is pressed, so its scene's chunks are part of the visit too.
+      if (SCENE_IN_RUN(route)) {
+        // The sampler offers 3D on its chain level only (wave R's finish review, round 1), so after its first level the visit goes on to that one.
+        if (route === '/play/verifier') {
+          await open(page, '/play/verifier?level=chain')
+          await page.waitForLoadState('networkidle')
+        }
+        const switch3d = page.locator('section[data-view="2d"] :is(.es-frame__strip, .es-front-strip)').getByRole('button', { name: '3D', exact: true })
+        if ((await page.locator('[data-stage]').count()) === 0 && (await switch3d.count()) > 0) await switch3d.first().click()
+        await expect(page.locator('[data-stage][data-stage-phase="live"]').first()).toBeAttached({ timeout: 60_000 })
+      }
       expect(watch.requests.length, 'requests to the site').toBeGreaterThan(3)
     })
   }
@@ -88,9 +102,12 @@ test.describe('the routes', () => {
   test('the navigation and the footer lead to every page they name, by the router, and none reaches out', async ({ page, watch }) => {
     await open(page, '/')
     const links = await page.locator('header a[href^="/"], footer a[href^="/"]').evaluateAll((anchors) => [...new Set(anchors.map((anchor) => anchor.getAttribute('href') ?? ''))])
-    // The primary navigation (§3.3) is the brand, Map, Play, Today, Receipts and Evidence; the footer adds About, Changes, Settings and Design.
-    expect(links).toEqual(expect.arrayContaining(['/', '/map', '/play', '/today', '/receipts', '/evidence', '/about', '/changes', '/settings', '/design']))
+    // The primary navigation (§3.3) is the brand, Map, Play, Today and Evidence, with Continue where the way on points; the footer adds About, Changes and Settings. Receipts and Design are not in the navigation.
+    expect(links).toEqual(expect.arrayContaining(['/', '/map', '/play', '/today', '/evidence', '/about', '/changes', '/settings']))
     for (const href of links.filter((link) => link !== '/')) {
+      // At a phone's width the header's links are folded behind the Navigation button.
+      const fold = page.getByRole('button', { name: 'Navigation' })
+      if ((await fold.isVisible()) && (await fold.getAttribute('aria-expanded')) === 'false') await fold.click()
       await page.locator(`header a[href="${href}"], footer a[href="${href}"]`).first().click()
       await expect(page).toHaveURL(new RegExp(`${href}$`))
       await ready(page, href)
@@ -108,8 +125,8 @@ test.describe('the faces', () => {
     const requested = [...new Set(watch.requests.filter((request) => request.endsWith('.woff2')))]
     const declared = FACES.map((face) => `/fonts/${face.file}`)
     expect(requested.filter((request) => !declared.includes(request)), 'font files that fonts.json does not list').toEqual([])
-    // The three faces that every page uses: the display face, the numerals, and the reading face.
-    for (const family of ['Big Shoulders Display', 'Doto', 'Atkinson Hyperlegible']) {
+    // The three faces that every page uses: the display face, the numerals' mono face, and the reading face.
+    for (const family of ['Big Shoulders Display', 'Atkinson Hyperlegible Mono', 'Atkinson Hyperlegible']) {
       expect(loaded, `${family} loaded`).toContain(family)
       const files = FACES.filter((face) => face.family === family).map((face) => `/fonts/${face.file}`)
       expect(

@@ -23,6 +23,7 @@ import type { Seed } from '@es/sim/core'
 import { ENGINES, entryOf } from '@es/sim/lifecycle'
 import type { Place, StageDef } from '@es/sim/lifecycle'
 import type { Debrief, Grade, Session } from '../types'
+import { FLOOR_COPY } from './copy'
 import { runPath, stopOfMistake } from './engine'
 import { MAX_PREDICTION, boundariesOut } from './facts'
 import { ALL_LEVEL_IDS, MAP_LEVEL, buildLevel, inLevelBand } from './levels'
@@ -107,7 +108,7 @@ export function floorReduce(s: FloorState, a: FloorAction): FloorState {
     }
     case 'lay': {
       needPrediction(s)
-      if (!s.level.tray.includes(a.stage)) throw new RangeError(`the stage "${String(a.stage)}" is not in the tray`)
+      if (!s.level.tray.includes(a.stage)) throw new RangeError(`the stage "${String(a.stage)}" is not among the stages`)
       if (s.laid.includes(a.stage)) throw new RangeError(`the stage "${a.stage}" is already on the path`)
       return { ...s, laid: [...s.laid, a.stage], laidAt: [...s.laidAt, s.turns], turns: next }
     }
@@ -186,8 +187,8 @@ export function floorView(s: FloorState): FloorView {
   })
   return {
     level: s.level.id,
-    title: s.level.title,
-    prompt: s.level.prompt,
+    title: FLOOR_COPY[s.level.id].title,
+    prompt: FLOOR_COPY[s.level.id].prompt,
     scenario: sc,
     pin: { engine: engine.id, title: engine.title, repo: engine.repo, ref: engine.ref, readOn: engine.readOn },
     entry: entryOf(sc.engine),
@@ -250,8 +251,8 @@ export function floorGrade(mine: FloorState, ghost: FloorState): Grade {
 export function floorDebrief(mine: FloorState): Debrief {
   if (mine.mistake === null) {
     return mine.served
-      ? { sentence: 'Every hand-off held on the first run: the ticket crossed each boundary through the mechanism the engine uses there, and in the order the engine uses them.', names: null }
-      : { sentence: 'The ticket stopped short: the stages laid all held, and the path ends before the request is back where it began.', names: null }
+      ? { sentence: 'Every hand-off held on the first run: the request crossed each boundary through the mechanism the engine uses there, and in the order the engine uses them.', names: null }
+      : { sentence: 'The path stopped short: the stages laid all held, and the path ends before the request is back where it began.', names: null }
   }
   return { sentence: `The first stage that did not hold. ${stopOfMistake(mine.level.scenario, mine.mistake).sentence}`, names: { turn: mine.mistake.turn } }
 }

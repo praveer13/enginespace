@@ -68,15 +68,15 @@ const kept = (over: Partial<Extract<ImportState, { step: 'kept' }>> = {}): Impor
 describe('the slip, waiting for a file', () => {
   const html = panel({ step: 'idle' })
 
-  test('is a section headed "Bring a receipt back", with a slip titled "Drop a receipt" and a stub that chooses a file', () => {
-    expect(html).toMatch(/<h2 id="rc-import" class="es-panel__title">Bring a receipt back<\/h2>/)
+  test('is a section headed "Bring a result back", with a slip titled "Drop a receipt file" and a stub that chooses a file', () => {
+    expect(html).toMatch(/<h2 id="rc-import" class="es-panel__title">Bring a result back<\/h2>/)
     expect(html).toContain('aria-labelledby="rc-import"')
-    expect(text(html)).toContain('Receipt slip')
+    expect(text(html)).toContain('Receipt file')
     expect(text(html)).toContain('.es.json.gz')
-    expect(html).toMatch(/<h3[^>]*>Drop a receipt<\/h3>/)
+    expect(html).toMatch(/<h3[^>]*>Drop a receipt file<\/h3>/)
     expect(text(html)).toContain('Choose a file')
-    expect(html).toMatch(/<button[^>]*class="es-stub__pull"[^>]*>/)
-    expect(html).not.toMatch(/<button[^>]*es-stub__pull[^>]*disabled/)
+    expect(html).toMatch(/<button[^>]*class="es-primary-button__pull"[^>]*>/)
+    expect(html).not.toMatch(/<button[^>]*es-primary-button__pull[^>]*disabled/)
   })
 
   test('has a file input that a keyboard and a reader reach through its name, hidden behind the stub, and accepts gzip', () => {
@@ -110,20 +110,20 @@ describe('the slip, waiting for a file', () => {
 describe('the slip, while the ledger opens and when the ledger cannot be written', () => {
   test('holds the stub until the ledger is open, and says so', () => {
     const html = panel({ step: 'idle' }, { ready: false })
-    expect(html).toMatch(/<button[^>]*es-stub__pull[^>]*disabled=""|<button[^>]*disabled=""[^>]*es-stub__pull/)
-    expect(text(html)).toContain('The ledger is opening, and the slip takes a file as soon as it has.')
+    expect(html).toMatch(/<button[^>]*es-primary-button__pull[^>]*disabled=""|<button[^>]*disabled=""[^>]*es-primary-button__pull/)
+    expect(text(html)).toContain('Your record is opening, and the page takes a file as soon as it has.')
   })
 
   test('holds the stub when a newer version of the site has the ledger, and says to reload', () => {
     const html = panel({ step: 'idle' }, { readOnly: true })
-    expect(html).toMatch(/<button[^>]*es-stub__pull[^>]*disabled=""|<button[^>]*disabled=""[^>]*es-stub__pull/)
-    expect(text(html)).toContain('has handed your ledger to a newer version of the site. Reload the page to bring a receipt back.')
+    expect(html).toMatch(/<button[^>]*es-primary-button__pull[^>]*disabled=""|<button[^>]*disabled=""[^>]*es-primary-button__pull/)
+    expect(text(html)).toContain('has handed your record to a newer version of the site. Reload the page to bring a result back.')
   })
 
   test('warns when the ledger is in memory only, and still takes the file', () => {
     const html = panel({ step: 'idle' }, { memoryOnly: true })
-    expect(text(html)).toContain('This browser is not keeping your ledger. A receipt kept now is lost when this tab closes.')
-    expect(html).not.toMatch(/<button[^>]*es-stub__pull[^>]*disabled/)
+    expect(text(html)).toContain('This browser is not keeping your record. A result kept now is lost when this tab closes.')
+    expect(html).not.toMatch(/<button[^>]*es-primary-button__pull[^>]*disabled/)
   })
 })
 
@@ -205,11 +205,11 @@ describe('the slip, with a receipt that was kept', () => {
   const html = panel(kept())
 
   test('is titled for what happened, names the receipt by its short hash, and leads to its page by its full hash', () => {
-    expect(html).toMatch(/<h3[^>]*>Kept in your ledger<\/h3>/)
-    expect(text(html)).toContain(`Receipt ${good.receiptSha256.slice(0, 8)}`)
+    expect(html).toMatch(/<h3[^>]*>Kept in your record<\/h3>/)
+    expect(text(html)).toContain(`Result ${good.receiptSha256.slice(0, 8)}`)
     expect(html).toContain(`href="/receipts#${good.receiptSha256}"`)
-    expect(text(html)).toContain('Open the receipt')
-    expect(text(html)).toContain('The receipt is in your ledger with this check beside it.')
+    expect(text(html)).toContain('Open the result')
+    expect(text(html)).toContain('The result is in your record with this check beside it.')
   })
 
   test('lists the nine rules, with what each found: the six of W2-T07 pass, and the bare sample fails what the stage asks of its evidence in rules 8 and 9', () => {
@@ -250,12 +250,12 @@ describe('the slip, with a receipt that was kept', () => {
     expect(html).toMatch(/<li class="es-check" data-status="fail" data-check="T6">/)
   })
 
-  test('says what it is worth now: not credited, and why, in the words of the verifier and not in a number of the page\'s own', () => {
-    expect(text(html)).toContain('not credited')
+  test('says what it is worth now: not counted, and why, in the words of the verifier and not in a number of the page\'s own', () => {
+    expect(text(html)).toContain('not counted')
     expect(text(html)).toContain('What it is worth now')
-    expect(text(html)).toContain('X1 is not built yet: W2-T23 builds it, and a receipt of tr3.profile.s2 is not credited until it exists.')
+    expect(text(html)).toContain('X1 is a check this site does not run yet, so a receipt of tr3.profile.s2 does not count until it does.')
     expect(html).toContain('data-rule="verdict"')
-    expect(html).toMatch(/role="status" aria-live="polite">Kept in your ledger\. Not credited\.<\/p>/)
+    expect(html).toMatch(/role="status" aria-live="polite">Kept in your record\. Not counted\.<\/p>/)
   })
 
   test('offers another file and a way to clear the result, as a refused file does', () => {
@@ -267,7 +267,7 @@ describe('the slip, with a receipt that was kept', () => {
   test('says "Checked again" for a receipt that was in the ledger already, and that only this check is added', () => {
     const again = panel(kept({ recheck: true }))
     expect(again).toMatch(/<h3[^>]*>Checked again<\/h3>/)
-    expect(text(again)).toContain('This receipt was in your ledger already. This check is added to it, and nothing else is written.')
+    expect(text(again)).toContain('This result was in your record already. This check is added to it, and nothing else is written.')
   })
 
   test('says the reason when the receipt failed a rule after it was read: kept, labelled, and why', () => {
@@ -275,7 +275,7 @@ describe('the slip, with a receipt that was kept', () => {
     const page = panel(state)
     expect(page).toContain('data-status="fail" data-rule="binding"')
     expect(text(page)).toContain("This browser's ledger holds no challenge with this token.")
-    expect(text(page)).toContain('not credited')
+    expect(text(page)).toContain('not counted')
   })
 })
 
@@ -321,7 +321,7 @@ describe('a receipt\'s page, with the checks it has had', () => {
     expect(html).toContain('aria-label="How this browser checked the receipt, 9 Nov 2026, 12:00"')
     expect([...html.matchAll(/data-rule="(\w+)"/g)].map((match) => match[1])).toEqual(['caps', 'schema', 'integrity', 'binding', 'grader', 'pins', 'rechecks', 'recomputation', 'floors', 'verdict'])
     expect(text(html)).not.toContain('of the ten verification rules ran in this check')
-    expect(text(html)).toContain('not credited')
+    expect(text(html)).toContain('not counted')
     expect(text(html)).not.toContain('Not checked in this browser yet')
   })
 
@@ -369,10 +369,10 @@ describe('the list of receipts, in a word', () => {
   const checkedGood = { ...sampleRecord((r) => (r.createdAt = '2026-11-01T00:00:00Z')), reports: [{ at: '2026-11-09T12:00:00.000Z', report: JSON.parse(JSON.stringify(storedReport(good.rules))) as VerificationReport['report'] }] }
   const odd = { ...sampleRecord((r) => (r.createdAt = '2026-11-02T00:00:00Z')), reports: [{ at: '2026-11-09T10:00:00.000Z', report: { checks: [] } }] }
   const html = render(createElement(ReceiptList, { held: heldReceipts([unchecked, checkedGood, odd, { sha256: sha256('x'), receipt: { schema: 'else' }, reports: [] }]) }))
-  const words = [...html.matchAll(/class="es-tape es-held__worth"[^>]*>.*?<span class="es-tape__text">([^<]+)<\/span>/g)].map((match) => match[1])
+  const words = [...html.matchAll(/class="es-plain-label es-held__worth"[^>]*>.*?<span class="es-plain-label__text">([^<]+)<\/span>/g)].map((match) => match[1])
 
   test('names what the latest check made of each receipt, and that one was never checked', () => {
     // Newest first: the sample (9 Nov, never checked), the one checked and not credited, and the one whose report this build cannot read, which has no word.
-    expect(words).toEqual(['unchecked', 'not credited'])
+    expect(words).toEqual(['unchecked', 'not counted'])
   })
 })

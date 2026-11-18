@@ -1,138 +1,123 @@
 /*
- * The Tasting's kitchen as a plan (GAMES.md §2.6 "The Tasting", §10 "3D scene"): where the pass, its rows of stacks, the line and the
- * room stand, in metres with y up and +z toward the expo, and the three shots the scene is seen through. Pure arithmetic with no three
- * in it, so the game's page holds the camera's buttons and the `C` key before the scene's chunk loads, and Bun tests the framing.
+ * The rejection sampler's skylines as a plan (REDESIGN §2.8, §2.9): the sizes the layout (scene-layout.ts) draws them at, and the three
+ * shots they are seen through. Pure arithmetic with no three in it, so the game's page holds the camera's buttons and the `C` key before
+ * the scene's chunk loads, and Bun tests the framing.
  *
- * Every length is [estimated], on the scene kit's proportions:
- *   - a tasting plate is 110 mm across, and a stack of them rises 11 mm a plate, so a whole tasting of sixty-four stands 70 cm tall;
- *     what went out is stacked on side plates, 90 mm across, at the same rise, so its height reads against hers;
- *   - each dish has three stacks two fingers apart, the commis's on its left, the chef's in her dispenser and what went out on its
- *     right, a hand clear of the next dish's; the dishes stand 40 cm apart across the pass, and a run's courses stand in rows 50 cm
- *     apart, from the pass's front edge back toward the line;
- *   - over a run, the pass runs on to the left of the soup by a stride, where each course's name lies on its tape clear of its stacks;
- *   - `gamma` stands its eight positions of a run across the pass, 30 cm apart, in one row.
+ * The world is the 2D diagram stood up: a sheet of paper laid flat, one row of bars for each draft position, the first row nearest the
+ * viewer and the next ones behind it, so the rows' skylines line up into depth. In a row, a token's two bars stand side by side, the
+ * draft's q then the target's p, each as tall as its count out of the shared axis. Lengths are in the diagram's px, 100 to a world unit
+ * (flat-track.ts), and every one is [estimated], set by eye at 1440 and 390.
  */
 import type { CameraPreset } from '@/scene/camera-rig'
+import { PX } from '@/scene/flat-track'
 import type { Shot, ShotId } from './scene-shots'
+
+/** The bars' sizes, in px: a token's column, one bar's width and the gap between the pair, a bar's depth, a row's pitch, and the tallest bar's height. */
+export interface Geo {
+  readonly col: number
+  readonly bar: number
+  readonly gap: number
+  readonly depth: number
+  readonly row: number
+  readonly height: number
+  readonly names: number
+  readonly pad: number
+  readonly tags: number
+}
+/** A run of draft positions: six tokens across and a row for each position, behind the one before. */
+export const GEO: Geo = { col: 64, bar: 20, gap: 4, depth: 26, row: 70, height: 100, names: 112, pad: 16, tags: 22 }
+/** One draft position alone: the same six tokens, drawn larger, since there are no rows to share the box. */
+export const GEO_ONE: Geo = { col: 98, bar: 33, gap: 6, depth: 40, row: 0, height: 120, names: 0, pad: 18, tags: 26 }
+/** A phone's drawing of rows: its names are a character each, so the label column is narrow. */
+export const GEO_NARROW: Geo = { ...GEO, names: 40 }
+/** The sizes for a drawing of this many rows, on a canvas that is narrow or not. */
+export const geoOf = (rows: number, narrow = false): Geo => (rows > 1 ? (narrow ? GEO_NARROW : GEO) : GEO_ONE)
+/** `gamma`'s positions: a column each, one bar a position. */
+export const GAMMA = { col: 70, bar: 42 } as const
+/** The camera's vertical field of view [estimated]. */
+export const FOV = 30
 
 export type Vec3 = readonly [number, number, number]
 
-/** A tasting plate: its rim's radius, a side plate's (what went out), its own height, and how much each plate adds to a stack. */
-export const PLATE = { r: 0.055, out: 0.045, h: 0.0098, pitch: 0.011 } as const
-/** A whole tasting: the most plates a stack holds, and what a dispenser stands tall enough for. */
-export const FULL = 64
-/** The pass's counter top, as Service's. */
-export const TOP = 0.92
-/**
- * From a dish's middle to its three stacks' middles, across the pass: the commis's, the chef's in her dispenser, and what went out,
- * each two fingers from the next and the three a hand clear of the next dish's, so a dish reads as one group and her stack stands
- * between his and what went out.
- */
-export const STACKS = { commis: -0.12, chef: 0.01, out: 0.13 } as const
-/** Between two dishes' middles, two rows of a run, and two positions of `gamma`. */
-export const DISH = 0.4
-export const ROW = 0.5
-export const STEP = 0.28
-/** The pass's front edge, before the first row. */
-export const FRONT = 0.26
-/** How much further left the pass runs over a run, for the courses' names: a strip as wide as the longest name's tape. */
-export const NAMES = 0.45
+export interface Bounds {
+  readonly x0: number
+  readonly x1: number
+  readonly z0: number
+  readonly z1: number
+}
 
-/** The height a stack of `plates` reaches over the counter. */
-export const stackHeight = (plates: number): number => (plates > 0 ? (plates - 1) * PLATE.pitch + PLATE.h : 0)
-
-export interface Plan {
-  /** Rows of dish pairs into depth, or `gamma`'s positions across the pass. */
-  readonly kind: 'rows' | 'gamma'
-  readonly rows: number
-  readonly columns: number
-  /** The pass's middle across the room: left of the dishes' middle over a run, whose courses are named on its left end. */
-  readonly x: number
-  /** The pass's width and depth, and the z of its back edge. */
+/** The canvas's size in CSS px. */
+export interface Canvas {
   readonly width: number
-  readonly depth: number
-  readonly back: number
-  /**
-   * The heat lamps' mouths: over one course 80 cm over the counter, a hand over the tallest stack a dish can have, so the shades hang
-   * over the plates they light; higher over a run, so that the courses behind stand clear of them in the shot over the run.
-   */
-  readonly mouth: number
+  readonly height: number
 }
 
-export function planOf(kind: Plan['kind'], rows: number): Plan {
-  const n = kind === 'gamma' ? 1 : Math.max(1, rows)
-  const columns = kind === 'gamma' ? 8 : 6
-  // A run's names need the room of their tape, and a little more, beside the soup.
-  const names = n > 1 ? NAMES : 0
-  const width = (kind === 'gamma' ? columns * STEP + 0.6 : columns * DISH + 0.5) + names
-  const depth = (n - 1) * ROW + FRONT + 0.3
-  return { kind, rows: n, columns, x: -names / 2, width, depth, back: FRONT - depth, mouth: n > 1 ? 1.86 + 0.08 * (n - 1) : 1.72 }
-}
-
-/** A column's middle across the pass: a dish, or a position of `gamma`. */
-export const columnX = (plan: Plan, column: number): number => (column + 0.5 - plan.columns / 2) * (plan.kind === 'gamma' ? STEP : DISH)
-/** A row's middle, from the front row back. */
-export const rowZ = (row: number): number => 0 - row * ROW
-
-/** The line beyond the pass, the wall behind it, and the room's left corner. */
-export function roomOf(plan: Plan): { lineZ: number; wallZ: number; sideX: number } {
-  const lineZ = plan.back - 1.15
-  return { lineZ, wallZ: lineZ - 0.41, sideX: plan.x - plan.width / 2 - 1.3 }
-}
-
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* The shots                                                                                                          */
-/* ------------------------------------------------------------------------------------------------------------------ */
+const rad = (deg: number): number => (deg * Math.PI) / 180
 
 /**
- * The three shots of a plan (GAMES.md §2.6, The Tasting's cameras), each in the order and with the words of `shots`
- * (scene-shots.ts, which the page holds, so its buttons stand before the scene loads):
- *   Over the run        Establish: from the expo's side of the pass and above it, the pass and its stacks across the lower half, any
- *                       later courses in rows behind, the line beyond. Over one course, from a little over the lamps, so their shades
- *                       read from above, and tilted up until the hood's lip stands whole along the top of the box, its lights under
- *                       it, so a canopy ends the room and nothing is cut by the box's edge. Over a run of courses, from higher and
- *                       closer, so the courses and their names fill the box, the hood stands above it and the lamps over the front
- *                       course stand whole inside it; on a phone, from higher still, through a lens a degree wider for each course
- *                       less, so all six dishes' stacks stand inside the box's sides however short the run. On a phone over one
- *                       course, down under the lamps' mouths, so their bulbs show, and as near as the six dishes and their names on
- *                       tape allow: the pass and its stacks in the box's lower half, the floor in front of it under the box's foot and
- *                       the floor under its open shelf in its shade, and the hood and the lamps over them. Six dishes across a phone's
- *                       box stand no taller than that from any height or distance in front of the pass: the box is taller than wide,
- *                       and the outer stacks and their tapes already stand at its edges (tests/play/verifier-scene.test.ts).
- *   One course          Focus: the front course, front on and nearly level with the counter, so each dish's three stacks' heights
- *                       read against each other.
- *   Walk with the chef  Follow, which the learner chooses: low from the pass's right end, along the front course and down the run,
- *                       turned far enough down it that the soup's tape at its far end stands inside the box.
+ * A pinhole camera that holds a box (`x0..x1`, `y0..y1`, `z0..z1`, world units) whole in a canvas of this aspect: looking at `target` from the
+ * direction turned `yaw` about the vertical (0 is from the front, +z) and raised `elevation` over the horizon. The distance is the
+ * smallest that keeps each of the box's eight corners inside the picture, with a margin.
  */
-export function presetsOf(plan: Plan, shots: readonly Shot[]): CameraPreset[] {
-  const deep = (plan.rows - 1) * ROW
-  const mid = -deep / 2
-  // The pass's right end: the walk starts there.
-  const end = plan.x + plan.width / 2
+export function fitBox(box: { x0: number; x1: number; y0: number; y1: number; z0: number; z1: number }, target: Vec3, yaw: number, elevation: number, aspect: number, margin = 1.06): { position: Vec3; distance: number } {
+  const ey = rad(elevation)
+  const ya = rad(yaw)
+  // The unit vector from the target toward the camera, and the picture's right and up.
+  const back: Vec3 = [Math.sin(ya) * Math.cos(ey), Math.sin(ey), Math.cos(ya) * Math.cos(ey)]
+  const right: Vec3 = [Math.cos(ya), 0, -Math.sin(ya)]
+  const up: Vec3 = [-Math.sin(ya) * Math.sin(ey), Math.cos(ey), -Math.cos(ya) * Math.sin(ey)]
+  const v = Math.tan(rad(FOV) / 2)
+  let distance = 0
+  for (const x of [box.x0, box.x1])
+    for (const y of [box.y0, box.y1])
+      for (const z of [box.z0, box.z1]) {
+        const d: Vec3 = [x - target[0], y - target[1], z - target[2]]
+        const along = d[0] * back[0] + d[1] * back[1] + d[2] * back[2]
+        const across = Math.abs(d[0] * right[0] + d[1] * right[1] + d[2] * right[2])
+        const high = Math.abs(d[0] * up[0] + d[1] * up[1] + d[2] * up[2])
+        distance = Math.max(distance, along + across / (v * aspect), along + high / v)
+      }
+  distance *= margin
+  return { distance, position: [target[0] + back[0] * distance, target[1] + back[1] * distance, target[2] + back[2] * distance] }
+}
+
+/**
+ * The three shots of a drawing (each in the order and with the words of `shots`, scene-shots.ts), framed for the plate's bounds and the
+ * canvas it is drawn in:
+ *   Over the run        every row, raised high enough that the rows stand clear of one another; higher on a tall canvas, which has the room.
+ *   One draft position  the front row alone, low, so each token's two bars read against each other by their heights.
+ *   From the side       turned to the right of the rows, low, so the rows' skylines line up behind one another and a bar's height reads
+ *                       against the same token's in the next draft position.
+ * `geo` is the sizes the drawing was laid out at.
+ */
+export function presetsOf(bounds: Bounds, rows: number, shots: readonly Shot[], canvas: Canvas, geo: Geo = geoOf(rows)): CameraPreset[] {
+  const aspect = canvas.width / Math.max(1, canvas.height)
+  const tall = aspect < 1
+  const h = (geo.height + 18) / PX
+  const w0 = bounds.x0 / PX
+  const w1 = bounds.x1 / PX
+  const z0 = bounds.z0 / PX
+  // Under the front edge the tokens' numbers hang, a little past the plate's apron.
+  const z1 = (bounds.z1 + 12) / PX
+  const mid: Vec3 = [(w0 + w1) / 2, h / 2.6, (z0 + z1) / 2]
+  const whole = { x0: w0, x1: w1, y0: 0, y1: h, z0, z1 }
+  // The front row alone: from its front edge back to the row's far one.
+  const frontZ0 = z1 - (geo.depth + geo.tags + 12) / PX
+  const front = { x0: w0, x1: w1, y0: 0, y1: h, z0: frontZ0, z1 }
   const framings: Record<ShotId, Omit<CameraPreset, 'id' | 'label'>> = {
-    run: {
-      shot: 'establish',
-      projection: 'perspective',
-      ...(plan.rows > 1
-        ? { position: [-0.2, 3, 2 + deep * 0.15], target: [-0.2, 0.85, mid - 0.3], fov: 38, portrait: { position: [0, 3.8 + deep * 0.3, 2.4], target: [0, 1.1, mid - 0.2], fov: 48 - plan.rows } }
-        : { position: [-0.15, 2.3, 3.1], target: [0, 1.32, -0.24], fov: 29, portrait: { position: [0, 1.5, 3.45], target: [0, 1.48, -0.26], fov: 48 } }),
-    },
-    course: {
-      shot: 'focus',
-      projection: 'perspective',
-      position: [0, 1.32, 3.15],
-      target: [0, 1.12, 0],
-      fov: 29,
-      portrait: { position: [0, 1.6, 4.9], target: [0, 1.12, -0.05], fov: 34 },
-    },
-    walk: {
-      shot: 'follow',
-      projection: 'perspective',
-      position: [end + 0.5, 1.4, 0.8],
-      target: [-0.4, 1.0, mid - 0.1],
-      fov: 40,
-      portrait: { position: [end + 0.7, 1.6, 1.3], target: [-0.7, 1.0, mid], fov: 52 },
-    },
+    run: (() => {
+      const { position } = fitBox(whole, mid, 0, (tall ? 62 : 46) + (rows > 2 ? 4 : 0), aspect)
+      return { shot: 'establish', projection: 'perspective', fov: FOV, position, target: mid }
+    })(),
+    course: (() => {
+      const target: Vec3 = [(w0 + w1) / 2, h / 2.6, (frontZ0 + z1) / 2]
+      const { position } = fitBox(front, target, 0, tall ? 30 : 20, aspect, 1.08)
+      return { shot: 'focus', projection: 'perspective', fov: FOV, position, target }
+    })(),
+    side: (() => {
+      const { position } = fitBox(whole, mid, 52, tall ? 26 : 18, aspect, 1.06)
+      return { shot: 'follow', projection: 'perspective', fov: FOV, position, target: mid }
+    })(),
   }
   return shots.map((shot) => ({ ...shot, ...framings[shot.id] }))
 }

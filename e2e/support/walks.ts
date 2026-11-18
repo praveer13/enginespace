@@ -42,11 +42,12 @@ export type Walker = (page: Page, walk: Walk) => Promise<void>
 /** A walk's record of where focus went, from e2e/support/front.ts. */
 export type Walk = ReturnType<typeof walkOf>
 
-const OVER = 'The run is over. The debrief is ready.'
 
 const gameOf = (page: Page, id: string) => page.locator(`section[data-game="${id}"]`)
-const liveLine = (page: Page) => page.locator('[data-live="line"]')
-const outcome = (page: Page) => page.locator('[data-live="outcome"]')
+/** Where a walk looks: the whole page, or the one game of it that the walk plays (a lesson can hold two runs of one game). */
+type Scope = Pick<Page, 'locator'>
+const liveLine = (scope: Scope) => scope.locator('[data-live="line"]')
+const outcome = (scope: Scope) => scope.locator('[data-live="outcome"]')
 
 /** The level's registry record: its pinned practice seed. */
 function practiceSeed(game: string, level: string): number {
@@ -90,39 +91,56 @@ async function tabToLocator(walk: Walk, target: Locator, limit = 120): Promise<v
   throw new Error(`Tab never reached ${String(target)} in ${limit} presses; it went through ${walk.trail.map((stop) => stop.name).join(' > ')}`)
 }
 
-/** Waits for the control that begins the way into the debrief to have focus, presses it, and waits for the verdict. */
-async function intoTheDebrief(page: Page, walk: Walk, verdict: Locator, title: string): Promise<void> {
-  // Focus has moved on its own to the way into the debrief, which is one key away.
-  await expect.poll(() => activeName(page)).toBe('See the debrief')
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Rejection sampler (`verifier`)                                                                                     */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** The run is over: the instrument frame puts the result in the dock and focus on its verdict, which the grade gives. */
+async function samplerResult(page: Page, walk: Walk, word: 'Passed' | 'Finished (practice)'): Promise<void> {
+  await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
+  await expect(page.locator('[data-result] [data-result-heading]')).toHaveText(word)
+  await expect.poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-result-heading') ?? false)).toBe(true)
   await walk.see()
-  await page.keyboard.press('Enter')
-  await expect(verdict).toHaveText(title)
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* The Tasting (`verifier`)                                                                                           */
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-const verdictOfTasting = (page: Page) => page.locator('[data-verifier-debrief] h3').first()
-const tastingDebrief = (page: Page, walk: Walk) => intoTheDebrief(page, walk, verdictOfTasting(page), 'Well tasted.')
-
-/** Types a recipe into the six weight fields with the keys alone: digits, and the right arrow to the next dish. */
-async function typeRecipe(page: Page, walk: Walk, recipe: readonly number[]): Promise<void> {
-  await tabTo(walk, /^Recipe weight for soup$/)
-  for (const [token, weight] of recipe.entries()) {
-    await page.keyboard.type(String(weight))
-    if (token < recipe.length - 1) await walk.press('ArrowRight')
+/**
+ * A learner who has not met the parts gets the first run (R-T30): its Next, with the keys, walks the parts and the look, and the ask's step
+ * puts focus in the level's first field. The game's block finds it the same way inside a lesson.
+ */
+async function throughFirstRun(page: Page, walk: Walk): Promise<void> {
+  const step = () => page.locator('[data-game="verifier"] .es-intro').first().getAttribute('data-intro', { timeout: 2_000 }).catch(() => null)
+  await page.locator('[data-game="verifier"] :is(.es-intro, [data-verifier-controls])').first().waitFor()
+  for (let at = await step(), guard = 0; (at === 'parts' || at === 'look') && guard < 12; at = await step(), guard++) {
+    const focused = await page.evaluate(() => document.activeElement?.hasAttribute('data-intro-next') ?? false)
+    if (!focused) await tabTo(walk, /^(Next|Next part)$/, 60)
+    await page.keyboard.press('Enter')
   }
 }
 
-const tasting = (level: string) => verifierLevel(level, practiceSeed('verifier', level))
+/** Puts focus on the control named `name`: where the first run left it, or by Tab. */
+async function reach(page: Page, walk: Walk, name: RegExp, limit = 60): Promise<void> {
+  if (name.test(await activeName(page))) return
+  await tabTo(walk, name, limit)
+}
 
-const TASTING: Record<(typeof WALKED)['verifier'][number], Walker> = {
+/** Types the weights into the six fields with the keys alone: digits, and the right arrow to the next token. */
+async function typeWeights(page: Page, walk: Walk, weights: readonly number[]): Promise<void> {
+  await reach(page, walk, /^Resample weight for token 0$/)
+  for (const [token, weight] of weights.entries()) {
+    await page.keyboard.type(String(weight))
+    if (token < weights.length - 1) await walk.press('ArrowRight')
+  }
+}
+
+const sampler = (level: string) => verifierLevel(level, practiceSeed('verifier', level))
+
+const SAMPLER: Record<(typeof WALKED)['verifier'][number], Walker> = {
   overlap: async (page, walk) => {
-    await tabTo(walk, /^Plates kept$/)
-    await page.keyboard.type(String(keptPlates(tasting('overlap'))))
+    await throughFirstRun(page, walk)
+    await reach(page, walk, /^Accepted, in sixty-fourths$/)
+    await page.keyboard.type(String(keptPlates(sampler('overlap'))))
     await page.keyboard.press('Enter')
-    await expect(liveLine(page)).toContainText(/^Committed: \d+ plates kept\./)
+    await expect(liveLine(page)).toContainText(/^Committed: \d+ of 64 accepted\./)
     // Focus moves to the first batch of rounds, which is the next thing to do.
     await expect.poll(() => activeName(page)).toBe('Draw 10')
     await walk.see()
@@ -132,51 +150,53 @@ const TASTING: Record<(typeof WALKED)['verifier'][number], Walker> = {
     await tabTo(walk, /^Draw 1,000$/, 3)
     await tabTo(walk, /^Finish$/, 3)
     await page.keyboard.press('Enter')
-    await expect(outcome(page)).toHaveText(OVER)
-    await tastingDebrief(page, walk)
+    await samplerResult(page, walk, 'Finished (practice)')
   },
   exact: async (page, walk) => {
-    await typeRecipe(page, walk, excessPlates(tasting('exact')))
-    await expect(liveLine(page)).toContainText("What goes out is the chef's tasting exactly.")
+    await throughFirstRun(page, walk)
+    await typeWeights(page, walk, excessPlates(sampler('exact')))
+    await expect(liveLine(page)).toContainText('The output is p exactly.')
     await page.keyboard.press('Enter')
-    await expect(outcome(page)).toHaveText(OVER)
-    await tastingDebrief(page, walk)
-    await expect(page.getByText('Your recipe against the house')).toBeVisible()
+    await samplerResult(page, walk, 'Passed')
+    await expect(page.getByText("Your weights against the reference's")).toBeVisible()
   },
   chain: async (page, walk) => {
-    const truth = tokensOf(tasting('chain'))
-    await tabTo(walk, /^Courses per round$/)
+    const truth = tokensOf(sampler('chain'))
+    await throughFirstRun(page, walk)
+    await reach(page, walk, /^Tokens per round$/)
     await page.keyboard.type((Number(truth.num) / Number(truth.den)).toFixed(3))
     await page.keyboard.press('Enter')
     await expect(liveLine(page)).toContainText('Prediction committed.')
     await expect.poll(() => activeName(page)).toBe('Draw 10')
     await tabTo(walk, /^Finish$/, 4)
     await page.keyboard.press('Enter')
-    await tastingDebrief(page, walk)
+    await samplerResult(page, walk, 'Passed')
   },
   'greedy-ngram': async (page, walk) => {
-    const level = tasting('greedy-ngram')
-    if (level.id !== 'greedy-ngram') throw new Error('not the copier level')
+    const level = sampler('greedy-ngram')
+    if (level.id !== 'greedy-ngram') throw new Error('not the n-gram level')
     const favourite = level.p[0].indexOf(Math.max(...level.p[0]))
-    await tabTo(walk, level.draft === favourite ? /^Kept$/ : /^Sent back$/)
+    await throughFirstRun(page, walk)
+    await reach(page, walk, level.draft === favourite ? /^Accepted$/ : /^Rejected$/)
     await page.keyboard.press('Enter')
-    await expect(liveLine(page)).toContainText(level.draft === favourite ? 'You called it kept.' : 'You called it sent back.')
-    // Focus moved to the first weight, so the recipe is typed from where it is.
-    await expect.poll(() => activeName(page)).toBe('Recipe weight for soup')
+    await expect(liveLine(page)).toContainText(level.draft === favourite ? 'You said it is accepted.' : 'You said it is rejected.')
+    // Focus moved to the first weight, so the weights are typed from where it is.
+    await expect.poll(() => activeName(page)).toBe('Resample weight for token 0')
     for (const [token, weight] of level.p[0].map((w, x) => (x === level.draft ? 0 : w)).entries()) {
       await page.keyboard.type(String(weight))
       if (token < level.p[0].length - 1) await walk.press('ArrowRight')
     }
     await page.keyboard.press('Enter')
-    await tastingDebrief(page, walk)
+    await samplerResult(page, walk, 'Finished (practice)')
   },
   mutants: async (page, walk) => {
-    const level = tasting('mutants')
+    const level = sampler('mutants')
     if (level.id !== 'mutants') throw new Error('not the mutants level')
-    await tabTo(walk, /^Taste 20,000$/)
+    await throughFirstRun(page, walk)
+    await reach(page, walk, /^Sample 20,000$/)
     await page.keyboard.press('Enter')
-    await expect(liveLine(page)).toContainText('Card 1 tasted:')
-    await tabTo(walk, /^Check every coin$/, 3)
+    await expect(liveLine(page)).toContainText('Card 1 sampled:')
+    await tabTo(walk, /^Check every draw$/, 3)
     await page.keyboard.press('Enter')
     await expect(liveLine(page)).toContainText('Card 1:')
     for (const [card, bug] of level.cards.entries()) {
@@ -186,23 +206,24 @@ const TASTING: Record<(typeof WALKED)['verifier'][number], Walker> = {
     await expect(page.getByRole('button', { name: 'Submit the five names' })).toBeEnabled()
     await tabTo(walk, /^Submit the five names$/, 3)
     await page.keyboard.press('Enter')
-    await tastingDebrief(page, walk)
+    await samplerResult(page, walk, 'Finished (practice)')
   },
   gamma: async (page, walk) => {
-    const best = sweepOfLevel(tasting('gamma')).best
-    await tabTo(walk, /^Draft length, plates ahead$/)
+    const best = sweepOfLevel(sampler('gamma')).best
+    await throughFirstRun(page, walk)
+    await reach(page, walk, /^Draft length, tokens proposed$/)
     await walk.press('ArrowUp')
-    await expect(liveLine(page)).toContainText('Plating 1 course ahead.')
+    await expect(liveLine(page)).toContainText('Drafting 1 token a round.')
     await page.keyboard.type(String(best))
-    await expect(liveLine(page)).toContainText(`Plating ${best} courses ahead.`)
+    await expect(liveLine(page)).toContainText(`Drafting ${best} tokens a round.`)
     await page.keyboard.press('Enter')
-    await tastingDebrief(page, walk)
-    await expect(page.getByText('Every draft length, in courses per tasting')).toBeVisible()
+    await samplerResult(page, walk, 'Passed')
+    await expect(page.getByText('Every draft length, in tokens per round')).toBeVisible()
   },
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* Back of House (`engine-floor`)                                                                                     */
+/* Request path (`engine-floor`)                                                                                      */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 const stageCard = (page: Page, id: string) => page.locator(`[data-floor-tray] [data-stage="${id}"]`)
@@ -220,7 +241,7 @@ async function arrowToStage(page: Page, walk: Walk, id: string): Promise<void> {
   await expect.poll(() => focusedAttribute(page, 'data-stage')).toBe(id)
 }
 
-/** The prediction by keys: Tab to the plate, Enter to pick it, Tab to the stub and Enter to commit. Focus lands on the first card. */
+/** The prediction by keys: Tab to the number, Enter to pick it, Tab to Commit and Enter to commit. Focus lands on the first tile. */
 async function commitBoundaries(page: Page, walk: Walk, n: number): Promise<void> {
   await tabTo(walk, new RegExp(`^${n} ${n === 1 ? 'boundary' : 'boundaries'}$`))
   await page.keyboard.press('Enter')
@@ -230,25 +251,66 @@ async function commitBoundaries(page: Page, walk: Walk, n: number): Promise<void
   await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-stage') !== null)).toBe(true)
 }
 
-/** The whole level: the prediction (the true count), the engine's path laid card by card, the run, and the debrief. */
+/** The whole level: the first run's intro if it shows, the prediction (the true count), the engine's path laid tile by tile, the run, and the result. */
 const floorNight = (id: (typeof WALKED)['engine-floor'][number]): Walker => async (page, walk) => {
   const level = floorLevel(id, practiceSeed('engine-floor', id))
+  // A learner who has not met the parts gets the first run (R-T29): Next, with the keys, walks the parts and the look; the prediction follows.
+  const step = () => page.locator('[data-game="engine-floor"] .es-intro').first().getAttribute('data-intro', { timeout: 2_000 }).catch(() => null)
+  await page.locator('[data-game="engine-floor"] :is(.es-intro, [data-prediction])').first().waitFor()
+  for (let at = await step(), guard = 0; (at === 'parts' || at === 'look') && guard < 12; at = await step(), guard++) {
+    const focused = await page.evaluate(() => document.activeElement?.hasAttribute('data-intro-next') ?? false)
+    if (!focused) await tabTo(walk, /^(Next|Next part)$/, 60)
+    await page.keyboard.press('Enter')
+  }
   await commitBoundaries(page, walk, floorGhost(level).prediction ?? 0)
   for (const stageId of level.reference) {
     await arrowToStage(page, walk, stageId)
     await page.keyboard.press('Enter')
     await expect(stageCard(page, stageId)).toHaveCount(0)
   }
-  await expect(page.locator('[data-floor-path] li[data-state]')).toHaveCount(level.reference.length)
+  await expect(page.locator('[data-game="engine-floor"] [data-floor-lanes] [data-lane-row]')).toHaveCount(level.reference.length)
   await tabTo(walk, /^Run the path$/)
   await page.keyboard.press('Enter')
-  await expect(outcome(page)).toHaveText(OVER)
-  await expect(liveLine(page)).toContainText('The ticket is home')
-  // The way into the debrief is the stub's button.
-  await page.getByRole('button', { name: 'See the debrief' }).focus()
+  // The instrument frame puts the result in the dock and focus on its verdict: the graded map has a pass rule, a practice level a number to beat.
+  await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
+  const verdict = page.locator('[data-game="engine-floor"] [data-result] [data-result-heading]')
+  await expect(verdict).toHaveText(id === 'map' ? 'Passed' : 'Finished (practice)')
+  await expect.poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-result-heading') ?? false)).toBe(true)
   await walk.see()
-  await page.keyboard.press('Enter')
-  await expect(page.getByRole('heading', { level: 3, name: 'Every hand-off held.' })).toBeVisible()
+}
+
+/**
+ * The same level played with the pointer, as a first-time visitor does (R-T47's first-visit walk, which plays it once by the pointer and
+ * once by `floorNight`'s keys): the parts of the first run with Next, the prediction with a click on the count and on Commit, each stage of
+ * the path clicked in its tray, and the run. `hands` says how each control is pressed, so the walk is one script for both.
+ */
+export async function floorWithHands(
+  page: Page,
+  id: (typeof WALKED)['engine-floor'][number],
+  press: (target: Locator) => Promise<void>,
+  options: { intro?: boolean; onStage?: (laid: number) => Promise<void> } = {},
+): Promise<void> {
+  const level = floorLevel(id, practiceSeed('engine-floor', id))
+  const game = page.locator('[data-game="engine-floor"]')
+  if (options.intro !== false) {
+    const step = () => game.locator('.es-intro').first().getAttribute('data-intro', { timeout: 2_000 }).catch(() => null)
+    await game.locator(':is(.es-intro, [data-prediction])').first().waitFor()
+    for (let at = await step(), guard = 0; (at === 'parts' || at === 'look') && guard < 12; at = await step(), guard++) await press(game.locator('[data-intro-next]').first())
+  }
+  const n = floorGhost(level).prediction ?? 0
+  const count = page.getByRole('button', { name: `${n} ${n === 1 ? 'boundary' : 'boundaries'}` })
+  await press(count)
+  await expect(count).toHaveAttribute('aria-pressed', 'true')
+  await press(page.getByRole('button', { name: 'Commit the prediction' }))
+  for (const [at, stageId] of level.reference.entries()) {
+    await press(stageCard(page, stageId))
+    await expect(stageCard(page, stageId)).toHaveCount(0)
+    await options.onStage?.(at + 1)
+  }
+  await expect(game.locator('[data-floor-lanes] [data-lane-row]')).toHaveCount(level.reference.length)
+  await press(page.getByRole('button', { name: 'Run the path' }))
+  await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
+  await expect(game.locator('[data-result] [data-result-heading]')).toHaveText(id === 'map' ? 'Passed' : 'Finished (practice)')
 }
 
 const FLOOR: Record<(typeof WALKED)['engine-floor'][number], Walker> = {
@@ -263,11 +325,10 @@ const FLOOR: Record<(typeof WALKED)['engine-floor'][number], Walker> = {
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* The Reach-In (`pool`)                                                                                              */
+/* KV page pool (`pool`)                                                                                              */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 const askKind = (page: Page) => page.locator('[data-pool-controls]').getAttribute('data-ask')
-const ticketNo = (id: number) => String(id + 1).padStart(2, '0')
 
 /** The buttons of the open ask's list that can be acted on, in order, with their names. */
 const listOf = (page: Page, kind: string) =>
@@ -308,7 +369,7 @@ async function arrowToItem(page: Page, walk: Walk, kind: string, index: number):
   for (; at > index; at--) await walk.press('ArrowUp')
 }
 
-/** Answers the open ask the way a keyboard does, with the house's action: a ticket by the arrows and Enter, a dump by Space on the rows and the stub. */
+/** Answers the open decision the way a keyboard does, with the reference's action: a request by the arrows and Enter, an eviction by Space on the rows and its button. */
 async function take(page: Page, walk: Walk, action: PoolAction): Promise<void> {
   switch (action.t) {
     case 'commit':
@@ -316,13 +377,13 @@ async function take(page: Page, walk: Walk, action: PoolAction): Promise<void> {
     case 'admit': {
       await awaitAsk(page, walk, 'admit')
       if (action.req === null) {
-        await tabTo(walk, /^Hang none$/, 6)
+        await tabTo(walk, /^Admit none this step$/, 12)
         await page.keyboard.press('Enter')
         break
       }
       const items = await listOf(page, 'admit')
-      const index = items.findIndex((item) => item.name.startsWith(`Hang ticket No. ${ticketNo(action.req as number)},`))
-      expect(index, `ticket ${action.req} is on the list`).toBeGreaterThanOrEqual(0)
+      const index = items.findIndex((item) => item.name.startsWith(`Admit request ${(action.req as number) + 1},`))
+      expect(index, `request ${action.req} is on the list`).toBeGreaterThanOrEqual(0)
       await arrowToItem(page, walk, 'admit', index)
       await page.keyboard.press('Enter')
       break
@@ -330,7 +391,7 @@ async function take(page: Page, walk: Walk, action: PoolAction): Promise<void> {
     case 'evict': {
       await awaitAsk(page, walk, 'evict')
       const rows = await listOf(page, 'evict')
-      const named = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLButtonElement>('[data-ask-list="evict"] button[data-roving]')).map((button) => Number(/pan (\d+)/.exec(button.textContent ?? '')?.[1])))
+      const named = await page.evaluate(() => Array.from(document.querySelectorAll<HTMLButtonElement>('[data-ask-list="evict"] button[data-roving]')).map((button) => Number(/page (\d+)/.exec(button.textContent ?? '')?.[1])))
       const want = new Set(action.pages.map((pan) => pan + 1))
       // Space on a row toggles the pan; the rows are in the rotation's order, and the first `need` are chosen to begin with.
       for (const [index, row] of rows.entries()) {
@@ -340,15 +401,15 @@ async function take(page: Page, walk: Walk, action: PoolAction): Promise<void> {
         }
       }
       await expect(page.locator('[data-ask-list="evict"] [aria-pressed="true"]')).toHaveCount(action.pages.length)
-      await tabTo(walk, /^Dump the \d+ pans?$/, 8)
+      await tabTo(walk, /^Evict \d+ pages?$/, 8)
       await page.keyboard.press('Enter')
       break
     }
     case 'preempt': {
       await awaitAsk(page, walk, 'preempt')
       const items = await listOf(page, 'preempt')
-      const index = items.findIndex((item) => item.name.startsWith(`Pull ticket No. ${ticketNo(action.req)},`))
-      expect(index, `ticket ${action.req} is on the line`).toBeGreaterThanOrEqual(0)
+      const index = items.findIndex((item) => item.name.startsWith(`Preempt request ${action.req + 1},`))
+      expect(index, `request ${action.req} is running`).toBeGreaterThanOrEqual(0)
       await arrowToItem(page, walk, 'preempt', index)
       await page.keyboard.press('Enter')
       break
@@ -356,12 +417,12 @@ async function take(page: Page, walk: Walk, action: PoolAction): Promise<void> {
     case 'prefetch': {
       await awaitAsk(page, walk, 'prefetch')
       if (action.adapter === null) {
-        await tabTo(walk, /^Bring none yet$/, 6)
+        await tabTo(walk, /^Load none yet$/, 12)
         await page.keyboard.press('Enter')
         break
       }
       const items = await listOf(page, 'prefetch')
-      const index = items.findIndex((item) => item.name.startsWith(`Bring kit ${(action.adapter as number) + 1} in,`))
+      const index = items.findIndex((item) => item.name.startsWith(`Load adapter ${(action.adapter as number) + 1},`))
       expect(index, `kit ${action.adapter} is on offer`).toBeGreaterThanOrEqual(0)
       await arrowToItem(page, walk, 'prefetch', index)
       await page.keyboard.press('Enter')
@@ -370,18 +431,44 @@ async function take(page: Page, walk: Walk, action: PoolAction): Promise<void> {
   }
 }
 
-const poolNight = (level: PoolLevelId): Walker => async (page, walk) => {
+/** What a spec may do between the reference's actions of a pool level: before and after each (R-T47's keep-list reads the moments on the way). */
+export interface PoolHooks {
+  readonly before?: (action: PoolAction, at: number, page: Page) => Promise<void>
+  readonly after?: (action: PoolAction, at: number, page: Page) => Promise<void>
+}
+
+export const poolNightWith = (level: PoolLevelId, hooks: PoolHooks = {}): Walker => async (page, walk) => {
   const built = poolLevel(level, practiceSeed('pool', level))
-  // The prediction is optional, and only the first action: a field and a Commit, written with the keys.
-  await tabTo(walk, /^Your answer$/)
+  // A learner who has not met the parts gets the first run (R-T08): its Next, with the keys, walks the parts and the look, and the ask's
+  // step puts focus in the guess's field. The game's own block finds it the same way inside a lesson.
+  const step = () => page.locator('[data-game="pool"] .es-intro').first().getAttribute('data-intro', { timeout: 2_000 }).catch(() => null)
+  // The first run's strip, or the guess when every part was met: whichever the page settles on.
+  await page.locator('[data-game="pool"] :is(.es-intro, [data-pool-predict])').first().waitFor()
+  for (let at = await step(), guard = 0; (at === 'parts' || at === 'look') && guard < 12; at = await step(), guard++) {
+    const focused = await page.evaluate(() => document.activeElement?.hasAttribute('data-intro-next') ?? false)
+    if (!focused) await tabTo(walk, /^(Next|Next part)$/, 60)
+    await page.keyboard.press('Enter')
+  }
+  // The guess is optional, and only the first action: a field and a Commit, written with the keys.
+  if (!(await page.evaluate(() => document.activeElement?.closest('[data-pool-predict]') != null))) await tabTo(walk, /^Your guess$/)
   await page.keyboard.type(String(built.predict.answer))
   await tabTo(walk, /^Commit$/, 3)
   await page.keyboard.press('Enter')
   await expect(liveLine(page)).not.toHaveText('')
-  for (const action of houseActions(built)) await take(page, walk, action)
-  await expect(outcome(page)).toHaveText(OVER)
-  await intoTheDebrief(page, walk, page.locator('[data-pool-debrief] h3').first(), 'Well stocked.')
+  for (const [at, action] of houseActions(built).entries()) {
+    await hooks.before?.(action, at, page)
+    await take(page, walk, action)
+    await hooks.after?.(action, at, page)
+  }
+  // The instrument frame puts the result in the dock and focus on its verdict, which the grade gives: a graded level has a pass rule.
+  await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
+  const verdict = page.locator('[data-result] [data-result-heading]')
+  await expect(verdict).toHaveText(built.graded ? 'Passed' : 'Finished (practice)')
+  await expect.poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-result-heading') ?? false)).toBe(true)
+  await walk.see()
 }
+
+const poolNight = (level: PoolLevelId): Walker => poolNightWith(level)
 
 const POOL: Record<(typeof WALKED)['pool'][number], Walker> = {
   'one-group': poolNight('one-group'),
@@ -394,7 +481,7 @@ const POOL: Record<(typeof WALKED)['pool'][number], Walker> = {
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* The Inspection (`broken-bench`)                                                                                    */
+/* Broken benchmark (`broken-bench`)                                                                                  */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 interface Ruling {
@@ -404,7 +491,7 @@ interface Ruling {
   hiUs: number
 }
 
-/** What a learner who has done the court's own arithmetic files: the true flaw, the recomputed p99 and the court's interval. */
+/** What a learner who has done the reference's own arithmetic files: the true flaw, the recomputed p99 and the reference's interval. */
 function rightRuling(slot: CaseSlot): Ruling {
   const { c, truth } = caseOf(slot)
   return { flaw: c.flaw, p99Us: truth.correction.p99Us, loUs: truth.interval.loUs, hiUs: truth.interval.hiUs }
@@ -413,14 +500,18 @@ function rightRuling(slot: CaseSlot): Ruling {
 /** Milliseconds as a person types them. */
 const ms = (us: number): string => String(us / 1000)
 
-/** A whole filing, by keys: Tab to the checklist, the arrows choose the flaw, digits write the p99 and its range, and Enter from the last field files it. */
-async function fileRuling(page: Page, walk: Walk, ruling: Ruling): Promise<void> {
-  await tabTo(walk, new RegExp(`^${FLAW_FACTS[BENCH_FLAWS[0]].term}`))
+/**
+ * A whole filing, by keys: the radios take focus (from the first run's ask step, or Tab), the arrows choose the flaw, digits write the p99
+ * and its range, and Enter from the last field files it.
+ */
+async function fileRuling(page: Page, walk: Walk, ruling: Ruling, scope: Scope = page): Promise<void> {
+  const inFlaws = await page.evaluate(() => document.activeElement?.closest('[data-bench-flaws]') != null)
+  if (!inFlaws) await tabTo(walk, new RegExp(`^${FLAW_FACTS[BENCH_FLAWS[0]].term}`))
   const at = BENCH_FLAWS.indexOf(ruling.flaw)
   if (at === 0) await page.keyboard.press('Space')
   for (let press = 0; press < at; press++) await walk.press('ArrowDown')
   await expect.poll(() => activeName(page)).toContain(FLAW_FACTS[ruling.flaw].term)
-  await expect(page.locator(`input[type="radio"][value="${ruling.flaw}"]`)).toBeChecked()
+  await expect(scope.locator(`input[type="radio"][value="${ruling.flaw}"]`)).toBeChecked()
   await tabTo(walk, /^Your p99 \(ms\)$/, 4)
   await page.keyboard.type(ms(ruling.p99Us))
   await walk.press('Tab')
@@ -432,17 +523,37 @@ async function fileRuling(page: Page, walk: Walk, ruling: Ruling): Promise<void>
   await page.keyboard.press('Enter')
 }
 
-/** The Inspection's level filed right, case by case: on its practice seed, or on the seed a graded run drew (e2e/lesson-games.spec.ts). */
+/** The first run's strip: Next through the parts and the look, with the keys. Whatever the page settles on first (the strip, or the form when every part was met). */
+async function passTheIntro(page: Page, walk: Walk): Promise<Locator> {
+  // A lesson can hold two runs of this game (its opening run and its graded block): the one the keys are in is the one to pass. On the game's
+  // own page there is one.
+  const inFocus = page.locator('[data-game="broken-bench"]:focus-within')
+  const game = (await inFocus.count()) > 0 ? inFocus.first() : page.locator('[data-game="broken-bench"]').first()
+  const step = () => game.locator('.es-intro').first().getAttribute('data-intro', { timeout: 2_000 }).catch(() => null)
+  await game.locator(':is(.es-intro, [data-bench-form])').first().waitFor()
+  for (let at = await step(), guard = 0; (at === 'parts' || at === 'look') && guard < 12; at = await step(), guard++) {
+    const focused = await page.evaluate(() => document.activeElement?.hasAttribute('data-intro-next') ?? false)
+    if (!focused) await tabTo(walk, /^(Next|Next part)$/, 60)
+    await page.keyboard.press('Enter')
+  }
+  return game
+}
+
+/** Broken benchmark's level filed right, case by case: on its practice seed, or on the seed a graded run drew (e2e/lesson-games.spec.ts). */
 export const benchLevelWalk = (level: 'due' | 'warm' | 'sure' | 'court', seed = practiceSeed('broken-bench', level)): Walker => async (page, walk) => {
   const slots = benchLevel(level, seed).slots
+  const game = await passTheIntro(page, walk)
   for (const [at, slot] of slots.entries()) {
-    if (at > 0) await expect.poll(() => activeName(page)).toBe(`The court, case ${at + 1} of ${slots.length}`)
-    await fileRuling(page, walk, rightRuling(slot))
-    if (at < slots.length - 1) await expect(liveLine(page)).toContainText(`Case ${at + 1} of ${slots.length} filed.`)
+    if (at > 0) await expect.poll(() => activeName(page)).toBe(`Report form: report ${at + 1} of ${slots.length}`)
+    await fileRuling(page, walk, rightRuling(slot), game)
+    if (at < slots.length - 1) await expect(liveLine(game)).toContainText(`Report ${at + 1} of ${slots.length} filed.`)
   }
-  await expect(liveLine(page)).toContainText('The last ruling is filed.')
-  await expect(outcome(page)).toHaveText(OVER)
-  await intoTheDebrief(page, walk, page.locator('[data-bench-debrief] h3').first(), level === 'court' ? 'The court is satisfied.' : 'The ruling stands.')
+  await expect(liveLine(game)).toContainText('The last report is filed.')
+  // The instrument frame puts the result in the dock and focus on its verdict, which the grade gives.
+  await expect(outcome(game)).toHaveText('The run is over. The result is in the dock.')
+  await expect(game.locator('[data-result] [data-result-heading]')).toHaveText('Passed')
+  await expect.poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-result-heading') ?? false)).toBe(true)
+  await walk.see()
 }
 
 const BENCH: Record<(typeof WALKED)['broken-bench'][number], Walker> = {
@@ -456,8 +567,23 @@ const BENCH: Record<(typeof WALKED)['broken-bench'][number], Walker> = {
 /* Service's full service (`loop`)                                                                                    */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** Calls the stage's prediction with the keys: a number typed into its slip, or a choice pressed and torn off with the stub. */
+/**
+ * A learner who has not met the parts gets the first run (R-T28): its Next, with the keys, walks the parts and the look to the ask, and the
+ * prediction opens. The game's own block finds it the same way inside a lesson. Where every part was met, the prediction is there already.
+ */
+async function firstRun(page: Page, walk: Walk): Promise<void> {
+  await page.locator('[data-game="loop"] :is(.es-intro, [data-full-prediction="open"])').first().waitFor()
+  const step = () => page.locator('[data-game="loop"] .es-intro').first().getAttribute('data-intro', { timeout: 2_000 }).catch(() => null)
+  for (let at = await step(), guard = 0; (at === 'parts' || at === 'look') && guard < 14; at = await step(), guard++) {
+    const focused = await page.evaluate(() => document.activeElement?.hasAttribute('data-intro-next') ?? false)
+    if (!focused) await tabTo(walk, /^(Next|Next part)$/, 60)
+    await page.keyboard.press('Enter')
+  }
+}
+
+/** Commits the stage's prediction with the keys: a number typed into its field, or a choice pressed and committed with its button. */
 async function call(page: Page, walk: Walk, answer: number): Promise<void> {
+  await firstRun(page, walk)
   const field = page.locator('[data-full-prediction="open"] input')
   if ((await field.count()) > 0) {
     await tabToLocator(walk, field)
@@ -466,7 +592,7 @@ async function call(page: Page, walk: Walk, answer: number): Promise<void> {
   } else {
     await tabToLocator(walk, page.locator('[data-full-prediction="open"] [role="radio"]').nth(answer))
     await page.keyboard.press('Enter')
-    await tabToLocator(walk, page.getByRole('button', { name: 'Call it' }))
+    await tabToLocator(walk, page.getByRole('button', { name: 'Commit prediction' }))
     await page.keyboard.press('Enter')
   }
   await expect(page.locator('[data-full-prediction="called"]')).toBeVisible()
@@ -475,12 +601,12 @@ async function call(page: Page, walk: Walk, answer: number): Promise<void> {
 /** A key of the game's, pressed with focus inside the game but on no text field. */
 async function gameKey(page: Page, walk: Walk, code: string): Promise<void> {
   const active = await page.evaluate(() => document.activeElement?.tagName ?? '')
-  if (active === 'INPUT' || active === 'BODY') await tabToLocator(walk, page.locator('[data-full-levers] button, [data-full-controls] .es-bell__button').first())
+  if (active === 'INPUT' || active === 'BODY') await tabToLocator(walk, page.locator('[data-full-levers] button, [data-full-levers] [role="switch"], [data-full-step] button').first())
   await page.keyboard.press(code)
 }
 
 async function serve(page: Page, walk: Walk): Promise<void> {
-  await tabToLocator(walk, page.getByRole('button', { name: 'Serve the rest' }))
+  await tabToLocator(walk, page.getByRole('button', { name: 'Run to the end' }))
   await page.keyboard.press('Enter')
 }
 
@@ -489,18 +615,18 @@ async function nextStage(page: Page, walk: Walk, id: string): Promise<void> {
   await expect(page.locator(`[data-stage-tab="${id}"][aria-current="step"]`)).toBeVisible()
 }
 
-async function fullDebrief(page: Page, walk: Walk): Promise<void> {
-  await tabToLocator(walk, page.getByRole('button', { name: 'See the debrief' }))
-  await page.keyboard.press('Enter')
+async function fullDebrief(page: Page, walk: Walk, word = 'Finished (practice)'): Promise<void> {
+  // The frame puts the result in the dock, and focus on its verdict, when the last stage closes.
   await expect(page.locator('[data-full-debrief]')).toBeVisible({ timeout: 30_000 })
-  await expect(page.locator('[data-full-debrief]')).toContainText('Well served.')
+  await expect(page.locator('[data-full-debrief] [data-result-heading]')).toHaveText(word)
+  await walk.see()
 }
 
-/** Cycles the graph mode with `G` until the panel asks for `wanted`. (`FULL` is the start of `FULL_DECODE_ONLY`, so the plate's word is matched whole.) */
+/** Cycles the graph mode with `G` until the panel asks for `wanted`. (`FULL` is the start of `FULL_DECODE_ONLY`, so the button's word is matched whole.) */
 async function graphMode(page: Page, walk: Walk, wanted: string): Promise<void> {
   for (let i = 0; i < MODES.length; i++) {
     const asked = (await page.locator('[data-full-levers] [role="radio"][aria-checked="true"]').textContent()) ?? ''
-    if (asked.split(' ')[0] === wanted) return
+    if (asked.split(/[ :]/)[0] === wanted) return
     await gameKey(page, walk, 'KeyG')
   }
   throw new Error(`G never reached ${wanted}`)
@@ -531,9 +657,10 @@ const LOOP: Record<(typeof WALKED)['loop'][number], Walker> = {
       if (i > 0) await nextStage(page, walk, world.id)
       await call(page, walk, world.answer)
       await gameKey(page, walk, 'KeyO')
-      await expect(page.getByRole('switch', { name: /Write the next call during this fire/ })).toHaveAttribute('aria-checked', 'true')
+      await expect(page.getByRole('switch', { name: /Async scheduling/ })).toHaveAttribute('aria-checked', 'true')
       await serve(page, walk)
-      await expect(page.locator(`[data-stage-tab="${world.id}"] .es-full-stages__done`)).toHaveCount(1)
+      // The last stage closes the level, and the result takes the dock: its tabs are gone.
+      if (i < full('async').stages.length - 1) await expect(page.locator(`[data-stage-tab="${world.id}"] .es-full-stages__done`)).toHaveCount(1)
     }
     await fullDebrief(page, walk)
   },
@@ -544,7 +671,7 @@ const LOOP: Record<(typeof WALKED)['loop'][number], Walker> = {
     await serve(page, walk)
     await nextStage(page, walk, 'sizes')
     await call(page, walk, sizes.answer)
-    // The ladder: take the naive molds off, then put the house's on, walking it with the arrows.
+    // The ladder: take the naive capture sizes off, then put the reference run's on, walking it with the arrows.
     await pressSizes(page, walk, sizes.start.captureSizes)
     await pressSizes(page, walk, sizes.house.captureSizes)
     for (const size of sizes.house.captureSizes) await expect(page.locator('[aria-label="Capture sizes"] button', { hasText: new RegExp(`^${size}$`) })).toHaveAttribute('aria-pressed', 'true')
@@ -559,7 +686,7 @@ const LOOP: Record<(typeof WALKED)['loop'][number], Walker> = {
     const [small, big] = full('mrv2').stages
     await call(page, walk, small.answer)
     await gameKey(page, walk, 'KeyM')
-    await expect(page.getByRole('switch', { name: /The V2 runner/ })).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByRole('switch', { name: /V2 model runner/ })).toHaveAttribute('aria-checked', 'true')
     await serve(page, walk)
     await nextStage(page, walk, big.id)
     await call(page, walk, big.answer)
@@ -570,28 +697,27 @@ const LOOP: Record<(typeof WALKED)['loop'][number], Walker> = {
     const [world] = full('close').stages
     await call(page, walk, world.answer)
     await gameKey(page, walk, 'KeyO')
-    await expect(page.getByRole('switch', { name: /Write the next call during this fire/ })).toHaveAttribute('aria-checked', String(world.house.async))
+    await expect(page.getByRole('switch', { name: /Async scheduling/ })).toHaveAttribute('aria-checked', String(world.house.async))
     await gameKey(page, walk, 'KeyM')
-    await expect(page.getByRole('switch', { name: /The V2 runner/ })).toHaveAttribute('aria-checked', String(world.house.runner === 'mrv2'))
-    await tabToLocator(walk, page.getByRole('switch', { name: /The line fills the next call's input ids/ }))
+    await expect(page.getByRole('switch', { name: /V2 model runner/ })).toHaveAttribute('aria-checked', String(world.house.runner === 'mrv2'))
+    await tabToLocator(walk, page.getByRole('switch', { name: /Input ids filled on the GPU/ }))
     await page.keyboard.press('Space')
-    await expect(page.getByRole('switch', { name: /The line fills the next call's input ids/ })).toHaveAttribute('aria-checked', String(world.house.inputIds === 'device'))
+    await expect(page.getByRole('switch', { name: /Input ids filled on the GPU/ })).toHaveAttribute('aria-checked', String(world.house.inputIds === 'device'))
     await graphMode(page, walk, world.house.graphMode)
-    // The ladder: lift the engine's own sizes that the house does not drill, and press the house's.
+    // The ladder: lift the engine's own sizes that the reference run does not capture, and press the reference run's.
     await pressSizes(page, walk, world.start.captureSizes.filter((size) => !world.house.captureSizes.includes(size)))
     await pressSizes(page, walk, world.house.captureSizes.filter((size) => !world.start.captureSizes.includes(size)))
-    // One ring serves the whole night, with no bell and no Auto.
-    await tabToLocator(walk, page.getByRole('button', { name: 'Serve the night' }))
+    // One press runs the whole stage, with no Step and no Auto.
+    await tabToLocator(walk, page.getByRole('button', { name: 'Run it', exact: true }))
     await page.keyboard.press('Enter')
-    await expect(page.locator('[data-full-verdict="pass"]')).toBeVisible({ timeout: 30_000 })
-    await fullDebrief(page, walk)
-    await expect(page.locator('[data-full-verdict-debrief]')).toContainText('The night meets the bar.')
+    await fullDebrief(page, walk, 'Passed')
+    await expect(page.locator('[data-full-verdict-debrief]')).toContainText('The run meets the bar.')
   },
   mask: async (page, walk) => {
     const [mask] = full('mask').stages
     await call(page, walk, mask.answer)
     await gameKey(page, walk, 'KeyO')
-    await expect(page.getByRole('switch', { name: /Write the allergy card during the fire/ })).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByRole('switch', { name: /Build the grammar mask during the forward/ })).toHaveAttribute('aria-checked', 'true')
     await serve(page, walk)
     await fullDebrief(page, walk)
   },
@@ -604,7 +730,7 @@ const LOOP: Record<(typeof WALKED)['loop'][number], Walker> = {
 /** The walk of each level, by game and level: e2e/levels.ts' `WALKED` has exactly these. */
 export const WALKS: { readonly [game: string]: { readonly [level: string]: Walker } } = {
   loop: LOOP,
-  verifier: TASTING,
+  verifier: SAMPLER,
   'engine-floor': FLOOR,
   pool: POOL,
   'broken-bench': BENCH,

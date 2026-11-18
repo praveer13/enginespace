@@ -24,6 +24,7 @@ import { applyAction, drawInBand, finishRun, levelOf, regrade, startRun, stateHa
 import { FIRST_SERVICE, LOOP } from '@es/play/loop/entry'
 import { askOf, countersOf, hang, initState, levelDone, measured, setOverlap, step } from '@es/play/loop/engine'
 import { LEVEL_IDS, PASS_SCORE, SLOTS, buildLevel, inParBand, levelTitle, services, simNight, frontPageWorkload } from '@es/play/loop/levels'
+import { LOOP_COPY } from '@es/play/loop/copy'
 import { loopDebrief, loopGhost, loopGrade, loopInBand, loopLevel, loopSession, loopView } from '@es/play/loop/session'
 import type { LoopLevelId, LoopState } from '@es/play/loop/types'
 import { visitorNight } from './loop-support'
@@ -50,10 +51,10 @@ describe('the levels and their pinned practice seeds', () => {
   })
 
   test('a level that Service does not have is refused, and so is a seed that is not an unsigned 32-bit integer', () => {
-    expect(() => loopLevel('async', 1)).toThrow('Service has no level "async"')
-    expect(() => loopInBand('close', 1)).toThrow('Service has no level "close"')
+    expect(() => loopLevel('async', 1)).toThrow('Step loop has no level "async"')
+    expect(() => loopInBand('close', 1)).toThrow('Step loop has no level "close"')
     expect(() => loopLevel('first-1-fill', -1)).toThrow('a seed is an unsigned 32-bit integer')
-    expect(() => loopLevel('constructor', 1)).toThrow('Service has no level')
+    expect(() => loopLevel('constructor', 1)).toThrow('Step loop has no level')
   })
 
   test('the rail has 4 clips [estimated], and the burst has 12 tickets against 6 in the beats before it (D-043)', () => {
@@ -187,7 +188,7 @@ describe('the beats of First service, on the practice seed', () => {
       expect(loopGrade(s, ghost).ok, `hung ${hung}`).toBe(hung === 4)
       expect(countersOf(s).emptyClipSteps).toBe(4 - hung)
     }
-    expect(() => step(initState(level))).toThrow('nothing is hung')
+    expect(() => step(initState(level))).toThrow('nothing is admitted')
   })
 
   test('beat 2: the loop runs until a ticket ends, its clip opens and the loop waits; refilling is the reference, ringing past it scores less', () => {
@@ -253,7 +254,7 @@ describe('the beats of First service, on the practice seed', () => {
     // Without overlap the stations sat dark: the lever is overlap. Without refilling, with overlap on, clips sat empty: the lever is the refill.
     expect(only(true, false).names).toEqual({ lever: 'async' })
     expect(only(false, true).names).toEqual({ lever: 'batching' })
-    expect(only(true, true).sentence).toContain('par')
+    expect(only(true, true).sentence).toContain('reference run')
   })
 
   test('the debrief\'s sentences carry no digit, so no number goes untagged: the counters beside them are Readouts', () => {
@@ -273,7 +274,7 @@ describe('the beats of First service, on the practice seed', () => {
     }
     expect(sentences.length).toBeGreaterThan(4)
     for (const sentence of sentences) expect(sentence).not.toMatch(/\d/)
-    for (const id of LEVEL_IDS) expect(`${buildLevel(id, 1).title} ${buildLevel(id, 1).prompt}`).not.toMatch(/\d/)
+    for (const id of LEVEL_IDS) expect(`${LOOP_COPY[id].title} ${LOOP_COPY[id].prompt}`).not.toMatch(/\d/)
   })
 
   test('play(...) helpers are inert: a level\'s first state does not move when another is built', () => {

@@ -98,13 +98,13 @@ const dumpPlan = (): CheckPlan =>
     [
       say('init 3', 'ok'),
       ...fillTo(3),
-      say('touch 4', 'miss dump 1', 'a full rotation dumps its front'),
+      say('touch 4', 'miss dump 1', 'a full queue evicts its front'),
       say('order', '2,3,4'),
-      say('len', '3', 'the rotation stays full'),
-      say('touch 1', 'miss dump 2', 'a dumped key is gone, so touching it again is a miss'),
+      say('len', '3', 'the queue stays full'),
+      say('touch 1', 'miss dump 2', 'an evicted key is gone, so touching it again is a miss'),
       say('order', '3,4,1'),
     ],
-    'the front is dumped, and the rotation stays full',
+    'the front is evicted, and the queue stays full',
   )
 
 const recencyPlan = (): CheckPlan =>
@@ -113,7 +113,7 @@ const recencyPlan = (): CheckPlan =>
       say('init 3', 'ok'),
       ...fillTo(3),
       say('touch 1', 'hit'),
-      say('touch 4', 'miss dump 2', 'the dump goes by the last touch, not by arrival'),
+      say('touch 4', 'miss dump 2', 'the eviction goes by the last touch, not by arrival'),
       say('order', '3,1,4'),
     ],
     'the key touched most recently outlives the one that came later',
@@ -175,7 +175,7 @@ export function churnPlan(seed: Seed): CheckPlan {
       }
       return null
     },
-    passed: () => `${CHURN_TOUCHES} touches on ${capacity} pans, every reply and every order as the model has them`,
+    passed: () => `${CHURN_TOUCHES} touches on ${capacity} slots, every reply and every order as the model has them`,
   }
 }
 
@@ -183,16 +183,16 @@ export function churnPlan(seed: Seed): CheckPlan {
 export const TOY_CHECKS: readonly PlannedCheck[] = [
   {
     id: 'fill',
-    label: 'fill an empty rotation',
+    label: 'fill an empty free queue',
     stage: 1,
     seeded: false,
     defaultSeed: 0,
-    catches: 'A rotation that cannot hold what it was sized for, or loses the order the keys came in.',
+    catches: 'A free queue that cannot hold what it was sized for, or loses the order the keys came in.',
     plan: fillPlan,
   },
   {
     id: 'hits',
-    label: 'a held key is a hit and goes to the back',
+    label: 'a held key is a hit and moves to the back',
     stage: 1,
     seeded: false,
     defaultSeed: 0,
@@ -201,20 +201,20 @@ export const TOY_CHECKS: readonly PlannedCheck[] = [
   },
   {
     id: 'dump',
-    label: 'a full rotation dumps its front',
+    label: 'a full queue evicts its front',
     stage: 2,
     seeded: false,
     defaultSeed: 0,
-    catches: 'A full rotation that dumps the wrong key, dumps none, or does not make room.',
+    catches: 'A full queue that evicts the wrong key, evicts none, or does not make room.',
     plan: dumpPlan,
   },
   {
     id: 'recency',
-    label: 'a hit saves a key from the next dump',
+    label: 'a hit saves a key from the next eviction',
     stage: 3,
     seeded: false,
     defaultSeed: 0,
-    catches: 'A rotation that dumps by arrival, first in and first out, and not by the last touch.',
+    catches: 'A queue that evicts by arrival, first in and first out, and not by the last touch.',
     plan: recencyPlan,
   },
   {

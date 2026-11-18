@@ -177,7 +177,7 @@ describe('the bestiary: known-wrong paths, each stopped by the rule it breaks (G
     expect(own?.source.repo).toBe('vllm-project/vllm')
     expect(own?.source.ref).toMatch(/^[0-9a-f]{40}$/)
     expect(own?.source.quote).toBe('self.input_queue.put_nowait((request_type, request))')
-    expect(MECHANISM_WORDS[own?.mechanism ?? 'call'].kitchen).toBe('spike')
+    expect(MECHANISM_WORDS[own?.mechanism ?? 'call'].tile).toBe('queue')
     expect(placeName(own?.to ?? stop.laid.to)).toBe('engine-core · main')
   })
 
@@ -218,8 +218,8 @@ describe('the prediction (GAMES.md §5, "Predict"): process boundaries a sampled
     expect(facts({ engine: 'sglang', streaming: true, tp: 2, abort: false, prefixHit: false, n: 1 }).ranksVia?.mechanism).toBe('ipc')
     expect(facts({ engine: 'nano-vllm', streaming: false, tp: 2, abort: false, prefixHit: false, n: 1 }).ranksVia?.mechanism).toBe('shm')
     // The house of an engine with an order desk has that floor and vLLM's does not: the architecture's difference.
-    expect(facts({ engine: 'sglang', streaming: true, tp: 1, abort: false, prefixHit: false, n: 1 }).floors).toContain('desk')
-    expect(facts(VLLM).floors).not.toContain('desk')
+    expect(facts({ engine: 'sglang', streaming: true, tp: 1, abort: false, prefixHit: false, n: 1 }).kinds).toContain('desk')
+    expect(facts(VLLM).kinds).not.toContain('desk')
   })
 
   test('every stage of every path has an owner: the engine it is read from', () => {

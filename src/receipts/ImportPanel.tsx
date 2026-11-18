@@ -3,8 +3,8 @@ import type { DragEvent, ReactNode } from 'react'
 import { Button } from '@/design/components/Button'
 import { Icon } from '@/design/components/Glyph'
 import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
-import { Ticket } from '@/design/components/Ticket'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
+import { Sheet } from '@/design/components/Sheet'
 import { MAX_COMPRESSED_BYTES, MAX_DECOMPRESSED_BYTES } from '@es/verify'
 import type { RuleResult } from '@es/verify'
 import { IMPORT, VERDICT_WORDS } from './copy'
@@ -111,7 +111,7 @@ export function ImportPanel({ ready, readOnly, memoryOnly, state, onChoose, onCl
   let slip: ReactNode
   if (state.step === 'idle') {
     slip = (
-      <Ticket
+      <Sheet
         as="div"
         width="full"
         hole={false}
@@ -121,9 +121,9 @@ export function ImportPanel({ ready, readOnly, memoryOnly, state, onChoose, onCl
         titleAs="h3"
         foot={[<Caps key="caps" />]}
         stub={
-          <Stub onClick={pick} disabled={blocked}>
+          <PrimaryButton onClick={pick} disabled={blocked}>
             {IMPORT.choose}
-          </Stub>
+          </PrimaryButton>
         }
       >
         <p>{IMPORT.dropNote}</p>
@@ -140,17 +140,17 @@ export function ImportPanel({ ready, readOnly, memoryOnly, state, onChoose, onCl
             <span>{IMPORT.memoryOnly}</span>
           </p>
         ) : null}
-      </Ticket>
+      </Sheet>
     )
   } else if (state.step === 'checking') {
     slip = (
-      <Ticket as="div" width="full" hole={false} head={IMPORT.head} state="loading" loadingLabel={IMPORT.checking}>
+      <Sheet as="div" width="full" hole={false} head={IMPORT.head} state="loading" loadingLabel={IMPORT.checking}>
         <FileLine file={state.file} />
-      </Ticket>
+      </Sheet>
     )
   } else if (state.step === 'refused') {
     slip = (
-      <Ticket
+      <Sheet
         as="div"
         width="full"
         hole={false}
@@ -159,16 +159,16 @@ export function ImportPanel({ ready, readOnly, memoryOnly, state, onChoose, onCl
         titleAs="h3"
         state="error"
         error={firstFailure(state.rules)}
-        stub={<Stub onClick={pick}>{IMPORT.chooseAnother}</Stub>}
+        stub={<PrimaryButton onClick={pick}>{IMPORT.chooseAnother}</PrimaryButton>}
       >
         <FileLine file={state.file} />
         <p>{IMPORT.refusedNote}</p>
         <RuleList rules={state.rules} label={IMPORT.rulesLabel} />
-      </Ticket>
+      </Sheet>
     )
   } else if (state.step === 'failed') {
     slip = (
-      <Ticket
+      <Sheet
         as="div"
         width="full"
         hole={false}
@@ -177,30 +177,30 @@ export function ImportPanel({ ready, readOnly, memoryOnly, state, onChoose, onCl
         titleAs="h3"
         state="error"
         error={state.message}
-        stub={<Stub onClick={pick}>{IMPORT.chooseAnother}</Stub>}
+        stub={<PrimaryButton onClick={pick}>{IMPORT.chooseAnother}</PrimaryButton>}
       >
         <FileLine file={state.file} />
         <p>{IMPORT.failedNote}</p>
         {state.rules === undefined ? null : <RuleList rules={state.rules} label={IMPORT.rulesLabel} />}
-      </Ticket>
+      </Sheet>
     )
   } else {
     slip = (
-      <Ticket
+      <Sheet
         as="div"
         width="full"
         hole={false}
         head={IMPORT.keptHead}
         title={state.recheck ? IMPORT.recheckTitle : IMPORT.keptTitle}
         titleAs="h3"
-        foot={[`Receipt ${shortHash(state.sha256)}`]}
-        stub={<Stub to={detailAddress(state.sha256)}>{IMPORT.open}</Stub>}
+        foot={[`Result ${shortHash(state.sha256)}`]}
+        stub={<PrimaryButton to={detailAddress(state.sha256)}>{IMPORT.open}</PrimaryButton>}
       >
         <FileLine file={state.file} />
         <p>{state.recheck ? IMPORT.recheckNote : IMPORT.keptNote}</p>
         <RuleList rules={state.rules} label={IMPORT.rulesLabel} checks={false} />
         <VerdictLine verdict={state.verdict} grader={state.grader} />
-      </Ticket>
+      </Sheet>
     )
   }
 

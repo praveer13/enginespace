@@ -1,62 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 124" width="360" height="124" fill="none" stroke="currentColor" stroke-width="1">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 166" width="360" height="166">
   <title>Rows padded and wasted by a decode batch of 1 to 40 rows under vLLM's default capture sizes</title>
   <desc>A bar for each batch size from 1 to 40 rows, as tall as the rows that the batch is padded by, up to 7. The bar is nothing at each captured size, 1, 2, 4, 8, 16, 24, 32 and 40, and grows by one row for each row the batch has over the last captured size, until the next size is reached. The bars run in a sawtooth that is tallest just above a size that sits far above the last, as at 9 rows and 17.</desc>
-  <g fill="currentColor" fill-opacity="0.34">
-    <rect x="30" y="96" width="6" height="0"/>
-    <rect x="38" y="96" width="6" height="0"/>
-    <rect x="46" y="87" width="6" height="9"/>
-    <rect x="54" y="96" width="6" height="0"/>
-    <rect x="62" y="69" width="6" height="27"/>
-    <rect x="70" y="78" width="6" height="18"/>
-    <rect x="78" y="87" width="6" height="9"/>
-    <rect x="86" y="96" width="6" height="0"/>
-    <rect x="94" y="33" width="6" height="63"/>
-    <rect x="102" y="42" width="6" height="54"/>
-    <rect x="110" y="51" width="6" height="45"/>
-    <rect x="118" y="60" width="6" height="36"/>
-    <rect x="126" y="69" width="6" height="27"/>
-    <rect x="134" y="78" width="6" height="18"/>
-    <rect x="142" y="87" width="6" height="9"/>
-    <rect x="150" y="96" width="6" height="0"/>
-    <rect x="158" y="33" width="6" height="63"/>
-    <rect x="166" y="42" width="6" height="54"/>
-    <rect x="174" y="51" width="6" height="45"/>
-    <rect x="182" y="60" width="6" height="36"/>
-    <rect x="190" y="69" width="6" height="27"/>
-    <rect x="198" y="78" width="6" height="18"/>
-    <rect x="206" y="87" width="6" height="9"/>
-    <rect x="214" y="96" width="6" height="0"/>
-    <rect x="222" y="33" width="6" height="63"/>
-    <rect x="230" y="42" width="6" height="54"/>
-    <rect x="238" y="51" width="6" height="45"/>
-    <rect x="246" y="60" width="6" height="36"/>
-    <rect x="254" y="69" width="6" height="27"/>
-    <rect x="262" y="78" width="6" height="18"/>
-    <rect x="270" y="87" width="6" height="9"/>
-    <rect x="278" y="96" width="6" height="0"/>
-    <rect x="286" y="33" width="6" height="63"/>
-    <rect x="294" y="42" width="6" height="54"/>
-    <rect x="302" y="51" width="6" height="45"/>
-    <rect x="310" y="60" width="6" height="36"/>
-    <rect x="318" y="69" width="6" height="27"/>
-    <rect x="326" y="78" width="6" height="18"/>
-    <rect x="334" y="87" width="6" height="9"/>
-    <rect x="342" y="96" width="6" height="0"/>
-  </g>
-  <path d="M30 96H350"/>
-  <path d="M33 96v5M41 96v5M57 96v5M89 96v5M153 96v5M217 96v5M281 96v5M345 96v5"/>
-  <g stroke="none" fill="currentColor" font-size="8" text-anchor="middle">
-    <text x="33" y="111">1</text>
-    <text x="41" y="111">2</text>
-    <text x="57" y="111">4</text>
-    <text x="89" y="111">8</text>
-    <text x="153" y="111">16</text>
-    <text x="217" y="111">24</text>
-    <text x="281" y="111">32</text>
-    <text x="345" y="111">40</text>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="8">
-    <text x="30" y="11">rows wasted</text>
-    <text x="30" y="121">rows in the batch; the numbers are the captured sizes</text>
-  </g>
+  <rect width="360" height="166" fill="#fafaf6"/>
+  <g class="graticule" fill="none" stroke="#c2c8bd"><path d="M34 20v64M42 20v64M50 20v64M58 20v64M66 20v64M74 20v64M82 20v64M90 20v64M98 20v64M106 20v64M114 20v64M122 20v64M130 20v64M138 20v64M146 20v64M154 20v64M162 20v64M170 20v64M178 20v64M186 20v64M194 20v64M202 20v64M210 20v64M218 20v64M226 20v64M234 20v64M242 20v64M250 20v64M258 20v64M266 20v64M274 20v64M282 20v64M290 20v64M298 20v64M306 20v64M314 20v64M322 20v64M330 20v64M338 20v64M346 20v64M354 20v64M34 20h320M34 28h320M34 36h320M34 44h320M34 52h320M34 60h320M34 68h320M34 76h320M34 84h320" stroke-width="0.5" stroke-opacity="0.55"/><path d="M34 20v64M74 20v64M114 20v64M154 20v64M194 20v64M234 20v64M274 20v64M314 20v64M354 20v64M34 20h320M34 60h320" stroke-width="0.75"/></g>
+  <text x="4" y="24" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">7</text>
+  <text x="4" y="88" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">0</text>
+  <text x="34" y="11" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">rows wasted by padding</text>
+  <g class="bar" data-slot="white"><rect x="51" y="76" width="6" height="8" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="67" y="60" width="6" height="24" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="75" y="68" width="6" height="16" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="83" y="76" width="6" height="8" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="99" y="28" width="6" height="56" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="107" y="36" width="6" height="48" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="115" y="44" width="6" height="40" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="123" y="52" width="6" height="32" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="131" y="60" width="6" height="24" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="139" y="68" width="6" height="16" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="147" y="76" width="6" height="8" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="163" y="28" width="6" height="56" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="171" y="36" width="6" height="48" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="179" y="44" width="6" height="40" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="187" y="52" width="6" height="32" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="195" y="60" width="6" height="24" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="203" y="68" width="6" height="16" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="211" y="76" width="6" height="8" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="227" y="28" width="6" height="56" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="235" y="36" width="6" height="48" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="243" y="44" width="6" height="40" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="251" y="52" width="6" height="32" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="259" y="60" width="6" height="24" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="267" y="68" width="6" height="16" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="275" y="76" width="6" height="8" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="291" y="28" width="6" height="56" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="299" y="36" width="6" height="48" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="307" y="44" width="6" height="40" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="315" y="52" width="6" height="32" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="323" y="60" width="6" height="24" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="331" y="68" width="6" height="16" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="bar" data-slot="white"><rect x="339" y="76" width="6" height="8" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <path d="M34 84H354M38 84v5M46 84v5M62 84v5M94 84v5M158 84v5M222 84v5M286 84v5M350 84v5" fill="none" stroke="#5f666d" stroke-width="1"/>
+  <text x="38" y="102" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">1</text>
+  <text x="46" y="102" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">2</text>
+  <text x="62" y="102" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">4</text>
+  <text x="94" y="102" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">8</text>
+  <text x="158" y="102" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">16</text>
+  <text x="222" y="102" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">24</text>
+  <text x="286" y="102" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">32</text>
+  <text x="350" y="102" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">40</text>
+  <g class="dim" data-value="9 to 16 rows run at 16"><path d="M98 114v8M162 114v8M98 118H162" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="98" y="133" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">9 to 16 rows run at 16</text>
+  <text x="354" y="133" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">rows in the batch</text>
+  <g class="key" data-slot="white"><rect x="4" y="146" width="16" height="12" fill="#f3f3ef" stroke="#5f666d" stroke-width="1"/></g>
+  <g class="glyph" data-slot="white"><circle cx="12" cy="152" r="3" fill="none" stroke="#5f666d" stroke-width="1.5"/></g>
+  <text x="24" y="156" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">padding rows, wasted</text>
 </svg>

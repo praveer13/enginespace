@@ -3,7 +3,7 @@
  *
  * Firing the rail as a set (static batching), refilling clips (continuous batching) and refilling while the next call is written
  * during the fire (continuous batching with overlap, par) are `runStepLoop` runs of the night's seed, so each is the sim's own number
- * and not a story. This file turns a run into the fires that `layout.ts` draws, and names the services.
+ * and not a story. This file turns a run into the fires that `strip.ts` draws, and names the services.
  */
 import type { Seed } from '@es/sim/core'
 import type { StepLoopRun } from '@es/sim/steploop'
@@ -13,7 +13,7 @@ import type { FireView, PlaceView } from './types'
 /** A service of the night: what it is called, and its run. */
 export interface Service {
   readonly id: 'fired-as-set' | 'refill' | 'par'
-  /** The kitchen's name for it, and the engine's term, which leads where it is printed (GAMES.md §2.6, rule 2). */
+  /** What it does, in a few words, and the engine's term, which leads where it is printed. */
   readonly name: string
   readonly term: string
   readonly run: StepLoopRun
@@ -33,12 +33,12 @@ export function firesOfRun(run: StepLoopRun, slots: number = SLOTS): FireView[] 
   })
 }
 
-/** The three services of the compare view, from firing the rail as a set to par. */
+/** The three schedulers of the compare view, from a batch run as a set to the reference run. */
 export function compareServices(seed: Seed): Service[] {
   const s = services(seed)
   return [
-    { id: 'fired-as-set', name: 'firing the rail as a set', term: 'Static batching', run: s.firedAsSet },
-    { id: 'refill', name: 'refilling clips', term: 'Continuous batching', run: s.refillAlone },
-    { id: 'par', name: 'refilling while the next call is written during the fire', term: 'Continuous batching with overlap (par)', run: s.par },
+    { id: 'fired-as-set', name: 'the batch runs as a set, then the next one starts', term: 'Static batching', run: s.firedAsSet },
+    { id: 'refill', name: 'a slot is refilled the moment it frees', term: 'Continuous batching', run: s.refillAlone },
+    { id: 'par', name: 'a slot is refilled at once, and the next step is planned while this one runs', term: 'Continuous batching with async scheduling (the reference)', run: s.par },
   ]
 }

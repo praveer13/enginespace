@@ -138,7 +138,7 @@ export const SCHEDULER_LINES = { post: 1163, pin: 3783 } as const
  * lesson's text against the answer.
  * The lesson's prediction box (W1b-T02) reads its answer from the run of the game block that follows the prediction, where
  * packages/play/predictions has a reading, and tests/play/predictions.test.ts holds each reading to the figure here; a prediction with no
- * reading waits for W2-T43, and its figure here is what that task starts from.
+ * run to read is revealed at commit (D-067), and its answer, which takes no run, is held to the same figure.
  */
 export const PREDICTIONS: Readonly<Record<string, { readonly unit: string; readonly reference: () => number }>> = {
   'tr1.l1.p1': { unit: 'boundaries', reference: () => tokenBoundaries(scenarioOf('nano')) },

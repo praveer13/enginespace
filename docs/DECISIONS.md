@@ -1,6 +1,6 @@
 # enginespace: decision log
 
-**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. D-047 records the visual world the owner chose on 2026-11-03, and D-048 and D-049 are **proposed** by the art direction that followed it. D-050 is **proposed** by the design system's build (W0-T05), D-051 by the settings page (W0-T22), and D-052 by the W0 wave PR. The W0 exit review (W0-T24, 2026-11-04) froze D-023's budgets, recorded D-040's spike result and D-047's finish verdict, and carried O-7, O-8 and O-9 over; its record is [docs/waves/W0-report.md](waves/W0-report.md). D-058 records the owner's answer to O-1, the custom domain, on 2026-11-08. D-059 puts back D-023's budgets, which D-053 to D-057 had raised during W1, and supersedes those five, none of which was adopted. The W1 exit review (W1-T38, 2026-11-08) recorded what W1 built against D-023, D-035, D-037, D-039, D-041, D-042, D-044, D-045, D-047, D-048, D-049 and D-059, carried O-7, O-8 and O-9 over again, and filed O-12 to O-18 for what W1 changed without a record or left open; its record is [docs/waves/W1-report.md](waves/W1-report.md). D-060 records the owner's answer to O-2, given after that review: the repository is public from 2026-11-08 and GitHub Pages is on. It supersedes O-3's default, which said that nothing is published until the licences are decided; O-3 stays open, and until the owner answers it, enginespace's own code and content are all rights reserved. D-060 also records how two third-party checks that W0's report held back for the flip came out, what the history of the repository still carries, and how the first deploy went. The open owner questions, O-3 to O-11 and O-13 to O-18 (O-1, O-2 and O-12 are answered), and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03, updated 2026-11-09.
+**Status:** D-001 to D-006 are the owner's decisions of 2026-11-03. D-007 to D-013 restate the product record the owner confirmed the same day (`PRODUCT.md`). D-014 to D-042 are **proposed** by [ARCHITECTURE.md](ARCHITECTURE.md) and wait for the owner's review. D-043 to D-046 are **proposed** by the design review of 2026-11-03, which settled contradictions between the design files; they wait for the owner too. D-047 records the visual world the owner chose on 2026-11-03, and D-048 and D-049 are **proposed** by the art direction that followed it. D-050 is **proposed** by the design system's build (W0-T05), D-051 by the settings page (W0-T22), and D-052 by the W0 wave PR. The W0 exit review (W0-T24, 2026-11-04) froze D-023's budgets, recorded D-040's spike result and D-047's finish verdict, and carried O-7, O-8 and O-9 over; its record is [docs/waves/W0-report.md](waves/W0-report.md). D-058 records the owner's answer to O-1, the custom domain, on 2026-11-08. D-059 puts back D-023's budgets, which D-053 to D-057 had raised during W1, and supersedes those five, none of which was adopted. The W1 exit review (W1-T38, 2026-11-08) recorded what W1 built against D-023, D-035, D-037, D-039, D-041, D-042, D-044, D-045, D-047, D-048, D-049 and D-059, carried O-7, O-8 and O-9 over again, and filed O-12 to O-18 for what W1 changed without a record or left open; its record is [docs/waves/W1-report.md](waves/W1-report.md). D-060 records the owner's answer to O-2, given after that review: the repository is public from 2026-11-08 and GitHub Pages is on. It supersedes O-3's default, which said that nothing is published until the licences are decided; O-3 stays open, and until the owner answers it, enginespace's own code and content are all rights reserved. D-060 also records how two third-party checks that W0's report held back for the flip came out, what the history of the repository still carries, and how the first deploy went. D-062 to D-068 record wave R, the redesign of 2026-11-15 ([REDESIGN.md](REDESIGN.md)). **D-062 is the owner's decision of 2026-11-16 at the look gate (R-T20):** shown ten pairs of images of build A (The Pass) and build B (Data Book), the owner chose Data Book, "data book for sure". D-062 therefore supersedes D-047, and D-064, which lands with D-062, stands with it. The owner answered the look only, so D-063, D-065, D-066, D-067 and D-068 are still **proposed**. D-066, D-067 and D-068 are the owner's to confirm, and so is the cut of one 3D game (Request path's scene) in D-065; each of them gives the default the wave builds on and what the wave does on each answer. D-062 supersedes D-047, D-063 supersedes D-049, and D-064 supersedes D-050's faces. The open owner questions, O-3 to O-11 and O-13 to O-18 (O-1, O-2 and O-12 are answered), and the course-design questions, Q-1 to Q-12, are at the end. **Date:** 2026-11-03, updated 2026-11-15.
 
 **How to read a record.** Each record carries six fields:
 - **Decision**, in one or two sentences.
@@ -27,8 +27,8 @@
 | D-001 | GPU work is graded. The catalog's "field evidence at weight 0" rule is retired for this course, and credit still never comes from a self-reported number, an LLM grader or a server. | owner-decided 2026-11-03 |
 | D-002 | Build the whole course, TR0-TR8 plus the capstone; the no-GPU modules (TR1, TR2, TR5a, TR6, TR8) ship first. | owner-decided 2026-11-03 |
 | D-003 | The stack: Vite, React 19, TypeScript, Three.js through react-three-fiber, Tailwind and bun tests, served statically on GitHub Pages with zero servers. | owner-decided 2026-11-03 |
-| D-004 | The front page opens on a playable 3D scene of the step loop ("Play first"). | owner-decided 2026-11-03 |
-| D-005 | The course has interactive games, several of them impressive 3D, and each game's rule is the concept it teaches. | owner-decided 2026-11-03 |
+| D-004 | The front page opens on a playable 3D scene of the step loop ("Play first"). | owner-decided 2026-11-03; narrowed for phones by D-065 (proposed) |
+| D-005 | The course has interactive games, several of them impressive 3D, and each game's rule is the concept it teaches. | owner-decided 2026-11-03; one fewer 3D game by D-065 (proposed) |
 | D-006 | The visual identity is chosen separately; the architecture and backlog choose no colours, fonts or visual style. | owner-decided 2026-11-03; superseded in part by D-047 |
 | D-007 | The name is enginespace; the repo is `praveer13/enginespace`, private for now (public since 2026-11-08, D-060); the course is a kernelspace specialization. | owner-confirmed 2026-11-03 |
 | D-008 | The learner is a kernelspace graduate; T5 L1-L10 is a hard prerequisite; the course is Rust-first and teaches only enough PyTorch to read the engines. | owner-confirmed 2026-11-03 |
@@ -59,7 +59,7 @@
 | D-033 | No third-party requests from the site; fonts are self-hosted. | proposed |
 | D-034 | TR5b owns a minimal KV connector contract and `kv-events@1` until The Wire's WR3 ships. | proposed |
 | D-035 | Proposed edition-1 pins: vLLM v0.33.0 (v0.32.0 if the R580 driver gate fails) and SGLang v0.5.23, pinned by SHA. | proposed; owner confirms (O-4, W1-T02, still open at the W1 exit) |
-| D-036 | Build process: four waves, S/M/L tasks for Sonnet agents in isolation, Opus exit reviews, stacked wave PRs that the owner merges. | proposed |
+| D-036 | Build process: four waves, S/M/L tasks for Sonnet agents in isolation, Opus exit reviews, stacked wave PRs that the owner merges. | proposed; wave R's models noted by D-068 |
 | D-037 | The Keep stage ships in W1: Today, on kernelspace's vendored FSRS. | proposed; Today built in W1 (W1-T05), with 8 of the 26 item families the lessons name |
 | D-038 | A front-page run is practice and earns no credit. | proposed |
 | D-039 | W1 ships the browser parts of TR1, TR6 and TR8; their GPU parts ship with W2. | proposed; met at the W1 exit |
@@ -70,11 +70,11 @@
 | D-044 | On the "70B on H100" card, S5's per-sequence host term t_seq runs on the CPU lane, not inside the GPU step, so host work is counted once; hiding it is labelled an extrapolation. | proposed (design review); W1-T12's default; the owner confirms |
 | D-045 | The KV pool has one page size: KV groups unify to it as vLLM's hybrid manager does, and adapters take S-LoRA's page count. ARCHITECTURE §5.4's mixed `pageUnits` is dropped. | proposed (design review); built by W1-T21 |
 | D-046 | Same-machine output comparisons (TR1's instrumented fork, TR6's speculative runs) use ASSESSMENT §5.7's tie-aware identity, not strict token identity. | proposed (design review) |
-| D-047 | The visual identity is The Pass, a restaurant line kitchen and its expo pass. The direction contract in the front page's surface brief sets token values, faces and scene materials, and DESIGN.md is written from the built world at the end of W0. | owner-decided 2026-11-03; finish verdict `fix` on 2026-11-04 (W0-T25), with the owner; W1's five game surfaces also ended `fix` (W1-T38) |
+| D-047 | The visual identity is The Pass, a restaurant line kitchen and its expo pass. The direction contract in the front page's surface brief sets token values, faces and scene materials, and DESIGN.md is written from the built world at the end of W0. | owner-decided 2026-11-03; finish verdict `fix` on 2026-11-04 (W0-T25), with the owner; W1's five game surfaces also ended `fix` (W1-T38); superseded by D-062, which the owner decided at the look gate (R-T20) on 2026-11-16 |
 | D-048 | The front page runs on GAMES.md's synthetic ticks and prints them as ticks, labelled synthetic. µs on the model's clock start with TR2's levels (W1-T13). | proposed (art direction); its W1 half built by W1-T13 |
-| D-049 | Every game gets an in-world display name in kitchen vocabulary, with its engine concept as a subtitle. Ids stay as they are. | proposed (art direction); met for W1's five games |
-| D-050 | The design system ships one light scheme, the line under its tubes, with a more-contrast variant and no dark scheme. Its faces are Big Shoulders Display, Doto (with Handjet's µ and ±), Permanent Marker, Atkinson Hyperlegible and Atkinson Hyperlegible Mono, self-hosted from Fontsource 5.3.0 and pinned by SHA-256. | proposed (W0-T05) |
-| D-051 | A learner's settings are recorded in the ledger's `working` store, one key each, and a copy in `localStorage` lets every page honour them from its first paint without opening the ledger. | proposed (W0-T22) |
+| D-049 | Every game gets an in-world display name in kitchen vocabulary, with its engine concept as a subtitle. Ids stay as they are. | proposed (art direction); met for W1's five games; superseded by D-063 |
+| D-050 | The design system ships one light scheme, the line under its tubes, with a more-contrast variant and no dark scheme. Its faces are Big Shoulders Display, Doto (with Handjet's µ and ±), Permanent Marker, Atkinson Hyperlegible and Atkinson Hyperlegible Mono, self-hosted from Fontsource 5.3.0 and pinned by SHA-256. | proposed (W0-T05); its faces superseded by D-064, with D-062; its one light scheme stands |
+| D-051 | A learner's settings are recorded in the ledger's `working` store, one key each, and a copy in `localStorage` lets every page honour them from its first paint without opening the ledger. | proposed (W0-T22); extended by D-066 |
 | D-052 | The nightly workflow runs on its schedule only when the repository variable `NIGHTLY_ENABLED` is `'true'`; a run started by hand always runs. | proposed (W0 wave PR) |
 | D-053 | The front page's first-paint gate is 151 KB: a second game that shares the run hook and the shell with Service splits the chunks that Service and the front page share, which costs about 870 B that the game cannot avoid. | superseded by D-059; not adopted |
 | D-054 | The front page's first-paint gate is 152 KB: a third game reaches some of the modules that the front page shares with the first two and not others, so Rollup splits them again, which costs the closure 585 B. | superseded by D-059; not adopted |
@@ -85,6 +85,13 @@
 | D-059 | D-023's budgets stand: the front page's first-paint JavaScript at 150 KB and every other route at 200 KB, with no row of its own for any page. The build is fitted to them by the fixes D-053 to D-057 named (the preload map out of the entry, the item families on demand, the lessons' tables out of the content loader, a front page that carries what it runs) and by a game shell that loads its keys dialog when it is asked for. | proposed (W1 gates restore, 2026-11-08); supersedes D-053 to D-057; holds at the W1 exit |
 | D-060 | The repository `praveer13/enginespace` is public from 2026-11-08, and GitHub Pages is on, with the source GitHub Actions and the custom domain `enginespace.naigap.com`; `PAGES_ENABLED` is set when W1 is on its way to `main`. This answers O-2. O-3 stays open and its default, that nothing is published until decided, is superseded: until the owner answers it, enginespace's own code and content are all rights reserved. | owner-decided 2026-11-08 |
 | D-061 | `scripts/` and `tests/` are type-checked by `tsc -b` in `tsconfig.tools.json`, under the app's options, and the parts of Bun that they call are declared in `scripts/types/bun.d.ts` in place of `@types/bun`, which is not added. | proposed (W1b-T14) |
+| D-062 | The visual world is Data Book: the engine drawn as its engineers draw it, on flat paper, with one amber mark for "now". The owner decides between it and The Pass at the look gate, on two builds, and nothing of the kitchen is deleted before the gate. Supersedes D-047. | owner-decided 2026-11-16 at the look gate (R-T20): Data Book; finish review (R-T50, 2026-11-17): round 1 `fix`; round 2 `recapture`, no verdict; round 2b `fix` on 4a41050 with eight material fixes, of which `wr/fix-finish-2` made some and left what WR-report 6.3 lists; no review ran after it; with the owner |
+| D-063 | The engine's term is the only name of anything the learner reads, chooses, presses or is graded on. Ids do not change, and no build-log word reaches a learner. Supersedes D-049. | proposed (wave R) |
+| D-064 | Three faces (Big Shoulders Display, Atkinson Hyperlegible and its Mono) and Data Book's surface values; role names stay, but nine were renamed (see the record). Supersedes D-050's faces and keeps its one light scheme and no dark scheme. | proposed (wave R); lands with D-062, which the owner decided on 2026-11-16 |
+| D-065 | A lesson is up to four sections (Run, Read, Test, Keep) with one of three openers, and every game sits in one instrument frame. Phones open the front page in 2D, and Request path has no 3D scene. Notes on D-004, D-005 and O-11. | proposed (wave R); the owner confirms the cut of Request path's 3D scene |
+| D-066 | Three per-viewer keys in `localStorage`: the pointer (`es:next`), the bookmark (`es:here`) and the intro flag (`es:intro`). None is evidence. Extends D-051 and keeps D-038. | proposed (wave R); the owner confirms |
+| D-067 | A prediction may be revealed at commit, from the question's own numbers or from the claim it is about. It earns no credit either way. This is the owner's call under W2-T43's third way. | proposed (wave R); the owner confirms |
+| D-068 | Wave R's process: six stages, the look gate between stage 2 and stage 4, 16 tasks on opus and 2 on haiku, no gate raised, and the human cold test before the merge to `main`. A note on D-036. | proposed (wave R); the owner confirms |
 
 ---
 
@@ -128,6 +135,7 @@
 - **Alternatives:** a pitch page with a video; or a 2D demo only [design].
 - **Consequences:** D-023 makes the front page paint a playable 2D step loop from static HTML first and swap in the 3D scene after LCP. The 3D is what a capable device shows within its first seconds, while LCP stays fast on every device. The Loop is W0's centrepiece (W0-T13, W0-T16, W0-T17, W0-T18).
 - **Interpretation to confirm (O-11):** "opens on a playable 3D scene" is read as "the game on the front page is 3D on a capable device within seconds of load, and playable in 2D from the very first paint". Putting the 3D into the first paint itself would add about 285 KB gz before LCP [derived: the 245 KB `three-vendor` and 40 KB scene gates].
+- **Note (D-065, proposed 2026-11-15):** a phone opens the front page in 2D, with 3D one tap away; on a capable desktop the reading above holds.
 - **Revisit when:** the nightly LCP gate fails because of the 3D swap, or the owner answers O-11 differently.
 
 ### D-005 · Games, several of them impressive 3D, each rule the concept
@@ -137,6 +145,7 @@
 - **Context:** kernelspace's PLAN-100X §5.4.0 and its OD9 kept 3D opt-in, behind a seven-test gate, until 3D was shown to teach as well as linked 2D views. The owner chose 3D games for this course, "to catch attention and make it fun".
 - **Alternatives:** kernelspace's "2D default, 3D opt-in" (PLAN-100X OD9).
 - **Consequences:** ARCHITECTURE §6.1 has six 3D games and three 2D games. D-019 keeps the parts of the gate that guard learning (intrinsic rule, model-backed, debriefed, low load with a 2D path) and makes the dimensionality test advisory.
+- **Note (D-065, proposed 2026-11-15):** Request path loses its 3D scene. Three built 3D games remain, and W2 adds two.
 - **Revisit when:** a pre-registered comparison (a W3 stretch) shows a 3D game teaching worse than its 2D view.
 
 ### D-006 · The visual identity is chosen separately
@@ -252,6 +261,8 @@
   - `dangerouslySetInnerHTML` is banned.
   - `verify:content` caps the block types.
 - **Revisit when:** a lesson needs a ninth block type. Adding one reopens this record.
+
+- **Note (R-T45, wave R):** the block types are still eight. A figure takes an optional `replay` (a game, a level, a seed and a list of actions), an optional key on the block that already exists and not a ninth type. The compiler replays the actions on the game's pure session and fails on a log that does not replay, and in a lesson with a dock the figure gains a "Show on the machine" button that loads the state into the dock, with "Back to my run". `REPLAY_GAMES` in `packages/schema/content.ts` lists the games whose sessions the compiler replays: `loop` only.
 
 ### D-017 · A pure, seeded simulation package
 
@@ -570,6 +581,7 @@
 - **Context:** The owner's working pattern for kernelspace's waves: Sonnet for granular tasks, Opus for architecture and whole-wave review, stacked PRs merged by the owner, and just-in-time verification rather than repeated full sweeps.
 - **Alternatives:** statespace's tracker with owner-review hours per task, which is heavier [design].
 - **Consequences:** TRACKER.md's format and its shared agent brief.
+- **Note (D-068, proposed 2026-11-15):** wave R gives 16 of its 50 tasks to opus and 2 to haiku, and runs in six stages around a look gate.
 - **Revisit when:** the owner changes the working pattern.
 
 ### D-037 · Keep ships in W1
@@ -704,7 +716,7 @@ D-047 is the owner's choice of visual world. D-048 and D-049 follow from it: one
 
 ### D-047 · The visual identity is The Pass
 
-- **Status:** owner-decided 2026-11-03, in impeccable's direction round (seed reference `seed:631f6361e61b6b7b`).
+- **Status:** owner-decided 2026-11-03, in impeccable's direction round (seed reference `seed:631f6361e61b6b7b`). **Superseded by D-062** (proposed 2026-11-15; the owner chose Data Book at the look gate, R-T20, on 2026-11-16). Its text is left as it was.
 - **Decision:**
   - The course's visual world is The Pass, a restaurant line kitchen and its expo pass. Continuous batching is a line kitchen, and the learner is the expediter who fires each step.
   - The direction contract recorded in the front page's surface brief, `.impeccable/surfaces/src-front-frontpage-tsx.md` (its "Direction contract" section), is the authority on the world: its materials, its type voices and the front page's first viewport. Token values, faces and scene materials follow it.
@@ -761,7 +773,7 @@ D-047 is the owner's choice of visual world. D-048 and D-049 follow from it: one
 
 ### D-049 · Every game has an in-world display name
 
-- **Status:** proposed (art direction, 2026-11-03).
+- **Status:** proposed (art direction, 2026-11-03). **Superseded by D-063** (2026-11-15): the engine's term is the only name. Its text is left as it was.
 - **Decision:**
   - Every game gets a display name in kitchen vocabulary, shown over its engine concept as a subtitle:
 
@@ -800,7 +812,7 @@ D-050 records what W0-T05 decided while applying D-047's contract: the colour sc
 
 ### D-050 · One light scheme, and the faces of The Pass
 
-- **Status:** proposed (W0-T05, 2026-11-03).
+- **Status:** proposed (W0-T05, 2026-11-03). **Its faces are superseded by D-064** (2026-11-15), which lands with D-062; its one light scheme, its more-contrast variant and its decision to ship no dark scheme stand. Its text is left as it was.
 - **Decision:**
   - **One light scheme.** The system ships the scene the contract describes, a bright line under fluorescent tubes and heat lamps, and its `prefers-contrast: more` variant, which darkens the quiet text, the edges and the lamp's filament. It ships no dark scheme. Every declared pair meets ARCHITECTURE §11.2 in both schemes (`verify:tokens`).
   - **The faces,** one per object of the kitchen:
@@ -858,6 +870,7 @@ D-051 records how W0-T22 keeps the learner's settings, which A§7.1 puts in `wor
   - `src/settings/` holds the model, the store and the rules, `src/pages/Settings.tsx` writes both, and the Stage, the game shell and `useDeviceTier` (so every game and the front page) read the store. The entry carries the model and the store, which the first render needs, and grew by 1,005 B gz [measured 2026-11-04 with `gzip -9`: the entry chunk is 35,668 B at fac1415 and 36,673 B at bf46468]; the rules and the views load with the pages that use them. The routes that read the store stay under A§11.1's 200 KB gz for a route other than the front page, excluding 3D: `/settings` is 166,238 B, `/evidence` 159,080 B and `/design` 151,616 B (148,005 B at fac1415), each the entry's closure and the route's own static imports, JavaScript and CSS [measured 2026-11-04 with `gzip -9` at bf46468].
   - If the browser blocks site data, nothing persists anyway: IndexedDB falls back to memory (A§7.4) and `localStorage` is unreadable. A change then applies in the tab that made it until that tab reloads.
   - A change the ledger refuses (a tab that has gone read-only) is shown at its control and applied nowhere, so the record and the copy never part.
+- **Extended by D-066 (proposed 2026-11-15):** three more per-viewer keys, `es:next`, `es:here` and `es:intro`, on the same terms.
 - **Revisit when:** the ledger can be read before the first paint at no cost, or a browser stops offering `localStorage` to a first-party page.
 
 ## The nightly schedule, 2026-11-04
@@ -1129,6 +1142,222 @@ D-061 closes the item that W0's report left open and W1's carried: `scripts/` an
 
 ---
 
+## The redesign, wave R, 2026-11-15
+
+The owner wrote on 2026-11-15: "i dont like the UI UX of enginespace. it doesnt feel delightful to use and learn. rethink that". Asked what is wrong, they chose "Lost or confused": the kitchen names and metaphors hide the real concepts, or it is unclear what to do next and why. Asked how far to go: "your call after an audit". Asked which style: they are not sure which suits this course. The audit is [docs/waves/WR-diagnosis.md](waves/WR-diagnosis.md), the brief that answers it is [docs/REDESIGN.md](REDESIGN.md) ("You Are Here", revision 2), and the plan is `docs/waves/wr-tasks.json`, which TRACKER's wave R section carries. D-062 to D-068 are the records the brief stands on. They cite the brief by section and do not restate it. D-062 is **owner-decided** (2026-11-16, at the look gate, below). D-063 to D-068 are **proposed**. D-066, D-067 and D-068, and the cut of one 3D game in D-065, are the owner's to confirm: each gives the default the wave builds on and what the wave does on each answer.
+
+### D-062 · The visual world is Data Book, decided at the look gate
+
+- **Status:** owner-decided 2026-11-16, at the look gate (R-T20). Proposed 2026-11-15 (wave R). The owner, shown the ten pairs of images of build A (The Pass) and build B (Data Book) in `docs/waves/WR-look.md`, chose Data Book, in the words "data book for sure". The owner did not answer the gate's three questions, which the cold test asks again, and did not ask for a concept roll for Data Book. D-062 supersedes D-047. The wave went on from build B, no task of stage 4 was dropped, and the kitchen, its three extra faces and its props left the tree at stage 4 (R-T44). The rule that nothing of the kitchen is deleted before the look gate was met; the paragraphs below are the proposal as written.
+- **Finish verdict (R-T50, 2026-11-17).** impeccable's finish review ran three times on the built site at 1440 x 900 and 390 x 844, and what it returned each time is kept whole in `docs/waves/WR-finish-review.md`. Round 1 (tip `3c70861`) returned `fix` with eight material fixes, and `wr/fix-finish-1` made them. Round 2 (tip `3e516ed`) returned `recapture` and judged no surface, because four focus captures were byte-identical to other captures; the captures were retaken. Round 2b, the second review on valid captures (tip `4a41050`), returned `fix` again, with eight material fixes, and `wr/fix-finish-2` (merged at 64fd895) did some of them and left the rest (`docs/waves/WR-report.md` §6.3). **No review ran after that batch**, so these verdicts describe `4a41050`, not the tip, and whether the batch closed them is not judged. Round 2b's verdict on each surface, in the reviewer's words, with its open findings as returned:
+  - **Front page (`/`)** (1440 and 390): **Close. Holds at 1440 in Diagram; the phone's first screen still hides the goal and swaps out the lane glyphs.** Open findings:
+    - 390 front-first-paint-390.png: callout discs 3, 2 and 4 stand in place of the CPU circle and the slot 1 and slot 2 hexagons, so the rows read '2 1' and '4 2' and the colour code's glyphs are gone exactly while the list explains them; slots 3 and 4 keep theirs.
+    - 390 front-first-paint-390.png, front-returning-390.png: the goal line is cut behind 'more', hiding the number to beat and the end condition (P4); the role line still sits to the right of the Parts button.
+    - 1440 front-first-paint-1440.png: the focal element is still an empty graticule until the fifth action; the reference run is not drawn; Auto-step still wraps alone onto a second dock row (section 3.1 puts Step, Undo and Auto-step on one row).
+    - 1440 front-returning-1440.png: the 3D opening shot is an empty tilted plate; the word 'now' overprints the lower edge of the R1 chip; the queue chips R1 to R6 are drawn twice (scene and dock); the left column is empty from y 480 to 850.
+    - 1440 front-after-step-2d-1440.png and 390 front-after-step-2d-390.png: the yellow sync slab is now parted from the now line by about 2 px; at 390 the two still read as one yellow-and-amber mark.
+    - 1440 front-demo2-dimension-diagram-1440.png: the dimension line is present (end ticks, '3 ticks'), but the value fills the whole interval so no line shows between the ticks; in 3D (front-demo2-dimension-3d-1440.png) the 'idle' word is clipped by the CPU slab.
+    - 1440 front-after-step-2d-1440.png: the page's own scroll (y 36) leaves the header cut through its text.
+  - **TR1 lesson 1 (`/m/tr1/l1-five-mechanisms`)** (1440 and 390): **Reads well; the Run is better but its intro still breaks the marker rule and the phone path loses its mechanism words. Fix.** Open findings:
+    - 1440 and 390 tr1-l1-run-game-intro-1440.png, tr1-l1-run-game-intro-390.png: two amber rings (the request node and Next), a full-width amber now line and a '▷ now' mark between Next and Skip intro in one viewport; the list says 'The numbers on the drawing match this list' and disc 3 (Stage list) has nothing drawn; at 1440 part 5's disc shows as a sliver behind the Next bar; about 300 px of blank sheet under the example.
+    - 390 tr1-l1-after-run-390.png: hop labels between stages in one column are slivers; only the last two rows of the path are on screen with the result.
+    - 1440 tr1-l1-after-run-1440.png, tr1-l1-keep-1440.png and 390 tr1-l1-keep-390.png: 'you said 1 stages' and 'guess 1 stages'.
+    - 1440 tr1-l1-read-midway-1440.png: the five rules are still unnumbered while the text says 'the first four' and 'the fifth'; the Your-run dock's column head reads 'One proce…'.
+    - 1440 tr1-l1-top-1440.png: still no instrument edge in the first viewport (a primer, a code block, then Guess 1 of 2). The guess now defines 'stages' before asking, which answers the walk's trip.
+    - 1440 tr1-l1-after-run-1440.png: the swimlane uses the left 40 percent of its sheet.
+    - Not shown by any capture: lesson-to-lesson navigation (React error 185). fix-final-walk.md reports it fixed with an e2e test; every lesson capture here is a direct load.
+  - **TR5a lesson 1 (`/m/tr5a/l1-why-one-model-needs-several-kv-caches`)** (1440 and 390): **Near. Result and source popover are right at both sizes; the intro on a phone covers the part it names.** Open findings:
+    - 390 tr5a-l1-game-intro-390.png: the 'What you are looking at' panel lies over the KV page pool grid, leaving half-height cell tops under the disc that names the pool (driver-scrolled, but the panel is pinned by the page's own layout).
+    - 1440 tr5a-l1-top-1440.png, tr5a-l1-game-intro-1440.png: the Next bar slices a line of the parts list ('Every KV page on the GPU, in rows of 16. A', 'The admitted requests, one to a slot. Each'); disc 2 (KV page) stands at the end of the legend, not on a page.
+    - 1440 tr5a-l1-game-result-1440.png, tr5a-l1-game-midlevel-1440.png: the diagram sheet and the dock sheet each carry a shadow inside the lesson's own paper sheet (Flat Paper Rule: one shadow for a sheet).
+    - 1440 tr5a-l1-read-source-popover-1440.png: in the Your-run dock the graticule runs behind the readout's words and numbers, where it is neither axis nor cell grid.
+    - 390 tr5a-l1-top-390.png: the breadcrumb still wraps to three slash-led lines.
+    - 390 tr5a-l1-game-midlevel-390.png: holds (pool whole, two options whole, readout); the running-batch row is cut under the lesson bar and 'Admit none this step' is below the dock's fold.
+  - **Step loop (`/play/loop`), 2D and 3D** (1440 and 390): **Holds in 2D at both sizes; the strongest instrument. The 3D opening shot adds nothing yet.** Open findings:
+    - 1440 loop-midlevel-3d-1440.png: the scene uses about half its box, with bare ground above and below; the word 'now' overprints the lower edge of the R3 chip; the queue chips are drawn twice (scene and dock). At the Lifted camera with two requests admitted the scene shows nothing the diagram does not; Compare, the camera that earns the 3D, is not captured this round.
+    - 390 loop-intro-390.png, loop-midlevel-2d-390.png, loop-result-390.png: the axis label 16 is clipped at the right edge ('1('); at the intro the sixth queue chip is off the edge with no '+1' count (the front page shows '+2').
+    - 1440 and 390 loop-intro-1440.png, loop-intro-390.png: the '▷ now' mark still stands between Next and Skip intro and reads as a third control; about 120 px of blank paper under the axis at 1440.
+    - 1440 loop-result-1440.png: the level 1 table still lists 'Ghost tokens' and 'Bubble' before either is named.
+  - **KV page pool (`/play/pool`), 2D and 3D** (1440 and 390): **Close. Result and hatched cache are right; the phone dock and the grid behind the cells are not.** Open findings:
+    - 390 pool-midlevel-2d-390.png: the third admit option ('Admit R4') is cut through its text by the readout and 'Admit none this step' is hidden; the fix report says the three options show whole.
+    - 1440 pool-intro-1440.png, pool-midlevel-2d-1440.png: the graticule runs behind the page cells at a pitch that is not the cells' (REDESIGN 2.8: the graticule is the time axis or the cell grid) and stops in an open comb at about y 655, over roughly 190 px of blank paper.
+    - 1440 pool-intro-1440.png: disc 2 (KV page) stands at the end of the legend row, not on a page.
+    - 1440 pool-midlevel-3d-1440.png: free cells are now dashed wire outlines and the labels are clear of the threads, but the scene uses about half its box, the thread arcs run through the 'R1' label on its tile, and the 3D legend uses square texture swatches where the 2D legend uses the circle, diamond and hexagon glyphs.
+  - **Rejection sampler (`/play/verifier`), 2D and 3D** (1440 and 390): **2D holds at both sizes and is the best drawing of the set; the chain's 3D scene is not legible yet.** Open findings:
+    - 1440 verifier-midlevel-3d-1440.png (level 3, chain): depth now carries the draft positions, but value tags overprint one another in the middle rows (16, 20, 26, 21, 18, 17), the black collar frames stand tilted and detached, some with no bar inside them (right of token 5 in rows 1 and 3, left of token 1 in row 2), and the collar and the pale grooved top are explained only in a four-line caption, not in the legend row.
+    - 390 verifier-result-390.png: at the page's own resting scroll the 'Run again' and 'New numbers' row is cut in half by the readout.
+    - 1440 verifier-intro-1440.png and 390 verifier-intro-390.png: the Next bar slices the parts list (part 5's heading at 1440, a line of part 1 at 390); the bars still have no value axis and the graticule is not their scale; about 180 px of blank paper under the bars at 1440.
+    - 1440 verifier-result-1440.png: the dock sets its first paragraphs at note size and the closing paragraph at reading size.
+    - 390 verifier-intro-390.png: two readout labels wrap to two lines and their values sit off the others' baseline.
+  - **Request path (`/play/engine-floor`), 2D only** (1440 and 390): **The result is good at both sizes; the intro and the phone play surface still need work. Fix.** Open findings:
+    - 390 floor-midlevel-2d-390.png, floor-result-390.png: hop labels between stages in one column are still slivers; the mechanism words are the lesson. The fix report lists this as left.
+    - 390 floor-midlevel-2d-390.png: the dock cuts the legend's last row and the stage list's first row; readout cells touch ('stages laid' runs into the next 0, 'copies' into the next 0).
+    - 1440 floor-midlevel-2d-1440.png: the dock is scrolled so the filter field and the tabs are cut at the top and the last tab is clipped at the right, at the page's own scroll; the swimlane uses the left 45 percent of the sheet; the row number 04 touches the 'now' word.
+    - 1440 and 390 floor-intro-1440.png, floor-intro-390.png: two amber rings (request node and Next), the full-width now line and the '▷ now' mark by Next; disc 3 (Stage list) has no drawn target while the list says the numbers match; about 350 px of blank sheet under the example at 1440; at 390 the IPC label straddles both example boxes.
+    - Not shown by any capture: a run that stopped and was run again (the walk's 'first stage that did not hold' on a run that reached the client). fix-final-walk.md reports it reworded.
+  - **Broken benchmark (`/play/broken-bench`), 2D only** (1440 and 390): **Not ready. First time under review; action, state and result do not share the screen at either size.** Open findings:
+    - 390 bench-midlevel-2d-390.png, bench-intro-390.png: the chart is cut to a strip about 65 px tall (its title tags and the first tick marks) between the tabs and the legend, so the state is not on screen while the flaw is chosen.
+    - 1440 bench-midlevel-2d-1440.png: the report form's three number fields are cut in half by the readout, the flaw list is cut through its fourth row, the Setup table is cut at 'Requests', and the control that files the report is not in view.
+    - 1440 bench-result-1440.png and 390 bench-result-390.png: the readout strip shows its heading and stamp only; its values are below the viewport's foot. At 390 the corrected-run chart is cut at the 1 s line by the legend.
+    - 1440 bench-intro-1440.png: discs 4, 1, 2 and 3 are stacked in the gutter; disc 1 (Claim) is about 450 px from the reported p99 it names and disc 3 (Timeline) stands beside nothing.
+    - 1440 bench-result-1440.png: three boxed 'synthetic' stamps in one viewport (one under each chart, one in the readout); 'Passed' is set in the display face where every other game sets its verdict in the bold text face.
+    - All bench captures: the charts carry tan upper-case tape labels ('TIME TO FIRST TOKEN', 'CUT', 'REPORTED', 'MEASURED') and a grey circle in each top corner. The tan is outside the palette seen on every other surface, and the circles read as pins on a plate; if they are controls they carry no label.
+  - **Course (`/map`)** (1440 and 390): **Holds. One contract miss.** Open findings:
+    - 1440 course-map-1440.png and 390 course-map-390.png: the unpublished TR0 title is still underlined like a link (section 3.2: 'It is not a link').
+    - Withdrawn from round 1: the three amber position marks (next-step block, TR1 node, lesson 1) are each specified by section 3.2 and are one carrier of the One Marker Rule.
+    - Not shown by any capture: the returning Course ('Last time: ...'). fix-final-walk.md reports the false lesson states fixed (placeEvents); only the first-visit Course is captured.
+  - **Tensor views and KV offload** (`shape-shifter`, `switchyard`): not built, no capture, no verdict.
+  - Round 1's verdicts, for the record, began "Close" (Front page, at 1440), "Read sections sound" (TR1 lesson 1), "Readable" (TR5a lesson 1), "The strongest instrument" (Step loop), "2D clear" (KV page pool), "Best 2D drawing of the set" (Rejection sampler), "The result drawing is good" (Request path) and "Holds" (Course), and each but Course ended in "Fix". Broken benchmark had no capture before round 2b.
+- **Questions the build raised for the owner** (`docs/waves/WR-report.md` §6.8): whether a lesson should have a gated row for what it loads unasked (the route's row reads 150,124 B, and with no click the browser fetched 279,507 to 329,858 B of JavaScript and CSS, gzip, on four lessons); the question set's pass bar against ASSESSMENT §4.2; the cut of Request path's 3D scene (D-065); PRODUCT.md's three marked changes; the service bell `StepControl` still draws; and whether a fourth finish review is wanted. Two browser-test bars that wave R's tasks had lowered (loop-scene by R-T18, pool-scene by R-T41) and one unit-test bar were restored by `wr/fix-close-ci`; no gate, budget or tolerance stands lowered (§6.9).
+- **Decision:**
+  - The course's visual world is **Data Book**: the engine drawn as its engineers already draw it (timing diagrams, page maps, distribution bars, latency plots) on flat paper, with one amber mark that means "now". It is a look, and it names nothing on screen (REDESIGN §1, line 3, and §2.8).
+  - Its direction contract replaces The Pass's in the front page's surface brief, `.impeccable/surfaces/src-front-frontpage-tsx.md`, which keeps The Pass's contract below it, marked superseded, until the gate.
+  - **Staged, so the owner decides on built things.** Stage 1 builds the new names, the way on, the lesson and the game frame under The Pass (build A). Stage 2 builds Data Book on the same screens (build B). At the look gate the owner sees the same five screens in both builds at 1440 x 900 and 390 x 844, with the three questions of REDESIGN §5.4. No agent answers them or picks a build (REDESIGN §6 and §8).
+  - **Nothing of the kitchen is deleted before the look gate.** The kitchen scene, `src/scene/props`, the step loop's kitchen layout and their tests stay untouched until stage 4 (R-T41 to R-T46), which starts when the owner answers at the gate or when every stage 3 task has merged, whichever comes first.
+- **On each answer at the gate:**
+  - **Data Book** (the default, also taken if the owner has not answered when stage 3 has merged): stage 4 runs as planned, the kitchen leaves the tree (R-T44), and D-047 reads "superseded by D-062".
+  - **The Pass:** the wave continues from stage 1. Stage 2's token values, faces, 3D time track and front page are not merged. The timing diagram stays as the step loop's 2D view. The kitchen stays as the step loop's 3D scene only, with engine words on every label, under the conditions of the diagnosis's section 3. KV page pool and Rejection sampler keep their current 3D behind the switch, with 2D as the default. REDESIGN §2.8 and §2.9 are replaced by a one-page amendment under D-047, this record reads "not adopted", D-064 with it, and stage 4 shrinks to R-T43, R-T45 and R-T46 (REDESIGN §6).
+- **Context:**
+  - D-047's own contract says "continuous batching is a line kitchen", and D-049 and GAMES.md §2.6 stretched the kitchen into a vocabulary for every game. The diagnosis finds the kitchen word as the primary name to be the largest single cause of confusion (C1, 15 of its 46 findings), and the look itself not a root cause: where the kitchen is a set with the engine word on the label, three audits call it a delight (WR-diagnosis §1 and §3).
+  - Once the engine's term names everything (D-063), the kitchen survives as one scene among nine games, and it is the first thing a new learner must decode (REDESIGN §1, line 4).
+  - The look is the least evidenced decision of the wave: no learner was observed, and four of the eight audits are on hand only as summaries (REDESIGN, "How far to trust this"). So it is the one decision the owner sees built before it is final.
+- **Alternatives:**
+  - keep The Pass with the engine's term on every label, under the diagnosis's conditions for The Pass to stay (WR-diagnosis §3): it keeps two visual languages and a kitchen on the first screen. It is what the wave does if the owner keeps The Pass at the gate;
+  - evolve The Pass (the direction "One More Step"): the same objection, weighed in REDESIGN §2.2;
+  - replace The Pass at once, with no gate: the least evidenced call, made without the owner seeing it.
+- **Consequences:**
+  - Rule 9 of the agent brief (TRACKER and AGENTS.md) names Data Book and this record.
+  - R-T16 changes the token values, the faces and the old components' drawing. Token role names stay, so `verify:tokens` and every component's structure hold (REDESIGN §2.8), except nine that were kitchen words and were renamed (D-064). D-064 records the faces and the surface values.
+  - The scene gates stay at 40 KB each, and no gate moves (REDESIGN §4, "Budgets").
+  - DESIGN.md's North Star becomes "Data Book", its front matter moves with the tokens (R-T16), and its body is written from the built world at the finish (R-T50).
+- **Revisit when:** the owner answers at the look gate; the cold test (REDESIGN §5.5) finds a reader lost on the timing diagram; or a finish review returns `rebuild` twice.
+
+### D-063 · The engine's term is the only name
+
+- **Status:** proposed (wave R, 2026-11-15). Supersedes D-049.
+- **Decision:**
+  - The engine's term is the only name of anything the learner reads, chooses, presses or is graded on: game, level and lab titles, controls, parts, question stems, progress words, alt text, spoken lines, the Markdown export, `llms.txt` and the lab crates' prose. REDESIGN §2.7 is the policy, with its tables of game titles and subtitles, lab titles and level titles, and its two lists: the words banned everywhere, and the phrases banned in the kitchen sense with their allowed contexts.
+  - A term's source is, in order, the pinned engine's code and docs, the paper, and kernelspace. Where the course's lessons define a term (page, bubble, ghost token), the games use the lessons' term. One term has one meaning course-wide, and its definition comes from one table, `src/copy/terms.ts`.
+  - **Ids do not change:** game and level ids, actions, enum values inside state, ledger refs, KCs, claims, routes, file names, lab ids, a crate's file names, Rust identifiers, wire commands and wasm exports. A kitchen-era identifier is glossed once in the prose beside it.
+  - **No build-log word reaches a learner:** no task, decision or wave id, no SHA, no document section, no "arriving with W2". An unbuilt thing says "Not published yet" (REDESIGN §2.4).
+  - Kitchen words survive only in a history table in GAMES.md §2.6 and in decision records.
+- **Context:** the diagnosis's C1: the kitchen word is the primary name of everything the learner has to think with, and nothing teaches the mapping (WR-diagnosis §1). The learner is a kernelspace graduate who will meet the engine's own words in vLLM's and SGLang's code and in a profiler. D-049 paired the two vocabularies, with the kitchen word naming the object and the engine term naming the concept.
+- **Alternatives:**
+  - keep D-049's pairs with the engine term leading (one of the diagnosis's conditions for The Pass): two vocabularies for one object, and a mapping the learner must still learn;
+  - a glossary that maps the kitchen to the engine: it documents the second vocabulary instead of removing it (REDESIGN §2.7, policy 5);
+  - rename the ids too: it would churn stored evidence and URLs for no learner gain, as D-049 already found.
+- **Consequences:**
+  - R-T04 writes the naming table, the roster's titles and subtitles (the roster keeps both fields, so `verify:games` still finds a display name and a different subtitle), `src/copy/terms.ts`, `banned.ts`, the copy guard, and GAMES.md §0 and §2.6. The guard's allowlist shrinks one file at a time and is empty at R-T50.
+  - Every content, game and page task of the wave applies it, and every W2 and W3 task is written to it from the start (REDESIGN §7). The titles are the brief's defaults (REDESIGN §6, decision 5). R-T04 may adjust a level title's wording against its rule, never the policy.
+  - Rule 9 of the agent brief points at GAMES.md §2.6 for names: the engine's term is the only name.
+- **Revisit when:** the cold test finds a reader who cannot state a game's goal in engine terms from its first screen, or a re-pin renames a term the course uses.
+
+### D-064 · Three faces, and the surface values of Data Book
+
+- **Status:** proposed (wave R, 2026-11-15). Supersedes D-050's faces, and keeps D-050's one light scheme, its `prefers-contrast: more` variant and no dark scheme. Its values land with D-062, at stage 2, and are not merged if the owner keeps The Pass at the look gate. The owner chose Data Book at the look gate on 2026-11-16, so they land and stay; the owner has not answered D-064 as a record of its own.
+- **Decision:**
+  - **Three faces, down from five:** Big Shoulders Display 800 for page, lesson and game titles only, in sentence case and never transformed to upper case; Atkinson Hyperlegible for section heads, body, buttons and labels; Atkinson Hyperlegible Mono for code and identifiers. The `numeric` and `ticket` roles are re-pointed to Atkinson Hyperlegible Mono, tabular, and `label` to Atkinson Hyperlegible 700. Doto, Handjet and Permanent Marker leave `public/fonts/`, `fonts.json`, `fonts.css` and NOTICE (REDESIGN §2.8, "Type").
+  - **The new surface values** are REDESIGN §2.8's palette table: `surface-0` #e9ece6, flat, with no texture; `surface-1` #f4f5f0; `surface-2` #d9ddd4; `surface-3` #2b3138; `paper-rule` #c2c8bd. `paper`, `edge`, the text roles, `paper-ink-2`, `lamp` (documented as the marker), `lamp-ring` and the six `cat-*` fills keep their values. `glint` is retired, and `tape`, `tape-ink` and `light-fluorescent` are renamed (below).
+  - **Role names stay, with nine exceptions.** Only values change, so `verify:tokens` and every component's structure hold, except that nine role names were kitchen words and changed with their values unchanged: `marker` (was `lamp`), `marker-edge` (`lamp-ring`), `slip` (`tape`), `slip-ink` (`tape-ink`), `light-ambient` (`light-fluorescent`), `dur-step` (`dur-bell`), `radius-control` (`radius-plate`), `size-control` (`size-plate`) and `font-readout` (`font-ticket`). `/design` lost its exemption from the copy checks, which forced it. `slip` and `light-ambient` are in use (the label slip on the sheets and the 3D view's ambient light), so `tape` and `light-fluorescent` are not retired but renamed; `glint` is the one that left. This departs from the brief's "role names stay" (REDESIGN §2.8), and is the owner's to confirm. Every declared pair must still meet its threshold, and `verify:tokens`, not the brief's arithmetic, is the judge.
+  - The named rules that go with them (One Marker, Ink Focus, Colour Is State, Flat Paper, Quiet Provenance, Moves On Step, Short Viewport) are REDESIGN §2.8's, and DESIGN.md takes them at R-T16 and R-T50.
+- **Context:** D-050 chose each face for an object of the kitchen: the printer's dots, the marker on tape, the stamped plate. In Data Book there is no printer, tape or marker to carry, and the dot-matrix face is behind the "full0" run-on of the readouts (REDESIGN §2.2). The diagnosis's E1 is provenance and status drawn as loudly as the teaching (WR-diagnosis §1).
+- **Alternatives:**
+  - keep D-050's five faces: the run-on stays, and two of the faces carry nothing (REDESIGN §2.2, "Doto for readouts");
+  - rename the token roles with the new look: every component and `verify:tokens` would churn (REDESIGN §2.2);
+  - add a dark scheme with the new values: D-050's reasons stand, and nothing in the audit asks for one.
+- **Consequences:** R-T16 changes `src/design/tokens.ts`, `tokens.css`, `fonts.css`, `public/fonts/`, NOTICE and DESIGN.md's front matter together, and a test holds DESIGN.md's front matter to `tokens.ts`. The three font files and their licences leave at stage 2, with the look. The first-paint CSS is expected to fall (REDESIGN §4, "Budgets").
+- **Revisit when:** the owner keeps The Pass at the look gate (this record then reads "not adopted" and D-050 stands whole), or `verify:tokens` fails a declared pair on the new values.
+
+### D-065 · A lesson in four sections, three openers, one instrument frame
+
+- **Status:** proposed (wave R, 2026-11-15). Notes on D-004, D-005 and O-11, below. The cut of Request path's 3D scene is the owner's to confirm.
+- **Decision:**
+  - **A lesson is one scrolling page in up to four sections,** Run, Read, Test and Keep, derived from its blocks by a pure function, `groupSections`. Nothing is collapsed and nothing is locked. The eight block types, the compiler's parsing and the front matter do not change (D-016). Every lesson has a Test, and a lesson is done when its Test is passed (REDESIGN §2.4 and §2.5).
+  - **Each lesson has one of three openers:** A, run first (at most 60 words before the run); B, a primer then the run (61 to 200 words, under "Before you run"); C, read first (the first part ends in something to do within 450 words). REDESIGN §2.5 tables the opener of each of the 27 built lessons, and a test holds each lesson to its row.
+  - **Every game sits in one instrument frame,** on the front page, in a lesson and on `/play/:game`: a title strip with the role line and one level menu, the goal line, the diagram with its legend, the dock, a title block, and the state as a table (D-018's mirror, unchanged). Each game gives the frame one interface, `{ Diagram2D, DockView, parts, moments, firstMove }` (REDESIGN §2.6).
+  - **Phones open the front page in 2D,** with 3D one tap away. A capable desktop paints the 2D timing diagram first and tilts into 3D after LCP (REDESIGN §2.2 and §2.9).
+  - **Request path has no 3D scene.** Its swimlane becomes the play surface, and its 3D scene leaves the tree at stage 4 (R-T43). Three built 3D games remain (Step loop, KV page pool, Rejection sampler), and W2 adds two.
+- **Notes on earlier records:**
+  - **D-004** ("opens on a playable 3D scene"): narrowed for coarse pointers. A phone opens the front page in 2D, with 3D one tap away. On a capable desktop D-004 holds as D-023 and O-11's default read it.
+  - **D-005** ("several of them impressive 3D"): one fewer 3D game. Three built ones remain and W2 adds two, which is still several.
+  - **O-11:** this answers O-11 for coarse pointers under its default ("Yes"). If the owner answers O-11 otherwise for phones, a phone opens the front page in 3D on a capable device, and nothing else here changes.
+- **On the owner's answer about the cut** (REDESIGN §6, decision 2):
+  - **Cut it** (the default): R-T43 deletes the scene at stage 4, and the roster and the docs mark Request path as 2D.
+  - **Keep it:** R-T43 is dropped, and the scene stays behind the view switch with 2D as the default.
+- **Context:** the diagnosis's C3, the lesson as a reference document with the doing buried in it (on TR2 lesson 1 the prediction sits at 6,299 px, and the notional-machine card fills 55% of a 26,253 px page [measured 2026-11-15 by the diagnosis at 1440 x 900, on `wave-2` at 727167e]), and C4, games that open cold and spread over several screens (WR-diagnosis §1). Three audits found that Request path's 3D room barely shows the path (REDESIGN §2.2).
+- **Alternatives:**
+  - every lesson opens on its game (revision 1's rule): 14 tiles and 4 decoys after 60 words is a guessing game (REDESIGN §2.2);
+  - a collapsed accordion of sections: harder to scan and search, and the riskiest renderer change (REDESIGN §2.2);
+  - splitting long lessons: the author's call, not this wave's;
+  - keeping Request path's 3D: the answer the owner can give above.
+- **Consequences:**
+  - Moving blocks changes a lesson's `rev`, so evidence earned since the site went live on 2026-11-09 shows "re-check" for the edited lessons. Nothing is deleted (REDESIGN §6, decision 7).
+  - Seventeen lessons move a game. Each content task runs an order-word scan and a second reader (REDESIGN §8, "Risks").
+  - The compiler warns on a lesson with no Test and on pacing. No gate rule is added (R-T12).
+  - Every W2 lesson and game is built to the template and the frame from the start (REDESIGN §7).
+- **Revisit when:** the cold test (REDESIGN §5.5) finds a lesson's first run that a reader cannot finish (that lesson moves one opener down, A to B or B to C, before the merge); or the owner answers O-11 for phones.
+
+### D-066 · The pointer, the bookmark and the intro flag in localStorage
+
+- **Status:** proposed (wave R, 2026-11-15). The owner's to confirm. Extends D-051, and keeps D-038.
+- **Decision:** three per-viewer keys join D-051's `es:settings` in `localStorage`. Each is read and written inside `try`/`catch`, and none of them is evidence.
+  - **`es:next`, the pointer:** a copy of `nextStep`'s last answer, so the header and the front page can label Continue without opening IndexedDB. Every page that opens the ledger rewrites it.
+  - **`es:here`, the bookmark:** the lesson, section and part last in view. A lesson page writes it when a part's heading has been in view for two seconds, and on any action. It is a place, not progress, and it is never shown as an achievement.
+  - **`es:intro`, the intro flag:** for each game, the part ids its first-run intro has already shown.
+  - Progress and "done" are read from the ledger alone. Deleting a key loses a place or a label, never evidence (REDESIGN §2.4 and §2.6).
+- **On each answer:**
+  - **Add them** (the default): R-T06 and R-T08 build the three keys as above.
+  - **No new keys:** the front page's Continue is a link to Course, and a return lands at the start of a section (REDESIGN §6, decision 8).
+- **Context:** D-038 keeps the front page from opening the ledger, and D-051 already keeps a copy of the settings in `localStorage` for the same reason. The way on needs a label at first paint and a place to return to, and reading writes no ledger event (REDESIGN §2.4).
+- **Alternatives:**
+  - open the ledger on the front page: against D-038 and the first-paint budget (D-023, D-059);
+  - a ledger event for reading or for a place: reading is not evidence, and a bookmark must never read as progress (REDESIGN §2.4);
+  - `sessionStorage`: the place would not outlive the tab, which is the case it is for.
+- **Consequences:** the header reads one `localStorage` key, inside the entry's unchanged 110 KB gate (REDESIGN §4, "Budgets"). If site data is blocked, the keys are absent, and every page still draws.
+- **Revisit when:** the ledger can be read before the first paint at no cost, or a browser stops offering `localStorage` to a first-party page (D-051's triggers).
+
+### D-067 · A prediction may be revealed at commit
+
+- **Status:** proposed (wave R, 2026-11-15). The owner's to confirm: it is the call that W2-T43 leaves to the owner under its third way.
+- **Decision:**
+  - A lesson's prediction (its `predict` block) has one of two reveals. **After its run** (`reveal: after-game`), as now: 18 predictions, today's 17 and TR2 lesson 1's, reworded onto its own level's ticks. **At commit** (`reveal: at-commit`, a new value of the schema's reveal enum): 21 predictions, revealed at once with the answer and its working.
+  - An at-commit answer is computed from the question's own numbers by the pure model, through the lesson's demo function, or, for a fact about an engine's source, configuration or tool, read from the claim the question is about.
+  - A prediction earns no credit, either way.
+- **On each answer:**
+  - **Take it** (the default): R-T09 gives the 21 an at-commit reveal, and W2-T43 closes when R-T09 merges.
+  - **Refuse it:** the 21 stay **questions to hold** (the stem, no input, no lock, no task id), each with its record in DECISIONS as W2-T43's first check asks, until a level is written that plays its scenario.
+- **Context:** 22 of the 39 predictions show a lock today because no run answers them, and 14 of the 27 lessons have none that a run answers (REDESIGN, "How far to trust this", from `packages/play/predictions/plan.ts`). A lock is the hardest block on the site (WR-diagnosis E2). W2-T43 offered three ways, and named its third, an answer computed on the prompt's own numbers, as relaxing the rule that a reference is read from a run, so the owner's call.
+- **Alternatives:** W2-T43's first way, levels or variants that play each prompt's scenario: levels are frozen in this wave (REDESIGN §9); its second way alone, rewording each prompt onto a level's numbers: it serves TR2 lesson 1 and leaves the rest; leaving the locks.
+- **Consequences:** R-T09 owns `packages/play/predictions/*`, the schema's reveal enum and the `predict` blocks' prompts, and writes `same.ts`, the pairs where a lesson's guess and its level's opening guess ask for the same quantity. At most two prompts come before a run's first move. W2-T44's readers read both kinds of reveal.
+- **Revisit when:** a level is written that plays one of the 21 scenarios, which moves that prediction to after-game; or an at-commit answer is found to differ from what a run of the model gives on the same numbers.
+- **Built (R-T09, 2026-11-15):** the default was taken, and this is what stands.
+  - **The split.** 18 predictions are `after-game` and 21 are `at-commit`; no row of `packages/play/predictions/plan.ts` is held, so W2-T43's first check holds with no waiting row left, and no row needs a record for why it waits. The 21: TR1 lesson 2 (both), lesson 4 (the second), lesson 5 (the second and third), lesson 7 (the second); TR2 lessons 2, 3, 6 (the second) and 7; TR5a lesson 2 (the first) and lesson 3 (the second); TR6 lessons 1 to 5; TR8 lessons 1 to 4. TR2 lesson 1's prediction is reworded onto the ticks of `first-3-gap` (a plan of 2, a forward of 4, a read of 1), so a run of that level answers it: 4 of 7 ticks, 57.14%.
+  - **Where the answer comes from.** Each at-commit answer is a function that takes no run, in a lazy part of its module (`commit-tr1.ts` to `commit-tr8.ts`), computed by the course's pure model from the question's own numbers. Eight answers are read from the claims the question is about, and they cite them: each claim's id, which tests/play/predictions.test.ts holds to the compiled claims, and the source it prints, which the test holds to the claim's own. One (TR1 lesson 4, the growth of a file) rests on counts of the lesson's own table, which has no claim, and says so. tests/play/predictions.test.ts holds each answer to the figure that `tests/content/tr*-demos.ts` computes, and to the prompt's own numbers through `says`.
+  - **What the learner sees.** COMMIT is never held down. After it, the ticket shows the learner's value, the answer and a numbered working, with one stamp (on the answer, or on the working for a choice) (`derived`, or `measured` for a figure the cited source holds), and one `predict` event is written with both the value and the truth. The event has no seed, because no run was read. A prediction earns no credit either way: ASSESSMENT.md is untouched and the progress tests pass unchanged.
+  - **A question to hold.** A prediction that the table has no row for, or whose game block is not below it, prints its stem and no input, no lock and no task id. No lesson has one today.
+  - **Same quantity.** `packages/play/predictions/same.ts` lists seven pairs of a lesson's prediction and its level's opening prediction that ask the same quantity (four of Request path's process boundaries, the pages a request holds, the KV groups of a model, and the pages of an adapter). Each row holds both prompts word for word, and a test fails when either changes alone. The wiring that asks one of the two is the instrument's (R-T08 and the tasks after it).
+
+### D-068 · Wave R's process: six stages, the look gate, and its models
+
+- **Status:** proposed (wave R, 2026-11-15). The owner's to confirm. A note on D-036.
+- **Decision:**
+  - **Wave R** runs on `wave-r`, stacked on `wave-2`, in six stages: 0, records and safety (R-T01 to R-T03); 1, the patterns that do not depend on the look (R-T04 to R-T15, ending in build A); 2, Data Book on the pattern screens (R-T16 to R-T19), closed by the look gate (R-T20); 3, the roll-outs (R-T21 to R-T40); 4, the kitchen leaves (R-T41 to R-T46); 5, the sweep (R-T47 to R-T50). REDESIGN §8 is the plan, and `docs/waves/wr-tasks.json` is its source.
+  - **The look gate** (D-062) comes after stage 2. Stage 3 does not wait for it. Stage 4 starts when the owner answers or when every stage 3 task has merged, whichever comes first.
+  - **Models, a note on D-036:** 16 of the 50 tasks, the pattern-setting and design-critical ones, go to opus; 2 mechanical ones, R-T43 and R-T46, go to haiku; the other 32 go to sonnet.
+  - **W2's grader and receipts track** (W2-T01 to W2-T12) continues alongside. W2's module, game and content tasks start only after stage 1 (R-T15), so nothing is built twice, and R-T13 rewrites them for the new design (REDESIGN §7).
+  - **No gate is raised or added,** and no task edits `BUDGETS` or `tests/bundle/budgets.test.ts`. A task that cannot fit stops and reports (REDESIGN §4, "Budgets").
+  - **The human cold test** (REDESIGN §5.5) is run by the owner, or by two or three kernelspace graduates, before the wave merges to `main`. Agents never simulate it (REDESIGN §6, decision 9).
+- **On each answer:**
+  - **As planned** (the default).
+  - **The models of D-036:** the 16 opus tasks run on sonnet, each with an opus review before it merges, and the two haiku tasks run on sonnet (REDESIGN §6, decision 10).
+  - **No cold test before the merge:** the finish review still hands the owner the script and the sheet, and the merge to `main` stays the owner's, as always.
+- **Context:** D-036 gives build tasks to sonnet and keeps opus for wave reviews. W1b already gave two pattern-setting tasks to opus, with the reason in its header. Wave R sets the frame, the lesson, the way on and the look that every later task copies, and it decides the look on built screens, not on paper (REDESIGN §6 and §8).
+- **Alternatives:** D-036's models as written (the second answer above); one stage that rebuilds the look and the structure together, which leaves the owner nothing to compare until the end (REDESIGN, "What changed in this revision", the Style row).
+- **Consequences:** TRACKER gains a wave R section from `wr-tasks.json` in the tracker's task format, each task with its size, model and deps; if the two differ, `wr-tasks.json` holds. Rule 9 of the agent brief is rewritten for D-062 and D-063. The readers of TRACKER's task ids read wave R's `R-T<nn>`.
+- **Revisit when:** the owner answers; or a stage's tasks cannot fit a frozen gate.
+
+---
+
 ## Open owner questions
 
 | # | Question | Default until answered | Needed by |
@@ -1141,7 +1370,7 @@ D-061 closes the item that W0's report left open and W1's carried: `scripts/` an
 | O-8 | Owner review capacity per week for W0-W3 | kernelspace's 10 h/week cap (PLAN-100X OD11) | W0-T24; carried over to the `wave-0` merge |
 | O-9 | The reference laptop and phone for frame-time checks | The owner's own devices, named in W0-T24's record | W0-T24; carried over to W1-T38, and by W1-T38 to W2-T41 |
 | O-10 | Whether grader-attested correctness counts at full weight. ASSESSMENT.md owns this; it is listed here because it is the owner's call. | Full weight when every browser-runnable check also passes | W2-T08 |
-| O-11 | Whether D-004 is met by a front page that is playable in 2D from the first paint and becomes 3D within seconds on a capable device (D-023) | Yes | W0-T18 |
+| O-11 | Whether D-004 is met by a front page that is playable in 2D from the first paint and becomes 3D within seconds on a capable device (D-023) | Yes. D-065 (proposed) answers it for phones under this default: a phone opens the front page in 2D, with 3D one tap away | W0-T18 |
 | O-13 | A§6.6 allows no shadow-casting light at T1 and T2 and one at T3; scene kit v1 allows 3 at T2 and 4 at T3, and the test titled with A§6.6's numbers was rewritten to match (W1 report §9.1, A1). Amend A§6.6 by a record, or restore the limit, which takes the heat lamps' shadows away at T2 | The build's values, until the owner rules | the W2 scene-kit task (W1 report §7.4) |
 | O-14 | ASSESSMENT §4.1 holds the best scene-blind strategy to 15% of single seeds, which no choice item of 6 or fewer options can meet (chance alone is at least 1/6). `verify:items` holds a choice item to the larger of 15% and chance plus three standard errors (A5). Rule in ASSESSMENT, or redesign the families with 7 or more options | The gate's reading | the next item family (W1 report §5) |
 | O-15 | ASSESSMENT §4.6 and §13 want the nominal 95% bootstrap interval to cover within [93%, 97%] over 2,000 seeds, nightly. On a p99 of 1,000 rows it covers 92.6% [measured 2026-11-04 by W1-T31], and the 2,000-seed check on the p99 runs only under `ES_HEAVY=1`, which no workflow sets (A2). Raise the rows a p99 interval needs, widen the band, or take an exact order-statistic interval | The medians hold the band; the p99's check is opt-in | W2-T08 |

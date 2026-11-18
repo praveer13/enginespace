@@ -1,9 +1,9 @@
 /**
- * The Reach-In's blind strategies (ASSESSMENT §4.1; `verify:games`, tests/play/pool-levels.test.ts): what a learner who reads nothing of
- * the night passes of its three graded levels, `evict`, `adapters` and `manager`.
+ * KV page pool's blind strategies (ASSESSMENT §4.1; `verify:games`, tests/play/pool-levels.test.ts): what a learner who reads nothing of
+ * the run passes of its three graded levels, `evict`, `adapters` and `manager`.
  *
- * A blind learner answers each ask by position in the list it is shown and by nothing else: the first ticket on offer, the last, or none to
- * hang; the first pans or the last to dump; the first ticket or the last to pull; the first kit, the last, or none to bring in. Three
+ * A blind learner answers each ask by position in the list it is shown and by nothing else: the first request on offer, the last, or none to
+ * admit; the first pages or the last to evict; the first request or the last to preempt; the first adapter, the last, or none to load. Three
  * answers to the first ask, two to the second and third, three to the fourth are thirty-six strategies, and the best of them is the best
  * of any that picks by position. Each plays a whole night, and the session's own grade judges it against the house: no ticket left
  * unserved, and the house's price over its own at the level's bar (GAMES.md §8, "Scoring and pass").
@@ -62,7 +62,7 @@ export const BLIND_POLICIES: readonly Blind[] = (['first', 'last', 'none'] as co
     (['first', 'last'] as const).flatMap((preempt) =>
       (['none', 'first', 'last'] as const).map((prefetch): Blind => ({
         id: `admit-${admit}-dump-${evict}-pull-${preempt}-kit-${prefetch}`,
-        describe: `hang ${WORDS[admit]} ticket on offer, dump ${WORDS[evict]} pans, pull ${WORDS[preempt]} ticket, bring in ${prefetch === 'none' ? 'no kit' : `${WORDS[prefetch]} kit`}`,
+        describe: `admit ${WORDS[admit]} request on offer, evict ${WORDS[evict]} pages, preempt ${WORDS[preempt]} request, load ${prefetch === 'none' ? 'no adapter' : `${WORDS[prefetch]} adapter`}`,
         policy: strategy(admit, evict, preempt, prefetch),
       })),
     ),

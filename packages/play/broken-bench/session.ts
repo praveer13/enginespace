@@ -20,6 +20,7 @@ import type { Seed } from '@es/sim/core'
 import { BENCH_FLAWS } from '@es/sim/bench/broken-types'
 import type { Debrief, Grade, Session } from '../types'
 import { caseOf } from './cases'
+import { BENCH_COPY } from './copy'
 import { FLAW_FACTS } from './flaws'
 import { MAX_PREDICTION_US, judge, stands } from './judge'
 import { buildLevel, isLevelId } from './levels'
@@ -73,10 +74,10 @@ export function predictionProblem(a: { readonly p99Us: number; readonly loUs: nu
 
 /** Applies one action. Throws on an illegal one: a flaw the court does not know, a range that does not hold the p99, or a filing with nothing to file. */
 export function benchReduce(s: BenchState, a: BenchAction): BenchState {
-  if (benchDone(s)) throw new RangeError('the court has risen, so no action can follow')
+  if (benchDone(s)) throw new RangeError('the run is over, so no action can follow')
   switch (a.t) {
     case 'flaw':
-      if (!(BENCH_FLAWS as readonly string[]).includes(a.flaw)) throw new RangeError(`the court knows no flaw "${String(a.flaw)}"`)
+      if (!(BENCH_FLAWS as readonly string[]).includes(a.flaw)) throw new RangeError(`the benchmark has no flaw "${String(a.flaw)}"`)
       return { ...s, picks: replaced(s.picks, s.at, a.flaw) }
     case 'predict': {
       const problem = predictionProblem(a)
@@ -89,8 +90,8 @@ export function benchReduce(s: BenchState, a: BenchAction): BenchState {
     case 'submit': {
       const named = s.picks[s.at]
       const prediction = s.predictions[s.at]
-      if (named === null) throw new RangeError('name a flaw before filing the ruling')
-      if (prediction === null) throw new RangeError('write down a p99 and its range before filing the ruling')
+      if (named === null) throw new RangeError('name a flaw before filing the report')
+      if (prediction === null) throw new RangeError('write down a p99 and its range before filing the report')
       const slot = s.level.slots[s.at]
       const { truth } = caseOf(slot)
       const verdict = judge({ p99Us: truth.correction.p99Us, ciLoUs: truth.interval.loUs, ciHiUs: truth.interval.hiUs }, slot.flaw, named, prediction)
@@ -122,7 +123,7 @@ function rulingViews(s: BenchState): RulingView[] {
   return s.level.slots.map((slot, i) => {
     const ruling = s.rulings[i]
     const prediction = s.predictions[i]
-    if (ruling === null || prediction === null) throw new Error('internal: a case of a finished run has no ruling')
+    if (ruling === null || prediction === null) throw new Error('internal: a case of a finished run has no verdict')
     const { c, scene, truth } = caseOf(slot)
     return {
       ...ruling,
@@ -155,8 +156,8 @@ export function benchView(s: BenchState): BenchView {
   const prediction = done ? null : s.predictions[s.at]
   return {
     level: s.level.id,
-    title: s.level.title,
-    prompt: s.level.prompt,
+    title: BENCH_COPY[s.level.id].title,
+    prompt: BENCH_COPY[s.level.id].prompt,
     synthetic: true,
     caseNo: Math.min(s.at + 1, cases),
     cases,
@@ -213,23 +214,24 @@ export function benchDebrief(mine: BenchState, ghost: BenchState): Debrief {
   const miss = mine.rulings.findIndex((ruling) => ruling !== null && !stands(ruling))
   if (miss < 0) {
     if (cases > 1) {
-      return { sentence: "Every ruling stood. In each case you named the flaw the log showed (or found none), applied the rule that corrects it, and wrote down a number and a range that the court's own recomputation agreed with.", names: null }
+      return { sentence: "Every report stood. In each you named the flaw the log showed (or found none), applied the rule that corrects it, and wrote down a number and a range that the reference's recomputation agreed with.", names: null }
     }
-    // A single case's verdict is the ticket's heading ("The ruling stands."), so the sentence under it opens on what the learner did.
+    // The verdict word above the sentence comes from the grade (Passed or Not yet), so the sentence opens on what the learner did.
     return {
       sentence:
         mine.level.slots[0].flaw === 'none'
-          ? "You found no flaw, checked the log from the due times, and wrote down the number the report already had, with a range that the court's own recomputation agreed with."
-          : `You named ${FLAW_FACTS[mine.level.slots[0].flaw].phrase}, applied the rule that corrects it, and wrote down a number and a range that the court's own recomputation agreed with.`,
+          ? "You found no flaw, checked the log from the due times, and wrote down the number the report already had, with a range that the reference's recomputation agreed with."
+          : `You named ${FLAW_FACTS[mine.level.slots[0].flaw].phrase}, applied the rule that corrects it, and wrote down a number and a range that the reference's recomputation agreed with.`,
       names: null,
     }
   }
   const slot = mine.level.slots[miss]
   const ruling = mine.rulings[miss]
-  if (ruling === null) throw new Error('internal: a missed case has no ruling')
+  if (ruling === null) throw new Error('internal: a missed case has no verdict')
   const facts = FLAW_FACTS[slot.flaw]
   const which = cases === 1 ? 'this case' : `the ${ORDINAL[miss] ?? 'last'} case`
-  const lead = grade.ok && cases > 1 ? 'The court passed you, with a ruling that did not stand. ' : ''
+  // A court of five can pass with one report that did not stand: the sentence says so, so the verdict word and the body agree.
+  const lead = grade.ok && cases > 1 ? 'Enough reports stood to pass, though one did not. ' : ''
   if (!ruling.flawOk) {
     return {
       sentence: `${lead}On ${which} you named ${FLAW_FACTS[ruling.named].phrase}, and the log showed ${facts.phrase}: ${facts.shows}. ${facts.rule}`,
@@ -243,7 +245,7 @@ export function benchDebrief(mine: BenchState, ghost: BenchState): Debrief {
     }
   }
   return {
-    sentence: `${lead}On ${which} the flaw and the number were right, but the range either missed the corrected p99 or was wider than the court's own bootstrap interval allows. A range is only worth writing down if it is about as tight as the sample it rests on.`,
+    sentence: `${lead}On ${which} the flaw and the number were right, but the range either missed the corrected p99 or was wider than the reference's bootstrap interval allows. A range is only worth writing down if it is about as tight as the sample it rests on.`,
     names: { lever: 'interval' },
   }
 }

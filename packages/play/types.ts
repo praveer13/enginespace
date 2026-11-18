@@ -152,6 +152,21 @@ export interface KeyBinding {
 /* The registry's record of a game                                                                                    */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
+/**
+ * A level's goal line (REDESIGN §2.6): one sentence in three parts and an end, always on screen. Each part is a sentence of its own, so a
+ * frame can run them together after "Goal:" or stack them on a phone. The words are display copy, in each game's `copy.ts` by level id.
+ */
+export interface GoalLine {
+  /** What the level is for: "Serve every request and recompute as few tokens as you can." */
+  readonly aim: string
+  /** What the learner controls: "You choose which request to admit and which page to evict." */
+  readonly controls: string
+  /** The number to beat or, on a graded level, the pass rule: "The reference run's cost is the number to beat." */
+  readonly beat: string
+  /** When the level ends, beginning "Ends": "Ends when every request is served." */
+  readonly ends: string
+}
+
 /** One level of a game, as the registry lists it. */
 export interface LevelEntry {
   readonly id: string
@@ -167,7 +182,7 @@ export interface LevelEntry {
 
 /**
  * What the registry records for a game (ARCHITECTURE §6.3), and what `verify:games` checks. The display name leads over the
- * subtitle, the engine concept, wherever the game is named (D-049); the game's id, its levels' ids and its actions stay the
+ * subtitle, the rule in one line, wherever the game is named (D-063); the game's id, its levels' ids and its actions stay the
  * engine's, because they sit in routes, refs and action logs.
  */
 export interface GameEntry {
@@ -175,9 +190,9 @@ export interface GameEntry {
   readonly id: string
   /** The modules that use the game, the first being its home: `['tr2', 'tr6']`. */
   readonly modules: readonly string[]
-  /** The display name (D-049): `Service`. */
+  /** The display name, the engine's term (D-063): `Step loop`. */
   readonly title: string
-  /** The engine concept the display name stands for (D-049): `the step loop`. */
+  /** The game's rule in one line (D-063): `Keep every slot live, and never make the GPU wait for the CPU.` */
   readonly subtitle: string
   /** Whether the game has a 3D scene (`Scene3D.tsx`); its 2D view is a first-class path either way (A§6.2). */
   readonly has3d: boolean

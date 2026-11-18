@@ -48,15 +48,15 @@ export function graphBytes(stage: Pick<StageWorld, 'slots'>, levers: Pick<Levers
 }
 
 /**
- * The mode that serves the night, or null with the reason when nothing does: the backend's downgrade (`resolvedMode`), then the reach-in's
- * room for the routines, where the stage has a limit.
+ * The mode that serves the run, or null with the reason when nothing does: the backend's downgrade (`resolvedMode`), then the GPU's
+ * room for the graphs, where the stage has a limit.
  */
 export function servingMode(stage: StageWorld, levers: Levers): { mode: GraphModeId | null; changes: readonly string[] } {
   const resolved = resolvedMode(stage.support, levers)
   if (resolved.mode === null || stage.graphBudget === null) return resolved
   const bytes = graphBytes(stage, levers, resolved.mode)
   if (bytes <= stage.graphBudget) return resolved
-  return { mode: null, changes: [...resolved.changes, `${resolved.mode}'s routines take more memory than the reach-in can spare tonight, so the KV cache would not hold the night`] }
+  return { mode: null, changes: [...resolved.changes, `${resolved.mode}'s graphs take more memory than the GPU can spare for them on this run, so the KV cache would not hold the run`] }
 }
 
 /**
@@ -191,7 +191,7 @@ function clipsOf(rows: readonly (readonly number[])[], slots: number): (number |
     for (const req of reqs) {
       if (where.has(req)) continue
       const free = held.indexOf(null)
-      if (free < 0) throw new Error('internal: a fire with more rows than clips')
+      if (free < 0) throw new Error('internal: a step with more rows than slots')
       held[free] = req
       where.set(req, free)
     }

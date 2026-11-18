@@ -1,12 +1,12 @@
 /*
- * The words of the pages that are not built yet (W1b-T09): what each will hold, and the task that builds it. The pages are
- * src/pages/Changes.tsx, About.tsx, TraceRoom.tsx and Lab.tsx (for the labs that W2 and W3 build), and src/unbuilt/Unbuilt.tsx draws
- * them. A page that is built takes its words out of here with its stub: /receipts did with W2-T06, and has its words in src/receipts/copy.ts.
+ * The words of the pages that are not published yet: what each will hold. The pages are src/pages/TraceRoom.tsx and Lab.tsx (for the labs not published yet), and src/unbuilt/Unbuilt.tsx draws them. A page that is published takes
+ * its words out of here: /receipts did, and has its words in src/receipts/copy.ts.
  *
- * Nothing in these words is new. What a page holds is what ARCHITECTURE §3.1 and §8.4 say of it and what its tasks in docs/TRACKER.md
- * ask for, and a lab's one line is what content/course.yaml says the learner hands in. tests/pages/unbuilt.test.ts reads the tracker
- * and the compiled course map, so a task that is renamed, or a lab whose artifact changes, fails there and not in front of a learner.
- * No number is in them that no tag covers (rule 7): a wave or a task is an identifier, and the tests hold the rest to the number gate.
+ * The words are the engine's own and say nothing of how the site is built: no task, no wave. A learner who follows a link here reads that
+ * the page is not published yet, what it will hold, and is handed back to Continue. What a page holds is what ARCHITECTURE §3.1 and
+ * §8.4 say of it, and a lab's one line is what content/course.yaml says the learner hands in. tests/pages/unbuilt.test.ts reads the
+ * compiled course map, so a lab whose artifact changes fails there and not in front of a learner. No number is in them that no tag
+ * covers (rule 7).
  */
 
 export interface UnbuiltCopy {
@@ -18,57 +18,24 @@ export interface UnbuiltCopy {
   heading: string
   /** What the page will hold, a line each. */
   holds: readonly string[]
-  /** The tasks of docs/TRACKER.md that build it, the page's own first. */
-  tasks: readonly string[]
-  /** The one way on from here, to a page that is built. */
-  next: { to: string; label: string }
 }
 
 /** The pages with a route of their own. A page's `lead` is the sentence its meta description gives too (scripts/pages/plan.ts), and a test holds the two together. */
 export const UNBUILT = {
-  /** ARCHITECTURE §3.1, ASSESSMENT §8; W3-T06. */
-  changes: {
-    title: 'Changes',
-    lead: 'The claims and the pins that have moved, as change cards.',
-    heading: 'What it will hold',
-    holds: [
-      'A card for each claim or pin that moved: the struck line, the new line and its source.',
-      'A retrieval item or two on each card, and a way to acknowledge it.',
-    ],
-    tasks: ['W3-T06'],
-    next: { to: '/map', label: 'Open the course map' },
-  },
-  /** ARCHITECTURE §3.1; W3-T15. The page holds its licences paragraph today (src/pages/About.tsx), and the lead says so. */
-  about: {
-    title: 'About',
-    lead: 'The licences of the third-party code and the typefaces that this site uses.',
-    heading: 'Still to come',
-    holds: [
-      'What each simulated world models and ignores.',
-      'The claims and their sources.',
-      'The privacy promise.',
-      "The licences of the site's own code and content.",
-    ],
-    tasks: ['W3-T15'],
-    next: { to: '/settings', label: 'Open the settings' },
-  },
-  /** ARCHITECTURE §3.1, GAMES.md §0 (The Tape is `gap-hunt`, D-049); W2-T20. */
   traceRoom: {
-    title: 'The Trace Room',
+    title: 'Traces',
     lead: 'Read engine traces beside the seeded step-loop world, and hunt for the gaps. A trace without a real capture behind it is labelled synthetic.',
     heading: 'What it will hold',
     holds: [
       'The pinned traces and the synthetic ones, each with its card.',
-      'The Tape: find the gap, mark the spans and name the cause.',
+      'Trace attribution: find the gap, mark the spans and name the cause.',
       'On a phone, the marking is done from a list, and it counts the same.',
     ],
-    tasks: ['W2-T20'],
-    next: { to: '/play/loop', label: 'Play Service' },
   },
 } as const satisfies Record<string, UnbuiltCopy>
 
 /* ------------------------------------------------------------------------------------------------------------------ */
-/* The labs that W2 and W3 build                                                                                      */
+/* The labs not published yet                                                                                        */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 /** The lanes of work (ARCHITECTURE §8.1): `B` is the browser, `L` the laptop's CPU and `F` a GPU. */
@@ -84,7 +51,7 @@ export interface LabStub {
 
 /**
  * The ten labs with no page yet: every lab of the compiler's list (scripts/content/directives.ts) but the forge labs that have a
- * host (src/forge/ids.ts). The task that builds each is `LAB_TASKS` in src/content/render/model.ts, which the tests hold to the tracker.
+ * host (src/forge/ids.ts).
  */
 export const LAB_STUBS: Readonly<Record<string, LabStub>> = {
   'kv-publisher': { module: 'tr5b', lane: 'B', handIn: 'Publisher conformance tests on your Rust module' },
@@ -115,9 +82,6 @@ export const LAB_HOLDS = {
     'The receipt that your grader writes, imported here and checked in this browser.',
   ],
 } as const
-
-/** The wave a task belongs to: `W2-T06` arrives with `W2`. */
-export const waveOf = (task: string): string => task.split('-')[0]
 
 /** Every string above that holds words, for the tests. */
 export function unbuiltCopy(): string[] {

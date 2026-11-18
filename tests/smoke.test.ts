@@ -118,26 +118,26 @@ describe('routes against ARCHITECTURE §3.1', () => {
    */
   const stubs: Record<string, { h1: string; shows?: string; title?: string }> = {
     // The front page's heading is printed on its order ticket (W0-T18).
-    '/': { h1: 'Fire the next step.', title: 'enginespace' },
-    '/map': { h1: 'Course map' },
+    '/': { h1: 'Run one step of an LLM inference engine.', title: 'enginespace' },
+    '/map': { h1: 'Course' },
     // The module and lesson pages load their content in the browser (W0-T09), so the server renders the ticket that is still printing.
-    '/m/:module': { h1: 'Module', shows: 'Printing the module' },
-    '/m/:module/:lesson': { h1: 'Lesson', shows: 'tr2 / l0-sample' },
+    '/m/:module': { h1: 'Module', shows: 'Loading the module' },
+    '/m/:module/:lesson': { h1: 'Lesson', shows: 'Loading the lesson' },
     '/play': { h1: 'Games' },
-    '/play/:game': { h1: 'Play Service', shows: 'Loading Service', title: 'Game · enginespace' },
+    '/play/:game': { h1: 'Play Step loop', shows: 'Loading Step loop', title: 'Game · enginespace' },
     // A lab's page names itself as its served document does (`Lab tr8.replay`), and sets that title itself; the route's is the fallback.
-    // A page that is not built yet names the task that builds it (src/unbuilt/copy.ts).
-    '/labs/:lab': { h1: 'Lab tr8.replay', shows: 'W2-T36', title: 'Lab · enginespace' },
-    '/trace-room': { h1: 'The Trace Room', shows: 'W2-T20' },
-    '/trace-room/:trace': { h1: 'The Trace Room', shows: 'Trace id: sample' },
+    // A page that is not published yet says so, names no task, and hands back to Continue (src/unbuilt/copy.ts).
+    '/labs/:lab': { h1: 'Lab tr8.replay', shows: 'Not published yet', title: 'Lab · enginespace' },
+    '/trace-room': { h1: 'Traces', shows: 'Not published yet' },
+    '/trace-room/:trace': { h1: 'Traces', shows: 'Trace id: sample' },
     // The page opens the ledger in the browser (W2-T06), so the server renders the tickets that are still printing.
-    '/receipts': { h1: 'Receipts', shows: 'Printing your challenges' },
-    '/today': { h1: 'Today' },
-    '/evidence': { h1: 'Evidence' },
+    '/receipts': { h1: 'GPU lab results', shows: 'Loading your challenges', title: 'GPU lab results · enginespace' },
+    '/today': { h1: 'Review' },
+    '/evidence': { h1: 'Progress' },
     '/design': { h1: 'Design system' },
     '/settings': { h1: 'Settings' },
-    '/about': { h1: 'About', shows: 'W3-T15' },
-    '/changes': { h1: 'Changes', shows: 'W3-T06' },
+    '/about': { h1: 'About', shows: 'How numbers are tagged' },
+    '/changes': { h1: 'Sources and changes', shows: 'What the course pins' },
     '*': { h1: 'Page not found' },
   }
   const params: Record<string, string> = { module: 'tr2', lesson: 'l0-sample', game: 'loop', lab: 'tr8.replay', trace: 'sample' }
@@ -223,21 +223,22 @@ describe('routes against ARCHITECTURE §3.1', () => {
       return [...nav.matchAll(/<a [^>]*href="([^"]+)"[^>]*>(.*?)<\/a>/gs)].map((match) => [match[1], match[2]])
     }
 
-    test('the primary navigation is Map, Play, Today, Receipts and Evidence, and the footer has the other four', async () => {
+    // REDESIGN §2.3 (R-T06): Course, Games, Review and Progress, then Continue; tests/app/shell.test.ts holds every route's chrome.
+    test('the primary navigation is Course, Games, Review and Progress, then Continue, and the footer is About, How numbers are tagged, Sources and changes, Settings', async () => {
       const html = await render('/')
-      expect(linksIn(html, 'Primary')).toEqual([
+      expect(linksIn(html, 'Primary').map(([href, text]) => [href, text.replace(/<[^>]+>/g, '')])).toEqual([
         ['/', 'enginespace'],
-        ['/map', 'Map'],
-        ['/play', 'Play'],
-        ['/today', 'Today'],
-        ['/receipts', 'Receipts'],
-        ['/evidence', 'Evidence'],
+        ['/map', 'Course'],
+        ['/play', 'Games'],
+        ['/today', 'Review'],
+        ['/evidence', 'Progress'],
+        ['/m/tr1/l1-five-mechanisms', 'Start: TR1 lesson 1Start'],
       ])
       expect(linksIn(html, 'Footer')).toEqual([
         ['/about', 'About'],
-        ['/changes', 'Changes'],
+        ['/about#numbers', 'How numbers are tagged'],
+        ['/changes', 'Sources and changes'],
         ['/settings', 'Settings'],
-        ['/design', 'Design'],
       ])
     })
 
@@ -250,7 +251,7 @@ describe('routes against ARCHITECTURE §3.1', () => {
 
     test('under /enginespace/ every link keeps the base path, so the site works on GitHub Pages', async () => {
       const html = await render('/enginespace/map', '/enginespace/')
-      expect(h1sIn(html)).toEqual(['Course map'])
+      expect(h1sIn(html)).toEqual(['Course'])
       const hrefs = [...html.matchAll(/<a [^>]*href="([^"]+)"/g)].map((match) => match[1])
       expect(hrefs.length).toBeGreaterThan(8)
       expect(hrefs.filter((href) => href !== '#main' && !href.startsWith('/enginespace/'))).toEqual([])
@@ -267,9 +268,10 @@ describe('routes against ARCHITECTURE §3.1', () => {
         { ...routes[0], children: [{ path: 'boom', lazy: () => Promise.reject(new Error('Failed to fetch dynamically imported module')) }] },
       ]
       const html = await render('/boom', '/', failing)
-      expect(h1sIn(html)).toEqual(['Something went wrong'])
+      expect(h1sIn(html)).toEqual(['This page stopped'])
       expect(html).toContain('Failed to fetch dynamically imported module')
-      expect(html).toContain('>Reload</button>')
+      expect(html).toContain('>Reload the page</button>')
+      expect(html).toContain('Your answers and runs are saved in this browser')
       expect(linksIn(html, 'Primary').length).toBeGreaterThan(1)
     })
 

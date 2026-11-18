@@ -1,6 +1,6 @@
 import { Icon } from '@/design/components/Glyph'
 import type { IconName } from '@/design/components/Glyph'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { Label } from '@/design/components/Label'
 import { RULES, VERDICT_RULE } from '@es/verify'
 import type { CheckResult, RuleResult, RuleStatus, Verdict } from '@es/verify'
 import { CHECK_WORDS, REPORTS, RULE_WORDS, VERDICT_WORDS } from './copy'
@@ -92,9 +92,9 @@ export function VerdictLine({ verdict, grader }: { verdict: Verdict; grader?: st
           {VERDICT_RULE.rule}
         </span>
         <span className="sr-only">Rule {VERDICT_RULE.rule}, </span>
-        <TapeLabel size="sm" tilt="none" className="es-import__worth">
+        <Label size="sm" tilt="none" className="es-import__worth">
           {VERDICT_WORDS[verdict.provenance]}
-        </TapeLabel>
+        </Label>
         <span>{REPORTS.verdict}</span>
       </p>
       <ul className="es-import__reasons">

@@ -19,15 +19,19 @@ export interface ViewSwitchProps {
   available3d: boolean
   /** Why it cannot, in a few words: "3D is off in Settings". */
   unavailableReason?: string
+  /** The two buttons' words. The instrument frame says "Diagram" and "3D" (REDESIGN §2.6); the old shell keeps "2D view" and "3D view". */
+  labels?: { readonly flat: string; readonly depth: string }
 }
 
-export function ViewSwitch({ view, onViewChange, available3d, unavailableReason }: ViewSwitchProps) {
+const VIEW_WORDS = { flat: '2D view', depth: '3D view' } as const
+
+export function ViewSwitch({ view, onViewChange, available3d, unavailableReason, labels = VIEW_WORDS }: ViewSwitchProps) {
   const reasonId = useId()
   const reason = available3d ? undefined : unavailableReason
   return (
     <div role="group" aria-label="View" className="flex flex-wrap items-center gap-2">
       <Button size="sm" variant={view === '2d' ? 'ink' : 'plate'} aria-pressed={view === '2d'} aria-keyshortcuts="V" onClick={() => onViewChange('2d')}>
-        2D view
+        {labels.flat}
       </Button>
       <Button
         size="sm"
@@ -38,10 +42,10 @@ export function ViewSwitch({ view, onViewChange, available3d, unavailableReason 
         aria-describedby={reason ? reasonId : undefined}
         onClick={() => onViewChange('3d')}
       >
-        3D view
+        {labels.depth}
       </Button>
       {reason ? (
-        <span id={reasonId} className="text-text-2">
+        <span id={reasonId} className="text-size-caption text-text-2">
           {reason}
         </span>
       ) : null}

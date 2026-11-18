@@ -5,93 +5,49 @@ primary_target: "src/games/verifier/Game.tsx"
 related_targets: ["src/games/verifier","packages/play/verifier"]
 ---
 
-# The Tasting
+# Rejection sampler (`/play/verifier`)
 
 ## Scope
 
-- **Surface:** the game page `/play/verifier`, in Operate mode: a whole game view inside the established world. GAMES.md §10 and §2.6 and A§6 specify it, so there is no concept roll. On a device whose tier draws 3D the view is the 3D scene (W1-T29), the pass at the tasting built from scene kit v1; the 2D view is the first paint, the fallback and the 3D-off path, and it is a first-class rendering of the same kitchen.
-- **Visitor:** a kernelspace graduate who has met speculative decoding in T5.L8 and wants to see why the verifier's output is the target's, exactly.
-- **Task:** predict how many of the commis's plates the chef keeps; sculpt the re-plating until what goes out is the chef's tasting; predict a round's courses; name the bug in five tasting rules; choose how far ahead the commis should plate.
-- **Proof:** every mark and every number comes out of the pure session. The distance from the chef's tasting is an exact fraction in rationals, so no pass is a sample's luck.
-- **Constraints:**
-  - the PRODUCT.md constraints (zero servers, nothing collected);
-  - completable by keyboard, with reduced motion, and no sideways scroll at 390 px;
-  - a graded run hides the live meter and the decomposition, takes one submission and has no undo;
-  - every probability is a count of plates out of sixty-four, synthetic;
-  - the 3D scene holds D-023's frozen budgets (its chunk at most 40 KB gz, at most 100 draw calls), carries no text of its own, and cuts every change under reduced motion.
+- **Surface:** the Rejection sampler's game page and its frame, in Operate mode, and the same instrument inside TR6's lessons.
+- **Visitor:** a learner reading speculative decoding, who must see why the target accepts the overlap of p and q and resamples from the residual.
+- **Task:** predict the acceptance rate, draw rounds and watch the accepted share settle, then file; later levels resample from the residual, judge temperature zero, write weights, audit five implementations and choose the draft length γ.
+- **States that matter:** each token's two bars (draft q, target p), the accepted part min(p, q) and the residual (p - q)+ once the level shows them, the drawn rounds as dots, the sampler's output, and the readout (rounds, accepted, rejected, accepted share, tokens a round).
+- **Constraints:** the PRODUCT.md constraints; by keyboard; 360 px with no sideways scroll; numbers in the DOM; the scene's chunk under its frozen 40 KB.
 
 ## Direction contract
 
-THESIS: The Tasting is the pass at the moment of tasting. Each dish has two stacks of plates side by side, the commis's and the chef's, and the plates they share; a run of courses stands in rows behind the first. It refuses a bar chart in a game frame: grey bars, a tick axis and a swatch legend, flat or in 3D.
+THESIS: The sampler drawn as distribution bars: two bars a token over tokens 0 to 5, out of 64, cut into what the rule makes of them. The learner is the verifier.
 
-OWN-WORLD:
-- **Surfaces:** brushed stainless: the pass, a tasting bench as deep as the run, the chef's wire plate dispensers and the bell; subway tile, the hood and a cold line behind, falling into a haze of deep steel; heat lamps over the course being tasted.
-- **Marks:** each dish is a pair of stacks of edge-banded tasting plates, the commis's standing free and the chef's in her dispenser, its foot in the target blue and its wires a few plates over her stack. A plate's edge is its part: agreed board green, the commis's extra in the draft yellow, the chef's extra in the residual red. A graded run's stacks are plain, the commis's yellow and the chef's blue.
-- **The draws:** a drafted plate is a plate of the commis's stack pulled out at its coin's height, level and toward the chef when kept, tipped away when sent back.
-- **What went out:** a white enamel ring edged in grey on the chef's dispenser, at the height served.
-- **Print:** dish and stack names on masking tape in marker, counts on paper tags in the printer's dots, all DOM.
+OWN-WORLD: Data Book (REDESIGN §2.8), as the front page's contract states it:
+- **Ground and surfaces:** flat paper, cut square, with no texture; one soft shadow for a sheet and one for a popover, never a sheet inside a sheet.
+- **Active state:** one amber marker that means "now", always with its dark edge, a shape and a word, and only on its three carriers: the control to act on now (the amber button, or the ring an intro points at), the "now" cursor on a diagram, and the current position in a rail.
+- **Categorical code:** six colours, each with its glyph (blue circle, green hexagon, yellow diamond, red triangle, white hollow ring, brown square), only where the model's state is drawn; a cached page and a draft are hatched, so no yellow field reads as the marker.
+- **Drawing:** the graticule inside the diagram as its axis or its cell grid, ink marks in the code, empty and idle as dashed hollow boxes, dimension lines with end ticks and a value.
+- **Provenance:** one stamp per instrument, on its readout strip; a tag inside prose is a dotted underline, never a chip.
+- **3D:** a model of the same diagram: matte solids on a pale plate engraved with the graticule, empty as dashed wire outlines, the "now" cursor a thin amber sheet; every word and number stays DOM. Offered only where depth carries something, and from desk width.
 
-STORY: The learner comes to see that the chef keeps every plate she and the commis agree on, sends back only the commis's extra, and re-plates from exactly what the commis under-plated. Nothing else puts out her tasting. They predict, sculpt and draw rounds: on each bell the commis's plates drop into the stacks down the run, and the rings settle onto the tops of her stacks. Then they find the same rule hiding in five rules that look right.
+STORY: The draws land as dots on the q bars, solid below the accepted part and hollow above it, and the accepted share settles on the overlap: that is the acceptance rate.
 
-FIRST VIEWPORT:
-- **At 1440 px:** under the game's plate and its stage buttons, two columns. On the left, 3fr: the scene's box, over the run: the pass across its lower half with the six dishes' pairs of stacks under three heat lamps, any later courses in rows behind, the line under its hood beyond, the dish names on tape along the pass's edge; under the box the camera's plates, then the prompt and the six dish weight fields. On the right, 2fr: the printer's tape with the exact distance, over the mirror table.
-- **At 390 px:** one column in that order. The scene comes first at about half the screen's height. Over one course the camera stands low and near, so the pass and its stacks fill the box's lower half with the six pairs across it and the room over them falls into haze; over a run it stands higher, so the courses run into the box. The prompt and the weight fields sit directly under it.
-- **The primary action:** the weight fields and "Submit", in the level's own words; in the predicting levels the prediction and Commit, then the draws.
+FIRST VIEWPORT: At 1440 the bars at the left with the legend under them, the dock at the right with the parts list, then the prediction, then the draws and Finish, the readout under it. The first run's discs stand inside the tallest draft and target bars and in the gutter level with the token axis. At 390 the dock is pinned to the foot with the draws and Finish as one block of whole buttons over the readout. 3D is offered on the chain only, from desk width, since depth is one row per draft position and a level of one position would be the bar chart in perspective.
 
-FORM: The Pass, as GAMES.md §2.6 and DESIGN.md specify it: stainless for the pass, tickets for what is read, the printer's tape for the readout, tape labels for names and plates for controls; in 3D, scene kit v1's room and props with the Tasting's own plates, dispensers and rings made the kit's way. Stacks of plates stand in for the skyline's bars. seed: none (specified surface, no roll)
+FORM: Data Book's instrument frame. The 3D view on the chain stands one row of bars for each draft position into depth, the first in front, with the output skyline settling onto p. seed: none (a specified surface inside the established world, which the owner confirmed at the look gate; no roll)
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+FINISH: unreviewed and undocumented is unfinished; this surface ends with wave R's finish review (R-T50), its material fixes, and DESIGN.md written from the built world
+
+## The frame
+
+The instrument frame (REDESIGN §2.6, §3.5): the title strip (title, role line, level menu, Diagram and 3D where offered, Parts, How to play, Keyboard), the goal line, the diagram with its legend under it and a gutter at its left for the first run's callout discs, the dock beside it at a desk and pinned to the foot of a phone that is 700 px or taller, the foot strip, the title block and State as a table. The dock holds the coach strip during the first run, the decision, the readout strip with the instrument's one stamp, and at the end the result: the verdict, the amber way on straight under it, then the sentence and what the game adds. At the result the dock takes its content's height, never cutting a line or a button, and the readout stands at the screen's foot.
 
 ## Memorable moment
 
-The bell. Rounds are drawn and the bell on the pass strikes: the commis's plates drop into their stacks down the run, a kept plate sliding out toward the chef and a sent-back one tipping away, and the white rings settle onto the tops of her stacks, all six at once, while the tape prints the distance as a fraction. In the 2D view it is the outline settling: the learner sets the last weight, and the hollow outline over each dish drops onto the top of the chef's stack.
-
-## Adaptations (finish review, round 1)
-
-- **Plates, not bars.** In 3D each plate is a satin glaze with its part on its edge band only, a gap of shade under it, and a few millimetres off the plate under it, stacked by hand. In 2D each plate is drawn edge on, with rounded ends and the glaze of its rim, each stack stands in its contact shadow on the pass, and the chef's stands in her wire dispenser, whose foot is the target's blue, as the contract has it in 3D too.
-- **The draws read from over the run.** A pulled plate stands clear of its stack, glazed whole in its part: a kept one level, out toward the chef and the expo, a sent-back one out the other way, tipping away as it lands. The heat lamps' pool on the steel round the course being tasted is brighter. Over the run the haze starts just past the courses, so the line and the wall fall away into deep steel; the shots nearer the pass keep it further off, so the room never falls into a void.
-- **The courses' names.** Over a run the pass runs on past the soup, and each course's name lies on its tape on that strip, a step further left into depth, so that no name stands over a stack. The walk keeps the dishes' names alone, and so does One course, where one course stands in front of the next; in a phone's narrow box the strip stands outside the box, so the names are left to the mirror there.
-- **The counts.** A single course's counts are on one paper tag a dish, the commis's plates and then the chef's, hung from the pass's edge under the dish's tape: from a phone's height, and level with the counter in One course, the counter in front of a pair has no room for a tag in front of the tape.
-- **The framings.** Over a run, at 1440 px, the camera stands higher and closer, so the courses fill the box and the hood stands above it. On a phone the pass's front edge stands at the foot of the box and no floor shows under it; the room above it (the line under its lamps, the hood, the wall falling into haze) fills the rest, since one course's pass is too shallow to fill a box taller than it is wide while all six pairs fit across.
-- **The hood.** Over a run, at 1440 px, it stands above the box. Where it shows, on a phone and in One course, The Tasting's hood has a shorter skirt, so that it reads as a canopy over the line, and a drawn steel lip along the skirt's foot; its baffles and lights stand under it, seen from One course. The kit's own hood is unchanged, since every dressed scene shares the kit's chunk and The Reach-In's scene stands too near its frozen gate to carry more of it (GAMES.md §8, "Budget").
-
-## Adaptations (finish review, round 2)
-
-- **The draws are plates.** A pulled plate is a tasting plate glazed as its stack's are, its part on its edge band only, and it stands over its own shadow on the steel, fainter and wider the higher it was pulled from. One draw takes the plates both stacks share and one the commis's extra.
-- **What went out reads.** The rings are white enamel edged in grey on their top and foot, so they read on white plates as on steel: a run's first round leaves most of them at the foot of their dispensers and one at its top, ten leave them scattered, and a thousand settle them onto the tops of her stacks. That, more than how many plates are pulled, is what tells the three apart.
-- **The dispensers.** Each dispenser's wires stand six plates over the chef's stack and no taller, so an empty one is a short loop round its blue foot and not a bare wire as tall as the tallest stack; a ring past its wires waits at their top, and the mirror prints the figure.
-- **One lamp's pool.** The heat lamps over the course being tasted hang a little behind it: brushed steel shows a lamp's light on the side of its pool toward the eye, so from over the course their light washed the pass in front of it. From behind, it pools on the course's plates and the steel between them. Over a run their light leaves at a course's height, a hand under the higher shades, so the pool is a course deep.
-- **The haze.** Over one course the haze thickens within the wall's depth, and the room's light falls away from just over the line and just behind the pass: the line keeps its steel, the wall over it falls into deep steel, and past the room's walls is the same deep steel, never a pale void.
-- **The phone.** Over one course the camera comes down and in: the pass and its stacks stand in the box's lower half, the floor in front of the pass under the box's foot and the floor under its open shelf in its shade, and the line, the hood and the lamps over them in haze. The camera's target stands back along its line of sight, so the haze, measured from it, starts behind the line.
-- **The walk's names.** Walking with the chef, the camera turns a little further down the pass and widens, so that every dish's tape, the soup's at the far end too, stands whole inside the box at the page's boxes.
-
-## Adaptations (W1b-T10, the scene kit's haze, the lamp's pool and paper; two looks at 1440 and 390)
-
-- **The lamps' light is the kit's** (W1b-T10): no spot light, but under each lit lamp a cone of warm haze from inside its shade's lip down to the surface and an edgeless pool where it lands, at every tier, which brightens the steel and lays no colour of its own; paper lying in it stays white. A lit end on the cone's mouth drew a hard peach disc under each shade in the task's first look, so the mouth is dark and the shade's own bulb is its glow.
-- **One pool per lamp on the course being tasted:** each lamp's light leaves its shade's mouth, over a run as over one course, and pools on the front course's steel between its stacks, a lamp's width and gone before the next. Over a run the light used to leave a hand under the higher shades, and the first look showed its mouth's glow hanging in the air over the back courses.
-- **The room falls into haze** from a hand over the line's worktops: the wall over the line is the haze's deep steel well before the hood, and the hood's tubes are off over the cold line, so nothing white burns at the frame's top edge over the run.
-
-## Adaptations (W1b finish review, round 1)
-
-- **One pool under each lamp, on the course being tasted.** The heat lamps hang straight over the front course, each between two dishes' pairs, and their light falls plumb: each lamp's pool lies on the steel round the plates under it, within the counter's depth, and is gone before the next lamp's. With the kit's light there is no spot lobe to slide along the steel toward the eye, so the lamps no longer hang behind the course, where their light was an orange strip behind the stacks along the pass's back lip. Over one course the shades hang 80 cm over the counter [estimated], a hand over the tallest stack a dish can have.
-- **The hood ends the room at 1440.** Over one course the camera stands a little over the lamps and tilts up until the hood's lip and its lights stand whole along the top of the box, so a canopy ends the room and only the hood's skirt meets the edge. The shades read from a little above, as opaque steel against the room's haze. Over one course the haze is whole by the wall, so no tile shows behind the shades; over a run it is whole by the wall too, so the wall over the line is haze well before the top edge, and the hood still stands above the box there.
-- **What went out reads at a glance.** Each ring is a flange 35 mm past the plates' edges [estimated], threaded on the dispenser's wires, a plate and a half deep, its face and band white enamel and its rims grey, and settled it caps her stack's top plate. A run's first round leaves the rings round the dispensers' feet, ten rounds scatter them up the wires, and a thousand cap every one of her stacks; a wrong recipe leaves some off the tops, with the gap between the ring and the stack's top in plain view.
-- **The run's lamps** hang over the front course too and stand whole inside the box: the shot over a run is two degrees wider [estimated], so the right one is not cut by the box's side.
-- **The phone.** Over one course the camera comes down under the lamps' mouths, so their bulbs show and the stacks stand against the room's haze, at the distance it had: any nearer and the outer dishes' tapes and tags leave the box, which they already meet within a few pixels.
-
-## Adaptations (W1b finish review, round 2)
-
-- **What went out is a stack of its own.** A ring on the chef's dispenser, settled on her stack's top, left eight thousand rounds almost the same picture as none, and ten rounds as one. What went out now stands on white side plates edged in grey beside her dispenser, 90 mm across to her 110 mm plates [estimated] and at the same rise, as many as went out of the dish there with the top one at the exact height, up to her dispenser's top: a dish is three stacks two fingers apart, the commis's, hers in the blue foot, and what went out, a hand clear of the next dish's. Before any draw the third place is bare; after a run's first round one dish stands to the wires' top and the rest stand bare; after ten the stacks stand ragged beside hers; after thousands each stands exactly as tall as hers, so the settled skyline is two skylines that are one. On the bell the plates drop as before, then what went out rises or falls to its height on the settle; under reduced motion it cuts. The key under the scene says "what went out · on the right".
-- **The shades are opaque steel.** The kit's spun shade, a near mirror, took the room's haze on its flanks and read as frosted glass at 1440. The Tasting's lamps keep the kit's canopy, cord, socket and bulb under a shade of the scene's own (scene-props.ts): a skin of brushed shaded steel, a rim bead of bright steel, and a well of deep steel round the bulb, so it reads as sheet metal round a dark mouth from above or below.
-- **The back wall keeps its tile.** Over one course the haze starts behind the line and is about two thirds by the wall, where it was whole: the tile's courses and grout show through it behind the lamps, veiled, and the hood ends the room. A patch of the wall between the lamps, over the line, varies by 0.014 in luma where round 2's was 0 [measured 2026-11-09 on a test build of this round's files]; e2e/verifier-scene.spec.ts holds it above 0.004.
-- **A run on a phone** looks through a lens a degree wider for each course less, so a dish's three stacks stand inside the box's sides however short the run.
+The accepted share settles on the overlap and the dock names it once: "The accepted share settles on the overlap of p and q. That is the acceptance rate."
 
 ## Unresolved
 
-- **The Build-this card** points at the `rejection-sampler` forge lab (W1-T27), which is not built yet, so the debrief names the lab and does not link it.
-- **Dish names:** GAMES.md §10 says "the six dishes of the vocabulary" and names none. The game's six are soup, salad, fish, steak, pasta and tart, and the mirror gives each its token number beside it.
-- **The heat lamps in a run:** GAMES.md §2.6 puts the lamp on "the row being tasted". A round's walk starts at the first course, so in `chain` the 3D lamps light the front course, where every round begins, straight over it; the 2D view pools its amber over every draft row. Seen from over the run, a lamp over the front course stands high in the box, over the courses behind it, as perspective puts it: hung lower, its shade stood over the back courses and hid them (a probe of W1b's finish fixes, round 1), so the lamps keep their height and their light falls in a cone of haze to the front course's pools.
-- **The stacks on a phone:** six dishes across a phone's box, which is taller than wide, with their names on tape whole inside it, stand no taller from any height: a stack of 29 plates is about 45 px at 390 px [derived from the framing's projection, 2026-11-09], and the hood, the lamps and the room's haze take the box over the pass, with the floor under the pass's open shelf, in its shade, at the box's foot. W1b's finish review, round 1, asked for the camera down and in, or for a box shaped to the pass: the camera came down, and could not come in without the outer dishes' names leaving the box. Round 2 asked again for the camera down and in until the pass and its stacks fill the box, and the camera alone cannot do it [derived 2026-11-09 from the framings' projections]: in front of the pass, at any height, distance and lens that keeps the six dishes' stacks inside the box's sides, the 29 plates stand at most about 46 px (tests/play/verifier-scene.test.ts); turned 25 to 30 degrees down the pass, the near dish leaves the box or the far dishes' names overlap, with the floor about 37% of the box; and looking along the pass, 70 to 75 degrees round, the stacks stand 60 to 130 px but each dish's stacks stand one behind another, and the floor takes 29 to 44% of the box. So the camera stays where it was. A box shaped to the pass (about 358 by 230 px at 390 px [estimated]) or fewer dishes across would let the pass and its stacks fill it; the box's shape is the owner's call, and it is open.
-- **Walk with the chef** (Follow) is a framing the learner chooses, low along the pass, and does not move on its own: the scene moves only on a bell or the learner's input.
-- **The chef's re-plating** (GAMES.md §2.6: "a second plate drops into the row's under-plated wells") is not drawn in 3D as a plate of its own: the session's view gives no re-plated dish for a sent-back plate, and the scene's chunk stands just under its frozen 40 KB gate (GAMES.md §10, "Budget", gives the figure). What she re-plates shows in what went out (the rings) and in the mirror.
-- **A pick in 3D** is a dish's tape on the pass's edge, which hands focus to its weight; the 2D drawing's tap target is the dish's whole column.
+- The bars have no value axis; the graticule is not their scale (the finish review's ceiling).
+- The chain's 3D marks (caps and outlines) are to be read against its legend in the next look.
+
+## The Pass's contract, superseded
+
+Until wave R this surface was specified in The Pass (D-047), the kitchen world. D-062 replaced it with Data Book, which the owner confirmed at the look gate on 2026-11-16, and stage 4 took the kitchen's files out of the tree. The superseded contract and its finish-review adaptations are in this file's git history; none of it applies to the built surface.

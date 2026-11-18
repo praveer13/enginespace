@@ -1,14 +1,14 @@
 /**
- * TR1's predictions, read from Back of House's runs (W1b-T02; plan.ts says which run answers which).
+ * TR1's predictions, read from Request path's runs (W1b-T02; plan.ts says which run answers which).
  *
  * The world of a run is the lifecycle model's path for the scenario its level lays: the engine and the request, as `packages/sim/lifecycle`
  * cites them at the pins. A question about that engine is answered by counting that path, and a question that moves one lever of the request
- * (a second rank, two samples) by counting the path of the same request with the lever moved. The levels of Back of House lay the same
+ * (a second rank, two samples) by counting the path of the same request with the lever moved. The levels of Request path lay the same
  * scenario whatever the seed, so the seed picks only the tray and the reading does not depend on it.
  */
 import { boundaryOf, entryOf } from '@es/sim/lifecycle'
 import type { Scenario, StageDef } from '@es/sim/lifecycle'
-import { boundariesOut } from '../engine-floor/facts'
+import { boundariesOut, boundaryStagesOut } from '../engine-floor/facts'
 import { buildLevel } from '../engine-floor/levels'
 import { referenceOf } from '../engine-floor/stages'
 import type { RunRecord } from '../types'
@@ -27,12 +27,16 @@ function scenarioOf(run: RunRecord, level: string): Scenario {
 const boundaries = (sc: Scenario): number => boundariesOut(referenceOf(sc), entryOf(sc.engine))
 
 /** The stages of a path that cite the one line of source that samples the token. */
-function stagesOnTheSamplingLine(sc: Scenario): number {
+function samplingLine(sc: Scenario): StageDef[] {
   const path = referenceOf(sc)
   const sampler = path.find((stage) => stage.id.endsWith('.sample'))
   if (sampler === undefined) throw new RangeError(`the path of ${sc.engine} has no stage that samples`)
-  return path.filter((stage) => stage.source.path === sampler.source.path && stage.source.line === sampler.source.line).length
+  return path.filter((stage) => stage.source.path === sampler.source.path && stage.source.line === sampler.source.line)
 }
+const stagesOnTheSamplingLine = (sc: Scenario): number => samplingLine(sc).length
+
+/** The stages, by their labels, that cross a process boundary between the sampling stage and the client. */
+const crossings = (sc: Scenario): string[] => boundaryStagesOut(referenceOf(sc), entryOf(sc.engine)).map((stage) => stage.label)
 
 /** The stages from the client's disconnect to the end of the path: where the news of an abort goes. */
 function abortStages(sc: Scenario): readonly StageDef[] {
@@ -48,16 +52,19 @@ export const REFERENCES: Readonly<Record<string, Reference>> = {
     says: ['sampled token'],
     reads: PROCESS_BOUNDARIES,
     truth: (run) => boundaries(scenarioOf(run, 'nano')),
+    counted: (run) => crossings(scenarioOf(run, 'nano')),
   },
   'tr1.l1.p2': {
     says: ['samples a token'],
     reads: "Counted from the same path: the stages that cite the one line of source where the token is sampled.",
     truth: (run) => stagesOnTheSamplingLine(scenarioOf(run, 'nano')),
+    counted: (run) => samplingLine(scenarioOf(run, 'nano')).map((stage) => stage.label),
   },
   'tr1.l3.p1': {
     says: ['sampled token'],
     reads: PROCESS_BOUNDARIES,
     truth: (run) => boundaries(scenarioOf(run, 'mini')),
+    counted: (run) => crossings(scenarioOf(run, 'mini')),
   },
   'tr1.l3.p2': {
     says: ['two GPUs instead of one'],
@@ -71,16 +78,19 @@ export const REFERENCES: Readonly<Record<string, Reference>> = {
     says: ['sampled token'],
     reads: PROCESS_BOUNDARIES,
     truth: (run) => boundaries(scenarioOf(run, 'inside')),
+    counted: (run) => crossings(scenarioOf(run, 'inside')),
   },
   'tr1.l5.p1': {
     says: ['two GPUs'],
     reads: "Counted from the lifecycle model's path for this engine with the request laid on two ranks: the process boundaries between the stage that samples the token and the client.",
     truth: (run) => boundaries({ ...scenarioOf(run, 'vllm'), tp: 2 }),
+    counted: (run) => crossings({ ...scenarioOf(run, 'vllm'), tp: 2 }),
   },
   'tr1.l6.p1': {
     says: ['sampled token'],
     reads: PROCESS_BOUNDARIES,
     truth: (run) => boundaries(scenarioOf(run, 'sglang')),
+    counted: (run) => crossings(scenarioOf(run, 'sglang')),
   },
   'tr1.l6.p2': {
     says: ['two samples'],
@@ -94,5 +104,6 @@ export const REFERENCES: Readonly<Record<string, Reference>> = {
     says: ['client disconnects'],
     reads: "Counted from the lifecycle model's path for this request when the client leaves: the process boundaries the news crosses before it reaches the process that frees the request.",
     truth: (run) => abortStages(scenarioOf(run, 'abort')).filter((stage) => boundaryOf(stage.from, stage.to) === 'process').length,
+    counted: (run) => abortStages(scenarioOf(run, 'abort')).filter((stage) => boundaryOf(stage.from, stage.to) === 'process').map((stage) => stage.label),
   },
 }

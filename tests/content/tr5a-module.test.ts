@@ -17,7 +17,9 @@
  *     the one `tests/content/tr5a-figures.ts` draws, so a model that moves a number names the lesson and the figure that went stale.
  *   - The claims TR5a adds (content/claims/tr5a.yaml) are read at the pins, at a tag or a commit, with the lines of their quotes.
  */
+import { PACING_CODES } from '../../scripts/content/pacing.ts'
 import { describe, expect, test } from 'bun:test'
+import { isAtCommit, planOf } from '@es/play/predictions/plan'
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
@@ -61,6 +63,7 @@ import {
   warningHundredths,
   wrongHits,
 } from './tr5a-demos.ts'
+import { cells } from './figure-kit.ts'
 import { FIGURES } from './tr5a-figures.ts'
 import { read, repo } from './support.ts'
 
@@ -181,7 +184,8 @@ describe('check 1: TR5a compiles with no diagnostic of any kind', () => {
   })
 
   test('nothing in the module, its lessons or its claims is reported', () => {
-    const mine = result.diagnostics.filter((d) => d.file.startsWith('content/modules/tr5a/') || d.file === CLAIMS_FILE)
+    const mine = result.diagnostics.filter((d) => (d.file.startsWith('content/modules/tr5a/') || d.file === CLAIMS_FILE) && !PACING_CODES.includes(d.code))
+    // R-T12: the pacing warnings are the worklist of the lesson tasks R-T34 to R-T39, so they are allowed here until each lesson is edited.
     expect(mine.map((d) => `${d.file}:${d.line} ${d.severity} ${d.code}`)).toEqual([])
   })
 })
@@ -194,7 +198,7 @@ describe('check 2: every lesson has a prediction, a game or an item, and an exit
       for (const block of predictions) {
         if (block.type !== 'predict') continue
         expect(block.id.startsWith(`${lesson.id}.`)).toBe(true)
-        expect(block.reveal).toBe('after-game')
+        expect([block.id, block.reveal]).toEqual([block.id, isAtCommit(planOf(block.id)) ? 'at-commit' : 'after-game'])
         // Every prediction is one the model computes at the reveal.
         expect([block.id, PREDICTIONS[block.id] !== undefined]).toEqual([block.id, true])
         if (block.answer.kind === 'numeric') expect([block.id, block.answer.unit]).toEqual([block.id, PREDICTIONS[block.id].unit])
@@ -216,8 +220,11 @@ describe('check 2: every lesson has a prediction, a game or an item, and an exit
       expect(graded.length).toBeGreaterThanOrEqual(1)
       // The exit check is the end of the lesson: nothing else follows it but the blocks it is made of.
       for (const block of exit.blocks) expect(['item', 'game']).toContain(block.type)
+      // The lesson template names the KCs by their sentences, under Keep, and no KC id reaches the learner (REDESIGN §2.5).
       const named = new Set(exit.prose.flatMap((flow) => flowInlines(flow).flatMap((node) => codeSpans([node]))))
-      for (const kc of lesson.kcs) expect([lesson.id, kc, named.has(kc)]).toEqual([lesson.id, kc, true])
+      for (const kc of lesson.kcs) {
+        expect([lesson.id, kc, named.has(kc)]).toEqual([lesson.id, kc, false])
+      }
     })
   }
 })
@@ -367,12 +374,12 @@ describe('what the lessons teach', () => {
     }
   })
 
-  test('the Pool is called by its display name and its three vocabularies, with the engine word first', () => {
-    // GAMES.md §2.6: the kitchen word beside the engine term, once, where the game first appears in a lesson.
-    expect(lessonOf('tr5a.l1').text).toContain('a group is a **station**, a page is a **hotel pan** in the reach-in, a request is a **ticket**')
-    expect(lessonOf('tr5a.l3').text).toContain('the free queue is **the rotation**, evicting a page is **dumping a pan**, and a prefix hit is **shared mise**')
-    expect(lessonOf('tr5a.l4').text).toContain('an adapter is a **recipe kit**')
-    expect(POOL.title).toBe('The Reach-In')
+  test('the Pool is called by its display name, and the reference lesson uses the engine words alone', () => {
+    // REDESIGN §2.7: the engine's term is the only name, so no lesson explains a kitchen word beside it.
+    for (const id of ['tr5a.l1', 'tr5a.l2', 'tr5a.l3', 'tr5a.l4']) {
+      for (const word of ['station', 'hotel pan', 'reach-in', 'line kitchen', 'ticket', 'mise', 'recipe kit', 'dumping a pan']) expect([id, word, lessonOf(id).text.toLowerCase().includes(word)]).toEqual([id, word, false])
+    }
+    expect(POOL.title).toBe('KV page pool')
   })
 })
 
@@ -391,9 +398,9 @@ describe('the module says what it is, and what it is not (D-039, D-042)', () => 
     expect(moduleText).toContain('TR5a has no GPU part')
   })
 
-  test('it says that the engines are read and not run, and that the connector side is TR5b, which is not built yet', () => {
+  test('it says that the engines are read and not run, and that the connector side is TR5b\'s', () => {
     expect(moduleText).toContain('The pinned engines are read in their source and are not run.')
-    expect(moduleText).toContain('Both are TR5b\'s. That module is not built yet, and it arrives with the GPU modules in the second part of the course.')
+    expect(moduleText).toContain("Both are TR5b's, in the GPU part of the course.")
   })
 
   test("the module page and the fourth lesson say what the pins do with adapters: vLLM's slots, its CPU LRU and its admission cap, and SGLang's fixed-slot pool", () => {
@@ -554,11 +561,14 @@ describe('lesson 1: what each kind of group holds', () => {
 
   test('the figure draws the document\'s request: the kept blocks, and the pages that hold them', () => {
     const svg = read('public/figures/tr5a/l1-block-tables.svg')
-    const kept = [...svg.matchAll(/<text x="[\d.]+" y="[\d.]+">p(\d+)<\/text>/g)].map((m) => Number(m[1]))
+    const kept = [...svg.matchAll(/>p(\d+)<\/text>/g)].map((m) => Number(m[1]))
     expect(kept).toEqual([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
-    // Seven filled squares in the full row, and two in each sliding row; five struck through in each of those.
-    expect((svg.match(/<rect /g) ?? []).length).toBe(21)
-    expect((svg.match(/L\d+ \d+/g) ?? []).length).toBe(10)
+    // Seven held cells in the full row, and two in each sliding row; five let go and struck through in each of those.
+    expect(cells(svg, 'blue')).toBe(11)
+    expect(cells(svg, 'white')).toBe(10)
+    expect((svg.match(/L[\d.]+ [\d.]+/g) ?? []).length).toBe(10)
+    // Each row says how many it keeps, with a dimension line.
+    expect([...svg.matchAll(/data-value="(\d+ kept)"/g)].map((m) => m[1])).toEqual(['7 kept', '2 kept', '2 kept'])
   })
 })
 
@@ -643,8 +653,13 @@ describe('lesson 2: how the layers become groups of one page size', () => {
 
   test('the figure is the document\'s memory layout: eleven rows of ten pieces, in three groups of 7, 2 and 2', () => {
     const svg = read('public/figures/tr5a/l2-one-block-many-pieces.svg')
-    const groups = [...svg.matchAll(/<g fill="currentColor" fill-opacity="([\d.]+)">([\s\S]*?)<\/g>/g)].map((m) => (m[2].match(/<rect /g) ?? []).length)
-    expect(groups).toEqual([70, 20, 20])
+    expect(cells(svg, 'blue')).toBe(110)
+    // The rows fall in three groups, set apart by a gap, and each group has a dimension line named for it.
+    const ys = [...new Set([...svg.matchAll(/<g class="cell" data-slot="blue"><rect x="[\d.]+" y="([\d.]+)"/g)].map((m) => Number(m[1])))].sort((a, b) => a - b)
+    const sizes: number[] = []
+    ys.forEach((y, i) => (i > 0 && y - ys[i - 1] > 14 ? sizes.push(1) : sizes.length === 0 ? sizes.push(1) : sizes[sizes.length - 1]++))
+    expect(sizes).toEqual([7, 2, 2])
+    expect([...svg.matchAll(/<g class="dim" data-value="(full|sliding)"/g)].map((m) => m[1])).toEqual(['full', 'sliding', 'sliding'])
   })
 })
 
@@ -686,17 +701,19 @@ describe('lesson 3: the hit that every group accepts', () => {
 
   test('the figure draws both caches: the cached blocks, the edges each group accepts, and the one edge that all three accept', () => {
     const svg = read('public/figures/tr5a/l3-intersection.svg')
-    const cachedSquares = (svg.match(/<g fill="currentColor" fill-opacity="0\.16">([\s\S]*?)<\/g>/)?.[1].match(/<rect /g) ?? []).length
-    const gaps = (svg.match(/<g stroke-width="1" stroke-dasharray="3 3">([\s\S]*?)<\/g>/)?.[1].match(/<rect /g) ?? []).length
     const cachedBlocks = (c: typeof HIT_A) => c.full.length + c.sw0.length + c.sw1.length
+    const cachedSquares = cells(svg, 'green') + cells(svg, 'yellow')
     expect(cachedSquares).toBe(cachedBlocks(HIT_A) + cachedBlocks(HIT_B))
-    expect(cachedSquares + gaps).toBe(2 * 3 * 11)
-    const triangles = (svg.match(/Z/g) ?? []).length
+    expect(cachedSquares + cells(svg, 'white')).toBe(2 * 3 * 11)
+    // A cached block is green where the hit that every group accepts covers it, and yellow where it does not: the first cache's hit is 9 blocks.
+    const sharedBy = (c: typeof HIT_A) => [c.full, c.sw0, c.sw1].reduce((sum, row) => sum + row.filter((b) => b < hitLoop(c).blocks).length, 0)
+    expect(cells(svg, 'green')).toBe(sharedBy(HIT_A) + sharedBy(HIT_B))
+    // A bar under a row is an edge that the group accepts (the key's bar is not one).
     const edges = (c: typeof HIT_A) => Object.values(acceptedEdges(c)).reduce((sum, e) => sum + e.length, 0)
-    expect(triangles).toBe(edges(HIT_A) + edges(HIT_B))
-    // One vertical line, for the first cache's edge 9, and the second's note says there is none.
-    expect((svg.match(/V\d+/g) ?? []).length).toBe(1)
-    expect(svg).toContain('edge 9')
+    expect((svg.match(/<rect class="edge" /g) ?? []).length).toBe(edges(HIT_A) + edges(HIT_B))
+    // One dashed vertical line, for the first cache's edge 9, and the second's note says there is none.
+    expect((svg.match(/d="M[\d.]+ [\d.]+V[\d.]+" fill="none" stroke="#[0-9a-f]+" stroke-width="1" stroke-dasharray="4 3"/g) ?? []).length).toBe(1)
+    expect(svg).toContain('the hit: 9 blocks')
     expect(svg).toContain('no edge that all three accept')
   })
 })
@@ -759,8 +776,8 @@ describe('lesson 4: adapters as pages, and as slots', () => {
   test('over the first eight banded seeds: the totals, who costs less, and the paid pair 36% over pages', () => {
     const sweep = shelfSweep(8)
     expect(sweep.seeds).toEqual(bandedSeeds(8))
-    mentions('tr5a.l4', 'the totals', `the prices of the eight nights add up to ${fmt(sweep.total.pages)} for pages, ${fmt(sweep.total.oneSlot)} for one slot, ${fmt(sweep.total.twoSlots)} for two free slots and ${fmt(sweep.total.twoSlotsPaid)} for two slots that are paid for first [measured]`)
-    mentions('tr5a.l4', 'who is cheaper', `One slot costs less than pages on ${sweep.oneSlotCheaper} of the eight nights, two free slots on ${sweep.twoSlotsCheaper}, and the paid pair on ${sweep.twoSlotsPaidCheaper} [measured]`)
+    mentions('tr5a.l4', 'the totals', `the prices of the eight runs add up to ${fmt(sweep.total.pages)} for pages, ${fmt(sweep.total.oneSlot)} for one slot, ${fmt(sweep.total.twoSlots)} for two free slots and ${fmt(sweep.total.twoSlotsPaid)} for two slots that are paid for first [measured]`)
+    mentions('tr5a.l4', 'who is cheaper', `One slot costs less than pages on ${sweep.oneSlotCheaper} of the eight runs, two free slots on ${sweep.twoSlotsCheaper}, and the paid pair on ${sweep.twoSlotsPaidCheaper} [measured]`)
     const over = Math.round((100 * (sweep.total.twoSlotsPaid - sweep.total.pages)) / sweep.total.pages)
     mentions('tr5a.l4', 'the paid pair', `costs ${over}% more than pages over the eight [derived]`)
     expect(over).toBe(36)
@@ -769,10 +786,11 @@ describe('lesson 4: adapters as pages, and as slots', () => {
   test("the figure draws a slot as wide as the largest adapter: each row's solid squares are the pages the adapter takes", () => {
     const svg = read('public/figures/tr5a/l4-slot-width.svg')
     const rows = adapterRows()
-    const solid = (svg.match(/<g fill="currentColor" fill-opacity="0\.16">([\s\S]*?)<\/g>/)?.[1].match(/<rect /g) ?? []).length
-    const dashed = (svg.match(/<g stroke-width="1" stroke-dasharray="2 2">([\s\S]*?)<\/g>/)?.[1].match(/<rect /g) ?? []).length
+    const solid = cells(svg, 'brown')
+    const dashed = cells(svg, 'white')
     expect(solid).toBe(rows.reduce((sum, r) => sum + r.pages, 0))
     expect(solid + dashed).toBe(3 * rows[rows.length - 1].pages)
+    expect([...svg.matchAll(/data-value="(\d+ pages)"/g)].map((m) => m[1])).toEqual(rows.map((r) => `${r.pages} pages`))
     expect(svg).toContain('a slot sized for the largest rank, 26 pages wide')
   })
 })
@@ -792,12 +810,9 @@ describe('the module says what is graded, and the levels it names are those of t
 
 describe('the figures', () => {
   for (const [file, draw] of Object.entries(FIGURES)) {
-    test(`${file} is the one the model draws, and it is drawn in the page's ink`, () => {
+    test(`${file} is the one the model draws; tests/content/figures.test.ts holds it to the diagram language`, () => {
       const svg = read(`public/${file}`)
       expect(svg).toBe(draw())
-      // A figure has no colour and no typeface of its own (DESIGN.md; AGENTS.md rule 9).
-      expect(svg).not.toMatch(/#[0-9a-fA-F]{3,8}\b|rgba?\(|hsla?\(|font-family/)
-      expect(svg).toContain('currentColor')
     })
   }
 

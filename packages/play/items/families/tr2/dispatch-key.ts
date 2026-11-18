@@ -288,9 +288,9 @@ function captureSentence(scene: WhichScene, sizes: readonly number[]): Rich {
   const key = scene.runner === 'mrv2' ? 'descriptor' : 'key'
   switch (scene.mode) {
     case 'FULL_AND_PIECEWISE':
-      return rich(prefix, ' FULL decode graphs, one ', key, ' for each size up to the rail, at ', ...sizesText(decodeSizes), ', and PIECEWISE graphs for every other batch, at ', ...sizesText(sizes), '.')
+      return rich(prefix, ' FULL decode graphs, one ', key, ' for each size up to max_num_seqs, at ', ...sizesText(decodeSizes), ', and PIECEWISE graphs for every other batch, at ', ...sizesText(sizes), '.')
     case 'FULL_DECODE_ONLY':
-      return rich(prefix, ' FULL decode graphs, one ', key, ' for each size up to the rail, at ', ...sizesText(decodeSizes), ', and nothing for a batch that is not a decode, because the mode\'s routine for those is none.')
+      return rich(prefix, ' FULL decode graphs, one ', key, ' for each size up to max_num_seqs, at ', ...sizesText(decodeSizes), ', and nothing for a batch that is not a decode, because the mode\'s routine for those is none.')
     case 'PIECEWISE':
       return rich(prefix, ' PIECEWISE graphs at every size, ', ...sizesText(sizes), ', for every batch. It captured no full graph.')
     case 'FULL':
@@ -370,7 +370,7 @@ function resultSentence(scene: WhichScene, sizes: readonly number[], result: { m
     if (scene.mode === 'FULL_AND_PIECEWISE') {
       const full =
         t > largestDecode
-          ? rich('No FULL decode graph is captured at or above ', tokens(t), ', because they stop at the rail, ', derived(largestDecode, 'tokens'), '.')
+          ? rich('No FULL decode graph is captured at or above ', tokens(t), ', because they stop at max_num_seqs, ', derived(largestDecode, 'tokens'), '.')
           : rich('A FULL decode descriptor is tried first, and it does not fit: its uniform token count is ', given(1, ''), ' and the batch\'s is none.')
       return rich(...full, ' The PIECEWISE descriptor at ', derived(size, 'tokens'), ' sets no request count and no uniform token count, so it fits. The step replays the PIECEWISE graph captured at ', derived(size, 'tokens'), '.')
     }
@@ -493,7 +493,7 @@ function capturedSteps(scene: CapturedScene): Step[] {
           : rich('The mode is one routine, ', code(mode), ', for every batch, so there is a ', key, ' for each size and no decode ', key, 's of their own.'),
   }
   const decode: Step = {
-    text: rich('A decode graph is captured for each size up to the rail and none above it, because it would need more requests than the rail holds: ', given(rail, ''), ' admits ', derived(atMost.length, ''), ' of the ', derived(sizes.length, ''), ' sizes, ', ...sizesText(atMost), '.'),
+    text: rich('A decode graph is captured for each size up to max_num_seqs and none above it, because it would need more requests than max_num_seqs admits: ', given(rail, ''), ' admits ', derived(atMost.length, ''), ' of the ', derived(sizes.length, ''), ' sizes, ', ...sizesText(atMost), '.'),
   }
   const sum = (decodeGraphs: number, mixedGraphs: number): Step => ({
     text:
@@ -675,13 +675,13 @@ const RULES: readonly DiagnosisRule[] = [
       return { id: `${FAMILY}.one-routine`, message: rich('That counts one graph for each size. This mode has two routines, FULL for decode batches and PIECEWISE for the rest, and each captures its own graphs.') }
     }
     if (mode === 'FULL_AND_PIECEWISE' && value === 2 * sizes.length) {
-      return { id: `${FAMILY}.decode-above-the-rail`, message: rich('That gives both routines a graph at every size. A decode graph is captured only up to the rail, because above it the batch would need more requests than the rail holds.') }
+      return { id: `${FAMILY}.decode-above-the-rail`, message: rich('That gives both routines a graph at every size. A decode graph is captured only up to max_num_seqs, because above it the batch would need more requests than max_num_seqs admits.') }
     }
     if (mode === 'FULL_AND_PIECEWISE' && value === atMost) {
       return { id: `${FAMILY}.decode-only`, message: rich('That counts the decode graphs alone. The PIECEWISE routine captures a graph at every size too.') }
     }
     if (mode === 'FULL_DECODE_ONLY' && value === sizes.length) {
-      return { id: `${FAMILY}.sizes-above-the-rail`, message: rich('That counts a graph for each size. This mode captures decode graphs only, and none above the rail.') }
+      return { id: `${FAMILY}.sizes-above-the-rail`, message: rich('That counts a graph for each size. This mode captures decode graphs only, and none above max_num_seqs.') }
     }
     return null
   },

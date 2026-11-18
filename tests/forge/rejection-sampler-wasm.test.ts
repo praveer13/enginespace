@@ -66,7 +66,7 @@ describe('acceptance 1: the reference passes and the bestiary fails', () => {
   test('the template traps in every check, with the words of its todo!()', async () => {
     const verdict = await judge(host, lab, 'template', read('template'), { runs: 1 })
     expect(verdict.problems).toEqual([])
-    expect(verdict.summary).toContain('not implemented yet: keep a plate')
+    expect(verdict.summary).toContain('not implemented yet: accept a draft token')
   })
 
   test(`the reference build passes every check on ${RUNS} runs`, async () => {
@@ -179,7 +179,7 @@ describe('the template, command by command', () => {
     })
     const trapped = await session.call(['accept 3 5 2'], 2000)
     expect(trapped.kind).toBe('trap')
-    if (trapped.kind === 'trap') expect(trapped.panic).toContain('not yet implemented: keep a plate')
+    if (trapped.kind === 'trap') expect(trapped.panic).toContain('not yet implemented: accept a draft token')
     await session.close()
   })
 

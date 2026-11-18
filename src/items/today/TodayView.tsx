@@ -2,8 +2,12 @@ import { Suspense, useCallback, useMemo, useState, type ComponentProps } from 'r
 // By path, not through the package's index, which brings the registry and every family's code with it (D-059).
 import { CATALOG } from '@es/play/items/catalog'
 import type { Gen } from '@es/play/items/types'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
+import { useMap } from '@/content/load-map'
 import { useEvidence } from '@/evidence/useEvidence'
+import { moduleCode } from '@/progress/words'
+import { useWayOn } from '@/progress/useWayOn'
+import { usePointer } from '@/settings/usePlace'
 import { freshEntropy } from '../answer'
 import { useFamily } from '../families'
 import { deriveCards } from './cards'
@@ -11,31 +15,32 @@ import { MORE_PREP, PRINT_LABEL, START_AHEAD, START_PREP } from './copy'
 import { seenKeys } from './draw'
 import { appKcsOfRef } from './kcs'
 import { lineViews, nextServableDay, planFor, servable, tally } from './plan'
-import type { Plan, Result } from './plan'
+import type { LineView, Plan, Result } from './plan'
 import { PrepList, PrepStrip } from './PrepList'
+import type { IdeaRow } from './PrepList'
 import { nominalSeconds } from './session'
 import type { Session } from './session'
-import { BlankTicket, DoneTicket, EmptyTicket, LoadingTicket, RestTicket } from './Tickets'
+import { Aside, DoneTicket, EmptyTicket, LoadingTicket, RestTicket } from './Tickets'
 import { useLocalDay } from './useLocalDay'
 import Work from './Work'
 import './today.css'
 
 /*
- * /today, the part under the page's title (ARCHITECTURE §3.1: "Keep: spaced review of the KCs earned so far"; D-037; ASSESSMENT §8).
+ * /today, the part under the page's title (REDESIGN 3.10; ARCHITECTURE §3.1: "Keep: spaced review of the KCs earned so far"; D-037; ASSESSMENT §8).
  *
  * The page reads the ledger and derives the deck (cards.ts); nothing it shows is stored. What is due comes from the deck and the day. A
- * prep is started with a pull of the stub, which freezes the list it was started with: the deck changes as each answer is written, and
- * the list under the learner's hands must not. Each ticket is drawn when it comes up, from entropy read then (ARCHITECTURE §8.2), and
- * writing it is the ticket's own business (Work.tsx). When the list is done, the page offers another list if more is due, or a review
- * ahead, and otherwise says when the next prep is.
+ * review is started with the amber Start review, which freezes the list it was started with: the deck changes as each answer is written,
+ * and the list under the learner's hands must not. Each question is drawn when it comes up, from entropy read then (ARCHITECTURE §8.2), and
+ * writing it is the question's own business (Work.tsx). When the set is done, the page offers the way on (Continue, from `nextStep`) and
+ * another set if more is due, or a review ahead, and otherwise says when the next review is.
  *
- *   list   something is due: the prep list, and a blank ticket beside it on a wide screen where the first will print
- *   work   a prep is started: the list folds to a strip on a phone and stands beside the ticket on a wide screen
- *   done   the list is finished: the tally, and what became of each idea
+ *   list   something is due: the set, with its idea sentences, and a quiet column beside it
+ *   work   a review is started: the question stands beside the set's states on a wide screen, and the set folds to a strip on a phone
+ *   done   the set is finished: the tally, the next review, Continue, and what became of each idea
  *   rest   nothing is due that can be served; empty: nothing is earned to keep
  *
- * The list is composed from the families' faces (packages/play/items/catalog.ts), and the code of the family that serves a ticket loads
- * when the ticket comes up, under the loading ticket (src/items/families.ts, D-059): the page carries no family's code of its own.
+ * The set is composed from the families' faces (packages/play/items/catalog.ts), and the code of the family that serves a question loads
+ * when the question comes up, under the loading sheet (src/items/families.ts, D-059): the page carries no family's code of its own.
  */
 
 type Run =
@@ -63,10 +68,31 @@ export function TodayView({ families: given }: TodayViewProps) {
   const set = useMemo(() => deriveCards(evidence.events, appKcsOfRef, today, { servable: (card) => servable(card, families) }), [evidence.events, today, families])
   const plan: Plan = useMemo(() => planFor(set, today, { families }), [set, today, families])
   const results = run === null ? null : run.results
-  // What the learner has met: the ledger's seeds, and the tickets of this prep, which may not be in the ledger yet.
+  // What the learner has met: the ledger's seeds, and the questions of this review, which may not be in the ledger yet.
   const met = useMemo(() => new Set([...seenKeys(evidence.events, families), ...(results ?? []).map((result) => result.key)]), [evidence.events, families, results])
 
+  // The way on is `nextStep`'s, which is told how many reviews are due: with every lesson done, Continue is Review, and a page that is
+  // Review itself has no Continue to offer (the set's own button is the way on).
+  const map = useMap()
+  const lessons = map.status === 'ready' ? map.value.lessons : null
+  const due = plan.kind === 'list' ? plan.session.lines.length : 0
+  const step = useWayOn(lessons, undefined, due)
+  const pointer = usePointer()
+  const onward = step ?? pointer
+  const way = onward.href === '/today' ? null : onward
+
+  // An idea in the words of the course: its own sentence from the map, its module's code, and the day it was last seen.
+  const ideas = useMemo(() => {
+    const sentences = new Map((map.status === 'ready' ? map.value.kcs : []).map((kc) => [kc.id, kc.description]))
+    return (views: readonly LineView[]): IdeaRow[] =>
+      views.map((view) => {
+        const seen = set.cards.get(view.kc)?.lastDay
+        return { ...view, sentence: sentences.get(view.kc) ?? view.title, code: moduleCode(view.kc.split('.')[0]), ...(seen === undefined ? {} : { seen }) }
+      })
+  }, [map, set])
+
   const start = useCallback((session: Session) => setRun({ phase: 'work', session, index: 0, entropy: freshEntropy(1)[0], results: [] }), [])
+  const next = nextServableDay(set, today, families)
 
   if (!evidence.ready) {
     return (
@@ -83,29 +109,33 @@ export function TodayView({ families: given }: TodayViewProps) {
     return (
       <div className="es-prep" data-phase="work" data-layout="split">
         <PrepStrip marks={views.map(({ state, ok }) => ({ state, ...(ok === undefined ? {} : { ok }) }))} secondsLeft={nominalSeconds(session.lines.length - run.results.length)} />
-        <PrepList day={session.day} mode={session.mode} lines={views} seconds={session.seconds} phase="work" />
-        <Suspense key={index} fallback={<LoadingTicket label={PRINT_LABEL} />}>
-          <WorkOf
-            line={line}
-            index={index}
-            total={session.lines.length}
-            entropy={run.entropy}
-            met={met}
-            card={set.cards.get(line.kc)}
-            today={today}
-            last={index === session.lines.length - 1}
-            {...(given === undefined ? {} : { families: given })}
-            onChecked={(result) => setRun((current) => (current?.phase === 'work' ? { ...current, results: [...current.results, result] } : current))}
-            onNext={() => {
-              // The entropy is read here and not inside the updater: React may call an updater twice, and a read of the browser's entropy is not a pure step.
-              const entropy = index === session.lines.length - 1 ? 0 : freshEntropy(1)[0]
-              setRun((current) => {
-                if (current?.phase !== 'work') return current
-                return index === current.session.lines.length - 1 ? { phase: 'done', session: current.session, results: current.results } : { ...current, index: index + 1, entropy }
-              })
-            }}
-          />
-        </Suspense>
+        <div className="es-prep__main">
+          <Suspense key={index} fallback={<LoadingTicket label={PRINT_LABEL} />}>
+            <WorkOf
+              line={line}
+              index={index}
+              total={session.lines.length}
+              entropy={run.entropy}
+              met={met}
+              card={set.cards.get(line.kc)}
+              today={today}
+              last={index === session.lines.length - 1}
+              {...(given === undefined ? {} : { families: given })}
+              onChecked={(result) => setRun((current) => (current?.phase === 'work' ? { ...current, results: [...current.results, result] } : current))}
+              onNext={() => {
+                // The entropy is read here and not inside the updater: React may call an updater twice, and a read of the browser's entropy is not a pure step.
+                const entropy = index === session.lines.length - 1 ? 0 : freshEntropy(1)[0]
+                setRun((current) => {
+                  if (current?.phase !== 'work') return current
+                  return index === current.session.lines.length - 1 ? { phase: 'done', session: current.session, results: current.results } : { ...current, index: index + 1, entropy }
+                })
+              }}
+            />
+          </Suspense>
+        </div>
+        <div className="es-prep__side">
+          <PrepList mode={session.mode} rows={ideas(views)} seconds={session.seconds} phase="work" />
+        </div>
       </div>
     )
   }
@@ -120,16 +150,13 @@ export function TodayView({ families: given }: TodayViewProps) {
           ? { label: START_AHEAD, run: () => start(plan.ahead) }
           : null
     return (
-      <div className="es-prep" data-phase="done">
-        <DoneTicket
-          day={session.day}
-          lines={lineViews(session.lines, run.results, null)}
-          right={counts.right}
-          total={counts.total}
-          next={nextServableDay(set, today, families)}
-          more={more}
-          ahead={session.mode === 'ahead'}
-        />
+      <div className="es-prep" data-phase="done" data-layout="split">
+        <div className="es-prep__main">
+          <DoneTicket rows={ideas(lineViews(session.lines, run.results, null))} right={counts.right} total={counts.total} next={next} more={more} ahead={session.mode === 'ahead'} way={way} />
+        </div>
+        <div className="es-prep__side">
+          <Aside kept={set.cards.size} next={null} />
+        </div>
       </div>
     )
   }
@@ -139,28 +166,37 @@ export function TodayView({ families: given }: TodayViewProps) {
     case 'unserved':
       return (
         <div className="es-prep" data-phase="empty">
-          <EmptyTicket day={today} unserved={plan.kind === 'unserved'} />
+          <div className="es-prep__main">
+            <EmptyTicket unserved={plan.kind === 'unserved'} way={way} />
+          </div>
         </div>
       )
     case 'rest':
       return (
-        <div className="es-prep" data-phase="rest">
-          <RestTicket day={today} next={plan.next} ahead={plan.ahead.lines.length > 0} onAhead={() => start(plan.ahead)} />
+        <div className="es-prep" data-phase="rest" data-layout="split">
+          <div className="es-prep__main">
+            <RestTicket next={plan.next} ahead={plan.ahead.lines.length > 0} onAhead={() => start(plan.ahead)} way={way} />
+          </div>
+          <div className="es-prep__side">
+            <Aside kept={set.cards.size} next={null} />
+          </div>
         </div>
       )
     case 'list':
       return (
         <div className="es-prep" data-phase="list" data-layout="split">
-          <PrepList
-            day={plan.session.day}
-            mode={plan.session.mode}
-            lines={lineViews(plan.session.lines, [], null)}
-            seconds={plan.session.seconds}
-            phase="list"
-            lamp
-            stub={<Stub onClick={() => start(plan.session)}>{START_PREP}</Stub>}
-          />
-          <BlankTicket />
+          <div className="es-prep__main">
+            <PrepList
+              mode={plan.session.mode}
+              rows={ideas(lineViews(plan.session.lines, [], null))}
+              seconds={plan.session.seconds}
+              phase="list"
+              start={<PrimaryButton onClick={() => start(plan.session)}>{START_PREP}</PrimaryButton>}
+            />
+          </div>
+          <div className="es-prep__side">
+            <Aside kept={set.cards.size} next={next} />
+          </div>
         </div>
       )
   }

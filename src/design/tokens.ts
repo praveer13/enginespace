@@ -1,15 +1,16 @@
 /*
- * The design system's token roles and their values: The Pass, a line kitchen and its expo pass (D-047).
+ * The design system's token roles and their values: Data Book (REDESIGN 2.8), the engine's own data book printed on
+ * flat paper, with one amber mark that means now.
  *
  * This file is the one source. `bun scripts/verify-tokens.ts --write` generates src/design/tokens.css from it, Tailwind
  * reads `tailwindTheme()` (tailwind.config.ts), scenes read the resolved values through scene-tokens.ts, and
  * scripts/verify-tokens.ts checks all three agree, that no value is a placeholder, and that every declared pair meets
  * its ARCHITECTURE §11.2 threshold in every scheme the system ships.
  *
- * The world's materials are the roles: brushed stainless for the ground and surfaces 0-3, white bond ticket paper with
- * the ribbon's black and red, heat-lamp amber for the active state alone, masking tape with marker, and the HACCP
- * cutting-board colours as the only categorical code. Lane, memory, probability and status roles point at that code:
- * nothing gets a colour of its own.
+ * The roles: a flat ground and surfaces 0-3, paper with its two inks and its graticule, the marker (amber, with its
+ * edge) for now alone, ink for focus, and six fills with their glyphs as the one colour code. Lane, memory, probability
+ * and status roles point at that code: nothing gets a colour of its own. Role names are the system's contract, apart from the roles that were kitchen words
+ * (marker, marker-edge, slip, slip-ink, light-ambient, dur-step, radius-control, size-control, font-readout); the label slip and the ambient light are used by the broken benchmark's sheet and by the 3D view.
  *
  * Pure data and pure functions, with no DOM: tailwind.config.ts (Node) and the tests import it too.
  */
@@ -47,82 +48,80 @@ const hex = (group: ColorGroup, value: Hex, note: string): ColorValue => ({ kind
 const ref = (group: ColorGroup, role: string, note: string): ColorValue => ({ kind: 'color', group, value: { ref: role }, note })
 
 const COLORS = {
-  // Stainless: the ground and surfaces 0-3.
-  'surface-0': hex('material', '#ccd1d4', 'The ground: brushed stainless under fluorescent tubes. The page, the pass, the line.'),
-  'surface-1': hex('material', '#dde1e4', 'Raised stainless, catching the tubes: the board, panels, the top of the pass.'),
-  'surface-2': hex('material', '#b2b9be', 'Shaded stainless: the underside of the rail, plates and trims.'),
-  'surface-3': hex('material', '#59616a', "Deep stainless: the printer's housing, a dark station, a switch's well. Paper-white text sits on it."),
-  edge: hex('material', '#5f666d', "A control's boundary on steel or paper, at 3:1 (WCAG 1.4.11)."),
-  // Ticket paper and the ribbon's two inks.
-  paper: hex('material', '#fafaf6', 'Impact-printer ticket paper: white bond. The text you read sits on it.'),
-  'paper-ink': hex('material', '#1d1b22', "The ribbon's black: dot-matrix print on a ticket."),
-  'paper-ink-2': hex('material', '#a30f1a', "The ribbon's red, the printer's second colour: what must not be missed."),
-  'paper-rule': hex('material', '#bcb9b1', 'Perforations and feed marks on the paper. Never the only carrier of anything.'),
-  // The heat lamp: the active state, and only there.
-  lamp: hex('material', '#ffb547', 'Heat-lamp amber, pooled over the present: the place the next decision acts on.'),
-  'lamp-ring': hex('material', '#9a3d00', "The lamp's filament: the ring and edge of the active state, at 3:1 on every ground."),
-  // Masking tape and marker.
-  tape: hex('material', '#e6d6ad', 'Masking tape, torn off the roll: labels on pans and objects.'),
-  'tape-ink': hex('material', '#1a1a1c', 'Marker on masking tape.'),
-  'light-fluorescent': hex('material', '#eef4f8', "The tubes' cool white: the scene's ambient light."),
-  glint: hex('material', '#ffffff', "The tubes' glint on steel: white, only ever laid on at part strength as a bevel, a sheen or a lit edge. Never a surface."),
+  // The ground and the surfaces: flat paper greys with no texture (REDESIGN 2.8, the Flat Paper Rule).
+  'surface-0': hex('material', '#e9ece6', 'The ground: the page, flat.'),
+  'surface-1': hex('material', '#f4f5f0', 'A raised surface: the header and the frame round an instrument.'),
+  'surface-2': hex('material', '#d9ddd4', 'A well: an empty slot, a pressed control, a selected row, the 3D base.'),
+  'surface-3': hex('material', '#2b3138', 'The dark surface: the footer and a selected tab. Paper-white text sits on it.'),
+  edge: hex('material', '#5f666d', "Hairlines, a control's boundary and dimension lines, at 3:1 (WCAG 1.4.11)."),
+  // Paper and its two inks.
+  paper: hex('material', '#fafaf6', 'Paper: everything read, and every diagram, is drawn on it.'),
+  'paper-ink': hex('material', '#1d1b22', 'Ink on paper.'),
+  'paper-ink-2': hex('material', '#a30f1a', 'The second ink: errors, "Not yet", "unverified". Never the colour of an action.'),
+  'paper-rule': hex('material', '#c2c8bd', 'The graticule inside diagrams and figures, and a sheet\'s rules. Never the only carrier of anything.'),
+  // The marker: amber means now, and only now (the One Marker Rule).
+  marker: hex('material', '#ffb547', 'The marker: amber means now. The control to act on now, the "now" cursor, and the current position in a lesson\'s section list.'),
+  'marker-edge': hex('material', '#9a3d00', "The marker's edge: amber never stands alone, it always comes with this edge, a shape and a word."),
+  // Used outside the type system's own roles: the broken benchmark's log sheet draws its label slips, and the 3D view takes its sky from the ambient light.
+  slip: hex('material', '#e6d6ad', 'A label slip on the broken benchmark\'s log sheet.'),
+  'slip-ink': hex('material', '#1a1a1c', 'The words on a label slip.'),
+  'light-ambient': hex('material', '#eef4f8', "The cool white of the 3D view's sky and key light. It colours no surface."),
 
-  // Text on steel and paper.
-  'text-1': hex('text', '#17191d', 'Primary text on steel and paper.'),
+  // Text on the ground, the surfaces and paper.
+  'text-1': hex('text', '#17191d', 'Primary text. It is also the focus ring.'),
   'text-2': hex('text', '#3b4148', 'Secondary text: captions, the second line of a label.'),
-  'text-3': hex('text', '#4b525a', 'Quiet text: placeholders and metadata. Not on surface-2.'),
+  'text-3': hex('text', '#4b525a', 'Quiet text: placeholders and metadata.'),
 
-  // Focus is the heat lamp.
-  focus: ref('focus', 'lamp-ring', 'The focus ring: the heat lamp falls on the control the keyboard is on.'),
+  // Focus is ink, never amber, so focus is never mistaken for "now" (the Ink Focus Rule).
+  focus: ref('focus', 'text-1', 'The focus ring: 3 px of ink at a 2 px offset, with a paper halo.'),
 
-  // The HACCP cutting boards. Each slot has its board colour (fill), an edge for outlines and text, and the ink that
-  // reads on the fill.
-  'cat-red': hex('categorical', '#c8102e', 'The red board.'),
-  'cat-red-edge': hex('categorical', '#9b0d1a', "The red board's edge: outlines, and text in the code's colour."),
-  'cat-red-ink': ref('categorical', 'paper', 'Text on the red board.'),
-  'cat-blue': hex('categorical', '#1b5faa', 'The blue board.'),
-  'cat-blue-edge': hex('categorical', '#18509a', "The blue board's edge."),
-  'cat-blue-ink': ref('categorical', 'paper', 'Text on the blue board.'),
-  'cat-yellow': hex('categorical', '#f5c400', 'The yellow board. Too light to stand alone on steel: its marks carry the edge.'),
-  'cat-yellow-edge': hex('categorical', '#685000', "The yellow board's edge."),
-  'cat-yellow-ink': ref('categorical', 'paper-ink', 'Text on the yellow board.'),
-  'cat-green': hex('categorical', '#237a37', 'The green board.'),
-  'cat-green-edge': hex('categorical', '#185e2c', "The green board's edge."),
-  'cat-green-ink': ref('categorical', 'paper', 'Text on the green board.'),
-  'cat-white': hex('categorical', '#f3f3ef', 'The white board. Its marks carry the edge.'),
-  'cat-white-edge': hex('categorical', '#5f666d', "The white board's edge."),
-  'cat-white-ink': ref('categorical', 'paper-ink', 'Text on the white board.'),
-  'cat-brown': hex('categorical', '#7b4a26', 'The brown board.'),
-  'cat-brown-edge': hex('categorical', '#5a361b', "The brown board's edge."),
-  'cat-brown-ink': ref('categorical', 'paper', 'Text on the brown board.'),
+  // The one colour code. Each slot has its fill, an edge for outlines and text, and the ink that reads on the fill.
+  'cat-red': hex('categorical', '#c8102e', 'Red, with the triangle: evicted; the residual (p - q)+; a violation.'),
+  'cat-red-edge': hex('categorical', '#9b0d1a', "Red's edge: outlines, and text in the code's colour."),
+  'cat-red-ink': ref('categorical', 'paper', 'Text on red.'),
+  'cat-blue': hex('categorical', '#1b5faa', 'Blue, with the circle: CPU work; a page in use; the target p.'),
+  'cat-blue-edge': hex('categorical', '#18509a', "Blue's edge."),
+  'cat-blue-ink': ref('categorical', 'paper', 'Text on blue.'),
+  'cat-yellow': hex('categorical', '#f5c400', 'Yellow, with the diamond: a sync; a cached page; the draft q. Too light to stand alone: its marks carry the edge.'),
+  'cat-yellow-edge': hex('categorical', '#685000', "Yellow's edge."),
+  'cat-yellow-ink': ref('categorical', 'paper-ink', 'Text on yellow.'),
+  'cat-green': hex('categorical', '#237a37', 'Green, with the hexagon: GPU work; a page shared by a prefix hit; the accepted overlap min(p, q).'),
+  'cat-green-edge': hex('categorical', '#185e2c', "Green's edge."),
+  'cat-green-ink': ref('categorical', 'paper', 'Text on green.'),
+  'cat-white': hex('categorical', '#f3f3ef', 'White, with the hollow ring: idle; free; observed. Its marks carry the edge.'),
+  'cat-white-edge': hex('categorical', '#5f666d', "White's edge."),
+  'cat-white-ink': ref('categorical', 'paper-ink', 'Text on white.'),
+  'cat-brown': hex('categorical', '#7b4a26', "Brown, with the square: a copy between host and GPU; an adapter's page."),
+  'cat-brown-edge': hex('categorical', '#5a361b', "Brown's edge."),
+  'cat-brown-ink': ref('categorical', 'paper', 'Text on brown.'),
 
-  // Status: the code's edges and the ribbon's red, each with its glyph in the components.
+  // Status: the code's edges and the second ink, each with its glyph in the components.
   'status-ok': ref('status', 'cat-green-edge', 'A check passed.'),
   'status-warn': ref('status', 'cat-yellow-edge', 'Look before going on.'),
-  'status-bad': ref('status', 'paper-ink-2', 'Something failed: printed in the ribbon red.'),
+  'status-bad': ref('status', 'paper-ink-2', 'Something failed: in the second ink.'),
   'status-info': ref('status', 'cat-blue-edge', 'A note.'),
 
-  // Lanes (GAMES.md §2.6, Service and The Tape).
-  'lane-cpu': ref('lane', 'cat-blue', "The expo's lane: the CPU writing the next call and reading the plates back."),
-  'lane-gpu': ref('lane', 'cat-green', "The line (the GPU) as a category beside the expo's lane: a code, never a state. A lit station burns in the lamp."),
-  'lane-sync': ref('lane', 'cat-yellow', '"Heard!": a sync, where the hands that asked wait for the line.'),
-  'lane-copy': ref('lane', 'cat-brown', 'The dumbwaiter: copies between host and device.'),
-  'lane-idle': ref('lane', 'cat-white', 'Stations dark: a bubble, drawn hollow.'),
+  // Lanes of the step loop's timing diagram.
+  'lane-cpu': ref('lane', 'cat-blue', 'CPU work: the scheduler writing the next step and reading the results back.'),
+  'lane-gpu': ref('lane', 'cat-green', 'GPU work, as a category beside the CPU lane: a code, never a state.'),
+  'lane-sync': ref('lane', 'cat-yellow', 'A sync: the CPU waits for the GPU.'),
+  'lane-copy': ref('lane', 'cat-brown', 'A copy between host and GPU.'),
+  'lane-idle': ref('lane', 'cat-white', 'Idle: a bubble, drawn as a dashed hollow box.'),
 
-  // Memory: hotel pans in the reach-in (GAMES.md §2.6, The Reach-In).
-  'memory-free': ref('memory', 'cat-white', 'A bare pan: no tape, no mise.'),
-  'memory-used': ref('memory', 'cat-blue', 'A full pan, held by a ticket.'),
-  'memory-cached': ref('memory', 'cat-yellow', 'Tape still on: the mise is there, and nobody holds it.'),
-  'memory-shared': ref('memory', 'cat-green', 'Shared mise: a prefix hit.'),
-  'memory-adapter': ref('memory', 'cat-brown', "A recipe kit's pan."),
-  'memory-evicted': ref('memory', 'cat-red', 'A dumped pan.'),
+  // Memory: the KV page pool.
+  'memory-free': ref('memory', 'cat-white', 'A free page.'),
+  'memory-used': ref('memory', 'cat-blue', "A page in use, held by a request's block table."),
+  'memory-cached': ref('memory', 'cat-yellow', 'A cached page: its KV is still there, and no request holds it.'),
+  'memory-shared': ref('memory', 'cat-green', 'A page shared by a prefix hit.'),
+  'memory-adapter': ref('memory', 'cat-brown', "An adapter's page."),
+  'memory-evicted': ref('memory', 'cat-red', 'An evicted page.'),
 
-  // Probability: the tasting (GAMES.md §2.6, The Tasting).
-  'probability-target': ref('probability', 'cat-blue', "The chef's tasting: p."),
-  'probability-draft': ref('probability', 'cat-yellow', "The commis's plates: q, and the over-plated cap q - p."),
-  'probability-overlap': ref('probability', 'cat-green', 'The agreed base: min(p, q).'),
-  'probability-residual': ref('probability', 'cat-red', 'The under-plated well the chef re-plates from: (p - q)+.'),
-  'probability-observed': ref('probability', 'cat-white', 'What went out: drawn hollow over the target.'),
+  // Probability: the rejection sampler.
+  'probability-target': ref('probability', 'cat-blue', 'The target distribution p.'),
+  'probability-draft': ref('probability', 'cat-yellow', 'The draft distribution q, and the excess q - p.'),
+  'probability-overlap': ref('probability', 'cat-green', 'The accepted overlap min(p, q).'),
+  'probability-residual': ref('probability', 'cat-red', 'The residual (p - q)+ that a rejection resamples from.'),
+  'probability-observed': ref('probability', 'cat-white', 'What was observed: drawn hollow over the target.'),
 } as const satisfies Record<string, ColorValue>
 
 // ------------------------------------------------------------------------------------------------ the other roles
@@ -132,6 +131,7 @@ interface ShadowValue {
   value: string
   note: string
 }
+/** Retired with the brushed grain (REDESIGN 2.8, the Flat Paper Rule): no role has this kind. The type stays for its readers. */
 interface TextureValue {
   kind: 'texture'
   value: string
@@ -171,101 +171,69 @@ export interface FontValue {
   leading: string
   tracking: string
   weight: number
+  /** Sentence case everywhere (REDESIGN 2.8): every role is 'none' (tests/design/flat.test.ts); the type keeps its old member. */
   case: 'none' | 'uppercase'
   note: string
 }
 
-/*
- * The brushed grain: fractal noise stretched along x, so it reads as streaks from the brush, light and dark, over the
- * steel's own colour. An inline SVG, so it makes no request (D-033). Its colours are the grain's own light and shade.
- */
-const BRUSHED_GRAIN =
-  "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='720' height='720'%3E%3Cfilter id='l' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0016 0.92' numOctaves='3' seed='11' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.25 0 0 0 -0.56'/%3E%3C/filter%3E%3Cfilter id='d' x='0' y='0'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.0022 0.7' numOctaves='2' seed='29' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.16 0 0 0 0 0.18 0 0 0 0 0.2 0 1.1 0 0 -0.5'/%3E%3C/filter%3E%3Crect width='720' height='720' filter='url(%23l)'/%3E%3Crect width='720' height='720' filter='url(%23d)'/%3E%3C/svg%3E\")"
-
 const OTHERS = {
-  // Depth: offset and soft blur, never a zero-offset halo.
+  // Depth: two shadows and no more (the Flat Paper Rule). Each has an offset and a soft blur, never a zero-offset halo.
   'shadow-paper': {
     kind: 'shadow',
-    value: '0 1px 1px rgb(23 25 29 / 0.16), 0 8px 18px -8px rgb(23 25 29 / 0.38)',
-    note: 'Paper lifted off the steel.',
+    value: '0 1px 2px rgb(23 25 29 / 0.12), 0 6px 14px -8px rgb(23 25 29 / 0.28)',
+    note: 'A sheet of paper on the ground.',
   },
   'shadow-lift': {
     kind: 'shadow',
-    value: '0 2px 3px rgb(23 25 29 / 0.16), 0 16px 28px -12px rgb(23 25 29 / 0.42)',
-    note: 'Paper or a plate picked up: hover.',
-  },
-  'shadow-plate': {
-    kind: 'shadow',
-    value: 'inset 0 1px 0 color-mix(in srgb, var(--es-glint) 70%, transparent), inset 0 -1px 0 rgb(23 25 29 / 0.12), 0 1px 2px rgb(23 25 29 / 0.3)',
-    note: 'A stamped steel plate: lit top edge, shaded foot.',
-  },
-  'shadow-press': {
-    kind: 'shadow',
-    value: 'inset 0 2px 4px rgb(23 25 29 / 0.32), inset 0 0 0 1px rgb(23 25 29 / 0.08)',
-    note: 'A plate or stub pressed in.',
-  },
-  'shadow-shelf': {
-    kind: 'shadow',
-    value: '0 1px 0 color-mix(in srgb, var(--es-glint) 55%, transparent), 0 6px 12px -6px rgb(23 25 29 / 0.35)',
-    note: "The board's lip over the ground.",
+    value: '0 2px 4px rgb(23 25 29 / 0.14), 0 16px 32px -12px rgb(23 25 29 / 0.36)',
+    note: 'A popover over the page.',
   },
 
-  // Material grain.
-  'texture-brushed': { kind: 'texture', value: BRUSHED_GRAIN, note: 'The brush streaks of stainless steel, over any surface role.' },
-  'texture-sheen': {
-    kind: 'texture',
-    value: 'linear-gradient(180deg, color-mix(in srgb, var(--es-glint) 36%, transparent), transparent 24rem)',
-    note: 'The fluorescent tubes reflected along the top of the steel.',
-  },
-
-  // Motion: everything moves on the bell; between bells only the printer feeds.
-  'dur-quick': { kind: 'duration', value: '120ms', note: 'A press or a hover answering the hand.' },
-  'dur-bell': { kind: 'duration', value: '240ms', note: 'The bell strike: one step.' },
-  'dur-feed': { kind: 'duration', value: '420ms', note: 'The printer feeding one ticket line.' },
-  'dur-settle': { kind: 'duration', value: '640ms', note: 'A course sliding down the pass and coming to rest.' },
+  // Motion: things move on an action and are still between actions (the Moves On Step Rule).
+  'dur-quick': { kind: 'duration', value: '120ms', note: 'The hand: a press or a hover answering it.' },
+  'dur-step': { kind: 'duration', value: '240ms', note: 'One step.' },
+  'dur-feed': { kind: 'duration', value: '420ms', note: 'A marker settling on a new reading, such as the verifier\'s output line.' },
+  'dur-settle': { kind: 'duration', value: '640ms', note: "The one authored moment of an instrument." },
   'ease-settle': { kind: 'easing', value: 'cubic-bezier(0.16, 1, 0.3, 1)', note: 'Exponential ease-out: fast away, long rest.' },
-  'ease-strike': { kind: 'easing', value: 'cubic-bezier(0.19, 1, 0.22, 1)', note: 'The bell: a hard strike that settles exponentially, with no overshoot.' },
-  'ease-feed': { kind: 'easing', value: 'steps(6, end)', note: 'The printer advances in line steps, never a glide.' },
+  'ease-strike': { kind: 'easing', value: 'cubic-bezier(0.19, 1, 0.22, 1)', note: 'A step that settles exponentially, with no overshoot.' },
 
-  // Radii: sheet metal and paper.
-  'radius-paper': { kind: 'radius', value: '0px', note: 'Paper is cut square.' },
-  'radius-trim': { kind: 'radius', value: '2px', note: 'The fine edge of a small part: a lever, a stamp, a bar, a slot.' },
-  'radius-plate': { kind: 'radius', value: '3px', note: 'A stamped plate or a sheet-metal edge.' },
-  'radius-shoulder': { kind: 'radius', value: '8px', note: "The shoulder of a large sheet-metal part: the printer's housing, a clip's heel." },
-  'radius-pan': { kind: 'radius', value: '10px', note: "A hotel pan's drawn corners." },
-  'radius-round': { kind: 'radius', value: '999px', note: 'A light, a bell, a rivet.' },
+  // Radii: paper is cut square, small parts take 2 px and controls 3 px.
+  'radius-paper': { kind: 'radius', value: '0px', note: 'Paper is cut square: sheets, diagrams, fields.' },
+  'radius-trim': { kind: 'radius', value: '2px', note: 'A small part: a stamp, a chip, a bar, a slot.' },
+  'radius-control': { kind: 'radius', value: '3px', note: 'A control: a button, a switch, a menu.' },
+  'radius-round': { kind: 'radius', value: '999px', note: 'A dot, a disc, a pill.' },
 
   // Spacing, on a 4 px step.
   'space-1': { kind: 'space', value: '0.25rem', note: 'Hairline gaps inside a mark.' },
   'space-2': { kind: 'space', value: '0.5rem', note: 'Inside a control.' },
   'space-3': { kind: 'space', value: '0.75rem', note: 'Between a label and its control.' },
   'space-4': { kind: 'space', value: '1rem', note: 'The gutter at phone width.' },
-  'space-6': { kind: 'space', value: '1.5rem', note: 'Between items of a group.' },
-  'space-8': { kind: 'space', value: '2rem', note: 'Inside a ticket at desktop width.' },
+  'space-6': { kind: 'space', value: '1.5rem', note: 'Between items of a group, and inside a sheet.' },
+  'space-8': { kind: 'space', value: '2rem', note: 'Inside a sheet at desktop width.' },
   'space-12': { kind: 'space', value: '3rem', note: 'Between groups.' },
   'space-16': { kind: 'space', value: '4rem', note: 'Above a section heading.' },
   'space-24': { kind: 'space', value: '6rem', note: 'Between sections at desktop width.' },
 
-  // Type: one face per kitchen object.
+  // Type: three faces. Sentence case everywhere, never transformed to upper case, so vLLM, SGLang and v0.33.0 keep their casing.
   'font-display': {
     kind: 'font',
     family: ['Big Shoulders Display', 'sans-serif'],
-    size: 'clamp(2.75rem, 1.5rem + 5vw, 6rem)',
-    leading: '0.88',
-    tracking: '0.004em',
+    size: 'clamp(2rem, 1.2rem + 3.4vw, 3.5rem)',
+    leading: '1',
+    tracking: '0.005em',
     weight: 800,
-    case: 'uppercase',
-    note: 'Stamped equipment plates and signage: the headline.',
+    case: 'none',
+    note: 'A page title: page, lesson and game titles only.',
   },
   'font-heading': {
     kind: 'font',
     family: ['Big Shoulders Display', 'sans-serif'],
-    size: 'clamp(1.75rem, 1.35rem + 1.6vw, 2.5rem)',
-    leading: '0.95',
-    tracking: '0.01em',
+    size: 'clamp(1.625rem, 1.3rem + 1.4vw, 2.25rem)',
+    leading: '1.05',
+    tracking: '0.005em',
     weight: 800,
-    case: 'uppercase',
-    note: "A section's plate.",
+    case: 'none',
+    note: "A title one step under a page's: a game's title inside a lesson, a front-page section.",
   },
   'font-body': {
     kind: 'font',
@@ -275,7 +243,7 @@ const OTHERS = {
     tracking: '0em',
     weight: 400,
     case: 'none',
-    note: 'Long reading: a face drawn for legibility, which tells l, I and 1 and O and 0 apart.',
+    note: 'Reading, and section heads at 700: a face drawn for legibility, which tells l, I and 1 and O and 0 apart.',
   },
   'font-mono': {
     kind: 'font',
@@ -289,53 +257,53 @@ const OTHERS = {
   },
   'font-numeric': {
     kind: 'font',
-    family: ['Doto', 'Handjet', 'monospace'],
+    family: ['Atkinson Hyperlegible Mono', 'Atkinson Hyperlegible', 'monospace'],
     size: '1.125rem',
-    leading: '1.2',
-    tracking: '0.02em',
-    weight: 900,
+    leading: '1.25',
+    tracking: '0em',
+    weight: 500,
     case: 'none',
-    note: 'Impact-printer dot matrix: every count, tick, timestamp and microsecond.',
+    note: 'Every number the learner compares, with tabular figures. Atkinson Hyperlegible carries µ and ±.',
   },
-  'font-ticket': {
+  'font-readout': {
     kind: 'font',
-    family: ['Doto', 'Handjet', 'monospace'],
-    size: '1.0625rem',
+    family: ['Atkinson Hyperlegible Mono', 'Atkinson Hyperlegible', 'monospace'],
+    size: '0.9375rem',
     leading: '1.45',
-    tracking: '0.02em',
-    weight: 900,
+    tracking: '0em',
+    weight: 400,
     case: 'none',
-    note: "Ticket lines and the printer tape, in the printer's dots.",
+    note: "A readout strip's lines, and a sheet's numbered lines: terms and values in the mono face.",
   },
   'font-label': {
     kind: 'font',
-    family: ['Permanent Marker', 'cursive'],
-    size: '0.9375rem',
-    leading: '1.2',
-    tracking: '0.02em',
-    weight: 400,
+    family: ['Atkinson Hyperlegible', 'sans-serif'],
+    size: '0.875rem',
+    leading: '1.25',
+    tracking: '0em',
+    weight: 700,
     case: 'none',
-    note: 'Marker on masking tape.',
+    note: 'A label: buttons, lane and axis names, the name of a part. Sentence case.',
   },
 
   // The size ramp: the sizes the type roles above leave to a component's own lines. Every `font-size` is a step of it, or a
-  // documented one-off with its reason beside it. The mono and label roles are `size-print`, the body and ticket roles are
-  // `size-body`, and the numeric role is `size-plate`.
-  'size-micro': { kind: 'size', value: '0.6875rem', note: 'Fine print: a stamp on the printer, a stage label at its floor.' },
-  'size-stamp': { kind: 'size', value: '0.75rem', note: 'A stamp or a tape head: a provenance tag, a line of tape.' },
-  'size-caption': { kind: 'size', value: '0.8125rem', note: 'A caption or a state word: under the bell, beside a light, on a rail clip.' },
-  'size-note': { kind: 'size', value: '0.875rem', note: "A note: a table's heading, a switch's stamped word, a menu term." },
-  'size-print': { kind: 'size', value: '0.9375rem', note: "The printer's line: a ticket's head and foot, a hint, an error. The mono and label size." },
-  'size-base': { kind: 'size', value: '1rem', note: 'The root size: a kick-plate link, a menu link, a small heading.' },
-  'size-body': { kind: 'size', value: '1.0625rem', note: 'Reading: the body and ticket size.' },
-  'size-plate': { kind: 'size', value: '1.125rem', note: 'Plate lettering and counts: a button, a board link, the numeric size.' },
-  'size-title': { kind: 'size', value: '1.25rem', note: 'A title: h3, and a course term.' },
-  'size-action': { kind: 'size', value: '1.375rem', note: "The primary action: the stub's label at its widest, a large plate button." },
-  'size-large': { kind: 'size', value: '1.5rem', note: 'Large: a big readout, a kit title, a panel title.' },
+  // documented one-off with its reason beside it. The mono, ticket and print sizes are `size-print`, the body size is
+  // `size-body`, and the numeric size is `size-control`.
+  'size-micro': { kind: 'size', value: '0.6875rem', note: 'Fine print: a label on a dense diagram at its floor.' },
+  'size-stamp': { kind: 'size', value: '0.75rem', note: 'A stamp: a provenance tag, a chip.' },
+  'size-caption': { kind: 'size', value: '0.8125rem', note: "A caption or a state word: under a figure, beside a switch, an axis's name." },
+  'size-note': { kind: 'size', value: '0.875rem', note: "A note: a table heading, a label, a menu term." },
+  'size-print': { kind: 'size', value: '0.9375rem', note: "A readout strip's line, a hint, an error. The mono size." },
+  'size-base': { kind: 'size', value: '1rem', note: 'The root size: a footer link, a button.' },
+  'size-body': { kind: 'size', value: '1.0625rem', note: 'Reading: the body size.' },
+  'size-control': { kind: 'size', value: '1.125rem', note: 'A large button and a count: the numeric size.' },
+  'size-title': { kind: 'size', value: '1.25rem', note: "A small section head, and a sheet's title." },
+  'size-action': { kind: 'size', value: '1.375rem', note: 'A large label: the widest primary button.' },
+  'size-large': { kind: 'size', value: '1.5rem', note: 'A section head, and a big readout.' },
   'size-count': { kind: 'size', value: 'clamp(2rem, 1.4rem + 2.4vw, 3rem)', note: 'The biggest count: an extra-large readout.' },
-  'size-page': { kind: 'size', value: 'clamp(2rem, 1.2rem + 3.4vw, 3.75rem)', note: "A page's title, on every page that is not the front page." },
-  'size-course': { kind: 'size', value: 'clamp(2.5rem, 1.8rem + 3vw, 4.5rem)', note: "A course's title on the front page: the sections' marquee." },
-} as const satisfies Record<string, ShadowValue | TextureValue | DurationValue | EasingValue | RadiusValue | SpaceValue | FontValue | SizeValue>
+  'size-page': { kind: 'size', value: 'clamp(2rem, 1.2rem + 3.4vw, 3.5rem)', note: "A page's title, on every page that is not the front page." },
+  'size-course': { kind: 'size', value: 'clamp(2.5rem, 1.8rem + 3vw, 4.5rem)', note: "The front page's section titles." },
+} as const satisfies Record<string, ShadowValue | DurationValue | EasingValue | RadiusValue | SpaceValue | FontValue | SizeValue>
 
 /** Every role: name to definition. */
 export const ROLES = { ...COLORS, ...OTHERS }
@@ -360,7 +328,6 @@ export const ROLE_GROUPS = [
   { id: 'memory', title: 'Memory', kinds: ['color'], colorGroup: 'memory' },
   { id: 'probability', title: 'Probability', kinds: ['color'], colorGroup: 'probability' },
   { id: 'elevation', title: 'Depth', kinds: ['shadow'] },
-  { id: 'texture', title: 'Grain', kinds: ['texture'] },
   { id: 'motion', title: 'Motion', kinds: ['duration', 'easing'] },
   { id: 'radius', title: 'Radii', kinds: ['radius'] },
   { id: 'space', title: 'Spacing', kinds: ['space'] },
@@ -397,9 +364,9 @@ export function slotOf(name: ColorRoleName): Slot | undefined {
 // ------------------------------------------------------------------------------------------------ schemes
 
 /**
- * The colour schemes the system ships. There is one light scheme, the scene itself: a bright line under fluorescent
- * tubes and heat lamps (D-050 says why there is no dark one). `contrast-more` answers `prefers-contrast: more` by
- * darkening the quiet text, the edges and the filament. Every declared pair is checked in both.
+ * The colour schemes the system ships. There is one light scheme, paper under daylight (D-050 says why there is no
+ * dark one). `contrast-more` answers `prefers-contrast: more` by darkening the well, the quiet text, the edges, the
+ * graticule and the marker's edge. Every declared pair is checked in both.
  */
 export const SCHEMES = {
   light: { media: null, label: 'Light', values: {} },
@@ -407,12 +374,12 @@ export const SCHEMES = {
     media: '(prefers-contrast: more)',
     label: 'More contrast',
     values: {
-      'surface-2': '#c3c9cd',
+      'surface-2': '#cbd0c5',
       'text-2': '#272b30',
       'text-3': '#30353b',
       edge: '#3f454b',
-      'paper-rule': '#77746d',
-      'lamp-ring': '#7a2f00',
+      'paper-rule': '#717869',
+      'marker-edge': '#7a2f00',
       'cat-white-edge': '#3f454b',
     },
   },
@@ -464,13 +431,13 @@ const CAT_EDGES = SLOTS.map((slot) => `cat-${slot}-edge` as ColorRoleName)
 
 /** The pairs the system promises. A component may only put a foreground on a background through one of these. */
 export const PAIRS: readonly ContrastPair[] = [
-  ...pairs('text', 'Text on steel and paper', ['text-1', 'text-2'], ['surface-0', 'surface-1', 'surface-2', 'paper']),
-  ...pairs('text', 'Quiet text on steel and paper', ['text-3'], GROUNDS),
-  ...pairs('text', 'Print on a ticket, and text under the lamp', ['paper-ink'], ['paper', 'lamp']),
-  ...pairs('text', 'Text under the lamp on the board', ['text-1'], ['lamp']),
-  ...pairs('text', 'The red second colour', ['paper-ink-2'], GROUNDS),
-  ...pairs('text', 'Marker on tape', ['tape-ink'], ['tape']),
-  ...pairs('text', 'Paper-white text on deep steel', ['paper'], ['surface-3']),
+  ...pairs('text', 'Text on the ground, the surfaces and paper', ['text-1', 'text-2'], ['surface-0', 'surface-1', 'surface-2', 'paper']),
+  ...pairs('text', 'Quiet text on the ground, the surfaces, a well and paper', ['text-3'], [...GROUNDS, 'surface-2']),
+  ...pairs('text', 'Ink on paper, and the label of the amber button', ['paper-ink'], ['paper', 'marker']),
+  ...pairs('text', 'Text on the marker: the primary button and the current position', ['text-1'], ['marker']),
+  ...pairs('text', 'The second ink', ['paper-ink-2'], GROUNDS),
+  ...pairs('text', 'The words on a label slip', ['slip-ink'], ['slip']),
+  ...pairs('text', 'Paper-white text on the dark surface: the footer, a selected tab', ['paper'], ['surface-3']),
   ...pairs('text', 'Status text and its glyph', STATUS, GROUNDS),
   ...pairs(
     'text',
@@ -486,12 +453,12 @@ export const PAIRS: readonly ContrastPair[] = [
   })),
   ...pairs(
     'non-text',
-    'The focus ring and the active edge',
-    ['focus', 'lamp-ring'],
-    ['surface-0', 'surface-1', 'surface-2', 'paper', 'tape', 'lamp'],
+    "The focus ring, and the marker's edge on paper and on the marker",
+    ['focus', 'marker-edge'],
+    ['surface-0', 'surface-1', 'surface-2', 'paper', 'marker'],
   ),
-  ...pairs('non-text', "A control's boundary", ['edge'], GROUNDS),
-  ...pairs('non-text', 'Deep steel structures: the rail, clips, wells', ['surface-3'], ['surface-0', 'surface-1']),
+  ...pairs('non-text', "A control's boundary, a hairline, a dimension line", ['edge'], [...GROUNDS, 'surface-2']),
+  ...pairs('non-text', 'The dark surface as a mark: a switch that is on, a selected tab', ['surface-3'], ['surface-0', 'surface-1', 'surface-2', 'paper']),
   ...pairs('non-text', 'An outlined mark in the code', CAT_EDGES, GROUNDS),
   ...pairs('non-text', 'A filled mark in the code', ['cat-red', 'cat-blue', 'cat-green', 'cat-brown'], GROUNDS),
   { fg: 'cat-yellow-edge', bg: 'cat-yellow', kind: 'non-text', use: "A yellow mark's edge" },
@@ -596,8 +563,8 @@ function declarationsOf(name: RoleName): [string, string][] {
  */
 const FORCED_COLORS: Partial<Record<ColorRoleName, string>> = {
   focus: 'Highlight',
-  'lamp-ring': 'Highlight',
-  lamp: 'Highlight',
+  'marker-edge': 'Highlight',
+  marker: 'Highlight',
   edge: 'CanvasText',
   'paper-rule': 'GrayText',
 }

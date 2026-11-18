@@ -95,7 +95,17 @@ export function createSettingsStore(env: SettingsEnv): SettingsStore {
     },
     set: (patch) => change(Object.freeze({ ...current, ...patch }), true),
     adopt: (next) => change(next, true),
-    reset: () => change(DEFAULT_SETTINGS, true),
+    reset: () => {
+      change(DEFAULT_SETTINGS, true)
+      // The device was erased: the places go with the evidence they were read from (D-066).
+      for (const key of Object.values(PLACE_KEYS)) {
+        try {
+          env.storage?.removeItem(key)
+        } catch {
+          // Blocked: nothing was kept there either.
+        }
+      }
+    },
     start() {
       show()
       // Another tab wrote the copy: take what it says, and write nothing back, so two tabs never answer each other.
@@ -133,3 +143,119 @@ export const settingsStore: SettingsStore = createSettingsStore(browserEnv())
 
 /** Marks the document and starts hearing the other tabs: once, before the app renders. */
 export const startSettings = (): (() => void) => settingsStore.start()
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The places (D-066)                                                                                                 */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/*
+ * Three per-viewer keys beside the settings' copy, none of them evidence (D-066, REDESIGN §2.4):
+ *   es:next   the pointer: a copy of `nextStep`'s last answer (src/progress/next.ts), so the header and the front page can label
+ *             Continue without opening IndexedDB (D-038). A page that opens the ledger rewrites it.
+ *   es:here   the bookmark: the lesson, section and part last in view. A lesson page writes it. It is a place, not progress.
+ *   es:intro  the intro flag: for each game, the parts its first-run intro has shown (R-T08 writes it).
+ * Every read and write is inside try/catch, and deleting a key loses a place or a label, never evidence. Erasing the device removes all
+ * three (`reset` above).
+ */
+export const PLACE_KEYS = { next: 'es:next', here: 'es:here', intro: 'es:intro' } as const
+
+/** The pointer: what Continue says and where it goes. */
+export interface Pointer {
+  readonly href: string
+  readonly label: string
+  readonly word: 'Start' | 'Continue'
+  readonly minutes?: number
+}
+
+/**
+ * The pointer of an empty ledger: the first lesson of the course, as `nextStep` answers with no events and no bookmark. The header shows
+ * it until a page that opens the ledger has written one; tests/progress/next.test.ts holds it to `nextStep`'s answer on the compiled map.
+ */
+export const START_POINTER: Pointer = { href: '/m/tr1/l1-five-mechanisms', label: 'Start: TR1 lesson 1', word: 'Start', minutes: 35 }
+
+/** Something said that the pointer changed in this tab. Another tab's write arrives as a `storage` event. */
+const POINTER_EVENT = 'es:pointer'
+
+export function local(): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> | null {
+  try {
+    return typeof window === 'undefined' ? null : window.localStorage
+  } catch {
+    return null
+  }
+}
+
+export function readJson(key: string): unknown {
+  try {
+    const text = local()?.getItem(key) ?? null
+    return text === null ? null : (JSON.parse(text) as unknown)
+  } catch {
+    return null
+  }
+}
+
+export function writeJson(key: string, value: unknown): boolean {
+  try {
+    const store = local()
+    if (store === null) return false
+    const text = JSON.stringify(value)
+    if (store.getItem(key) === text) return false
+    store.setItem(key, text)
+    return true
+  } catch {
+    // Blocked or full: the place is lost, and nothing else.
+    return false
+  }
+}
+
+export const isObject = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value)
+/** A path of this site: `/m/tr2/l1#read`, and never `//elsewhere` or a scheme. */
+export const isPath = (value: unknown): value is string => typeof value === 'string' && /^\/(?![/\\])\S*$/.test(value) && value.length <= 300
+export const isLine = (value: unknown): value is string => typeof value === 'string' && value.trim() !== '' && value.length <= 200
+
+/** The pointer `es:next` holds, or null when it holds none or something that is not one. */
+export function decodePointer(value: unknown): Pointer | null {
+  if (!isObject(value) || !isPath(value.href) || !isLine(value.label) || (value.word !== 'Start' && value.word !== 'Continue')) return null
+  const minutes = typeof value.minutes === 'number' && Number.isInteger(value.minutes) && value.minutes > 0 ? value.minutes : undefined
+  return { href: value.href, label: value.label, word: value.word, ...(minutes === undefined ? {} : { minutes }) }
+}
+
+export const readPointer = (): Pointer | null => decodePointer(readJson(PLACE_KEYS.next))
+
+let seen: { text: string | null; pointer: Pointer | null } = { text: null, pointer: null }
+
+/** The pointer as a store's snapshot: the same object until the key's text changes, so a subscriber renders once per change. */
+export function pointerSnapshot(): Pointer | null {
+  let text: string | null = null
+  try {
+    text = local()?.getItem(PLACE_KEYS.next) ?? null
+  } catch {
+    text = null
+  }
+  if (text !== seen.text) seen = { text, pointer: readPointer() }
+  return seen.pointer
+}
+
+/** Keeps `nextStep`'s answer as the pointer, and tells this tab's Continue controls. Only a page that opens the ledger calls it. */
+export function keepPointer(pointer: Pointer): void {
+  const clean = decodePointer(pointer)
+  if (clean === null || !writeJson(PLACE_KEYS.next, clean)) return
+  try {
+    window.dispatchEvent(new Event(POINTER_EVENT))
+  } catch {
+    // No window to tell.
+  }
+}
+
+/** Calls the listener when the pointer changes, in this tab or another, and returns what stops it. */
+export function hearPointer(listener: () => void): () => void {
+  if (typeof window === 'undefined') return () => undefined
+  const onStorage = (event: StorageEvent) => {
+    if (event.key === null || event.key === PLACE_KEYS.next) listener()
+  }
+  window.addEventListener(POINTER_EVENT, listener)
+  window.addEventListener('storage', onStorage)
+  return () => {
+    window.removeEventListener(POINTER_EVENT, listener)
+    window.removeEventListener('storage', onStorage)
+  }
+}

@@ -8,9 +8,8 @@ import type { Confidence, Gen, Item, Level, Response } from '@es/play/items/type
 import { Button } from '@/design/components/Button'
 import { Field } from '@/design/components/Field'
 import { Icon } from '@/design/components/Glyph'
-import { Stub } from '@/design/components/Stub'
-import { TapeLabel } from '@/design/components/TapeLabel'
-import { TicketLine } from '@/design/components/Ticket'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
+import { SheetLine } from '@/design/components/Sheet'
 import { decimals } from '@/content/render/model'
 import { formatReadout } from '@/design/format'
 import { useEvidence } from '@/evidence/useEvidence'
@@ -36,11 +35,17 @@ interface AttemptViewProps {
   scope: string
   /** Starts another attempt, on entropy read afresh. */
   onRestart: () => void
+  /**
+   * A practice set in Read: its controls are outlines, so the part's own way on stays the one amber control in view (REDESIGN §2.4).
+   */
+  quiet?: boolean
+  /** The way on after a passing set, as the lesson's Test gives it: then it is the amber control, and New numbers an outline. */
+  onward?: { href: string; label: string } | null
 }
 
 type Phase = 'asking' | 'revealed' | 'done'
 
-export default function AttemptView({ gen, level, entropy, scope, onRestart }: AttemptViewProps) {
+export default function AttemptView({ gen, level, entropy, scope, onRestart, quiet = false, onward = null }: AttemptViewProps) {
   const evidence = useEvidence()
   const [attempt, setAttempt] = useState<Attempt>(() => startAttempt(gen, level, entropy))
   const [shown, setShown] = useState(0)
@@ -70,13 +75,13 @@ export default function AttemptView({ gen, level, entropy, scope, onRestart }: A
     if (spec.kind === 'numeric') {
       const value = parseNumber(text, spec.unit)
       if (value === null) {
-        setProblem(`Write a number, in ${spec.unit}, and then check the ticket.`)
+        setProblem(`Write a number, in ${spec.unit}, then check it.`)
         return
       }
       response = { kind: 'numeric', value }
     } else {
       if (pick === null) {
-        setProblem('Tick one line, and then check the ticket.')
+        setProblem('Choose one answer, then check it.')
         return
       }
       response = { kind: 'choice', pick }
@@ -108,9 +113,24 @@ export default function AttemptView({ gen, level, entropy, scope, onRestart }: A
     setProblem(null)
   }
 
+  const Stub = quiet ? Button : PrimaryButton
   if (phase === 'done') {
+    const count = tally(attempt)
+    const passed = count.right === count.total && attempt.provenance === 'unseen'
+    // One amber control: after a pass the way on, with New numbers beside it as an outline; before one, New numbers is the move in hand.
+    const stub =
+      passed && onward !== null ? (
+        <span className="es-item__onward">
+          <PrimaryButton to={onward.href}>{onward.label}</PrimaryButton>
+          <Button onClick={onRestart}>New numbers</Button>
+        </span>
+      ) : passed || quiet ? (
+        <Button onClick={onRestart}>New numbers</Button>
+      ) : (
+        <PrimaryButton onClick={onRestart}>New numbers</PrimaryButton>
+      )
     return (
-      <Frame scope={scope} family={gen.id} phase="done" stub={<Stub onClick={onRestart}>New numbers</Stub>}>
+      <Frame scope={scope} family={gen.id} phase="done" stub={stub}>
         <Tally gen={gen} attempt={attempt} />
         {unsaved === null ? null : <Unsaved detail={unsaved} />}
       </Frame>
@@ -124,19 +144,19 @@ export default function AttemptView({ gen, level, entropy, scope, onRestart }: A
       family={gen.id}
       phase={phase}
       lamp={phase === 'asking'}
-      foot={[`seed ${seedLabel(item.seed)}`, attempt.provenance]}
+      foot={[`Seed ${seedLabel(item.seed)}`, attempt.provenance === 'unseen' ? 'new numbers' : 'practice numbers']}
       stub={
         phase === 'asking' ? (
-          <Stub onClick={check}>Check the ticket</Stub>
+          <Stub onClick={check}>Check answer</Stub>
         ) : (
-          <Stub onClick={advance}>{last ? 'Tally the tickets' : 'Next ticket'}</Stub>
+          <Stub onClick={advance}>{last ? 'See the result' : 'Next question'}</Stub>
         )
       }
       data={{ seed: String(item.seed), level: String(item.level), variant: item.variant, kind: item.answer.kind, rev: item.rev, ...(revealed ? { ok: String(answered.grade.ok) } : {}) }}
     >
       <h3 className="es-item__count" tabIndex={-1} ref={phase === 'asking' ? focusTarget : undefined}>
         <span>
-          Item {shown + 1} of {attempt.served.length}
+          Question {shown + 1} of {attempt.served.length}
         </span>{' '}
         <span className="es-item__level">{LEVEL_NAMES[item.level]}</span>
       </h3>
@@ -193,9 +213,7 @@ export function Givens({ item }: { item: Item }) {
 export function Worked({ item }: { item: Item }) {
   return (
     <div className="es-item__worked">
-      <TapeLabel size="sm" tilt="left">
-        {item.level === 0 ? 'worked example, other numbers' : 'the first step'}
-      </TapeLabel>
+      <span className="es-item__label">{item.level === 0 ? 'Worked example, other numbers' : 'The first step'}</span>
       <ol>
         {item.worked.map((step, at) => (
           <li key={at}>
@@ -218,7 +236,7 @@ interface QuestionProps {
   onSubmit: () => void
 }
 
-/** The slip the learner writes on: a number in a tape-labelled field, or lines with a tick box each. */
+/** What the learner answers with: a number in a labelled field, or radio choices, one of which is picked. */
 export function Question({ item, text, pick, locked, problem, onText, onPick, onSubmit }: QuestionProps) {
   const name = useId()
   const spec = item.answer
@@ -251,9 +269,7 @@ export function Question({ item, text, pick, locked, problem, onText, onPick, on
   return (
     <fieldset className="es-item__choice" disabled={locked} aria-describedby={problem === null ? undefined : `${name}-problem`}>
       <legend>
-        <TapeLabel size="sm" tilt="left">
-          {spec.label}
-        </TapeLabel>
+        <span className="es-item__label">{spec.label}</span>
       </legend>
       {spec.options.map((option) => {
         const isKey = option.id === spec.correct
@@ -262,9 +278,7 @@ export function Question({ item, text, pick, locked, problem, onText, onPick, on
           <div key={option.id} className="es-item__option" data-key={locked && isKey ? 'true' : undefined} data-yours={isYours ? 'true' : undefined}>
             <label>
               <input type="radio" name={name} value={option.id} checked={pick === option.id} onChange={() => onPick(option.id)} />
-              <span className="es-item__tick" aria-hidden="true">
-                <Icon name="check" />
-              </span>
+              <span className="es-item__radio" aria-hidden="true" />
               <span className="es-item__option-text">
                 <RichText parts={option.text} />
               </span>
@@ -298,7 +312,7 @@ export function Question({ item, text, pick, locked, problem, onText, onPick, on
   )
 }
 
-/** How sure the learner is, said before the answer is checked: three stamped plates, one pressed in. Optional, and never a gate. */
+/** How sure the learner is, said before the answer is checked: three buttons, one pressed in. Optional, and never a gate. */
 export function SurePlates({ value, onChange }: { value: Confidence | null; onChange: (value: Confidence | null) => void }) {
   const label = useId()
   return (
@@ -386,9 +400,7 @@ export function Reveal({
       )}
       {steps.length > 0 ? (
         <div className="es-item__steps">
-          <TapeLabel size="sm" tilt="left">
-            why
-          </TapeLabel>
+          <span className="es-item__label">why</span>
           <ol>
             {steps.map((step, at) => (
               <li key={at}>
@@ -417,6 +429,11 @@ export function Unsaved({ detail }: { detail: string }) {
 /* The tally                                                                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
+/** "3 of 3: passed", or "1 of 3: not yet. New numbers when you retry." A set passes when every question is right on numbers that were new. */
+function tallyLine(right: number, total: number, passed: boolean): string {
+  return passed ? `${right} of ${total}: passed` : `${right} of ${total}: not yet. New numbers when you retry.`
+}
+
 function Tally({ gen, attempt }: { gen: Gen; attempt: Attempt }) {
   const { right, total } = tally(attempt)
   const titles = new Map(gen.variants.map((variant) => [variant.id, variant.title]))
@@ -427,19 +444,16 @@ function Tally({ gen, attempt }: { gen: Gen; attempt: Attempt }) {
   return (
     <div className="es-item__tally">
       <h3 className="es-item__verdict" tabIndex={-1} ref={heading}>
-        <span>
-          {right} of {total} right
-        </span>
+        <span>{tallyLine(right, total, right === total && attempt.provenance === 'unseen')}</span>
       </h3>
-      <p>These were your numbers. Ask for new ones and the same questions come back on seeds nobody drew before.</p>
       <ol className="es-item__lines">
         {attempt.served.map((served, at) => {
           const ok = attempt.answered[at]?.grade.ok === true
           return (
             <li key={served.seed}>
-              <TicketLine qty={`${at + 1}`} note={ok ? 'right' : 'missed'} tone={ok ? 'ink' : 'ink-2'}>
+              <SheetLine qty={`${at + 1}`} note={ok ? 'right' : 'missed'} tone={ok ? 'ink' : 'ink-2'}>
                 {titles.get(served.item.variant) ?? served.item.variant}
-              </TicketLine>
+              </SheetLine>
             </li>
           )
         })}

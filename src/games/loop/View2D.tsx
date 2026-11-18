@@ -1,54 +1,557 @@
-import { useMemo } from 'react'
-import { frameSvg, layoutFrame, PASS_LENS } from '@es/play/loop/layout'
-import { Readout } from '@/design/components/Readout'
-import { StationLight } from '@/design/components/StationLight'
-import { FrameLabels } from './FrameLabels'
-import { svgToReact } from './svg'
-import type { LoopRun } from './types'
-import { useOrientation } from './useOrientation'
+import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
+import { requestName } from '@es/play/loop/copy'
+import { loopPart } from '@es/play/loop/parts'
+import { DOCK, fitGeometry, FRAME_DESK, FRAME_PHONE, LANE_WORDS, laneLayout, type LaneGeometry, type LaneLayout, type LaneSlab } from '@es/play/loop/lanes'
+import type { LoopView } from '@es/play/loop/types'
+import { SLOT_MARKS, type Slot } from '@/design/code'
+import { Glyph } from '@/design/components/Glyph'
+import { Legend } from '@/design/components/Legend'
+import { Marker } from '@/design/components/Marker'
+import { tickAnchor, wholeAxisLeft } from './axis'
+import type { LoopRunCore } from './types'
+import './loop.css'
 
 /*
- * Service's 2D view (GAMES.md §3 "2D path", §2.6 "Service"): the pass, drawn flat at the scale the 3D scene draws it. It is an SVG of
- * the same kitchen through the same shot, over the expediter's shoulder: the room and its hood, the line burning or cold, the rail and
- * its tickets, the heat lamps and their pools on the pass, the plates of the last fire, the printer and its waiting tickets, and (while
- * a fire is on the line) the fired rail. The picture prints no word and no number: every count is DOM, on the printer's tape and in the
- * mirror, so the drawing carries nothing unique (D-021, GAMES.md §2.6 rule 7), and its print, the tickets' numbers, the empty clips'
- * stubs, what the printer still holds and the kitchen's names on tape, is DOM over it, each piece stuck on its object (FrameLabels.tsx),
- * so it reads at the size ramp's smallest step or larger at any width. Under it sit the line's own light and the clock, which are the
- * design system's StationLight and Readout.
+ * The step loop's 2D view on the demo levels (REDESIGN §2.9, §3.1): the timing diagram an engineer reads in a profiler, drawn from the pure
+ * lane layout (packages/play/loop/lanes.ts), so the 2D view, the lesson's dock and the 3D scene's Side camera put a tick at one x.
  *
- * The drawing is `layoutFrame` of the view through Service's own shot, written as SVG by `frameSvg`. In landscape it covers its box as the
- * scene does: the shot's full height, its sides cut where the box is narrower than the frame. Below 480 px wide it takes the portrait shot
- * through a wider lens (`PASS_LENS`), fitted to the box's width, so the whole pass stays in view on a phone: the printer that issues the
- * tickets at its left, and the bell and the spike at its right. The room the frame draws past its edges fills a taller box above and
- * below it. The box is a size container, so the print scales with it.
+ *   - the waiting queue, a row of request chips: each one admits its request into the first free slot, and the intro's ring sits on the
+ *     first move's chip;
+ *   - the CPU row, the engine core thread, with its `schedule` and `sync` calls as labelled slabs;
+ *   - one GPU row per batch slot, whose label holds the request in it (or a dashed "empty"), and on which every forward draws the request's
+ *     token, a ghost token or an empty slot;
+ *   - idle as dashed boxes over the GPU rows, each closed one with a dimension line and its value ("bubble 3 ticks");
+ *   - the now cursor at the CPU's clock, and the axis in synthetic ticks.
+ *
+ * The label column is DOM, and each part's name opens its popover (its sentence and its source). The track is an SVG in a box of its own:
+ * on a phone it is wider than the box, scrolls sideways inside it, and is scrolled to keep now in view after every change. Every word and
+ * number on the drawing is also in the state table under it, so the SVG is hidden from assistive technology and the figure is named by the
+ * state it shows.
  */
 
-export function View2D({ run }: { run: LoopRun }) {
-  const { view } = run
-  const orientation = useOrientation()
-  const phone = orientation === 'portrait'
-  const frame = useMemo(() => layoutFrame(view, { orientation, shot: 'loop', ...(phone ? { lens: PASS_LENS } : {}) }), [view, orientation, phone])
-  const drawing = useMemo(() => svgToReact(frameSvg(frame, { cover: !phone })), [frame, phone])
+/**
+ * A part's popover (its sentence and its source) loads the first time the learner reaches for one: the route carries the names alone
+ * (REDESIGN §4, "the source table is a lazy chunk").
+ */
+const loadPopover = () => import('@/games/kit/PartPopover')
+const PartPopover = lazy(() => loadPopover().then((module) => ({ default: module.PartPopover })))
+
+/** Below this width the diagram takes the phone's geometry [estimated: between the phone's 358 px and the narrowest desk box]. */
+const NARROW = 560
+
+/** Where the page keeps now in a scrolled track: this far across the visible part [estimated]. */
+const NOW_IN_VIEW = 0.62
+
+/** The width of an element, kept fresh as it resizes. The first paint (and a server render) uses `fallback`. */
+function useWidth(fallback: number): [RefObject<HTMLElement | null>, number] {
+  const ref = useRef<HTMLElement>(null)
+  const [width, setWidth] = useState(fallback)
+  useLayoutEffect(() => {
+    const element = ref.current
+    if (element === null) return
+    const read = () => {
+      const next = Math.floor(element.clientWidth)
+      if (next > 0) setWidth((now) => (now === next ? now : next))
+    }
+    read()
+    if (typeof ResizeObserver === 'undefined') return
+    const observer = new ResizeObserver(read)
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+  return [ref, width]
+}
+
+/** The colour slot of a CPU call: a sync is yellow, every other call is CPU work. */
+const callSlot = (kind: string): Slot => (kind === 'sync' ? 'yellow' : 'blue')
+
+/** The glyph a slab carries with its colour (the Colour Is State Rule): a CPU call's circle, a sync's diamond, a forward's hexagon. */
+function slabGlyph(slab: LaneSlab): Slot | null {
+  if (slab.row === 'cpu') return callSlot(slab.kind)
+  if (slab.use === 'token' || slab.use === 'ghost') return 'green'
+  return null
+}
+
+/** The glyph's size on a slab, in px, and the least slab that carries one [estimated: the micro size's cap height, and room round it]. */
+const SLAB_GLYPH = 9
+
+/** A code glyph drawn on a slab, in the ink that reads on the slab's colour, at (x, y) its top left: the same shapes as Glyph.tsx. */
+function SlabMark({ slot, on, x, y }: { slot: Slot; on: string; x: number; y: number }) {
+  const shape = SLOT_MARKS[slot].glyph
+  const k = SLAB_GLYPH / 24
+  const transform = `translate(${x} ${y}) scale(${k})`
+  if (shape === 'circle') return <circle className="es-lanes__slab-glyph" data-on={on} data-glyph={shape} cx={x + SLAB_GLYPH / 2} cy={y + SLAB_GLYPH / 2} r={SLAB_GLYPH * 0.36} />
+  const d = shape === 'diamond' ? 'M12 2.75 21.25 12 12 21.25 2.75 12Z' : 'M12 2.75 20 7.375v9.25L12 21.25 4 16.625v-9.25Z'
+  return <path className="es-lanes__slab-glyph" data-on={on} data-glyph={shape} d={d} transform={transform} />
+}
+
+/** A slab's own words, where the slab is wide enough to hold them. */
+function slabWords(slab: LaneSlab): string | null {
+  if (slab.row === 'cpu') return slab.kind
+  if (slab.use === 'token' && slab.req !== null && slab.req !== undefined) return requestName(slab.req)
+  if (slab.use === 'ghost') return LANE_WORDS.ghost
+  return null
+}
+
+/** Whether words fit a width [estimated: 6.5 px a character at the micro size, and a margin]. */
+const fits = (words: string, width: number): boolean => words.length * 6.5 + 8 <= width
+
+/** The figure's name, for a screen reader: the state it shows, in words. */
+function figureLabel(view: LoopView): string {
+  const filled = view.rail.filter((slot) => slot.req !== null).length
+  return `Timing diagram, ${view.title}. Waiting: ${view.waiting.length}. Slots filled: ${filled} of ${view.slots}. Steps: ${view.step}. Clock: ${view.clockUs} ticks, synthetic.`
+}
+
+export interface LanesProps {
+  view: LoopView
+  /** The size to draw at: the page's diagram (desk or phone by its width) or the lesson's compact dock. */
+  size?: 'page' | 'dock'
+  /** Admits a waiting request into the first free slot: the chips are buttons. Without it they are drawn, and take no press. */
+  onAdmit?: (req: number) => void
+  /** The request whose chip carries the intro's ring. */
+  ring?: number | null
+  /** Where focus goes once the queue has no chip left to take it: the Step control, outside the drawing. */
+  focusAfter?: () => void
+  /**
+   * The geometries a page draws at, wide and narrow: the frame's by default; the front page passes the brief's own (DESK and PHONE, §3.1).
+   */
+  geometry?: { readonly wide: LaneGeometry; readonly narrow: LaneGeometry }
+  /** Draw at one of the two geometries whatever the box's width: the static HTML draws both, and the stylesheet shows the one that fits. */
+  fit?: 'wide' | 'narrow'
+  /** A node laid on a part's label (the first run's callout discs), by the part's id. */
+  callouts?: Partial<Record<CalloutPart, ReactNode>>
+}
+
+/** The parts of the diagram a page may lay a callout on: the queue's name, the first slot's holder, the CPU row's name and a GPU row's. */
+export type CalloutPart = 'waiting' | 'slot' | 'cpu' | 'gpu'
+
+/** The step loop's timing diagram. */
+export function Lanes({ view, size = 'page', onAdmit, ring = null, focusAfter, geometry: pair = FRAME_PAIR, fit, callouts = {} }: LanesProps) {
+  const [box, measured] = useWidth(size === 'dock' ? DOCK.width : pair.wide.width)
+  const boxWidth = fit === undefined ? measured : fit === 'wide' ? pair.wide.width : pair.narrow.width
+  const base: LaneGeometry = size === 'dock' ? DOCK : boxWidth < NARROW ? pair.narrow : pair.wide
+  const sizeName = size === 'dock' ? 'dock' : base === pair.narrow ? 'phone' : 'desk'
+  const narrow = sizeName !== 'desk'
+  // The figure's padding takes a little of its width; the rest is the label column and the track. A track that would draw a tick too
+  // narrow is laid out wider than the room, and scrolls.
+  const pad = narrow ? PAD_NARROW : PAD
+  const room = Math.max(boxWidth - pad * 2, base.labelWidth + 1)
+  const geometry = useMemo(() => fitGeometry(base, room), [base, room])
+  const layout = useMemo(() => laneLayout(view, geometry), [view, geometry])
+  const track = useRef<HTMLDivElement>(null)
+  const scrolls = geometry.width > room + 1
+
+  // Keep now in view: after every change, the track is scrolled so that now stands a little past the middle of what shows.
+  useLayoutEffect(() => {
+    const element = track.current
+    if (element === null || !scrolls) return
+    const visible = element.clientWidth
+    const at = layout.now.x - layout.scale.x
+    const left = Math.max(0, Math.min(element.scrollWidth - visible, at - visible * NOW_IN_VIEW))
+    element.scrollLeft = wholeAxisLeft(left, layout.axis.ticks.map((tick) => ({ x: tick.x - layout.scale.x, text: String(tick.t) })))
+  }, [layout.now.x, layout.scale.x, layout.axis.ticks, scrolls])
+
   return (
-    <div className="flex h-full min-h-0 flex-col gap-2" data-loop-view="" data-orientation={orientation}>
-      <div className="relative min-h-0 flex-1 overflow-hidden [container-type:size] [&>svg]:absolute [&>svg]:inset-0 [&>svg]:h-full [&>svg]:w-full" data-loop-drawing="">
-        {drawing}
-        <FrameLabels frame={frame} fit={phone ? 'contain' : 'cover'} />
+    <figure
+      ref={box}
+      className="es-lanes"
+      data-loop-view=""
+      data-size={sizeName}
+      aria-label={figureLabel(view)}
+      style={{ '--es-lanes-label': `${base.labelWidth}px`, '--es-lanes-pad': `${pad}px`, '--es-lanes-head': `${HEAD}px` } as CSSProperties}
+    >
+      <Queue layout={layout} view={view} onAdmit={onAdmit} ring={ring} focusAfter={focusAfter} interactive={size === 'page'} narrow={narrow} callout={callouts.waiting} />
+      <div className="es-lanes__body" style={{ height: `${layout.height - layout.geometry.queueHeight - layout.geometry.queueGap + HEAD}px` }}>
+        <RowLabels layout={layout} interactive={size === 'page'} narrow={narrow} callouts={callouts} />
+        <div
+          ref={track}
+          className="es-lanes__track"
+          data-lanes-track=""
+          data-scrolls={scrolls || undefined}
+          // A track that scrolls is a region the keyboard can reach, so its arrows scroll it (WCAG 2.1.1).
+          {...(scrolls ? { role: 'region', 'aria-label': 'Time track', tabIndex: 0 } : {})}
+        >
+          <Track layout={layout} />
+        </div>
       </div>
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-3 pb-2">
-        <StationLight lit={view.lineLit} label="The line" size="sm" />
-        <span className="flex flex-wrap items-baseline gap-x-2">
-          <span>Clock</span>
-          <Readout value={view.clockUs} unit="ticks" tag="synthetic" size="sm" />
-          {view.par === null ? null : (
+    </figure>
+  )
+}
+
+/** The figure's inner padding, in px: the lanes are laid out in what is left [estimated, the space steps 3 and 2]. */
+const PAD = 12
+const PAD_NARROW = 8
+/** The frame's geometries (lanes.ts): the default pair. */
+const FRAME_PAIR = { wide: FRAME_DESK, narrow: FRAME_PHONE } as const
+/** Room over the lanes for now's word at the cursor's head, in px [estimated]. */
+const HEAD = 14
+
+interface QueueProps {
+  layout: LaneLayout
+  view: LoopView
+  onAdmit?: (req: number) => void
+  ring: number | null
+  focusAfter?: () => void
+  interactive: boolean
+  narrow: boolean
+  callout?: ReactNode
+}
+
+/** The waiting queue: its name, then a chip per request that fits, and a count of the rest. */
+function Queue({ layout, view, onAdmit, ring, focusAfter, interactive, narrow, callout }: QueueProps) {
+  const g = layout.geometry
+  const list = useRef<HTMLUListElement>(null)
+  const [stop, setStop] = useState(0)
+  const focusAt = useRef<number | null>(null)
+  const chips = layout.queue.chips
+  const tabStop = Math.min(stop, Math.max(chips.length - 1, 0))
+  const waitingKey = view.waiting.join(',')
+
+  // An admitted request leaves the queue: focus follows to the chip that took its place, or on to Step when none is left to press.
+  useLayoutEffect(() => {
+    const at = focusAt.current
+    if (at === null) return
+    focusAt.current = null
+    const buttons = list.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
+    if (buttons !== undefined && buttons.length > 0) buttons[Math.min(at, buttons.length - 1)].focus()
+    else focusAfter?.()
+  }, [waitingKey, view.canHang, focusAfter])
+
+  const onKey = (event: KeyboardEvent<HTMLUListElement>) => {
+    const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button'))
+    const at = buttons.indexOf(event.target as HTMLButtonElement)
+    if (at < 0 || event.ctrlKey || event.altKey || event.metaKey) return
+    const next = { ArrowRight: at + 1, ArrowDown: at + 1, ArrowLeft: at - 1, ArrowUp: at - 1, Home: 0, End: buttons.length - 1 }[event.key]
+    if (next === undefined) return
+    event.preventDefault()
+    const target = Math.max(0, Math.min(buttons.length - 1, next))
+    setStop(target)
+    buttons[target]?.focus()
+  }
+
+  const chipStyle = { width: `${g.chipWidth}px`, height: `${Math.min(g.queueHeight, 48)}px` }
+  return (
+    <div className="es-lanes__queue" style={{ minHeight: `${g.queueHeight + g.queueGap}px` }}>
+      <div className="es-lanes__name" data-lane-label="queue">
+        {callout}
+        <PartName id="waiting" interactive={interactive} />
+      </div>
+      {chips.length === 0 ? (
+        <p className="es-lanes__empty-queue">No requests are waiting.</p>
+      ) : (
+        <ul ref={list} className="es-lanes__chips" aria-label="Waiting requests" onKeyDown={onAdmit === undefined ? undefined : onKey} data-native-keys="arrows" data-waiting={view.waiting.length}>
+          {chips.map((chip, index) => {
+            const node =
+              onAdmit === undefined ? (
+                <span className="es-lanes__chip" style={chipStyle} data-req={chip.req}>
+                  {chip.label}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className="es-lanes__chip"
+                  style={chipStyle}
+                  data-req={chip.req}
+                  disabled={!view.canHang}
+                  tabIndex={index === tabStop ? 0 : -1}
+                  aria-label={`Admit request ${chip.label} into a batch slot`}
+                  onClick={() => {
+                    focusAt.current = index
+                    setStop(index)
+                    onAdmit(chip.req)
+                  }}
+                >
+                  {chip.label}
+                </button>
+              )
+            return (
+              <li key={chip.req}>
+                {ring === chip.req ? (
+                  <Marker kind="ring" word="first move" className="es-lanes__ring">
+                    {node}
+                  </Marker>
+                ) : (
+                  node
+                )}
+              </li>
+            )
+          })}
+          {layout.queue.more > 0 ? (
+            <li className="es-lanes__more" aria-label={`${layout.queue.more} more waiting`}>
+              +{layout.queue.more}
+              {narrow ? null : ' more'}
+            </li>
+          ) : null}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+/**
+ * A part's name: on the page it opens the part's popover (its sentence and its source); in the dock it is the name alone. Until the learner
+ * first presses it, it is a plain trigger drawn as the popover's own; the press loads the popover, opens it, and keeps focus on its trigger.
+ */
+function PartName({ id, interactive, children }: { id: string; interactive: boolean; children?: ReactNode }) {
+  const part = loopPart(id)
+  const [asked, setAsked] = useState(false)
+  const [open, setOpen] = useState(false)
+  const holder = useRef<HTMLSpanElement>(null)
+  // The press that loaded the popover swaps the plain trigger for the popover's own: focus goes to it once, when it arrives.
+  const handOver = useRef(false)
+  useEffect(() => {
+    if (!handOver.current) return
+    const trigger = holder.current?.querySelector<HTMLButtonElement>('[aria-expanded="true"]')
+    if (trigger === null || trigger === undefined) return
+    handOver.current = false
+    trigger.focus({ preventScroll: true })
+  })
+  if (part === undefined) return <>{children}</>
+  const name = children ?? part.name
+  if (!interactive) return <span>{name}</span>
+  const plain = (
+    <span className="es-pop es-partpop" data-variant="quiet">
+      <button
+        type="button"
+        className="es-pop__trigger"
+        aria-haspopup="dialog"
+        aria-expanded={false}
+        data-part={id}
+        onPointerEnter={() => void loadPopover()}
+        onFocus={() => void loadPopover()}
+        onClick={() => {
+          handOver.current = true
+          setAsked(true)
+          setOpen(true)
+        }}
+      >
+        {name}
+      </button>
+    </span>
+  )
+  return (
+    <span ref={holder} className="contents">
+      {asked ? (
+        <Suspense fallback={plain}>
+          <PartPopover part={part} trigger={name} open={open} onOpenChange={setOpen} />
+        </Suspense>
+      ) : (
+        plain
+      )}
+    </span>
+  )
+}
+
+/** The label column: the CPU row's name, each slot's name with the request it holds, and the axis's unit. */
+function RowLabels({ layout, interactive, narrow, callouts }: { layout: LaneLayout; interactive: boolean; narrow: boolean; callouts: Partial<Record<CalloutPart, ReactNode>> }) {
+  const top = layout.geometry.queueHeight + layout.geometry.queueGap - HEAD
+  const firstSlot = layout.rows.find((row) => row.lane === 'gpu')
+  const secondSlot = layout.rows.find((row) => row.lane === 'gpu' && row !== firstSlot && row.label !== null)
+  return (
+    <div className="es-lanes__labels" data-lane-labels="">
+      {layout.rows.map((row) => (
+        <div key={row.id} className="es-lanes__row-label es-lanes__name" data-lane-label={row.id} style={{ top: `${row.y - top}px`, height: `${row.height}px` }}>
+          {row.lane === 'cpu' ? (
             <>
-              <span>against par</span>
-              <Readout value={view.par} unit="ticks" tag="synthetic" size="sm" />
+              {callouts.cpu}
+              <Glyph shape={SLOT_MARKS.blue.glyph} className="es-lanes__glyph" style={{ color: 'var(--es-lane-cpu)' }} edge="var(--es-cat-blue-edge)" />
+              <PartName id="cpu" interactive={interactive}>
+                {narrow ? LANE_WORDS.cpuShort : LANE_WORDS.cpu}
+              </PartName>
+            </>
+          ) : row.label === null ? null : (
+            <>
+              {row === secondSlot ? callouts.gpu : null}
+              <Glyph shape={SLOT_MARKS.green.glyph} className="es-lanes__glyph" style={{ color: 'var(--es-lane-gpu)' }} edge="var(--es-cat-green-edge)" />
+              <span className="es-lanes__slotname">{narrow ? String((row.slot ?? 0) + 1) : LANE_WORDS.slot(row.slot ?? 0)}</span>
+              {row.req === null ? (
+                <span className="es-lanes__holds" data-empty="">
+                  {row === firstSlot ? callouts.slot : null}
+                  {LANE_WORDS.empty}
+                </span>
+              ) : (
+                <span className="es-lanes__holds" data-req={row.req}>
+                  {row === firstSlot ? callouts.slot : null}
+                  {requestName(row.req)}
+                </span>
+              )}
             </>
           )}
-        </span>
+        </div>
+      ))}
+      <div className="es-lanes__axis-name" style={{ height: `${layout.geometry.axisHeight}px` }}>
+        {LANE_WORDS.axis}
       </div>
+    </div>
+  )
+}
+
+/** The time track, as SVG: the graticule, the slabs, the idle boxes and their dimension lines, now, and the axis. */
+function Track({ layout }: { layout: LaneLayout }) {
+  const { scale, geometry: g } = layout
+  const y0 = g.queueHeight + g.queueGap - HEAD
+  const height = layout.height - y0
+  const lanesBottom = layout.axis.y
+  const latest = layout.slabs.reduce((most, slab) => (slab.kind === 'forward' ? Math.max(most, slab.step) : most), -1)
+  // Minor lines on every tick where a tick is wide enough to show one; major lines on the axis's labelled ticks.
+  const minor: number[] = []
+  if (scale.pxPerTick >= 6) for (let t = Math.ceil(scale.start); t <= scale.end; t++) minor.push(scale.x + (t - scale.start) * scale.pxPerTick)
+  return (
+    <div className="es-lanes__plot" style={{ width: `${scale.width}px`, height: `${height}px` }}>
+    <svg className="es-lanes__svg" width={scale.width} height={height} viewBox={`${scale.x} ${y0} ${scale.width} ${height}`} aria-hidden="true" focusable="false">
+      <defs>
+        <pattern id="es-lanes-ghost" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <line className="es-lanes__hatch" x1="0" y1="0" x2="0" y2="6" />
+        </pattern>
+      </defs>
+      <g data-lanes-graticule="">
+        {minor.map((x) => (
+          <line key={`m${x}`} className="es-lanes__minor" x1={x} x2={x} y1={y0} y2={lanesBottom} />
+        ))}
+        {layout.axis.ticks.map((tick) => (
+          <line key={`M${tick.t}`} className="es-lanes__major" x1={tick.x} x2={tick.x} y1={y0} y2={lanesBottom} />
+        ))}
+        {layout.rows.map((row) => (
+          <line key={row.id} className="es-lanes__rule" x1={scale.x} x2={scale.x + scale.width} y1={row.y} y2={row.y} />
+        ))}
+        <line className="es-lanes__rule" x1={scale.x} x2={scale.x + scale.width} y1={lanesBottom} y2={lanesBottom} />
+      </g>
+      <g data-lanes-slabs="">
+        {layout.slabs.map((slab) => {
+          const words = slabWords(slab)
+          const on = slab.row === 'cpu' ? callSlot(slab.kind) : slab.use === 'token' ? 'green' : 'paper'
+          const inset = slab.row === 'cpu' ? 0 : 2
+          const mark = slabGlyph(slab)
+          // The glyph stands at the slab's left, where it has room; the words follow it.
+          const marked = mark !== null && slab.width >= SLAB_GLYPH + 6 && slab.height - inset * 2 >= SLAB_GLYPH + 4
+          const textX = slab.x + (marked ? SLAB_GLYPH + 7 : 5)
+          return (
+            <g key={slab.id}>
+              <rect
+                className="es-lanes__slab"
+                data-slab={slab.id}
+                data-call={slab.row === 'cpu' ? slab.kind : undefined}
+                data-use={slab.use}
+                data-new={slab.kind === 'forward' && slab.step === latest ? '' : undefined}
+                x={slab.x + 0.5}
+                y={slab.y + inset + 0.5}
+                width={Math.max(0, slab.width - 1)}
+                height={Math.max(0, slab.height - inset * 2 - 1)}
+              />
+              {marked ? <SlabMark slot={mark} on={slab.use === 'ghost' ? 'paper' : mark} x={slab.x + 3} y={slab.y + slab.height / 2 - SLAB_GLYPH / 2} /> : null}
+              {words !== null && fits(words, slab.width - (textX - slab.x - 5)) && slab.height >= 14 ? (
+                <text className="es-lanes__slab-text" data-on={on} x={textX} y={slab.y + slab.height / 2} dominantBaseline="central">
+                  {words}
+                </text>
+              ) : null}
+            </g>
+          )
+        })}
+      </g>
+      <g data-lanes-idle="">
+        {layout.idle.map((box) => (
+          <g key={box.id}>
+            <rect className="es-lanes__idle" data-lane-idle={box.id} x={box.x + 1} y={box.y + 1} width={Math.max(0, box.width - 2)} height={Math.max(0, box.height - 2)} />
+            {fits(LANE_WORDS.idle, box.width) ? (
+              <text className="es-lanes__idle-text" x={box.x + 5} y={box.y + 12}>
+                {LANE_WORDS.idle}
+              </text>
+            ) : null}
+          </g>
+        ))}
+        {layout.dims.map((dim) => (
+          <Dimension key={dim.id} id={dim.id} x0={dim.x0} x1={dim.x1} y={dim.y} label={dim.label} short={LANE_WORDS.ticks(dim.ticks)} value={String(dim.ticks)} />
+        ))}
+      </g>
+      <g data-lanes-axis="">
+        {layout.axis.ticks.map((tick) => {
+          const anchor = tickAnchor(tick.x, String(tick.t), scale.x, scale.x + scale.width)
+          return (
+            <g key={tick.t}>
+              <line className="es-lanes__tick" x1={tick.x} x2={tick.x} y1={lanesBottom} y2={lanesBottom + 4} />
+              {anchor === null ? null : (
+                <text className="es-lanes__tick-label" x={tick.x} y={lanesBottom + 6} textAnchor={anchor} dominantBaseline="hanging">
+                  {tick.t}
+                </text>
+              )}
+            </g>
+          )
+        })}
+      </g>
+    </svg>
+      {/* Now: the marker's cursor, 2 px of amber in its edge through every row, its word at the head. */}
+      <span className="es-lanes__now" data-lane-now="" style={{ top: `${layout.now.y0 - y0}px`, height: `${layout.now.y1 - layout.now.y0}px` }}>
+        <Marker kind="cursor" at={(layout.now.x - scale.x) / scale.width} />
+      </span>
+    </div>
+  )
+}
+
+/**
+ * A dimension line, as an engineering drawing marks an interval (REDESIGN §2.8): end ticks at its two edges, the line between them broken
+ * for its value, and the value written in the gap with no box round it.
+ */
+function Dimension({ id, x0, x1, y, label, short, value }: { id: string; x0: number; x1: number; y: number; label: string; short: string; value: string }) {
+  const width = x1 - x0
+  // The whole words where they fit inside the interval, else the ticks, else the number alone.
+  const words = [label, short].find((candidate) => fits(candidate, width - 4)) ?? value
+  const half = (words.length * 6.5) / 2 + 3
+  const mid = x0 + width / 2
+  const a = x0 + 2
+  const b = x1 - 2
+  const broken = mid - half > a + 2 && mid + half < b - 2
+  return (
+    <g data-lane-dim={id}>
+      {broken ? (
+        <>
+          <line className="es-lanes__dim" x1={a} x2={mid - half} y1={y} y2={y} />
+          <line className="es-lanes__dim" x1={mid + half} x2={b} y1={y} y2={y} />
+        </>
+      ) : (
+        <line className="es-lanes__dim" x1={a} x2={b} y1={y} y2={y} />
+      )}
+      <line className="es-lanes__dim" x1={a} x2={a} y1={y - 7} y2={y + 7} />
+      <line className="es-lanes__dim" x1={b} x2={b} y1={y - 7} y2={y + 7} />
+      <text className="es-lanes__dim-text" x={mid} y={broken ? y : y - 9} textAnchor="middle" dominantBaseline="central" data-dim-value="">
+        {words}
+      </text>
+    </g>
+  )
+}
+
+/** The legend under the diagram: the code's colours as they are used here, and the marker. */
+export function LoopLegend() {
+  return (
+    <Legend
+      className="es-lanes__legend"
+      label="Legend: step loop"
+      entries={[
+        { slot: 'blue', word: 'CPU work: schedule' },
+        { slot: 'yellow', word: 'sync: tokens read back' },
+        { slot: 'green', word: 'GPU work: a forward, a token per slot' },
+        { slot: 'white', word: 'idle, or an empty slot' },
+      ]}
+      now="the CPU’s clock"
+    />
+  )
+}
+
+/**
+ * The 2D view as the game's page draws it: the diagram, with the chips as the admit controls, and the ring on the intro's first move. In
+ * the 3D view's box (the Stage paints it first and keeps it as its fallback) it is drawn with no controls of its own.
+ */
+export function View2D({ run, ring = null, interactive = true }: { run: LoopRunCore; ring?: number | null; interactive?: boolean }) {
+  const { view, dispatch } = run
+  const host = useRef<HTMLDivElement>(null)
+  const toStep = () => host.current?.closest('[data-game]')?.querySelector<HTMLButtonElement>('[data-loop-step] button:not(:disabled)')?.focus()
+  return (
+    <div ref={host} className="contents">
+      <Lanes
+        view={view}
+        ring={ring}
+        onAdmit={interactive ? (req) => (view.canHang && view.waiting.includes(req) ? dispatch({ t: 'admit', req }) : undefined) : undefined}
+        focusAfter={toStep}
+      />
     </div>
   )
 }

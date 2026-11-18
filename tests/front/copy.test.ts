@@ -1,5 +1,5 @@
 /*
- * W0-T18, accept 5: verify:numbers passes on the front page's copy. The copy is src/front/copy.ts, every fixed string the page prints,
+ * The front page's copy (REDESIGN §3.1; W0-T18's accept 5): verify:numbers passes on it. The copy is src/front/copy.ts, every fixed string the page prints,
  * and the gate reads it by the rule it applies to a lesson (scripts/verify-numbers.ts). The page's own numbers come from the model and
  * the course index through Readouts, each with its tag, so the copy holds none.
  *
@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { untaggedNumbers } from '../../scripts/content/prose'
 import { FRONT_COPY, frontCopyDiagnostics, main } from '../../scripts/verify-numbers'
-import { frontCopy, HERO, MENU, NEXT, ORDER } from '../../src/front/copy'
+import { COACH_PARTS, CREDIT, DOCK, frontCopy, HERO, OUTCOMES, PATH, RESULT } from '../../src/front/copy'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const read = (file: string) => readFileSync(path.join(root, file), 'utf8')
@@ -21,7 +21,7 @@ describe('verify:numbers reads the front page\'s copy', () => {
     const copy = frontCopy()
     expect(copy.length).toBeGreaterThan(30)
     expect(copy).toContain(HERO.headline)
-    expect(copy).toContain(ORDER.dishes[0].outcome)
+    expect(copy).toContain(OUTCOMES.list[0].outcome)
     expect(copy.flatMap((text) => untaggedNumbers(text))).toEqual([])
     expect(frontCopyDiagnostics()).toEqual([])
   })
@@ -50,10 +50,31 @@ describe('verify:numbers reads the front page\'s copy', () => {
 })
 
 describe('the copy says what the course says', () => {
-  test('the headline is "Fire the next step.", and the primary action is "Start service"', () => {
-    expect(HERO.headline).toBe('Fire the next step.')
-    expect(HERO.start).toBe('Start service')
-    expect(NEXT.start).toBe('Start TR1')
+  test('the headline, the paragraph and the live line are the brief\'s, and the left column holds no procedure', () => {
+    expect(HERO.headline).toBe('Run one step of an LLM inference engine.')
+    expect(HERO.lede).toBe(
+      'enginespace is a course on the internals of vLLM and SGLang, for engineers who finished kernelspace’s serving track. You run each mechanism, read the code that implements it, then prove it on a real GPU.',
+    )
+    expect(HERO.live).toBe('The panel on the right is live. It takes about a minute.')
+    expect(HERO.skip).toBe('Skip the demo and see the course')
+    // No numbered steps and no imperative to follow: the instrument's goal line and coach strip are the only instructions on the page.
+    for (const line of [HERO.lede, HERO.live, HERO.short]) expect(line).not.toMatch(/^\s*\d+[.)]|\b(?:press|tap|click)\b/i)
+  })
+
+  test('the coach strip names the five parts of the first level, in the brief\'s order, and the result\'s way on says what it does', () => {
+    expect(COACH_PARTS.map((part) => part.id)).toEqual(['waiting', 'slot', 'cpu', 'gpu', 'step'])
+    expect(COACH_PARTS.map((part) => part.line.split(':')[0])).toEqual(['Waiting queue', 'Batch slots', 'CPU lane', 'GPU lane', 'Step'])
+    expect(DOCK.stepWaits).toBe('Step: fill a slot first')
+    expect(RESULT.nextDemo).toBe('Next demo level')
+    // "Start" is the way on's own word, from the pointer: the copy holds what follows it.
+    expect(RESULT.course).toBe('the course')
+    expect(RESULT.bridge).toContain('You just ran the step loop by hand.')
+  })
+
+  test('credit is said in the course\'s own words: a lesson is done when its Test is passed, and practice records nothing', () => {
+    expect(CREDIT.lines).toHaveLength(3)
+    expect(CREDIT.lines[0]).toContain('Test is passed')
+    expect(CREDIT.lines[1]).toContain('records nothing')
   })
 
   test('the four outcomes are PRODUCT.md\'s, word for word and in its order', () => {
@@ -61,7 +82,7 @@ describe('the copy says what the course says', () => {
     const list = product.slice(product.indexOf("Success is the learner reaching the course's four outcomes:"), product.indexOf('The source specification'))
     const outcomes = [...list.matchAll(/^\d\. (.+)$/gm)].map((match) => match[1].replaceAll("'", '’'))
     expect(outcomes).toHaveLength(4)
-    expect(ORDER.dishes.map((dish) => dish.outcome)).toEqual(outcomes)
+    expect(OUTCOMES.list.map((row) => row.outcome)).toEqual(outcomes)
   })
 
   test('each outcome lists the modules that docs/PLAN.md §2 gives it', () => {
@@ -71,11 +92,11 @@ describe('the copy says what the course says', () => {
     expect(rows).toHaveLength(4)
     rows.forEach((row, i) => {
       const modules = row.split('|')[3]
-      for (const module of ORDER.dishes[i].modules) expect(modules.toLowerCase()).toContain(module.toLowerCase())
+      for (const module of OUTCOMES.list[i].modules) expect(modules.toLowerCase()).toContain(module.toLowerCase())
     })
   })
 
-  test('the menu names the three lanes as ARCHITECTURE §8.1 does', () => {
-    expect(MENU.lanes).toEqual({ B: 'browser', L: 'laptop', F: 'GPU' })
+  test('the path names the three lanes as ARCHITECTURE §8.1 does', () => {
+    expect(PATH.lanes).toEqual({ B: 'browser', L: 'laptop', F: 'GPU' })
   })
 })

@@ -1,6 +1,6 @@
 /*
  * W0-T15: the scene kit's arithmetic, with no WebGL. The marks' boxes and instance matrices, the time track, the camera
- * rig's presets and easing, the labels' projection, the selection model, the canvas lease, and the generated surface maps.
+ * rig's presets and easing, the labels' projection, the selection model, and the canvas lease.
  */
 import { describe, expect, test } from 'bun:test'
 import { CAMERA_TRANSITION_MS, cubicBezier, easingFrom, framingFor, nextPreset, PORTRAIT_WIDTH, transitionMs, WIDE_WIDTH, type CameraPreset } from '@/scene/camera-rig'
@@ -8,14 +8,13 @@ import { labelTransform, ndcToScreen } from '@/scene/labels'
 import { createLease } from '@/scene/lease'
 import { capacityFor, cellBox, formIndex, gridPositions, MARK_FORMS, MIN_SPAN_DEPTH, spanBox, writeMatrices, writeMatrix } from '@/scene/marks'
 import { EMPTY_SELECTION, pickedId, selectionReducer } from '@/scene/selection'
-import { brushedField, crepeField, hash2, meanSlopes, normalMap, paperField, roughnessMap } from '@/scene/textures'
 import { axisTicks, niceStep, scrollMs, tickLabel, trackOffset, trackZ } from '@/scene/time-axis'
 import { ROLES } from '@/design/tokens'
 
 describe('marks: boxes and instance matrices', () => {
-  test('the four forms, in the order the mark shader numbers them', () => {
-    expect(MARK_FORMS).toEqual(['solid', 'hollow', 'groove', 'marked'])
-    expect(MARK_FORMS.map(formIndex)).toEqual([0, 1, 2, 3])
+  test('the five forms, in the order the mark shader numbers them', () => {
+    expect(MARK_FORMS).toEqual(['solid', 'hollow', 'groove', 'marked', 'dotted'])
+    expect(MARK_FORMS.map(formIndex)).toEqual([0, 1, 2, 3, 4])
   })
 
   test('a span becomes a box on its lane, from its start to its end along the track, standing on its base', () => {
@@ -213,45 +212,5 @@ describe('one live canvas per page', () => {
     lease.release('b')
     expect(lease.holder()).toBeNull()
     expect(seen).toEqual(['a', 'b', null])
-  })
-})
-
-describe('surface maps, generated in code', () => {
-  test('the noise is seeded and tiles', () => {
-    expect(hash2(3, 4, 7)).toBe(hash2(3, 4, 7))
-    expect(hash2(3, 4, 7)).not.toBe(hash2(3, 4, 8))
-    const a = brushedField(64, 7)
-    const b = brushedField(64, 7)
-    expect([...a.data]).toEqual([...b.data])
-    for (const field of [a, paperField(64, 11), crepeField(64, 13)]) {
-      expect(Math.min(...field.data)).toBe(0)
-      expect(Math.max(...field.data)).toBe(1)
-    }
-  })
-
-  test("brushed steel is brushed: its grain runs along u, so it changes far less along u than across", () => {
-    const slopes = meanSlopes(brushedField(128, 7))
-    expect(slopes.u * 3).toBeLessThan(slopes.v)
-    const crepe = meanSlopes(crepeField(128, 13))
-    expect(crepe.u).toBeGreaterThan(crepe.v) // the crepe's ridges run across the strip
-  })
-
-  test('a normal map holds unit normals that face out of the surface', () => {
-    const map = normalMap(paperField(32, 11), 1.4)
-    for (let i = 0; i < map.length; i += 4) {
-      const [x, y, z] = [map[i], map[i + 1], map[i + 2]].map((v) => (v / 255) * 2 - 1)
-      expect(Math.hypot(x, y, z)).toBeGreaterThan(0.97)
-      expect(Math.hypot(x, y, z)).toBeLessThan(1.03)
-      expect(z).toBeGreaterThan(0)
-      expect(map[i + 3]).toBe(255)
-    }
-  })
-
-  test("a roughness map stays within its base ± half its range, in three's green channel", () => {
-    const map = roughnessMap(brushedField(32, 7), 0.36, 0.26)
-    for (let i = 0; i < map.length; i += 4) {
-      expect(map[i + 1] / 255).toBeGreaterThanOrEqual(0.36 - 0.13 - 0.01)
-      expect(map[i + 1] / 255).toBeLessThanOrEqual(0.36 + 0.13 + 0.01)
-    }
   })
 })

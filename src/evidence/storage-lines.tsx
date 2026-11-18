@@ -1,5 +1,5 @@
-import type { PrinterTapeLine } from '@/design/components/PrinterTape'
-import { Readout } from '@/design/components/Readout'
+import type { ReadoutStripLine } from '@/design/components/ReadoutStrip'
+import { Count } from './Count'
 import type { EvidenceSnapshot } from './engine'
 import { formatWhen } from './transfer'
 
@@ -13,13 +13,13 @@ import { formatWhen } from './transfer'
 /** The tape's lines for a ledger's state. Exported for the tests. */
 export function storageLines(
   ledger: Pick<EvidenceSnapshot, 'ready' | 'backend' | 'persisted' | 'events' | 'receipts' | 'lastExportAt' | 'unsaved'>,
-): PrinterTapeLine[] {
+): ReadoutStripLine[] {
   const memory = ledger.backend === 'memory'
-  const lines: PrinterTapeLine[] = [
+  const lines: ReadoutStripLine[] = [
     {
       id: 'kept',
       label: 'kept in',
-      value: !ledger.ready ? 'opening' : memory ? 'memory only' : 'IndexedDB',
+      value: !ledger.ready ? 'opening' : memory ? 'memory only' : 'this browser',
       tone: memory ? 'ink-2' : 'ink',
     },
   ]
@@ -27,15 +27,15 @@ export function storageLines(
   if (ledger.ready && !memory) {
     lines.push({
       id: 'persisted',
-      label: 'kept safe',
+      label: 'safe from clearing',
       value: ledger.persisted === true ? 'yes' : ledger.persisted === false ? 'not yet' : 'unknown',
     })
   }
   lines.push(
-    { id: 'events', label: 'events', value: <Readout value={ledger.events.length} tag="measured" source="in this browser" size="sm" /> },
-    { id: 'receipts', label: 'receipts', value: <Readout value={ledger.receipts.length} tag="measured" source="in this browser" size="sm" /> },
+    { id: 'events', label: 'events', value: <Count value={ledger.events.length} /> },
+    { id: 'receipts', label: 'GPU lab results', value: <Count value={ledger.receipts.length} /> },
   )
-  if (ledger.unsaved > 0) lines.push({ id: 'unsaved', label: 'waiting to save', value: <Readout value={ledger.unsaved} tag="measured" size="sm" />, tone: 'ink-2' })
+  if (ledger.unsaved > 0) lines.push({ id: 'unsaved', label: 'waiting to save', value: <Count value={ledger.unsaved} />, tone: 'ink-2' })
   lines.push({
     id: 'export',
     label: 'last export',

@@ -17,7 +17,7 @@ It builds on kernelspace T5.L7, which taught the scheduler you are about to watc
 
 ## The browser part
 
-TR2 has no GPU part of its own. Its seven lessons, its game and its exit tickets are all in the browser, and every number in them comes from a model that the lessons name.
+TR2 has no GPU part of its own. Its seven lessons, its game and its questions are all in the browser, and every number in them comes from a model that the lessons name.
 
 1. One step, five calls: vLLM's busy loop at `v0.33.0`.
 2. One token budget: chunked prefill, recompute preemption, and defaults that depend on your GPU.
@@ -27,9 +27,9 @@ TR2 has no GPU part of its own. Its seven lessons, its game and its exit tickets
 6. Dispatch keys: which graph replays this step.
 7. The same loop in SGLang, Mini-SGLang and TRT-LLM.
 
-The game is Service (`loop`), the step loop as a line kitchen. A ticket is a request, a clip on the rail is one of the places in a step, a fire is a step, and the expo is the CPU, who writes the next call while the line cooks. The front page's four beats come first, and the full service follows with its levels: `async`, `graphs` with its stages `comb`, `sizes` and `modes`, `mrv2`, and `close`. A level called `keys` is planned for the dispatch keys of the sixth lesson, and it is not open: it waits for a table of the pinned dispatchers' own answers, which the owner has to run on a CPU (Q-10). The lessons say which level to play and what to predict before you do. Each lesson ends in a check on fresh seeds, so recognizing last time's answer earns nothing.
+The game is Step loop (`loop`): you are the scheduler, and you keep every batch slot live without making the GPU wait for the CPU. The front page's four levels come first, and the full levels follow: `async`, `graphs` with its three stages (eager launches against graph replay, capture sizes and padding, and graph modes), `mrv2`, and `close`. There is no level for the dispatch keys of the sixth lesson: it would need a table of the pinned dispatchers' own answers, and nobody has run them on a CPU. The lessons say which level to play and what to predict before you do. Each lesson ends in a check on fresh seeds, so recognizing last time's answer earns nothing.
 
-Two cost cards are in it. `70B on H100` takes its GPU lane from kernelspace's S5 fit, and the small model is a napkin card that the game labels synthetic. Every host phase is an [estimated] preset until the owner's traces fit it, and the notional-machine card at the end of this page says what the model follows, what it ignores and what it was calibrated against.
+Two cost cards are in it. `70B on H100` takes its GPU lane from kernelspace's S5 fit, and the small model is a napkin card that the game labels synthetic. Every host phase is an [estimated] preset until traces from a real engine fit it, and the notional-machine card at the end of this page says what the model follows, what it ignores and what it was calibrated against.
 
 ## What this module says about the engines
 
@@ -39,11 +39,11 @@ The published design document of vLLM's CUDA graphs shows a descriptor that matc
 
 ## The part that needs a GPU
 
-TR2 has no GPU stage. Its predictions about a real engine are tested in TR3's lab, `tr3.profile`, which profiles the pinned vLLM on your GPU and toggles async scheduling and graphs in two pairs. That lab arrives with the grader (W2, D-039). Until then nothing here is a measurement of your hardware, no lesson claims one, and the lessons that name a GPU part say so in a short section of their own.
+TR2 has no GPU stage. Its predictions about a real engine are tested in TR3's lab, `tr3.profile`, which profiles the pinned vLLM on your GPU and toggles async scheduling and graphs in two pairs. That lab arrives with the grader. Until then nothing here is a measurement of your hardware, no lesson claims one, and the lessons that name a GPU part say so in a short section of their own.
 
 ## Credit, and the hours
 
-The module is browser-complete when its exit tickets and the graded levels `graphs` (the stages `sizes` and `modes`) and `close` are credited, and complete when a Prove-it is on record as well, taken with the agent closed (ASSESSMENT §9). As built, `close` is the graded level and `graphs` is a practice level, so the graded bars of its two stages are not in the game yet.
+The module is browser-complete when its questions and the graded level `close` are credited, and complete when a Prove-it is on record as well, taken with the agent closed. `graphs` is a practice level, so its stages `sizes` and `modes` are not graded.
 
 The plan sets the module at ten hours [estimated]: about five in the lessons, two in practice on other seeds, a little over an hour in graded runs and items, and the rest in composing your configuration as engine flags and in sets of predictions. The lessons' own clocks, which count their words and their blocks, come to just under five hours [derived], so the other five hours are the game's: practice on other seeds, the graded runs, and composing your configuration. The hours on this page are estimates and nothing more.
 
@@ -51,13 +51,13 @@ The plan sets the module at ten hours [estimated]: about five in the lessons, tw
 
 ## Lessons
 
-- [One step, five calls: vLLM's busy loop at v0.33.0](l1-one-step-five-calls.md): lesson `tr2.l1`, about 35 minutes [estimated]
-- [One token budget: chunked prefill, recompute preemption, and defaults that depend on your GPU](l2-one-token-budget.md): lesson `tr2.l2`, about 34 minutes [estimated]
+- [One step, five calls: vLLM's busy loop at v0.33.0](l1-one-step-five-calls.md): lesson `tr2.l1`, about 33 minutes [estimated]
+- [One token budget: chunked prefill, recompute preemption, and defaults that depend on your GPU](l2-one-token-budget.md): lesson `tr2.l2`, about 33 minutes [estimated]
 - [Async scheduling closes the bubble, and costs a token](l3-async-scheduling-closes-the-bubble.md): lesson `tr2.l3`, about 50 minutes [estimated]
 - [The MRV2 delta: persistent state, GPU-side input prep, and why MRV1 still ships](l4-the-mrv2-delta.md): lesson `tr2.l4`, about 34 minutes [estimated]
 - [CUDA graphs: capture, replay, padding, and five modes](l5-cuda-graphs-capture-replay-padding-and-modes.md): lesson `tr2.l5`, about 45 minutes [estimated]
 - [Dispatch keys: which graph replays this step](l6-dispatch-keys-which-graph-replays-this-step.md): lesson `tr2.l6`, about 78 minutes [estimated]
-- [The same loop in SGLang, Mini-SGLang and TRT-LLM](l7-the-same-loop-elsewhere.md): lesson `tr2.l7`, about 21 minutes [estimated]
+- [The same loop in SGLang, Mini-SGLang and TRT-LLM](l7-the-same-loop-elsewhere.md): lesson `tr2.l7`, about 25 minutes [estimated]
 
 ## Claims cited
 

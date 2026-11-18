@@ -1,7 +1,8 @@
 /*
- * The front page's static shell (ARCHITECTURE §6.11, TRACKER W0-T18): what index.html holds inside `<div id="root">` before any
- * script runs. It is the app itself at `/`, rendered once by the build: the board, the pass with the order ticket (the heading and the
- * promise) and the poster in its box, the deck, and below the fold the night, the order, the menu and the next ticket, in plain HTML.
+ * The front page's static shell (ARCHITECTURE §6.11, REDESIGN §3.1): what index.html holds inside `<div id="root">` before any script runs.
+ * It is the app itself at `/`, rendered once by the build: the header, the heading and the left column, the instrument with the step
+ * loop's timing diagram at both geometries (the stylesheet shows the one that fits), and below the fold the outcomes, how credit works and
+ * the path, in plain HTML.
  *
  * scripts/pages/front-shell.ts loads this module through Vite's server-side loader, so it runs the same code the browser runs, with
  * the same aliases and the same compiled content, and writes its markup into index.html. The app then renders the same page into the
@@ -12,10 +13,14 @@
 import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { createStaticHandler, createStaticRouter, StaticRouterProvider } from 'react-router'
+import { loadNight } from '@/front/night'
 import { routes } from '@/routes'
 
 /** The markup of the app at the front page, for a site served under `base` (`/` or `/enginespace/`). */
 export async function renderFrontShell(base: string): Promise<string> {
+  // What the page loads once it has rendered in the browser (src/front/night.ts) is in before the shell renders, so the document holds
+  // the run's table and the world's card in full.
+  await loadNight()
   const handler = createStaticHandler(routes, { basename: base })
   const context = await handler.query(new Request(new URL(base, 'http://localhost')))
   if (context instanceof Response) throw new Error(`the front page answered with a ${context.status} response, not a page`)

@@ -44,10 +44,10 @@ export function elementFrom(html: string, start: string, tag: string): string {
   throw new Error(`the element that begins with ${start} never closes`)
 }
 
-/** The markup of the `li` that a module's stop is on the map. */
-export const stopOf = (html: string, module: string): string => elementFrom(html, `<li class="es-map__stop" data-module="${module}"`, 'li')
+/** The markup of the `li` that a module is on Course. */
+export const stopOf = (html: string, module: string): string => elementFrom(html, `<li class="es-course__row" data-module="${module}"`, 'li')
 
-/** The markup of the `li` that a game's line is on the Play index. */
+/** The markup of the `li` that a game is on the Games index. */
 export const lineOf = (html: string, game: string): string => elementFrom(html, `<li class="es-line" data-game="${game}"`, 'li')
 
 /** The text of some markup: tags dropped, the entities that React writes read back, whitespace folded. */

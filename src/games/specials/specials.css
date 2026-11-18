@@ -1,13 +1,11 @@
 /*
- * The specials board's layout (W1-T06): how the Play index sets its heading, the sheet of steel that holds the games, and each game's
- * line, with its picture in a recessed well. The components of src/design/components draw the tape, the stub and the pan themselves;
- * this file places them. Every colour, face, space, radius and shadow is a token role (src/design/tokens.css) or arithmetic on one,
- * and the design system is not edited.
+ * The Games index's layout (REDESIGN §3.8): a heading, one quiet legend line, then nine rows on the page's flat paper, each a hairline
+ * apart, and Traces at the foot. A row is the game's name, its role and its rule on the left and its levels on the right; on a phone
+ * the levels stand under the rule. Every colour, face, space and radius is a token role (src/design/tokens.css) or arithmetic on
+ * one, and the design system is not edited. There is no picture, no card and no texture.
  *
- * Plain CSS outside Tailwind's layers, like src/map/map.css: it loads with the page that uses it.
+ * Plain CSS outside Tailwind's layers: it loads with the page that uses it.
  */
-
-/* ---------------------------------------------------------------------------------------------- the page */
 
 .es-specials {
   display: grid;
@@ -18,199 +16,282 @@
 .es-specials__header {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--es-space-4);
+  gap: var(--es-space-3);
   justify-items: start;
   padding-top: var(--es-space-4);
 }
 
-/* The page's name stamped on a plate, with the kitchen's word for it on tape beside it. */
-.es-specials__heading {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--es-space-2) var(--es-space-4);
-}
-
 .es-specials__title {
   margin: 0;
-  font-size: clamp(2rem, 1.2rem + 3.4vw, 3.75rem);
+  font-size: var(--es-size-page);
   line-height: 0.95;
   overflow-wrap: anywhere;
 }
 
 .es-specials__lede {
-  max-width: 62ch;
+  max-width: 72ch;
   margin: 0;
   color: var(--es-text-2);
   font-size: 1.0625rem;
   line-height: 1.55;
+  text-wrap: pretty;
 }
 
-/* ---------------------------------------------------------------------------------------------- the board */
-
-/* A flat sheet of the house's brushed steel with a plate's edge, as the front page's menu is. */
-.es-specials__board {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--es-space-12);
-  min-width: 0;
-  padding: clamp(1rem, 3vw, 2rem);
-  border: 1px solid var(--es-edge);
-  border-radius: var(--es-radius-plate);
-  background-color: var(--es-surface-1);
-  background-image: var(--es-texture-brushed);
-  background-size: 100% 720px;
-  box-shadow: var(--es-shadow-paper);
+.es-specials__legend {
+  max-width: 66ch;
+  margin: var(--es-space-2) 0 0;
+  color: var(--es-text-3);
+  font-size: var(--es-size-note);
+  line-height: 1.5;
 }
 
-.es-specials__group {
-  min-width: 0;
-}
-
-/* A group's plate, over a machined groove in the steel. */
-.es-specials__plate {
-  margin: 0;
-  padding-bottom: var(--es-space-3);
-  border-bottom: 1px solid var(--es-edge);
-}
+/* ---------------------------------------------------------------------------------------------- the rows */
 
 .es-lines {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
   margin: 0;
   padding: 0;
   list-style: none;
+  border-block-end: 1px solid var(--es-edge);
 }
 
-/* A line of the board: its picture, its name, its tape and its stub. Lines are divided by a groove, a dark cut with the steel's light on its lip. */
 .es-line {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
-  gap: var(--es-space-4);
-  min-width: 0;
-  padding: var(--es-space-6) 0;
-  border-top: 1px solid color-mix(in srgb, var(--es-surface-3) 45%, transparent);
-  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--es-paper) 80%, transparent);
+  gap: var(--es-space-6);
+  padding-block: var(--es-space-8);
+  border-block-start: 1px solid var(--es-edge);
 }
 
-.es-line:first-child {
-  border-top: 0;
-  box-shadow: none;
-}
-
-@media (min-width: 56rem) {
-  .es-line {
-    grid-template-columns: 14rem minmax(0, 1fr) 12rem;
-    column-gap: var(--es-space-8);
-    align-items: center;
-  }
-
-  /* A game that can be played has its picture drawn larger than the bare pan of one that cannot. */
-  .es-line[data-status='open'] {
-    grid-template-columns: 22rem minmax(0, 1fr) 12rem;
-  }
-}
-
-/* The well: a recess in the steel that the picture sits in. */
-.es-line__well {
+.es-line__body,
+.es-line__levels {
   display: grid;
-  place-items: center;
-  box-sizing: border-box;
-  max-width: 26rem;
-  min-height: 7rem;
-  padding: var(--es-space-2);
-  overflow: hidden;
-  border-radius: var(--es-radius-plate);
-  background-color: var(--es-surface-2);
-  background-image: var(--es-texture-brushed);
-  background-size: 100% 360px;
-  box-shadow: var(--es-shadow-press);
-}
-
-@media (min-width: 56rem) {
-  .es-line__well {
-    max-width: none;
-  }
-}
-
-.es-line[data-status='arriving'] .es-line__well {
-  min-height: 5.5rem;
-}
-
-.es-poster {
-  display: grid;
-  place-items: center;
-  width: 100%;
-  min-width: 0;
-}
-
-.es-poster svg {
-  display: block;
-  width: 100%;
-  height: auto;
-}
-
-/* A bare pan where there is no picture: the well is empty, and says so in words. */
-.es-line__empty {
-  display: grid;
-  justify-items: center;
+  align-content: start;
   gap: var(--es-space-2);
-  color: var(--es-text-1);
-  font-family: var(--es-font-ticket);
-  font-size: 0.875rem;
-  font-weight: var(--es-font-ticket-weight);
-  letter-spacing: var(--es-font-ticket-tracking);
-  text-align: center;
-}
-
-.es-line__body {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  align-content: center;
-  gap: var(--es-space-3);
   min-width: 0;
 }
 
-.es-line__name {
-  display: grid;
-  justify-items: start;
-  gap: var(--es-space-2);
-}
-
-/* The display name is stamped on a plate, and the engine's term for it is written on tape under it (D-049). */
 .es-line__title {
   margin: 0;
-  font-family: var(--es-font-heading);
-  font-size: clamp(1.75rem, 1.3rem + 1.6vw, 2.5rem);
-  line-height: 0.95;
-  letter-spacing: var(--es-font-heading-tracking);
-  font-weight: var(--es-font-heading-weight);
-  text-transform: uppercase;
+  font-size: clamp(1.75rem, 1.3rem + 1.4vw, 2.5rem);
+  line-height: 1;
   overflow-wrap: anywhere;
 }
 
-.es-line[data-status='arriving'] .es-line__title {
-  font-size: clamp(1.5rem, 1.2rem + 1vw, 2rem);
+.es-line__role {
+  margin: var(--es-space-1) 0 0;
+  color: var(--es-text-1);
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.es-line__rule {
+  max-width: 52ch;
+  margin: 0;
+  color: var(--es-text-2);
+  line-height: 1.5;
+  text-wrap: pretty;
 }
 
 .es-line__facts {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--es-space-2) var(--es-space-3);
+  gap: var(--es-space-1) var(--es-space-6);
+  margin: var(--es-space-1) 0 0;
+  color: var(--es-text-3);
+  font-size: var(--es-size-note);
+}
+
+.es-line__play {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--es-space-2);
+  justify-self: start;
+  min-height: 2.75rem;
+  margin-top: var(--es-space-2);
+  padding: var(--es-space-2) var(--es-space-4);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-control);
+  color: var(--es-text-1);
+  font-weight: 700;
+  text-decoration: none;
+  transition:
+    background-color var(--es-dur-quick) var(--es-ease-settle),
+    border-color var(--es-dur-quick) var(--es-ease-settle);
+}
+
+.es-line__arrow {
+  width: 1.1em;
+  height: 1.1em;
+  transition: transform var(--es-dur-quick) var(--es-ease-settle);
+}
+
+.es-line__play:hover {
+  background-color: var(--es-surface-2);
+  border-color: var(--es-text-1);
+}
+
+.es-line__play:hover .es-line__arrow {
+  transform: translateX(0.2rem);
+}
+
+.es-line__play:active {
+  background-color: var(--es-surface-2);
+}
+
+.es-line__play:focus-visible,
+.es-gl__name:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 7px var(--es-paper);
+}
+
+/* ---------------------------------------------------------------------------------------------- the levels */
+
+.es-line__levels-title {
+  margin: 0 0 var(--es-space-1);
+  color: var(--es-text-3);
+  font-size: var(--es-size-note);
+  font-weight: 700;
+}
+
+.es-gl-list {
+  display: grid;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.es-line__act {
-  display: flex;
-  align-items: center;
-  justify-content: flex-start;
-  min-width: 0;
+.es-gl {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'name attempt'
+    'kind attempt';
+  align-items: baseline;
+  gap: 0 var(--es-space-4);
+  padding-block: var(--es-space-2);
+  border-block-start: 1px solid var(--es-paper-rule);
 }
 
-/* A stub measures its container and not its words, so it is given a width of its own. */
-.es-line__act .es-stub {
-  width: 100%;
-  max-width: 12rem;
+.es-gl:first-child {
+  border-block-start: 0;
+}
+
+.es-gl__name {
+  grid-area: name;
+  color: var(--es-text-1);
+  font-weight: 500;
+  line-height: 1.5;
+  text-decoration-line: underline;
+  text-decoration-thickness: 0.06em;
+  text-underline-offset: 0.24em;
+  border-radius: var(--es-radius-trim);
+}
+
+.es-gl__name:hover {
+  text-decoration-thickness: 0.16em;
+}
+
+.es-gl__kind {
+  grid-area: kind;
+  color: var(--es-text-3);
+  font-size: var(--es-size-note);
+}
+
+.es-gl[data-kind='graded'] .es-gl__kind {
+  color: var(--es-text-2);
+  font-weight: 700;
+}
+
+.es-gl__attempt {
+  grid-area: attempt;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--es-space-2);
+  min-height: 1.5rem;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  text-align: end;
+}
+
+.es-gl[data-attempt='passed'] .es-gl__attempt {
+  color: var(--es-text-1);
+  font-weight: 700;
+}
+
+/* The mark beside the words: hollow for not yet, half for a pass in practice, solid for a pass. The words carry the meaning; the mark is a glance. */
+.es-gl__mark {
+  flex: none;
+  width: 0.8rem;
+  height: 0.8rem;
+  border: 1.5px solid var(--es-text-2);
+  border-radius: var(--es-radius-round);
+}
+
+.es-gl[data-attempt='passed-in-practice'] .es-gl__mark {
+  background: linear-gradient(90deg, var(--es-text-1) 50%, transparent 50%);
+  border-color: var(--es-text-1);
+}
+
+.es-gl[data-attempt='passed'] .es-gl__mark {
+  background: var(--es-text-1);
+  border-color: var(--es-text-1);
+}
+
+/* ---------------------------------------------------------------------------------------------- not published, and the foot */
+
+/* A game that is not published is a shorter row, in quieter ink: the name, the role, the rule and the one line that says so. */
+.es-line[data-status='unpublished'] {
+  padding-block: var(--es-space-6);
+}
+
+.es-line[data-status='unpublished'] .es-line__title {
+  font-size: clamp(1.375rem, 1.1rem + 1vw, 1.75rem);
+  color: var(--es-text-2);
+}
+
+.es-line[data-status='unpublished'] .es-line__role {
+  color: var(--es-text-2);
+  font-weight: 500;
+}
+
+.es-line__pending {
+  margin: 0;
+  color: var(--es-paper-ink-2);
+  font-weight: 700;
+}
+
+.es-specials__foot p {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-1) var(--es-space-4);
+  margin: 0;
+  font-size: var(--es-size-large);
+  font-weight: 600;
+}
+
+.es-specials__foot span {
+  color: var(--es-text-2);
+  font-weight: 400;
+  font-size: 1rem;
+}
+
+@media (min-width: 56rem) {
+  .es-line {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr);
+    column-gap: var(--es-space-16);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .es-line__play,
+  .es-line__arrow {
+    transition: none;
+  }
+
+  .es-line__play:hover .es-line__arrow {
+    transform: none;
+  }
 }

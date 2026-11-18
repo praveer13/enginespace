@@ -101,11 +101,13 @@ The source specification is `kernelspace/SPECIALIZATIONS.md` §3.5 (an untracked
 
 ## Product Principles
 
-1. **Play the mechanism before reading it.** A game's rule is the concept itself, never decoration around a quiz.
+1. **Play the mechanism before reading it, where the play can succeed.** A game's rule is the concept itself, never decoration around a quiz. *Reworded in wave R (REDESIGN P3); proposed, for the owner's confirmation.*
 2. **Prove, don't claim.** Numbers are measured or sourced, dated, and labelled when synthetic.
 3. **The real engine is the final judge.** The browser world teaches; the GPU confirms.
 4. **Zero servers, local-first.** Nothing about the learner leaves their machine unless they export it.
 5. **The first minute is hands-on.** The front page opens on something the visitor plays, not on a pitch.
+6. **The engine's name is the name.** One term, one meaning, course-wide. *Proposed in wave R (REDESIGN P1, D-063), for the owner's confirmation.*
+7. **One way on.** Every page shows one way on, and Continue and Start mean the same step everywhere. *Proposed in wave R (REDESIGN P2, D-066), for the owner's confirmation.*
 
 ## Accessibility & Inclusion
 

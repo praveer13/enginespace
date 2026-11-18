@@ -1,6 +1,6 @@
 /**
  * Back of House's layout (A§6.3, GAMES.md §5 "2D path", §2.6 "Back of House"): the house in section, turned into positioned marks. The
- * 2D view draws them as SVG (`frameSvg`), and W1-T18's 3D scene reads the same input for its own primitives.
+ * 2D view draws them as SVG (`frameSvg`).
  *
  * A mark is a rect, a line, a circle, a polygon, a hand-off glyph or a piece of text, painted with a token role of src/design/tokens.ts
  * and never a colour (rule 9, D-047). A role becomes `var(--es-<role>)` in the SVG, so the drawing changes with the design system and
@@ -52,14 +52,14 @@ export type Paint =
   | 'paper-ink'
   | 'paper-ink-2'
   | 'paper-rule'
-  | 'lamp'
+  | 'marker'
   | 'text-2'
   | 'lane-cpu'
   | 'lane-gpu'
   | 'cat-blue-edge'
   | 'cat-green-edge'
-  | 'tape'
-  | 'tape-ink'
+  | 'slip'
+  | 'slip-ink'
 
 /** The roles above, as a list, for the test that checks them against the design system. */
 export const PAINTS: readonly Paint[] = [
@@ -70,14 +70,14 @@ export const PAINTS: readonly Paint[] = [
   'paper-ink',
   'paper-ink-2',
   'paper-rule',
-  'lamp',
+  'marker',
   'text-2',
   'lane-cpu',
   'lane-gpu',
   'cat-blue-edge',
   'cat-green-edge',
-  'tape',
-  'tape-ink',
+  'slip',
+  'slip-ink',
 ]
 
 /** The faces the drawing sets text in: the printer's dots for the stage numbers, marker on masking tape for names. */
@@ -122,7 +122,7 @@ export type Mark = Belongs &
       }
   )
 
-/** Marks that belong together, drawn as one group: `part` names the object (`floors`, `lamp`, `lanes`, `route`, `stops`, `ticket`). */
+/** Marks that belong together, drawn as one group: `part` names the object (`floors`, `marker`, `lanes`, `route`, `stops`, `ticket`). */
 export interface Layer {
   readonly part: string
   readonly marks: readonly Mark[]
@@ -263,10 +263,12 @@ export function housePlan(places: readonly Place[]): Floor[] {
     }
     byProcess.get(place.process)?.push(place)
   }
+  // A process whose id says what its name says (`api-server`, "API server") is named once.
+  const sameName = (name: string, id: string): boolean => name.toLowerCase().replace(/[^a-z0-9]/g, '') === id.toLowerCase().replace(/[^a-z0-9]/g, '')
   const floorOf = (kind: FloorKind, process: string | null, here: readonly Place[]): Floor => ({
     kind,
     process,
-    title: process === null ? FLOOR_NAMES[kind] : `${FLOOR_NAMES[kind]} · ${process}`,
+    title: process === null || sameName(FLOOR_NAMES[kind], process) ? FLOOR_NAMES[kind] : `${FLOOR_NAMES[kind]} · ${process}`,
     lanes: here.map((place): Lane => ({ key: placeKey(place), place, name: laneName(place) })),
   })
   const floors = processes.map((process) => {
@@ -402,8 +404,8 @@ function tapeFlat(p: Painter, x: number, y: number, words: string, size: number,
   const length = Math.min(markerWidth(words, size) + 8, longest)
   const h = size + 4
   const left = anchor === 'start' ? x : x - length
-  p.rect(left, y, length, h, { fill: 'tape' })
-  p.text(left + length / 2, y + h / 2 + 0.5, words, { size, fill: 'tape-ink', face: 'label', middle: true, fit: length - 6 })
+  p.rect(left, y, length, h, { fill: 'slip' })
+  p.text(left + length / 2, y + h / 2 + 0.5, words, { size, fill: 'slip-ink', face: 'label', middle: true, fit: length - 6 })
   return { left, length }
 }
 
@@ -411,8 +413,8 @@ function tapeFlat(p: Painter, x: number, y: number, words: string, size: number,
 function tapeUpright(p: Painter, x: number, bottom: number, words: string, size: number, longest: number) {
   const length = Math.min(markerWidth(words, size) + 8, longest)
   const w = size + 4
-  p.rect(x, bottom - length, w, length, { fill: 'tape' })
-  p.text(x + w / 2 + 0.5, bottom - length / 2, words, { size, fill: 'tape-ink', face: 'label', middle: true, up: true, fit: length - 6 })
+  p.rect(x, bottom - length, w, length, { fill: 'slip' })
+  p.text(x + w / 2 + 0.5, bottom - length / 2, words, { size, fill: 'slip-ink', face: 'label', middle: true, up: true, fit: length - 6 })
 }
 
 /** A lane's kind beside its name: a blue circle for hands on a CPU thread, a green square for a stream of the GPU. It is always beside the name in words. */
@@ -494,12 +496,12 @@ function build(input: MapInput, orientation: Orientation): { layers: Layer[]; wi
   }
 
   /* The lamp: light with no edge, at the present, behind the route. */
-  p.layer('lamp')
+  p.layer('marker')
   if (input.lamp !== null) {
     const centre = p.at(alongOf(input.lamp.column), laneOf(input.lamp.place).across)
     const long = 72
     const short = 52
-    p.rect(centre.x - (landscape ? long : short) / 2, centre.y - (landscape ? short : long) / 2, landscape ? long : short, landscape ? short : long, { fill: 'lamp', opacity: 0.8, rx: 22, soft: true })
+    p.rect(centre.x - (landscape ? long : short) / 2, centre.y - (landscape ? short : long) / 2, landscape ? long : short, landscape ? short : long, { fill: 'marker', opacity: 0.8, rx: 22, soft: true })
   }
 
   /* Lanes: a rail for each lane, with its name on tape and its kind beside it. */

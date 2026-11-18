@@ -12,6 +12,7 @@
 import { describe, expect, test } from 'bun:test'
 import { BAND_CANDIDATES, BAND_FLOOR } from '../../scripts/verify-games'
 import { runPath } from '@es/play/engine-floor/engine'
+import { FLOOR_COPY } from '@es/play/engine-floor/copy'
 import { DISTRACTORS, LEVEL_IDS, RIVAL, buildLevel, distractorsFor, inLevelBand, levelTitle, rivalScenario, scenarioOf, trayFor } from '@es/play/engine-floor/levels'
 import { ownerOf, referenceOf, stageIn, stagesOf } from '@es/play/engine-floor/stages'
 import { placeKey } from '@es/play/engine-floor/words'
@@ -46,7 +47,7 @@ describe('the practice levels are GAMES.md §5\'s, in the order of its difficult
     for (const id of LEVEL_IDS) {
       const title = levelTitle(id)
       expect(title).not.toMatch(/process|thread|queue|window|boundar|hop/i)
-      expect(buildLevel(id, 0).prompt).not.toMatch(/\d/)
+      expect(FLOOR_COPY[id].prompt).not.toMatch(/\d/)
     }
   })
 })

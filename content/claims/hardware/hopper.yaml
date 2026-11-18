@@ -268,7 +268,7 @@
 - id: hw.h100-pcie.mem-bw
   value: 2000
   unit: GB/s
-  text: NVIDIA's H100 PCIe product brief lists a peak memory bandwidth of 2,000 GB/s for the H100 PCIe. The Hopper whitepaper's table lists 2039 GB/s for the same card and marks the figure "Not Finalized for H100"; 5,120 bits at a 1,593 MHz DDR clock give 2,039 GB/s [derived], so a floor that divides by 2,000 is about 2% stricter than the card's own peak.
+  text: NVIDIA's H100 PCIe product brief lists a peak memory bandwidth of 2,000 GB/s for the H100 PCIe. The Hopper whitepaper's table lists 2039 GB/s for the same card and marks the figure "Not Finalized for H100"; 5,120 bits at a 1,593 MHz DDR clock give 2,039 GB/s [derived], so a lower bound that divides by 2,000 is about 2% stricter than the card's own peak.
   tag: measured
   source:
     url: https://www.nvidia.com/content/dam/en-zz/Solutions/gtcs22/data-center/h100/PB-11133-001_v01.pdf

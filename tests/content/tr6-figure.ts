@@ -1,5 +1,5 @@
 /*
- * The figure of TR6's fifth lesson (W1-T30): four timelines of the same step of the loop, drawn from the step-loop sim, so that the figure is the
+ * The figure of TR6's fifth lesson: four timelines of the same step of the loop, drawn from the step-loop sim, so that the figure is the
  * model's own picture and a model that moves a span moves the figure. `tests/content/tr6-module.test.ts` rebuilds this SVG and holds the file
  * `public/figures/tr6/l5-mask-timeline.svg` to it byte for byte. To write the file after the model has changed:
  *
@@ -7,23 +7,24 @@
  *
  * Each panel is one steady-state step of `MASK_SCENE` (a plan of 100 µs, a read of 60 µs, a forward of 500 µs and twelve structured requests;
  * every number is [estimated] and synthetic), with a CPU lane above a GPU lane on one scale. The fill of the grammar's bitmask is the CPU's
- * `mask` span. The figure draws in the page's ink: `currentColor` and opacities, no colour and no typeface of its own (DESIGN.md; AGENTS.md rule 9).
+ * `mask` span. The figure is drawn in the diagram language (`tests/content/figure-kit.ts`): the CPU's plan and fill are blue, its read a
+ * yellow sync, the forward green, and the GPU's idle stretch a dashed hollow box under a dimension line.
  */
 import { writeFileSync } from 'node:fs'
 import path from 'node:path'
 import type { Span } from '../../packages/sim/steploop'
 import { MASK_SCENE, timeline } from './tr6-demos.ts'
 import type { TimelineMode } from './tr6-demos.ts'
+import { Fig } from './figure-kit.ts'
 
 export const FIGURE_PATH = 'public/figures/tr6/l5-mask-timeline.svg'
 
-/** The drawing's constants: the width of the viewBox, the room for the lane names, the scale in px a µs, the height of a panel and of a lane. */
-const WIDTH = 360
+/** The drawing's constants: the room for the lane names, the scale in px a µs, the height of a panel and of a lane. */
 const LEFT = 30
 export const SCALE = 0.18
-const PANEL = 56
-const LANE = 11
-const TOP = 18
+const PANEL = 84
+const LANE = 14
+const TOP = 2
 
 export interface Panel {
   readonly title: string
@@ -45,9 +46,6 @@ const STEPS = [6, 7] as const
 const AXIS_US = 1800
 const TICK_US = 500
 
-const fmt = (x: number): string => String(Number(x.toFixed(2)))
-const group = (attrs: string, body: string[]): string => `  <g${attrs}>\n${body.map((line) => `    ${line}`).join('\n')}\n  </g>`
-
 interface Drawn {
   readonly t0: number
   readonly cpu: readonly Span[]
@@ -68,31 +66,11 @@ function draw(panel: Panel): Drawn {
   return { t0, cpu, gpu, gapUs: t.gapUs, gap }
 }
 
-/** Where a span sits, and how it is drawn: the plan and the read are outlines (the read dashed), the fill and the forward are shades of the ink. */
-function rect(span: Span, t0: number, y: number): string {
-  const x = LEFT + (span.startUs - t0) * SCALE
-  const width = (span.endUs - span.startUs) * SCALE
-  const box = `x="${fmt(x)}" y="${fmt(y)}" width="${fmt(width)}" height="${LANE}"`
-  switch (span.kind) {
-    case 'mask':
-      return `<rect ${box} fill="currentColor" fill-opacity="0.45"/>`
-    case 'forward':
-      return `<rect ${box} fill="currentColor" fill-opacity="0.18"/>`
-    case 'sync':
-      return `<rect ${box} stroke-dasharray="2 1.5"/>`
-    default:
-      return `<rect ${box}/>`
-  }
-}
+/** The code colour of a span: the plan and the fill are the CPU's, the read is a sync, the forward is the GPU's. */
+const slotOf = (kind: string): 'blue' | 'yellow' | 'green' => (kind === 'forward' ? 'green' : kind === 'sync' ? 'yellow' : 'blue')
 
-/** The label of a span wide enough to hold one: the fill and the forward are named, and the plan and the read are in the legend. */
-function label(span: Span, t0: number, y: number): string | null {
-  const word = span.kind === 'mask' ? 'fill' : span.kind === 'forward' ? 'forward' : null
-  if (word === null) return null
-  const width = (span.endUs - span.startUs) * SCALE
-  if (width < 24) return null
-  return `<text x="${fmt(LEFT + (span.startUs - t0) * SCALE + width / 2)}" y="${fmt(y + 8)}">${word}</text>`
-}
+/** The word a span carries when it has the room for one: the fill and the forward are named, and the plan and the read are in the legend. */
+const wordOf = (span: Span): string | undefined => (span.kind === 'mask' ? 'fill' : span.kind === 'forward' ? 'forward' : undefined)
 
 export function maskTimelineSvg(): string {
   const panels = PANELS.map((panel) => ({ panel, drawn: draw(panel) }))
@@ -100,81 +78,49 @@ export function maskTimelineSvg(): string {
     const end = Math.max(...[...drawn.cpu, ...drawn.gpu].map((span) => span.endUs)) - drawn.t0
     if (end > AXIS_US) throw new Error(`the panel "${panel.title}" runs to ${end} µs, past the axis at ${AXIS_US} µs: widen the axis or the scale`)
   }
-  const height = TOP + PANELS.length * PANEL + 26
-  const out: string[] = []
-  out.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${WIDTH} ${height}" width="${WIDTH}" height="${height}" fill="none" stroke="currentColor" stroke-width="1">`)
-  out.push('  <title>One step of the loop with a grammar mask: whether its fill hides under the forward</title>')
   const [overlapLight, overlapHeavy, serialLight, asyncLight] = panels.map((p) => p.drawn.gapUs)
-  out.push(
-    `  <desc>Four timelines of one step of the loop, each a CPU lane above a GPU lane on the same scale in microseconds. The CPU plans a step, fills the grammar's bitmask, and reads the result back, and the GPU runs the forward. When the fill is overlapped and light, it sits under the forward, and the GPU idles ${overlapLight} microseconds between forwards, as it would with no grammar. When the fill is overlapped and heavy, it outlasts the forward, and the GPU idles ${overlapHeavy} microseconds. When the fill comes after the forward, none of it hides, and the GPU idles ${serialLight} microseconds. With async scheduling the CPU runs a step ahead and the light fill hides, so the GPU idles ${asyncLight} microseconds.</desc>`,
+  const fig = new Fig(
+    TOP + PANELS.length * PANEL + 80,
+    'One step of the loop with a grammar mask: whether its fill hides under the forward',
+    `Four timelines of one step of the loop, each a CPU lane above a GPU lane on the same scale in microseconds. The CPU plans a step, fills the grammar's bitmask, and reads the result back, and the GPU runs the forward. When the fill is overlapped and light, it sits under the forward, and the GPU idles ${overlapLight} microseconds between forwards, as it would with no grammar. When the fill is overlapped and heavy, it outlasts the forward, and the GPU idles ${overlapHeavy} microseconds. When the fill comes after the forward, none of it hides, and the GPU idles ${serialLight} microseconds. With async scheduling the CPU runs a step ahead and the light fill hides, so the GPU idles ${asyncLight} microseconds.`,
   )
-
-  // The legend: the four kinds of span.
-  const legend: { word: string; swatch: string }[] = [
-    { word: 'plan', swatch: '' },
-    { word: 'read', swatch: ' stroke-dasharray="2 1.5"' },
-    { word: 'fill', swatch: ' fill="currentColor" fill-opacity="0.45"' },
-    { word: 'forward', swatch: ' fill="currentColor" fill-opacity="0.18"' },
-  ]
-  const legendBody: string[] = []
-  const words: string[] = []
-  legend.forEach((item, at) => {
-    const x = LEFT + at * 62
-    legendBody.push(`<rect x="${x}" y="3" width="10" height="8"${item.swatch}/>`)
-    words.push(`<text x="${x + 14}" y="10">${item.word}</text>`)
-  })
-  out.push(group('', legendBody))
-  out.push(group(' stroke="none" fill="currentColor" font-size="8"', words))
-
   panels.forEach(({ panel, drawn }, at) => {
     const top = TOP + at * PANEL
-    const cpuY = top + 12
-    const gpuY = top + 26
-    const body: string[] = []
-    const texts: string[] = []
-    texts.push(`<text x="2" y="${top + 7}" font-size="9">${panel.title}</text>`)
-    texts.push(`<text x="2" y="${cpuY + 8}">CPU</text>`)
-    texts.push(`<text x="2" y="${gpuY + 8}">GPU</text>`)
-    for (const span of drawn.cpu) {
-      body.push(rect(span, drawn.t0, cpuY))
-      const word = label(span, drawn.t0, cpuY)
-      if (word !== null) texts.push(word)
+    const cpuY = top + 16
+    const gpuY = top + 36
+    fig.grid(LEFT, top + 12, AXIS_US * SCALE, 2 * LANE + 28)
+    fig.text(2, top + 9, panel.title, { size: 10 })
+    fig.text(2, cpuY + 11, 'CPU', { bold: true })
+    fig.text(2, gpuY + 11, 'GPU', { bold: true })
+    for (const [spans, y] of [[drawn.cpu, cpuY], [drawn.gpu, gpuY]] as const) {
+      for (const span of spans) {
+        fig.mark(slotOf(span.kind), LEFT + (span.startUs - drawn.t0) * SCALE, y, Math.max(1, (span.endUs - span.startUs) * SCALE), LANE, { kind: 'span', label: wordOf(span) })
+      }
     }
-    for (const span of drawn.gpu) {
-      body.push(rect(span, drawn.t0, gpuY))
-      const word = label(span, drawn.t0, gpuY)
-      if (word !== null) texts.push(word)
-    }
-    const bracketY = gpuY + LANE + 5
+    const lineY = gpuY + LANE + 12
     if (drawn.gap !== null) {
       const [from, to] = drawn.gap
-      const x1 = LEFT + from * SCALE
-      const x2 = LEFT + to * SCALE
-      body.push(`<path d="M${fmt(x1)} ${bracketY - 3}V${bracketY}H${fmt(x2)}V${bracketY - 3}" stroke-width="0.75"/>`)
-      texts.push(`<text x="${fmt((x1 + x2) / 2)}" y="${bracketY + 9}" text-anchor="middle">GPU idle ${drawn.gapUs} µs</text>`)
+      fig.idle(LEFT + from * SCALE, gpuY, (to - from) * SCALE, LANE)
+      fig.dim(LEFT + from * SCALE, LEFT + to * SCALE, lineY, `GPU idle ${drawn.gapUs} µs`, { below: true })
     } else {
-      const firstForward = drawn.gpu.filter((span) => span.kind === 'forward')[1]
-      const x = LEFT + (firstForward.startUs - drawn.t0) * SCALE
-      texts.push(`<text x="${fmt(x)}" y="${bracketY + 9}" text-anchor="middle">GPU idle ${drawn.gapUs} µs</text>`)
+      const second = drawn.gpu.filter((span) => span.kind === 'forward')[1]
+      fig.text(LEFT + (second.startUs - drawn.t0) * SCALE, lineY + 15, `GPU idle ${drawn.gapUs} µs`, { mono: true, anchor: 'middle' })
     }
-    out.push(group('', body))
-    out.push(group(' stroke="none" fill="currentColor" font-size="8"', texts))
   })
-
-  // The axis: µs from the start of the step's plan.
-  const axisY = TOP + PANELS.length * PANEL + 2
-  const ticks: string[] = []
-  const tickText: string[] = []
-  for (let us = 0; us <= AXIS_US; us += TICK_US) {
-    const x = LEFT + us * SCALE
-    ticks.push(`M${fmt(x)} ${axisY}V${axisY + 4}`)
-    tickText.push(`<text x="${fmt(x)}" y="${axisY + 13}" text-anchor="middle">${us.toLocaleString('en-US')}</text>`)
-  }
-  tickText.push(`<text x="${LEFT + AXIS_US * SCALE}" y="${axisY + 22}" text-anchor="end">µs from the start of the step's plan</text>`)
-  out.push(group(' stroke-width="0.75"', [`<path d="M${LEFT} ${axisY}H${fmt(LEFT + AXIS_US * SCALE)}"/>`, `<path d="${ticks.join('')}"/>`]))
-  out.push(group(' stroke="none" fill="currentColor" font-size="8"', tickText))
-  out.push('</svg>')
-  return `${out.join('\n')}\n`
+  const axisY = TOP + PANELS.length * PANEL + 4
+  fig.axis(LEFT, axisY, SCALE, AXIS_US, TICK_US, "µs from the start of the step's plan")
+  const bottom = fig.legend(
+    [
+      { slot: 'blue', word: 'CPU: plan, fill' },
+      { slot: 'yellow', word: 'read' },
+      { slot: 'green', word: 'forward' },
+      { slot: 'white', word: 'idle', hollow: true },
+    ],
+    4,
+    axisY + 42,
+  )
+  fig.height = bottom + 2
+  return fig.svg()
 }
 
 /** The scene's numbers, for a test that names them. */

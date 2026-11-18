@@ -162,7 +162,8 @@ export const PAGES: Readonly<Record<string, Spec>> = {
       url: `/play/${game.id}`,
       title: titled(game.title),
       heading: game.title,
-      description: `Play ${game.subtitle} as a seeded game whose rule is the concept itself, in 2D${game.has3d ? ' or in 3D' : ''}.`,
+      // The title, the engine's term (D-063): the subtitle is the game's rule as a sentence, which may hold a number such as min(1, p/q).
+      description: `${game.title}: a seeded game whose rule is the concept itself, in 2D${game.has3d ? ' or in 3D' : ''}.`,
     })),
   ),
   '/labs/:lab': each(({ labs }) =>
@@ -184,15 +185,15 @@ export const PAGES: Readonly<Record<string, Spec>> = {
   ),
   // Its lead says the same (src/receipts/copy.ts), and a test holds the two together.
   '/receipts': page(
-    'Issue a challenge for a lab that runs on your own machine, bring back the receipt that your grader writes and see how this browser checked it, and read the receipts that you hold. Nothing here is sent anywhere.',
+    'Get a challenge for a lab that runs on your own machine, bring back the receipt file that your grader writes and see how this browser checked it, and read the results you hold. Nothing here is sent anywhere.',
   ),
   '/today': page('A short spaced review of what you have earned so far, drawn on fresh seeds.'),
-  '/evidence': page('The progress that your own ledger shows, kept on this device. Export it, import it, or undo an import.'),
+  '/evidence': page('What you did, as dated rows in words, then the counts, kept on this device. Export it, import it, or undo an import.'),
   '/design': page("The token roles and their values, the components and their states, motion, and the scene kit's specimens, each beside its 2D twin."),
   '/settings': page('3D on or off, the quality tier cap, reduced motion, and your data on this device.'),
   // What the page holds today (W3-T15 builds the rest): its lead says the same (src/unbuilt/copy.ts), and a test holds the two together.
-  '/about': page('The licences of the third-party code and the typefaces that this site uses.'),
-  '/changes': page('The claims and the pins that have moved, as change cards.'),
+  '/about': page('What the course teaches, what each model in it leaves out, how numbers are tagged, what stays on your device, and the licences of the code and typefaces it uses.'),
+  '/changes': page('The sources the course pins, when each was last read, and what has moved.'),
   '*': { kind: 'fallback', description: 'Nothing lives at this address.' },
 }
 

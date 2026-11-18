@@ -37,7 +37,7 @@ const code = (text: string): string => `\`${text}\``
 function ruleSentence(rule: Rule, at: StageDef['from'], stage: StageDef): string {
   if (rule === 'async') return `${named(stage)} comes after a device-to-host copy, and the host has not waited for the copy yet. ${RULES.async}`
   const start = legal(at, stage)
-  if (!start.ok) return `The ticket stands at ${code(placeName(at))}, and ${named(stage)} starts at ${code(placeName(stage.from))}. ${RULES[rule]}`
+  if (!start.ok) return `The request is at ${code(placeName(at))}, and ${named(stage)} starts at ${code(placeName(stage.from))}. ${RULES[rule]}`
   const gap = boundaryOf(stage.from, stage.to)
   return `${named(stage)} goes from ${code(placeName(stage.from))} to ${code(placeName(stage.to))} by ${stage.mechanism}, and only ${FITS[gap].join(' or ')} crosses that. ${RULES[rule]}`
 }
@@ -140,7 +140,7 @@ export function stopOfMistake(sc: Scenario, mistake: Mistake): Stop {
     .slice(0, mistake.index)
     .map((stage) => stage.id)
   const found = runPath(sc, [...prefix, mistake.stage]).stop
-  if (found === null) throw new Error('internal: a mistake that does not stop the ticket')
+  if (found === null) throw new Error('internal: a mistake that does not stop the request')
   return found
 }
 

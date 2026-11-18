@@ -30,6 +30,9 @@ const focused = (page: Page) => page.evaluate(() => document.activeElement?.tagN
 /** Waits until the live region has said `title`: the navigation has arrived, and what the page does on arrival has been done. */
 const arrives = (page: Page, title: string) => expect(said(page)).toHaveText(`${title} · enginespace`, ARRIVE)
 
+// The board's links show at a desktop's width; on a phone they sit behind the Navigation button, which its own test below opens.
+test.use({ viewport: { width: 1280, height: 800 } })
+
 test.beforeEach(async ({ context }) => {
   // The 2D pass and nothing moving: the pages under test are plain pages.
   await withSettings(context, { view3d: false })
@@ -57,7 +60,7 @@ test.describe('a link that is reached for (A§6.10, D-059)', () => {
     await board(page, 'Footer', 'Settings').hover()
     await expect.poll(async () => has(await preloaded(page), 'Settings'), { message: "a hover preloads the page's chunk", ...ARRIVE }).toBe(true)
     // By keyboard: a focus on a link of the board does the same.
-    await board(page, 'Primary', 'Evidence').focus()
+    await board(page, 'Primary', 'Progress').focus()
     await expect.poll(async () => has(await preloaded(page), 'Evidence'), { message: "a focus preloads the page's chunk", ...ARRIVE }).toBe(true)
     // A preload runs nothing: the page is where it was, and says nothing.
     await expect(page).toHaveURL(/\/map$/)
@@ -68,11 +71,11 @@ test.describe('a link that is reached for (A§6.10, D-059)', () => {
 test.describe('a link of the board', () => {
   test('moves focus to the main landmark and says the page it went to, with a mouse', async ({ page }) => {
     await open(page, '/map')
-    await board(page, 'Primary', 'Today').click()
-    await arrives(page, 'Today')
+    await board(page, 'Primary', 'Review').click()
+    await arrives(page, 'Review')
     await expect(page).toHaveURL(/\/today$/)
     await expect(main(page)).toBeFocused()
-    await expect(page).toHaveTitle('Today · enginespace')
+    await expect(page).toHaveTitle('Review · enginespace')
   })
 
   test('does the same for a link of the footer, by keyboard, and Tab goes on from the top of the new page', async ({ page }) => {
@@ -89,11 +92,11 @@ test.describe('a link of the board', () => {
 
   test('says each page it goes to, one after the other, as separate announcements', async ({ page }) => {
     await open(page, '/map')
-    await board(page, 'Primary', 'Today').click()
-    await arrives(page, 'Today')
+    await board(page, 'Primary', 'Review').click()
+    await arrives(page, 'Review')
     const first = await said(page).locator('p').elementHandle()
-    await board(page, 'Primary', 'Evidence').click()
-    await arrives(page, 'Evidence')
+    await board(page, 'Primary', 'Progress').click()
+    await arrives(page, 'Progress')
     // The paragraph is a new element, which is what a reader announces; the same element with new text may not be.
     expect(await first?.evaluate((element) => element.isConnected)).toBe(false)
     await expect(said(page).locator('p')).toHaveCount(1)
@@ -101,8 +104,8 @@ test.describe('a link of the board', () => {
 
   test('keeps the live region out of the landmark and out of sight, where it is not read with the page', async ({ page }) => {
     await open(page, '/map')
-    await board(page, 'Primary', 'Today').click()
-    await arrives(page, 'Today')
+    await board(page, 'Primary', 'Review').click()
+    await arrives(page, 'Review')
     const region = await said(page).evaluate((element) => ({ role: element.getAttribute('role'), inMain: element.closest('main') !== null, width: element.getBoundingClientRect().width }))
     expect([region.role, region.inMain]).toEqual(['status', false])
     expect(region.width, 'the region is a pixel wide, as the sr-only utility makes it').toBeLessThanOrEqual(1)
@@ -130,14 +133,14 @@ test.describe('a link of the board', () => {
 test.describe('Back and Forward', () => {
   test('focus the main landmark again and say the page they return to', async ({ page }) => {
     await open(page, '/map')
-    await board(page, 'Primary', 'Today').click()
-    await arrives(page, 'Today')
+    await board(page, 'Primary', 'Review').click()
+    await arrives(page, 'Review')
     await page.goBack()
-    await arrives(page, 'Course map')
+    await arrives(page, 'Course')
     await expect(page).toHaveURL(/\/map$/)
     await expect(main(page)).toBeFocused()
     await page.goForward()
-    await arrives(page, 'Today')
+    await arrives(page, 'Review')
     await expect(main(page)).toBeFocused()
   })
 })
@@ -153,13 +156,13 @@ test.describe('the scroll', () => {
     await expect.poll(() => scrolled(page), ARRIVE).toBe(offset)
   }
   /** A click of the page's own script, so that Playwright does not scroll the link into view first and move the offset. */
-  const follow = (page: Page, href: string) => page.evaluate((to) => document.querySelector<HTMLElement>(`footer a[href$="${to}"]`)?.click(), href)
+  const follow = (page: Page, href: string) => page.evaluate((to) => document.querySelector<HTMLElement>(`header a[href$="${to}"], footer a[href$="${to}"]`)?.click(), href)
 
   test('opens a new page at the top, even when it is as tall as the page that was left', async ({ page }) => {
     await scrollSettings(page, 640)
-    await follow(page, '/design')
-    await arrives(page, 'Design system')
-    // The design page is tall, so its offset would stay at 640 if nothing set it.
+    await follow(page, '/map')
+    await arrives(page, 'Course')
+    // Course is tall, so its offset would stay at 640 if nothing set it.
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight), { ...ARRIVE, message: 'the next page is tall' }).toBeGreaterThan(1500)
     await expect.poll(() => scrolled(page), { ...ARRIVE, message: 'a new page opens at the top' }).toBe(0)
   })
@@ -188,8 +191,8 @@ test.describe('the scroll', () => {
 
   test('takes a link with a fragment to the element it names', async ({ page }) => {
     await open(page, '/map')
-    await board(page, 'Primary', 'Today').click()
-    await arrives(page, 'Today')
+    await board(page, 'Primary', 'Review').click()
+    await arrives(page, 'Review')
     // A location the router takes in the way it takes any, with a fragment that is an id of the page: the heading of the last panel.
     await page.evaluate(() => {
       history.pushState({}, '', '/settings#set-data')
@@ -218,5 +221,31 @@ test.describe('a change that is not a new page', () => {
     await expect(said(page)).toBeEmpty()
     await expect(board(page, 'Footer', 'About')).toBeFocused()
     expect(await scrolled(page)).toBe(300)
+  })
+})
+
+test.describe('the Navigation button on a phone (REDESIGN §2.3)', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('folds the links away, opens them, closes on Escape with focus back on it, and closes when a place is chosen', async ({ page }) => {
+    await open(page, '/map')
+    const button = page.getByRole('button', { name: 'Navigation' })
+    const course = board(page, 'Primary', 'Games')
+    await expect(button).toHaveAttribute('aria-expanded', 'false')
+    await expect(course).toBeHidden()
+    // Start or Continue stays on the header's row, named by its full label.
+    await expect(page.getByRole('navigation', { name: 'Primary' }).getByRole('link', { name: /^(Start|Continue): / })).toBeVisible()
+    await button.click()
+    await expect(button).toHaveAttribute('aria-expanded', 'true')
+    await expect(course).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(button).toHaveAttribute('aria-expanded', 'false')
+    await expect(button).toBeFocused()
+    await button.click()
+    await course.click()
+    await expect(page).toHaveURL(/\/play$/, ARRIVE)
+    await expect(button).toHaveAttribute('aria-expanded', 'false')
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)
+    expect(overflow).toBe(0)
   })
 })

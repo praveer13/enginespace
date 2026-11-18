@@ -70,25 +70,25 @@ export function Toolbar({ state, readOnly, onCommand }: ToolbarProps) {
   return (
     <div className="es-trace__bar" data-trace-bar="">
       <Plates
-        label="Window"
+        label="View"
         onCommand={onCommand}
         plates={[
           { id: 'zoom-out', label: 'Zoom out', keys: '-' },
           { id: 'zoom-in', label: 'Zoom in', keys: '+' },
-          { id: 'pan-left', label: 'Pan back', name: 'Pan back in time', keys: 'ArrowLeft' },
-          { id: 'pan-right', label: 'Pan on', name: 'Pan on in time', keys: 'ArrowRight' },
+          { id: 'pan-left', label: 'Earlier', name: 'Move the view earlier in time', keys: 'ArrowLeft' },
+          { id: 'pan-right', label: 'Later', name: 'Move the view later in time', keys: 'ArrowRight' },
           { id: 'fit-step', label: 'This step', name: 'Fit this step', keys: 'F' },
-          { id: 'fit-all', label: 'Whole tape', name: 'Fit the whole tape', keys: 'A' },
+          { id: 'fit-all', label: 'Whole trace', name: 'Fit the whole trace', keys: 'A' },
         ]}
       />
       <Plates
         label="Cursor"
         onCommand={onCommand}
         plates={[
-          { id: 'bell-prev', label: 'Step back', name: 'Step back: go to the previous step', keys: 'Shift+Comma' },
-          { id: 'bell-next', label: 'Step on', name: 'Step on: go to the next step', keys: 'Shift+Period' },
-          { id: 'edge-prev', label: 'Edge back', name: 'Edge back: move to the previous event edge on this lane', keys: 'J' },
-          { id: 'edge-next', label: 'Edge on', name: 'Edge on: move to the next event edge on this lane', keys: 'K' },
+          { id: 'bell-prev', label: 'Previous step', name: 'Previous step: go to the previous step', keys: 'Shift+Comma' },
+          { id: 'bell-next', label: 'Next step', name: 'Next step: go to the next step', keys: 'Shift+Period' },
+          { id: 'edge-prev', label: 'Previous edge', name: 'Previous edge: move to the previous event edge on this lane', keys: 'J' },
+          { id: 'edge-next', label: 'Next edge', name: 'Next edge: move to the next event edge on this lane', keys: 'K' },
         ]}
       />
       {readOnly ? null : (
@@ -112,7 +112,7 @@ export function Toolbar({ state, readOnly, onCommand }: ToolbarProps) {
                 data-command={`category-${category}`}
                 aria-pressed={tagged === category}
                 aria-keyshortcuts={String(at + 1)}
-                aria-label={`${CATEGORY_WORDS[category].term}, ${CATEGORY_WORDS[category].kitchen}`}
+                aria-label={`${CATEGORY_WORDS[category].term}, ${CATEGORY_WORDS[category].meaning}`}
                 disabled={!making && !hasActive}
                 onClick={() => onCommand(`category-${category}`)}
               >
@@ -125,7 +125,7 @@ export function Toolbar({ state, readOnly, onCommand }: ToolbarProps) {
       )}
       <div className="es-trace__group">
         <Button size="sm" variant="quiet" data-command="help" aria-keyshortcuts="Shift+Slash" onClick={() => onCommand('help')}>
-          Keys
+          Keyboard
         </Button>
       </div>
     </div>

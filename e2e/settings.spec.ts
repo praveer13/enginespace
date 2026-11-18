@@ -176,8 +176,8 @@ async function settingsRecord(page: Page): Promise<Record<string, unknown>> {
 }
 
 const stage = (page: Page) => page.locator('[data-stage="specimen"]')
-/** The scene kit's own bell, among the design page's many: the one that fires the specimen's next step. */
-const bell = (page: Page) => page.locator('.es-kit').getByRole('button', { name: /Ring the bell: fire the next step/ })
+/** The scene kit's own button, among the design page's many: the one that runs the specimen's next step. */
+const bell = (page: Page) => page.locator('.es-kit').getByRole('button', { name: /Run the next step/ })
 const probe = (page: Page) => page.evaluate(() => (window.__esScene as SceneHook | undefined)?.probes.specimen?.info() ?? null)
 
 /** Waits until the specimen is drawn, the Stage says it is settled, and no frame has been drawn for half a second. */
@@ -339,7 +339,7 @@ test.describe('settings apply live (accept 1)', () => {
     await settle(page)
     // Slow the bell right down, so the slide the bell starts is still running when the setting changes: the scene reads the
     // role's value each time it starts a move, and a move that is running keeps the duration it began with.
-    await page.evaluate(() => document.documentElement.style.setProperty('--es-dur-bell', '60000ms'))
+    await page.evaluate(() => document.documentElement.style.setProperty('--es-dur-step', '60000ms'))
     await bell(page).click()
     await expect(stage(page)).not.toHaveAttribute('data-settled', 'true')
     // A software renderer draws a few frames a second, so the check is that frames keep coming, not how many.
@@ -404,15 +404,14 @@ test.describe('settings apply live (accept 1)', () => {
     await page.locator('#scene-kit').scrollIntoViewIfNeeded()
     await settle(page)
     await expect(stage(page)).toHaveAttribute('data-tier', /[23]/)
-    const before = (await probe(page))?.passes
-    expect(before).toEqual(['scene', 'bloom', 'final'])
+    expect((await probe(page))?.passes).toEqual(['scene'])
 
     const settings = await context.newPage()
     await open(settings, '/settings')
     await plate(settings, 'Quality cap', /Tier 1/).click()
     await expect(stage(page)).toHaveAttribute('data-tier', '1', { timeout: 10_000 })
     await settle(page)
-    // T1 draws without post-processing: the bloom pass is gone from the frame.
+    // Nothing is post-processed at any tier: the frame is the scene pass alone.
     await expect.poll(async () => (await probe(page))?.passes, { timeout: 10_000 }).toEqual(['scene'])
     await settings.close()
   })
@@ -489,7 +488,7 @@ test.describe('settings decide before anything is fetched', () => {
     await page.waitForTimeout(1500)
     expect(requests.filter((request) => /three-vendor|SpecimenScene3D|postfx/.test(request))).toEqual([])
 
-    // Back on, with the cap at tier 1: the scene loads, and bloom, which belongs to tier 2 and up, never does.
+    // Back on, with the cap at tier 1: the scene loads, and no post-processing chunk is ever asked for.
     await open(page, '/settings')
     await switchNamed(page, 'Draw the games in 3D').click()
     await expect(switchNamed(page, 'Draw the games in 3D')).toHaveAttribute('aria-checked', 'true')
@@ -546,7 +545,9 @@ test.describe('settings reach the game shell', () => {
     await settings.close()
   })
 
-  test('with 3D off, a game opens in its 2D view, says why beside the disabled 3D button, shows no camera buttons and fetches no 3D chunk, and 3D on brings the 3D view back', async ({ page, context, requests }) => {
+  test('with 3D off, a game opens in its 2D view, says why beside the disabled 3D button, shows no camera buttons and fetches no 3D chunk, and 3D on offers the 3D view again', async ({ page, context, requests }) => {
+    // At a desk's width: on a phone the step loop withholds its 3D switch until the time track has a phone layout (build B's finish review).
+    await page.setViewportSize({ width: 1280, height: 800 })
     await open(page, '/settings')
     await switchNamed(page, 'Draw the games in 3D').click()
     await expect.poll(() => settingsRecord(page)).toEqual({ 'settings:3d': false })
@@ -554,10 +555,11 @@ test.describe('settings reach the game shell', () => {
     const game = page.locator('section[data-game="loop"]')
     await expect(game).toHaveAttribute('data-view', '2d')
     const views = page.getByRole('group', { name: 'View', exact: true })
-    await expect(views.getByRole('button', { name: '3D view' })).toBeDisabled()
-    await expect(views.getByRole('button', { name: '2D view' })).toHaveAttribute('aria-pressed', 'true')
+    // The step loop's demo levels sit in the instrument frame (R-T17), whose switch reads Diagram and 3D.
+    await expect(views.getByRole('button', { name: '3D', exact: true })).toBeDisabled()
+    await expect(views.getByRole('button', { name: 'Diagram' })).toHaveAttribute('aria-pressed', 'true')
     await expect(views).toContainText('3D is off in Settings')
-    await expect(page.getByRole('group', { name: 'Camera on the pass' })).toHaveCount(0)
+    await expect(page.getByRole('group', { name: 'Camera' })).toHaveCount(0)
     // `V` has nowhere to go, and `C` has no camera to move.
     await game.focus()
     await page.keyboard.press('KeyV')
@@ -566,14 +568,15 @@ test.describe('settings reach the game shell', () => {
     await page.waitForTimeout(1500)
     expect(requests.filter((request) => /three-vendor|Scene3D|postfx/.test(request))).toEqual([])
 
-    // 3D on, in another tab: the open game goes to its 3D view by itself, as it does on a device that draws it.
+    // 3D on, in another tab: the open game offers its 3D view again. The diagram stays the default (REDESIGN §2.9), so the learner asks.
     const settings = await context.newPage()
     await open(settings, '/settings')
     await switchNamed(settings, 'Draw the games in 3D').click()
     await expect(switchNamed(settings, 'Draw the games in 3D')).toHaveAttribute('aria-checked', 'true')
+    await expect(views.getByRole('button', { name: '3D', exact: true })).toBeEnabled({ timeout: 20_000 })
+    await views.getByRole('button', { name: '3D', exact: true }).click()
     await expect(game).toHaveAttribute('data-view', '3d', { timeout: 20_000 })
-    await expect(views.getByRole('button', { name: '3D view' })).toBeEnabled()
-    await expect(page.getByRole('group', { name: 'Camera on the pass' })).toBeVisible()
+    await expect(page.getByRole('group', { name: 'Camera' })).toBeVisible()
     await settings.close()
   })
 })
@@ -589,7 +592,7 @@ test.describe('/design: the bell runs the four motions', () => {
   ] as const
   const puck = (page: Page, id: string) => page.locator(`[data-motion-row="${id}"] .es-spec__motion-puck`)
   const runner = (page: Page, id: string) => page.locator(`[data-motion-row="${id}"] .es-spec__motion-track`)
-  const ring = (page: Page) => page.locator('.es-spec__motion-deck').getByRole('button', { name: 'Ring the bell' }).click()
+  const ring = (page: Page) => page.locator('.es-spec__motion-deck').getByRole('button', { name: 'Step', exact: true }).click()
 
   /** How far along its runner a plate has come, from 0 to 1. */
   async function travelled(page: Page, id: string): Promise<number> {
@@ -707,7 +710,7 @@ async function counted(row: ReturnType<Page['locator']>): Promise<number> {
 
 const kindRow = (page: Page, kind: string) => page.locator(`table[data-table="kind"] tr[data-kind="${kind}"]`)
 const moduleRow = (page: Page, module: string) => page.locator(`table[data-table="module"] tr[data-module="${module}"]`)
-const tapeLine = (page: Page, tape: string, label: string) => page.getByRole('figure', { name: tape }).locator('.es-printer__line', { has: page.getByText(label, { exact: true }) })
+const tapeLine = (page: Page, tape: string, label: string) => page.getByRole('figure', { name: tape }).locator('.es-readout-strip__line', { has: page.getByText(label, { exact: true }) })
 
 /** Rows of one store of IndexedDB, as the browser holds them. */
 function stored(page: Page, store: 'events' | 'receipts' | 'working' | 'checkpoints'): Promise<{ id?: string; key?: string }[]> {
@@ -740,14 +743,14 @@ async function downloaded(download: Download): Promise<{ name: string; text: str
 }
 
 test.describe('/evidence: counts by kind and module, with export and import', () => {
-  test('an empty ledger is a blank ticket with the way to the menu, and the means to import', async ({ page }) => {
+  test('an empty record says what lands here, with the way on, and the means to import', async ({ page }) => {
     await open(page, '/evidence')
-    await expect(page.getByRole('heading', { level: 1, name: 'Evidence' })).toBeVisible()
-    await expect(page.getByRole('heading', { level: 2, name: 'Nothing in the ledger yet' })).toBeVisible()
-    await expect(page.getByRole('link', { name: /Open the menu/ })).toHaveAttribute('href', '/map')
+    await expect(page.getByRole('heading', { level: 1, name: 'Progress' })).toBeVisible()
+    await expect(page.getByText('Nothing yet. Play a level, answer a question or commit a guess')).toBeVisible()
+    await expect(page.getByRole('link', { name: /^Start: TR1 lesson 1/ }).last()).toHaveAttribute('href', /\/m\/tr1\//)
     await expect(page.locator('table')).toHaveCount(0)
-    await expect(tapeLine(page, 'Where your evidence is kept', 'kept in')).toContainText('IndexedDB')
-    await expect(tapeLine(page, 'Where your evidence is kept', 'last export')).toContainText('never')
+    await expect(tapeLine(page, 'Where your progress is kept', 'kept in')).toContainText('this browser')
+    await expect(tapeLine(page, 'Where your progress is kept', 'last export')).toContainText('never')
     await expect(page.getByRole('button', { name: 'Export evidence' })).toBeVisible()
     await expect(page.getByRole('button', { name: 'Choose a file' })).toBeVisible()
   })
@@ -759,23 +762,20 @@ test.describe('/evidence: counts by kind and module, with export and import', ()
     // The preview says what the file holds and what merging it would do, and nothing is written yet.
     const preview = importPreview(page)
     await expect(preview).toContainText('events in the file')
-    await expect(preview.locator('.es-ticket-line', { hasText: 'events in the file' }).locator('data')).toHaveAttribute('value', '10')
-    await expect(preview.locator('.es-ticket-line', { hasText: 'new here' }).locator('data')).toHaveAttribute('value', '10')
+    await expect(preview.locator('.es-sheet-line', { hasText: 'events in the file' }).locator('data')).toHaveAttribute('value', '10')
+    await expect(preview.locator('.es-sheet-line', { hasText: 'new here' }).locator('data')).toHaveAttribute('value', '10')
     await expect(preview.getByRole('button', { name: 'Merge', exact: true })).toHaveAttribute('aria-pressed', 'true')
     expect(await idsStored(page)).toEqual([])
 
     await preview.getByRole('button', { name: 'Import and merge' }).click()
     await expect(page.getByRole('figure', { name: 'The import, printed' })).toContainText('merge')
-    await expect(page.getByRole('heading', { level: 2, name: 'By kind' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'Everything counted' })).toBeVisible()
     expect(await idsStored(page)).toEqual(events.map((event) => event.id).sort())
 
-    // By kind: one of each, ten in all; the two that carry no result are marked.
+    // By kind: one of each, ten in all.
     for (const kind of ['predict', 'item', 'play', 'lab-check', 'prove', 'trace-mark', 'challenge', 'receipt', 'review', 'ack']) expect(await counted(kindRow(page, kind)), kind).toBe(1)
     await expect(page.locator('table[data-table="kind"] tfoot')).toContainText('All events')
     expect(await counted(page.locator('table[data-table="kind"] tfoot tr'))).toBe(10)
-    await expect(kindRow(page, 'challenge')).toContainText('not graded')
-    await expect(kindRow(page, 'ack')).toContainText('not graded')
-    await expect(kindRow(page, 'play')).not.toContainText('not graded')
     // By module: the prediction, the item, the game run and the review are tr2's, the challenge and the receipt tr8's.
     expect(await counted(moduleRow(page, 'tr2'))).toBe(4)
     expect(await counted(moduleRow(page, 'tr8'))).toBe(2)
@@ -785,13 +785,13 @@ test.describe('/evidence: counts by kind and module, with export and import', ()
     await expect(moduleRow(page, 'tr2').getByRole('link', { name: 'tr2' })).toHaveAttribute('href', '/m/tr2')
     expect(await counted(page.locator('table[data-table="module"] tfoot tr'))).toBe(10)
     // The tape agrees with the tables.
-    await expect(tapeLine(page, 'Where your evidence is kept', 'events').locator('data')).toHaveAttribute('value', '10')
+    await expect(tapeLine(page, 'Where your progress is kept', 'events').locator('data')).toHaveAttribute('value', '10')
 
     // The import can be taken back.
     await expect(page.getByText(/Last import: a merge on/)).toBeVisible()
     await page.getByRole('button', { name: 'Undo the last import' }).click()
     await expect(page.getByText('The import was undone.')).toBeVisible()
-    await expect(page.getByRole('heading', { level: 2, name: 'Nothing in the ledger yet' })).toBeVisible()
+    await expect(page.getByText('Nothing yet. Play a level')).toBeVisible()
     expect(await idsStored(page)).toEqual([])
     await expect(page.getByRole('button', { name: 'Undo the last import' })).toHaveCount(0)
   })
@@ -800,9 +800,9 @@ test.describe('/evidence: counts by kind and module, with export and import', ()
     await open(page, '/evidence')
     const other = await context.newPage()
     await open(other, '/evidence')
-    await expect(other.getByRole('heading', { level: 2, name: 'Nothing in the ledger yet' })).toBeVisible()
+    await expect(other.getByText('Nothing yet. Play a level')).toBeVisible()
     await importEvents(page, everyKind())
-    await expect(other.getByRole('heading', { level: 2, name: 'By kind' })).toBeVisible({ timeout: 1000 })
+    await expect(other.getByRole('heading', { level: 2, name: 'Everything counted' })).toBeVisible({ timeout: 1000 })
     expect(await counted(kindRow(other, 'play'))).toBe(1)
     await other.close()
   })
@@ -820,18 +820,18 @@ test.describe('/evidence: counts by kind and module, with export and import', ()
     expect(written.events).toEqual((JSON.parse(exportText(events)) as { events: LedgerEvent[] }).events)
     // The tape prints what was saved, and the last export is dated.
     await expect(page.getByRole('figure', { name: 'The export, printed' })).toContainText(file.name)
-    await expect(page.getByRole('figure', { name: 'The export, printed' }).locator('.es-printer__line', { hasText: 'events' }).locator('data')).toHaveAttribute('value', '10')
-    await expect(tapeLine(page, 'Where your evidence is kept', 'last export')).not.toContainText('never')
+    await expect(page.getByRole('figure', { name: 'The export, printed' }).locator('.es-readout-strip__line', { hasText: 'events' }).locator('data')).toHaveAttribute('value', '10')
+    await expect(tapeLine(page, 'Where your progress is kept', 'last export')).not.toContainText('never')
 
     // The file goes back in: everything in it is here already, so nothing changes and nothing is kept to undo.
     await page.getByRole('button', { name: 'Undo the last import' }).click()
-    await expect(page.getByRole('heading', { level: 2, name: 'Nothing in the ledger yet' })).toBeVisible()
+    await expect(page.getByText('Nothing yet. Play a level')).toBeVisible()
     await choose(page, file.text, file.name)
     await importPreview(page).getByRole('button', { name: 'Import and merge' }).click()
-    await expect(page.getByRole('heading', { level: 2, name: 'By kind' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'Everything counted' })).toBeVisible()
     expect(await idsStored(page)).toEqual(events.map((event) => event.id).sort())
     await choose(page, file.text, file.name)
-    await expect(importPreview(page).locator('.es-ticket-line', { hasText: 'new here' }).locator('data')).toHaveAttribute('value', '0')
+    await expect(importPreview(page).locator('.es-sheet-line', { hasText: 'new here' }).locator('data')).toHaveAttribute('value', '0')
     await importPreview(page).getByRole('button', { name: 'Import and merge' }).click()
     await expect(page.getByText(/Nothing changed: everything in .* was here already\./)).toBeVisible()
   })
@@ -850,11 +850,11 @@ test.describe('/evidence: counts by kind and module, with export and import', ()
     await expect(page.getByRole('figure', { name: 'The export, printed' })).toContainText('size, gzip')
 
     await page.getByRole('button', { name: 'Undo the last import' }).click()
-    await expect(page.getByRole('heading', { level: 2, name: 'Nothing in the ledger yet' })).toBeVisible()
+    await expect(page.getByText('Nothing yet. Play a level')).toBeVisible()
     await fileInput(page).setInputFiles({ name: 'renamed.txt', mimeType: 'application/octet-stream', buffer: file.raw })
     await expect(importPreview(page)).toBeVisible()
     await expect(importPreview(page)).toContainText('renamed.txt')
-    await expect(importPreview(page).locator('.es-ticket-line', { hasText: 'new here' }).locator('data')).toHaveAttribute('value', '10')
+    await expect(importPreview(page).locator('.es-sheet-line', { hasText: 'new here' }).locator('data')).toHaveAttribute('value', '10')
   })
 
   test('replace says what it would remove, and an undo puts it all back', async ({ page }) => {
@@ -865,7 +865,7 @@ test.describe('/evidence: counts by kind and module, with export and import', ()
     await choose(page, exportText(theirs, 'dev-e2e-0002'), 'theirs.json')
     await importPreview(page).getByRole('button', { name: 'Replace', exact: true }).click()
     await expect(importPreview(page).getByRole('button', { name: 'Replace', exact: true })).toHaveAttribute('aria-pressed', 'true')
-    await expect(importPreview(page).locator('.es-ticket-line', { hasText: 'not in the file: removed' }).locator('data')).toHaveAttribute('value', '10')
+    await expect(importPreview(page).locator('.es-sheet-line', { hasText: 'not in the file: removed' }).locator('data')).toHaveAttribute('value', '10')
     await expect(importPreview(page).getByRole('button', { name: 'Import and replace' })).toBeVisible()
     // Nothing is written until the stub is pulled.
     expect(await idsStored(page)).toEqual(mine.map((event) => event.id).sort())
@@ -887,14 +887,14 @@ test.describe('/evidence: counts by kind and module, with export and import', ()
     await importPreview(page).getByRole('button', { name: 'Cancel' }).click()
     await expect(importPreview(page)).toBeHidden()
     expect(await idsStored(page)).toEqual([])
-    await expect(page.getByRole('heading', { level: 2, name: 'Nothing in the ledger yet' })).toBeVisible()
+    await expect(page.getByText('Nothing yet. Play a level')).toBeVisible()
   })
 
   test('a clash, where one id says two things, is counted in the preview', async ({ page }) => {
     await open(page, '/evidence')
     await importEvents(page, [{ ...clone(EXAMPLES.item), id: 'same-id' }] as LedgerEvent[])
     await choose(page, exportText([{ ...clone(EXAMPLES.item), id: 'same-id', ref: 'item:gen/tr2.bubble-width/other' }] as LedgerEvent[]), 'clash.json')
-    await expect(importPreview(page).locator('.es-ticket-line', { hasText: 'clash: same id' }).locator('data')).toHaveAttribute('value', '1')
+    await expect(importPreview(page).locator('.es-sheet-line', { hasText: 'clash: same id' }).locator('data')).toHaveAttribute('value', '1')
   })
 
   test.describe('a file that is not ours is refused whole', () => {
@@ -941,7 +941,7 @@ test.describe('reset asks first, and offers an export (accept 2)', () => {
     const dialog = page.getByRole('dialog', { name: 'Erase this device?' })
     await expect(dialog).toBeVisible()
     await expect(dialog).toContainText('There is no copy anywhere else, and it cannot be undone.')
-    await expect(dialog.locator('.es-ticket-line', { hasText: 'graded results' }).locator('data')).toHaveAttribute('value', '10')
+    await expect(dialog.locator('.es-sheet-line', { hasText: 'graded results' }).locator('data')).toHaveAttribute('value', '10')
     await expect(dialog).toContainText('settings, back to their defaults')
     // The export is offered before the erasing, and holds the focus when the question opens.
     await expect(dialog.getByRole('button', { name: 'Export a copy first' })).toBeFocused()
@@ -998,14 +998,14 @@ test.describe('reset asks first, and offers an export (accept 2)', () => {
     await expect(plate(page, 'Reduced motion', 'Follow my system')).toHaveAttribute('aria-pressed', 'true')
     await expect(switchNamed(page, 'Game keys')).toHaveAttribute('aria-checked', 'true')
     expect(await motionAttribute(page)).toBeNull()
-    await expect(tapeLine(page, 'Where your evidence is kept', 'events').locator('data')).toHaveCount(1)
-    await expect(tapeLine(page, 'Where your evidence is kept', 'events').locator('data')).toHaveAttribute('value', '0')
+    await expect(tapeLine(page, 'Where your progress is kept', 'events').locator('data')).toHaveCount(1)
+    await expect(tapeLine(page, 'Where your progress is kept', 'events').locator('data')).toHaveAttribute('value', '0')
 
     // The file brings it all back.
     await open(page, '/evidence')
     await choose(page, file.text, file.name)
     await importPreview(page).getByRole('button', { name: 'Import and merge' }).click()
-    await expect(page.getByRole('heading', { level: 2, name: 'By kind' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'Everything counted' })).toBeVisible()
     expect(await idsStored(page)).toEqual(events.map((event) => event.id).sort())
   })
 
@@ -1141,7 +1141,7 @@ test.describe('axe finds no serious or critical violation (A§11.2)', () => {
     test(`/evidence at ${width} px, empty and with a ledger and a preview`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 })
       await open(page, '/evidence')
-      await expect(page.getByRole('heading', { level: 2, name: 'Nothing in the ledger yet' })).toBeVisible()
+      await expect(page.getByText('Nothing yet. Play a level')).toBeVisible()
       expect(await violations(page)).toEqual([])
       await importEvents(page, everyKind())
       await expect(moduleRow(page, 'tr2')).toContainText('The step loop')
@@ -1157,7 +1157,7 @@ test.describe('axe finds no serious or critical violation (A§11.2)', () => {
       await page.setViewportSize({ width, height: 900 })
       await open(page, '/design')
       await page.locator('#motion').scrollIntoViewIfNeeded()
-      await page.locator('.es-spec__motion-deck').getByRole('button', { name: 'Ring the bell' }).click()
+      await page.locator('.es-spec__motion-deck').getByRole('button', { name: 'Step', exact: true }).click()
       expect(await violations(page)).toEqual([])
     })
   }

@@ -1,0 +1,60 @@
+/*
+ * The debrief (REDESIGN §2.6), for every game that uses the kit's: the verdict, the ways on straight under it (the amber one first), then the
+ * plain sentence and what the game adds. One size for the words in every game's dock: the note size, as the coach strip's.
+ */
+
+.es-debrief {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+}
+
+/* The verdict is a section head, not a title: the display face is for titles only (REDESIGN §2.8, Type). */
+.es-debrief__verdict {
+  margin: 0;
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-title);
+  font-weight: var(--es-font-label-weight);
+  line-height: 1.2;
+}
+
+.es-debrief[data-verdict='Not yet'] .es-debrief__verdict {
+  color: var(--es-paper-ink-2);
+}
+
+.es-debrief__sentence {
+  max-width: 75ch;
+  margin: 0;
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-debrief__actions {
+  /* Brought into view at the run's end clear of the readout that stands at the screen's foot, and with the verdict and the drawing's top
+     over it. */
+  scroll-margin-block: 6rem 6rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2);
+}
+
+/* The amber way on takes the row's whole width, its label wrapping inside the button, and the local ways on stand under it. */
+.es-debrief__actions > .es-primary-button {
+  flex: 1 0 100%;
+}
+
+.es-debrief__actions .es-button {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+
+.es-debrief__body {
+  max-width: 75ch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}

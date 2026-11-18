@@ -1,0 +1,221 @@
+/*
+ * The first run's coach strip and callouts (REDESIGN §2.6, §3.5), loaded with the intro's chunk. Token roles only.
+ *
+ * The coach strip sits at the top of the dock, on the dock's paper, with an ink rule along its foot that parts it from the decision under
+ * it. Its Next carries the marker's ring (amber means now); Skip intro is a line of text. The callouts are the design system's ink discs,
+ * laid over the drawing and never taking a press. Nothing pulses: a disc and the strip appear in one quick fade, and under reduced motion
+ * they are drawn at once.
+ */
+
+.es-intro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+  margin: 0 0 var(--es-space-3);
+  padding-bottom: var(--es-space-3);
+  border-bottom: 2px solid var(--es-paper-ink);
+  animation: es-intro-in var(--es-dur-quick) var(--es-ease-settle) both;
+}
+
+.es-intro__title {
+  margin: 0;
+  font-size: var(--es-size-control);
+  font-weight: 700;
+  line-height: 1.25;
+  outline: none;
+}
+
+.es-intro__title:focus-visible {
+  outline: 3px solid var(--es-paper-ink);
+  outline-offset: 2px;
+}
+
+.es-intro__lead {
+  margin: 0;
+  max-width: 60ch;
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-intro__parts {
+  gap: 0;
+}
+
+.es-intro__parts .es-parts__row {
+  min-height: 0;
+  padding-block: var(--es-space-1);
+}
+
+.es-intro__parts .es-parts__sentence {
+  font-size: var(--es-size-caption);
+  line-height: 1.4;
+}
+
+/*
+ * Next and Skip intro stand under the step's title, before the list, so a long list never runs under them. Where the dock scrolls (the
+ * game's page, and a phone's pinned dock), the row stays at the top of the dock's own scroll while the list moves under it, and the list's
+ * foot fades into the dock's edge rather than showing a line cut through; in a lesson's Run at a desk, where the dock grows with the page,
+ * the row is in the flow.
+ */
+.es-intro__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-4);
+}
+
+/* Under 600 px of height nothing is sticky (REDESIGN 5.2): a phone on its side and a desk at 400% zoom have the row in the flow. */
+@media (min-height: 600px) {
+  .es-frame[data-placement='page'] .es-intro__actions {
+    position: sticky;
+    top: calc(-1 * var(--es-space-3));
+    z-index: 1;
+    margin-inline: calc(-1 * var(--es-space-4));
+    padding: var(--es-space-1) var(--es-space-4);
+    background: var(--es-paper);
+  }
+
+  .es-frame[data-placement='page'] .es-frame__dock-main:has(> .es-intro[data-intro='parts']) {
+    mask-image: linear-gradient(to bottom, var(--es-paper) calc(100% - 1.75rem), transparent);
+  }
+}
+
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame:is([data-placement='page'], [data-placement='embed']) .es-intro__actions {
+    position: sticky;
+    top: calc(-1 * var(--es-space-2));
+    z-index: 1;
+    margin-inline: calc(-1 * var(--es-space-4));
+    padding: 0 var(--es-space-4);
+    background: var(--es-paper);
+  }
+
+  .es-frame[data-placement='embed'] .es-frame__dock-main:has(> .es-intro[data-intro='parts']) {
+    mask-image: linear-gradient(to bottom, var(--es-paper) calc(100% - 1.75rem), transparent);
+  }
+}
+
+/* A control in the strip that the keyboard reaches (the look's trigger) is scrolled clear of the Next row standing at the dock's top. */
+.es-frame__dock-main:has(> .es-intro) {
+  scroll-padding-top: 3.5rem;
+}
+
+/*
+ * On the game's page at a desk, the parts and the look fill the dock's box: what the dock holds under the intro (the level's opening line,
+ * its controls) starts past the box's edge, so no line of it shows cut in half under the list. The strip's lines sit a little closer.
+ */
+@media (min-width: 64rem) {
+  .es-frame[data-placement='page'] .es-intro:is([data-intro='parts'], [data-intro='look']) {
+    min-height: 100%;
+    gap: var(--es-space-1);
+  }
+}
+
+/*
+ * Next carries the amber ring alone, without the marker's tab: its own word says what it does, and a pennant and "now" between Next and
+ * Skip intro read as a third control (the One Marker Rule's carriers are the cursor, the pennant of a place and the ring).
+ */
+.es-intro__ring .es-marker__tab {
+  display: none;
+}
+
+.es-intro__skip {
+  min-height: 2.75rem;
+  padding: 0 var(--es-space-1);
+  border: 0;
+  background: none;
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-note);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.es-intro__skip:hover {
+  text-decoration-thickness: 2px;
+}
+
+.es-intro__skip:focus-visible {
+  outline: 3px solid var(--es-paper-ink);
+  outline-offset: 2px;
+}
+
+/* On a phone the strip keeps to its title, the part it shows and its controls; the longer words are for the wide dock. */
+@media (max-width: 63.999rem) {
+  .es-intro__lead--wide,
+  .es-intro[data-intro='parts'] .es-intro__lead {
+    display: none;
+  }
+
+  .es-intro {
+    gap: var(--es-space-1);
+  }
+
+  /* While a phone's dock walks the parts one at a time, the part's own name heads it, and the strip's title is said to a reader only, so the
+     part's words are whole over the readout. */
+  .es-intro[data-intro='parts'] .es-intro__title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* On a phone the list shows one part at a time; the rest stay in the list, and Next walks it. */
+.es-intro[data-intro-walk] .es-parts__item {
+  display: none;
+}
+
+.es-intro[data-intro-walk='0'] .es-parts__item:nth-child(1),
+.es-intro[data-intro-walk='1'] .es-parts__item:nth-child(2),
+.es-intro[data-intro-walk='2'] .es-parts__item:nth-child(3),
+.es-intro[data-intro-walk='3'] .es-parts__item:nth-child(4),
+.es-intro[data-intro-walk='4'] .es-parts__item:nth-child(5),
+.es-intro[data-intro-walk='5'] .es-parts__item:nth-child(6),
+.es-intro[data-intro-walk='6'] .es-parts__item:nth-child(7),
+.es-intro[data-intro-walk='7'] .es-parts__item:nth-child(8),
+.es-intro[data-intro-walk='8'] .es-parts__item:nth-child(9),
+.es-intro[data-intro-walk='9'] .es-parts__item:nth-child(10),
+.es-intro[data-intro-walk='10'] .es-parts__item:nth-child(11),
+.es-intro[data-intro-walk='11'] .es-parts__item:nth-child(12) {
+  display: list-item;
+}
+
+/* ------------------------------------------------------------------------------------------------ the callouts */
+
+.es-intro-callouts {
+  position: absolute;
+  inset: 0;
+  z-index: 15;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.es-intro-callouts__at {
+  position: absolute;
+  animation: es-intro-in var(--es-dur-step) var(--es-ease-settle) both;
+}
+
+/* On a phone only the part the list shows is called out. */
+.es-intro-callouts__at:not([data-current]) {
+  visibility: hidden;
+}
+
+@keyframes es-intro-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) :is(.es-intro, .es-intro-callouts__at) {
+    animation: none;
+  }
+}
+
+:root[data-motion='reduce'] :is(.es-intro, .es-intro-callouts__at) {
+  animation: none;
+}

@@ -10,7 +10,7 @@ export function Component() {
   return (
     <div className="es-page" data-page="today">
       <header className="es-page__header">
-        <h1 className="es-page__title">Today</h1>
+        <h1 className="es-page__title">Review</h1>
         <p className="es-page__lead">{PAGE_LEAD}</p>
       </header>
       <TodayView />

@@ -155,11 +155,11 @@ describe('the scanner', () => {
   })
 
   test.each([
-    ['a slot named as a prop', `<TapeLabel slot="green">grp 2</TapeLabel>`],
+    ['a slot named as a prop', `<Label slot="green">grp 2</Label>`],
     ['a fragment link', `<a href="#main">Skip</a>`],
     ['a token in a style object', `<p style={{ color: 'var(--es-text-1)' }} />`],
     ['a token as a face', `<p style={{ fontFamily: 'var(--es-font-body)' }} />`],
-    ['a ticket number', `<Ticket head="No. 0042" />`],
+    ['a ticket number', `<Sheet head="No. 0042" />`],
     ['a word in prose', `<p>The red board, and the white one.</p>`],
     ['a token class', `<p className="bg-paper text-paper-ink font-display" />`],
   ])('passes %s', (_, snippet) => {

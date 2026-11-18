@@ -24,19 +24,19 @@
 - [Mini-SGLang: one request through four processes](md/tr1/l3-mini-sglang-four-processes.md): lesson `tr1.l3`, about 40 minutes [estimated]
 - ["Inside vLLM" and what moved by v0.33.0](md/tr1/l4-inside-vllm-and-what-moved.md): lesson `tr1.l4`, about 40 minutes [estimated]
 - [vLLM at the pin, by symbol: from create_completion to sample_tokens](md/tr1/l5-vllm-at-the-pin-by-symbol.md): lesson `tr1.l5`, about 40 minutes [estimated]
-- [SGLang at the pin: the overlap loop, result_queue, FutureMap, three streams and the Rust pieces](md/tr1/l6-sglang-at-the-pin.md): lesson `tr1.l6`, about 40 minutes [estimated]
+- [SGLang at the pin: the overlap loop, result_queue, FutureMap, three streams and the Rust pieces](md/tr1/l6-sglang-at-the-pin.md): lesson `tr1.l6`, about 48 minutes [estimated]
 - [Abort inside the engine: where the news goes and who frees the blocks](md/tr1/l7-abort-inside-the-engine.md): lesson `tr1.l7`, about 60 minutes [estimated]
 
 ### The step loop (`tr2`)
 
 - [Overview](md/tr2/index.md): what the module teaches, and its lessons
-- [One step, five calls: vLLM's busy loop at v0.33.0](md/tr2/l1-one-step-five-calls.md): lesson `tr2.l1`, about 35 minutes [estimated]
-- [One token budget: chunked prefill, recompute preemption, and defaults that depend on your GPU](md/tr2/l2-one-token-budget.md): lesson `tr2.l2`, about 34 minutes [estimated]
+- [One step, five calls: vLLM's busy loop at v0.33.0](md/tr2/l1-one-step-five-calls.md): lesson `tr2.l1`, about 33 minutes [estimated]
+- [One token budget: chunked prefill, recompute preemption, and defaults that depend on your GPU](md/tr2/l2-one-token-budget.md): lesson `tr2.l2`, about 33 minutes [estimated]
 - [Async scheduling closes the bubble, and costs a token](md/tr2/l3-async-scheduling-closes-the-bubble.md): lesson `tr2.l3`, about 50 minutes [estimated]
 - [The MRV2 delta: persistent state, GPU-side input prep, and why MRV1 still ships](md/tr2/l4-the-mrv2-delta.md): lesson `tr2.l4`, about 34 minutes [estimated]
 - [CUDA graphs: capture, replay, padding, and five modes](md/tr2/l5-cuda-graphs-capture-replay-padding-and-modes.md): lesson `tr2.l5`, about 45 minutes [estimated]
 - [Dispatch keys: which graph replays this step](md/tr2/l6-dispatch-keys-which-graph-replays-this-step.md): lesson `tr2.l6`, about 78 minutes [estimated]
-- [The same loop in SGLang, Mini-SGLang and TRT-LLM](md/tr2/l7-the-same-loop-elsewhere.md): lesson `tr2.l7`, about 21 minutes [estimated]
+- [The same loop in SGLang, Mini-SGLang and TRT-LLM](md/tr2/l7-the-same-loop-elsewhere.md): lesson `tr2.l7`, about 25 minutes [estimated]
 
 ### Profile a real engine (`tr3`)
 
@@ -62,7 +62,7 @@
 
 - [Overview](md/tr6/index.md): what the module teaches, and its lessons
 - [Where speculation lives in the step: draft, verify, the bonus token, the padded shape](md/tr6/l1-where-speculation-lives-in-the-step.md): lesson `tr6.l1`, about 35 minutes [estimated]
-- [The rejection sampler, exactly](md/tr6/l2-the-rejection-sampler-exactly.md): lesson `tr6.l2`, about 50 minutes [estimated]
+- [The rejection sampler, exactly](md/tr6/l2-the-rejection-sampler-exactly.md): lesson `tr6.l2`, about 70 minutes [estimated]
 - [Testing exactness: chi-square, power, and a real bug](md/tr6/l3-testing-exactness.md): lesson `tr6.l3`, about 40 minutes [estimated]
 - [Proposers: n-gram, suffix, draft model, EAGLE-3 and MTP, and what moved at v0.33.0](md/tr6/l4-proposers.md): lesson `tr6.l4`, about 35 minutes [estimated]
 - [The grammar mask's four phases, and its overlap with the forward (DP4's minimal recap inside)](md/tr6/l5-the-grammar-mask.md): lesson `tr6.l5`, about 40 minutes [estimated]

@@ -1,27 +1,30 @@
+import { useContext, useId } from 'react'
+import { drawInBand } from '@es/play'
+import { benchSession } from '@es/play/broken-bench/session'
 import { FLAW_FACTS } from '@es/play/broken-bench/flaws'
 import type { RulingView } from '@es/play/broken-bench/types'
 import { Button } from '@/design/components/Button'
-import { Icon } from '@/design/components/Glyph'
-import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
+import { NumberLine } from '@/design/components/NumberLine'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket } from '@/design/components/Ticket'
-import { Exhibits, RulingTicket } from './Ruling'
+import { useBest } from '@/games/kit/best'
+import { Debrief as Result } from '@/games/kit/Debrief'
+import { LessonRunContext } from '@/games/kit/lessonRun'
+import { verdictOf } from '@/games/kit/verdict'
+import { Production } from './Production'
+import { Mark, RulingBody } from './Ruling'
 import type { BenchOutcome, BenchRun } from './types'
+import './result.css'
 
 /*
- * The Inspection's debrief (GAMES.md §11 "Core loop", §2.1): the court reads its rulings. One sentence says where the run went wrong, or
- * that it did not, and names the flaw worth the most; the docket sets the cases side by side; and each ruling is read out with the
- * arithmetic, beside its exhibits: the corrected benchmark run again on a sheet of graph paper, the learner's own log where the stopwatch
- * lost time, and the flaw's real-world instance as claims.
+ * Broken benchmark's result (GAMES.md §11 "Core loop", §2.1; REDESIGN §2.6): the kit's debrief, filled. The verdict word comes from the
+ * grade's own data (`verdictOf`): Passed where enough reports stand, Not yet where they do not, and the sentence under it is the session's,
+ * written from the same grade, so a heading never sits over a body that says the opposite. Then the ways on (the next level first; in a lesson,
+ * the lesson's way on), the pass rule met or missed in figures, the learner's p99 and the reference's on one number line, and under it the
+ * report read out with its arithmetic.
  *
- * The page takes both columns on a wide screen (bench.css, "the debrief"): a single case sets its exhibits beside the verdict and the
- * ruling, and the court sets its verdict and docket across the top and each ruling beside its own exhibits. On a narrow one it stacks in
- * the order of the reading: the verdict, the ruling, its exhibits.
- *
- * The reference (the court's own recomputation) is read here and nowhere before: the view carries no ruling until the run is over, and
- * the court's number is never on the board while a case is open. In a graded attempt the pass is ASSESSMENT §4.3's [estimated]: the flaw,
- * the number and the range all right, on one case, or on four of five at the court.
+ * The result is the dock's; the diagram shows the corrected run in place of the case (View2D.tsx), for the report chosen in the docket.
+ * The reference is read only here: the view carries no ruling until the run is over, and its p99 is never on the board while a case is open.
  */
 
 export interface DebriefProps {
@@ -30,63 +33,68 @@ export interface DebriefProps {
   /** The level after this one, or null on the last. */
   next: { id: string; title: string } | null
   onNext: () => void
-  /** A graded attempt on a seed drawn now, or null where the page offers none. */
-  onNew: (() => void) | null
+  /** The report drawn in the diagram, by its place among the rulings, and the way to choose another. */
+  shown: number
+  onShow: (index: number) => void
+  /** Inside a lesson: the ways on are the lesson's, and none of them leaves it. */
+  embedded?: boolean
 }
 
-/** The engine's term leads in the debrief (GAMES.md §2.6, rule 2). */
-function leverName(lever: string): string {
-  if (lever === 'interval') return 'The range: about as tight as the sample it rests on'
-  return Object.hasOwn(FLAW_FACTS, lever) ? FLAW_FACTS[lever as keyof typeof FLAW_FACTS].term : lever
-}
+const figure = (value: number) => <span className="font-numeric">{value}</span>
 
-function Docket({ rulings }: { rulings: readonly RulingView[] }) {
-  const mark = (ok: boolean) => (
-    <span className="es-bench-verdict" data-ok={ok}>
-      <Icon name={ok ? 'check' : 'alert'} className="es-bench-verdict__mark" />
-      <span>{ok ? 'right' : 'wrong'}</span>
-    </span>
-  )
+/** A fresh seed the level's band accepts, from the browser's entropy: unseen, not secret. */
+const drawFresh = (level: string): number => drawInBand(benchSession, level, crypto.getRandomValues(new Uint32Array(1))[0])
+
+/** The learner's best on this level, from the ledger's runs of it. Rendered only on a page that has a ledger. */
+function Best({ level, cases }: { level: string; cases: number }) {
+  const best = useBest('broken-bench', level)
+  if (best === null) return null
+  const stood = Math.round(best.score * cases)
   return (
-    <div role="region" aria-label="The docket" tabIndex={0} className="overflow-x-auto">
-      <table className="w-full border-collapse text-left">
-        <caption className="pb-2 text-left font-bold">The docket: each case, and what the court found</caption>
+    <>
+      {' '}
+      Your best on this level: {figure(stood)} of {figure(cases)} {cases === 1 ? 'report' : 'reports'} stood ({figure(best.runs)} {best.runs === 1 ? 'run' : 'runs'} kept).
+    </>
+  )
+}
+
+function Docket({ rulings, shown, onShow }: { rulings: readonly RulingView[]; shown: number; onShow: (index: number) => void }) {
+  return (
+    <div role="region" aria-label="The reports" tabIndex={0} className="es-bench-docket">
+      <table>
+        <caption>Each report, and what the reference found. Show one to draw its corrected run.</caption>
         <thead>
           <tr>
-            <th scope="col" className="border-b border-edge py-2 pr-4 font-bold">
-              Case
-            </th>
-            <th scope="col" className="border-b border-edge py-2 pr-4 font-bold">
-              The flaw it had
-            </th>
-            <th scope="col" className="border-b border-edge py-2 pr-4 font-bold">
-              Flaw
-            </th>
-            <th scope="col" className="border-b border-edge py-2 pr-4 font-bold">
-              Number
-            </th>
-            <th scope="col" className="border-b border-edge py-2 pr-4 font-bold">
-              Range
-            </th>
-            <th scope="col" className="border-b border-edge py-2 text-right font-bold">
+            <th scope="col">Report</th>
+            <th scope="col">The flaw it had</th>
+            <th scope="col">Flaw</th>
+            <th scope="col">p99</th>
+            <th scope="col">Range</th>
+            <th scope="col">
               Interval score
-              <span className="block text-sm font-normal text-text-2">decades, lower is better</span>
+              <span className="es-bench-docket__unit">decades, lower is better</span>
             </th>
           </tr>
         </thead>
         <tbody>
-          {rulings.map((ruling) => (
-            <tr key={ruling.caseNo} className="border-b border-paper-rule">
-              <th scope="row" className="py-2 pr-4 text-left font-normal">
-                <span className="font-numeric">{ruling.caseNo}</span>
+          {rulings.map((ruling, index) => (
+            <tr key={ruling.caseNo} data-ruling={ruling.caseNo} data-right={ruling.right} data-shown={index === shown || undefined}>
+              <th scope="row">
+                <Button size="sm" variant={index === shown ? 'ink' : 'plate'} aria-pressed={index === shown} onClick={() => onShow(index)}>
+                  Show {ruling.caseNo}
+                </Button>
               </th>
-              <td className="py-2 pr-4">{FLAW_FACTS[ruling.trueFlaw].term}</td>
-              <td className="py-2 pr-4">{mark(ruling.flawOk)}</td>
-              <td className="py-2 pr-4">{mark(ruling.numberOk)}</td>
-              <td className="py-2 pr-4">{mark(ruling.intervalOk)}</td>
-              <td className="py-2 text-right">
-                <span className="font-numeric">{(ruling.scoreMilli / 1000).toFixed(2)}</span>
+              <td>{FLAW_FACTS[ruling.trueFlaw].term}</td>
+              <td>
+                <Mark ok={ruling.flawOk} />
               </td>
+              <td>
+                <Mark ok={ruling.numberOk} />
+              </td>
+              <td>
+                <Mark ok={ruling.intervalOk} />
+              </td>
+              <td className="es-bench-docket__score">{figure(Number((ruling.scoreMilli / 1000).toFixed(2)))}</td>
             </tr>
           ))}
         </tbody>
@@ -95,68 +103,85 @@ function Docket({ rulings }: { rulings: readonly RulingView[] }) {
   )
 }
 
-export function Debrief({ run, outcome, next, onNext, onNew }: DebriefProps) {
+export function Debrief({ run, outcome, next, onNext, shown, onShow, embedded = false }: DebriefProps) {
+  const againId = useId()
   const { debrief, grade } = outcome
-  const rulings = run.view.rulings ?? []
-  const single = run.view.cases === 1
+  const { view } = run
+  const rulings = view.rulings ?? []
+  const single = view.cases === 1
   const stood = rulings.filter((ruling) => ruling.right).length
-  const lever = debrief.names !== null && 'lever' in debrief.names ? leverName(debrief.names.lever) : null
-  const last = next === null
+  const verdict = verdictOf(grade, true)
+  const focus = rulings[Math.min(shown, rulings.length - 1)]
+
+  const newNumbers = () => run.restart(drawFresh(run.level))
+  const lesson = useContext(LessonRunContext)
+  const onward = lesson?.onward ?? null
+  const primary =
+    onward !== null ? (
+      <PrimaryButton onClick={() => onward.select()}>
+        {onward.label}
+      </PrimaryButton>
+    ) : next !== null ? (
+      <PrimaryButton onClick={onNext}>
+        {`Next level: ${next.title}`}
+      </PrimaryButton>
+    ) : embedded ? null : (
+      <TextLink to="/m/tr8">Open module TR8</TextLink>
+    )
 
   return (
-    <div className="es-bench-debrief" data-bench-debrief="" data-cases={single ? 'one' : 'many'}>
-      <Ticket
-        as="section"
-        width="full"
-        hole={false}
-        titleAs="h3"
-        title={grade.ok ? (single ? 'The ruling stands.' : 'The court is satisfied.') : single ? 'The ruling falls.' : 'The court is not satisfied.'}
-        className="es-bench-court"
-        stub={
-          last ? (
-            <Stub to="/m/tr8">Open TR8</Stub>
-          ) : (
-            <Stub onClick={onNext}>{`Next: ${next.title}`}</Stub>
-          )
-        }
-      >
-        <p className="es-type-body">{debrief.sentence}</p>
-        {lever ? (
-          <p>
-            <strong>The ruling worth the most:</strong> {lever}.
-          </p>
-        ) : null}
-        <p className="es-bench-score" data-score="">
+    <Result
+      className="es-bench-debrief"
+      verdict={verdict}
+      sentence={debrief.sentence}
+      actions={
+        <>
+          {primary}
+          <Button variant="quiet" aria-describedby={againId} onClick={() => (run.mode === 'graded' ? newNumbers() : run.restart())}>
+            Run again
+          </Button>
+          <Button variant="quiet" onClick={newNumbers}>
+            New numbers
+          </Button>
+        </>
+      }
+    >
+      <div className="es-bench-debrief__body" data-bench-debrief="" data-cases={single ? 'one' : 'many'}>
+        <p data-score="" data-stood={stood} data-needed={view.needed}>
           {single ? (
-            <>The pass is the flaw, the number and the range all right on this case.</>
+            <>The pass rule: the flaw, the p99 and the range all right on this report. {stood === 1 ? 'They were.' : 'They were not.'}</>
           ) : (
             <>
-              <Readout value={stood} tag="derived" size="sm" /> of <Readout value={run.view.cases} tag="derived" size="sm" /> rulings stood, and the court needs{' '}
-              <Readout value={run.view.needed} tag="estimated" size="sm" />. A ruling stands when its flaw, its number and its range are all right.
+              {figure(stood)} of {figure(view.cases)} reports stood, and the pass rule needs {figure(view.needed)}. A report stands when its flaw, its p99 and its range are all right.
             </>
           )}
         </p>
-        {single ? null : <Docket rulings={rulings} />}
-      </Ticket>
-
-      {rulings.map((ruling) => (
-        <div key={ruling.caseNo} className="es-bench-spread" data-ruling={ruling.caseNo} data-right={ruling.right}>
-          <RulingTicket ruling={ruling} cases={run.view.cases} />
-          <Exhibits ruling={ruling} />
-        </div>
-      ))}
-
-      <div className="es-bench-debrief__after flex flex-wrap items-center gap-4">
-        <Button variant="plate" onClick={() => run.restart()}>
-          Play this level again
-        </Button>
-        {onNew === null ? null : (
-          <Button variant="ink" onClick={onNew}>
-            New numbers
-          </Button>
+        <p id={againId} className="es-bench-debrief__again" data-run-again="">
+          <strong>Run again:</strong> {stood === view.cases ? 'every report stood, so there is nothing left to beat but a tighter range.' : `${view.cases - stood} of ${view.cases} did not stand.`}
+          {run.ledger ? <Best level={run.level} cases={view.cases} /> : null}
+        </p>
+        {single ? null : <Docket rulings={rulings} shown={shown} onShow={onShow} />}
+        {focus === undefined ? null : (
+          <>
+            <NumberLine
+              caption={single ? "Your p99 and the reference's, in milliseconds" : `Report ${focus.caseNo}: your p99 and the reference's, in milliseconds`}
+              min={0}
+              max={Math.max(focus.prediction.p99Us, focus.truth.p99Us, 1) / 1000 * 1.25}
+              digits={1}
+              unit="ms"
+              pins={[
+                { id: 'yours', kind: 'guess', value: focus.prediction.p99Us / 1000, label: 'your p99' },
+                { id: 'reference', kind: 'result', value: focus.truth.p99Us / 1000, label: "the reference's p99" },
+              ]}
+            />
+            <RulingBody ruling={focus} />
+          </>
         )}
-        {last ? null : <TextLink to="/m/tr8">The module this game belongs to (TR8)</TextLink>}
+        <details className="es-bench-more" data-bench-production="">
+          <summary>The flags that would have made it admissible</summary>
+          <Production />
+        </details>
       </div>
-    </div>
+    </Result>
   )
 }

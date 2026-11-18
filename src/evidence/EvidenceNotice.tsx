@@ -1,6 +1,6 @@
 import { useSyncExternalStore } from 'react'
-import { Stub } from '@/design/components/Stub'
-import { Ticket } from '@/design/components/Ticket'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
+import { Sheet } from '@/design/components/Sheet'
 import { getReadOnlyNotice, subscribeReadOnlyNotice } from './notice'
 
 /*
@@ -15,7 +15,7 @@ export function EvidenceNotice() {
   return (
     // The ticket hangs above the page, and the page starts a group's distance below it (the spacing role `space-8`).
     <div style={{ marginBlockEnd: 'var(--es-space-8)' }}>
-      <Ticket
+      <Sheet
         as="section"
         head="Read-only"
         meta="Nothing saved here"
@@ -24,7 +24,7 @@ export function EvidenceNotice() {
         error={notice.text}
         width="full"
         data-reason={notice.reason}
-        stub={<Stub onClick={() => window.location.reload()}>Reload</Stub>}
+        stub={<PrimaryButton onClick={() => window.location.reload()}>Reload</PrimaryButton>}
       />
     </div>
   )

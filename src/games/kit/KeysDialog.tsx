@@ -3,12 +3,12 @@ import { Fragment, useEffect, useRef, type ReactNode } from 'react'
 import { COMMON_KEYS } from '@es/play'
 import type { KeyBinding } from '@es/play'
 import { Button } from '@/design/components/Button'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 
 /*
  * The help dialog (ARCHITECTURE §6.8): every key the game answers to, the ones common to every game and then the game's own.
- * It is a Radix dialog, so it traps focus and closes on Escape. It gives focus back to whatever had it when the list opened: the Keys
- * button, or the place the learner was when they pressed `?`. The list sits on a ticket, the surface read text is printed on (D-047).
+ * It is a Radix dialog, so it traps focus and closes on Escape. It gives focus back to whatever had it when the list opened: the button
+ * that opened it (Keyboard in the instrument frame, Keys in the old shell), or the place the learner was when they pressed `?`. The list sits on a ticket, the surface read text is printed on (D-047).
  *
  * Focus goes back when the dialog is told to close, and not when it is gone. Radix gives it back from a timer that it sets as the
  * content unmounts, so for a task of the browser's own the focused control was removed and focus stood on the page itself, and a test that
@@ -35,7 +35,7 @@ export function KeysList({ keys }: { keys: readonly KeyBinding[] }) {
               {group.keys.map((key) => (
                 <Fragment key={key.id}>
                   <dt>
-                    <kbd className="inline-block min-w-8 rounded-plate border border-edge bg-surface-1 px-2 text-center">{key.label}</kbd>
+                    <kbd className="inline-block min-w-8 rounded-control border border-edge bg-surface-1 px-2 text-center">{key.label}</kbd>
                   </dt>
                   <dd>{key.description}</dd>
                 </Fragment>
@@ -91,11 +91,11 @@ export function KeysDialog({ keys, open, onOpenChange, children }: KeysDialogPro
             back.focus({ preventScroll: true })
           }}
         >
-          <Ticket
+          <Sheet
             as="div"
             width="full"
             hole={false}
-            head="Keys"
+            head="Keyboard"
             title={
               <Dialog.Title asChild>
                 <span>Keyboard</span>
@@ -112,7 +112,7 @@ export function KeysDialog({ keys, open, onOpenChange, children }: KeysDialogPro
                 <Button variant="ink">Close</Button>
               </Dialog.Close>
             </div>
-          </Ticket>
+          </Sheet>
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>

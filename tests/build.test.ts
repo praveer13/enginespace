@@ -156,7 +156,7 @@ describe('the app build', () => {
     }
     // A lazy chunk with a source path is a page, or a part of a game that a page loads on demand: its component (src/games/<id>/Game.tsx)
     // and the parts that component loads in turn (its debrief, and later its 3D scene), which stay in src/games/<id>/; or a part of
-    // the scene kit that a scene loads on demand (src/scene/postfx, W0-T15), or one of three's addons (OrbitControls); or a forge lab's
+    // the scene kit that a scene loads on demand (a scene's own chunk, W0-T15), or one of three's addons (OrbitControls); or a forge lab's
     // page (src/forge/ForgeLabPage.tsx), which the Lab page loads on demand with its host and its oracle, so that the labs that have no
     // forge never carry them (W1-T10); or the attempt of an item block (src/items/Attempt.tsx, W1-T04), which a lesson loads when the
     // learner starts one, and which brings the ledger; or the trace viewer (src/trace/TraceView.tsx, W1-T19), which the debrief of Back of
@@ -170,13 +170,23 @@ describe('the app build', () => {
     // W1b-T01), which the lesson loads when the learner starts a level, with the games' registry, so that a lesson's first paint carries no
     // game; verify:bundle prints it with the lesson's route and each game it embeds; or the reveal of a lesson's prediction
     // (src/content/render/reveal.ts, W1b-T02) and the readings of a module's predictions (packages/play/predictions/<module>.ts), which the
-    // box loads when the learner pulls the stub after the game, because they bring the games' worlds and the ledger with them.
+    // box loads when the learner pulls the stub after the game, because they bring the games' worlds and the ledger with them; or the
+    // answers of the predictions that are revealed at commit (packages/play/predictions/commit-<module>.ts, R-T09), which the box loads when
+    // the learner commits, for the same reason; or, on the lesson template (R-T10), the parts a lesson page loads after its first paint so its
+    // route stays within its allowance: a guess (src/content/render/Predict.tsx), the question set (src/items/ItemBlock.tsx), the level titles
+    // (src/content/render/levels.ts, the games' registry) and the ledger's reading with the way on (src/content/render/LessonLedger.tsx);
+    // or the lesson's dock (src/content/render/Dock.tsx, R-T11), which a lesson loads only where it is drawn, from 80rem wide and 44rem tall.
+    // or the count of reviews due that Course shows under its way on (src/map/dueCount.ts, R-T21), which Course loads after it has read the
+    // ledger, because it brings the deck and the item catalog with it.
+    // or the "Show on the machine" button of a figure that has a replay (src/content/render/ShowOnMachine.tsx, R-T45), which the lesson loads with
+    // that figure alone, and which loads the game's replay of the figure's state (src/games/<id>/replayDock.tsx, a part of the game, as above) on a click.
+    // A part's source in a game's popover (src/games/kit/PartSource.tsx, R-T11) is a part of a game, as above.
     // The compiled content is lazy too, but it is not a page: the next test holds it to account.
     const named = Object.entries(app.manifest)
       .filter(([key, chunk]) => chunk.isDynamicEntry && chunk.src !== undefined && !key.startsWith(CONTENT))
       .map(([key]) => key)
     const onDemand =
-      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/Attempt\.tsx|src\/content\/render\/(?:GameEmbed\.tsx|reveal\.ts)|packages\/play\/predictions\/tr[0-8][ab]?\.ts|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
+      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/Attempt\.tsx|src\/map\/dueCount\.ts|src\/content\/render\/(?:GameEmbed\.tsx|reveal\.ts|Predict\.tsx|LessonLedger\.tsx|levels\.ts|Dock\.tsx|ShowOnMachine\.tsx)|src\/items\/ItemBlock\.tsx|packages\/play\/predictions\/(?:commit-)?tr[0-8][ab]?\.ts|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
     expect(named.filter((key) => !pages.includes(key) && !onDemand.test(key))).toEqual([])
   })
 
@@ -211,35 +221,23 @@ describe('the app build', () => {
     expect(css).toContain('.es-prose')
   })
 
-  test("keeps the scene kit's 3D out of every page's first chunk: the scene and postfx load on demand (W0-T15)", () => {
-    const [postfxKey, postfx] = chunkNamed(app, 'postfx') ?? []
+  test("keeps the scene kit's 3D out of every page's first chunk: the scene loads on demand (W0-T15)", () => {
     const [designKey] = chunkNamed(app, 'Design') ?? []
     const [sceneKey, scene] = chunkNamed(app, 'SpecimenScene3D') ?? []
-    expect(postfx?.isDynamicEntry).toBe(true)
     expect(scene?.isDynamicEntry).toBe(true)
     const designFirst = staticClosure(app, designKey ?? 'no Design chunk')
-    expect(designFirst.has(postfxKey ?? 'no postfx chunk')).toBe(false)
     expect(designFirst.has(sceneKey ?? 'no scene chunk')).toBe(false)
     const [vendorKey] = chunkNamed(app, 'three-vendor') ?? []
     expect(designFirst.has(vendorKey ?? 'no three-vendor chunk')).toBe(false)
-    // three's post-processing addons live in the postfx chunk and nowhere else.
-    expect(chunksHolding(app, 'node_modules/three/examples/jsm/postprocessing/')).toEqual([postfx?.file])
   })
 
-  test("keeps scene kit v1's props in a scene-kit chunk that no page loads first, with the three addons they use (vite.config.ts)", () => {
-    const [kitKey, kit] = chunkNamed(app, 'scene-kit') ?? []
-    expect(kit).toBeDefined()
-    // Only the props are in it: not three, not React, not the kit's core.
-    const sources = app.sources.get(kit?.file ?? '') ?? []
-    expect(sources.filter((source) => !source.includes('src/scene/props/') && !source.startsWith(THREE_ADDONS))).toEqual([])
-    // They merge their geometry themselves (shape.ts's merged, W1b-T10), so three's geometry addon (BufferGeometryUtils) rides in no chunk
-    // at all, and no page's first chunk loads the props.
+  test('builds no scene-kit chunk, no postfx chunk, and none of three\'s post-processing or geometry addons (R-T44: the kitchen left the tree)', () => {
+    expect(chunkNamed(app, 'scene-kit')).toBeUndefined()
+    expect(chunkNamed(app, 'scene-kit-data')).toBeUndefined()
+    expect(chunkNamed(app, 'postfx')).toBeUndefined()
+    expect(chunksHolding(app, `${THREE_ADDONS}postprocessing/`)).toEqual([])
     expect(chunksHolding(app, `${THREE_ADDONS}utils/`)).toEqual([])
-    for (const page of readdirSync(path.join(root, 'src/pages')).filter((file) => file.endsWith('.tsx'))) {
-      const [key] = Object.entries(app.manifest).find(([, chunk]) => chunk.name === page.replace('.tsx', '') && chunk.isDynamicEntry) ?? []
-      if (key) expect(staticClosure(app, key).has(kitKey ?? 'no scene-kit chunk'), page).toBe(false)
-    }
-    expect(staticClosure(app, entryKeyOf(app)).has(kitKey ?? 'no scene-kit chunk')).toBe(false)
+    expect(existsSync(path.join(root, 'src/scene/props'))).toBe(false)
   })
 
   test("lists no chunk of the pages in the entry, and puts the route table beside it, with each route's chunks (D-059, A§6.10)", () => {

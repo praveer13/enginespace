@@ -31,7 +31,7 @@ import {
 } from '@es/play/loop/full/close'
 import { buildFullLevel, defaultLevers, inFullBand, stageInBand } from '@es/play/loop/full/levels'
 import { CARDS, drawnHost, graphBytes, hostOf, nightOf, resolvedMode, servingMode } from '@es/play/loop/full/night'
-import { fullSession, nightMeetsBar } from '@es/play/loop/full/session'
+import { fullSession, nightMeetsBar, wordsOf } from '@es/play/loop/full/session'
 import type { FullAction, FullState, Levers, StageWorld } from '@es/play/loop/full/types'
 import { hostPreset } from '@es/sim/host'
 import { gpuLayers } from '@es/sim/steploop'
@@ -60,7 +60,7 @@ const pct = (part: number, whole: number) => `${((100 * part) / whole).toFixed(1
 describe('the registry\'s record of close', () => {
   test('is a graded level of Service, between the V2 runner and the allergy card, with one stage and a practice seed that is in band', () => {
     const entry = FULL_SERVICE.find((level) => level.id === 'close')
-    expect(entry).toEqual({ id: 'close', title: 'Close the bubbles', graded: true, practiceSeed: 16, stages: ['close'] })
+    expect(entry).toEqual({ id: 'close', title: 'Every lever, on new numbers', graded: true, practiceSeed: 16, stages: ['close'] })
     expect(FULL_SERVICE.map((level) => level.id)).toEqual(['async', 'graphs', 'mrv2', 'close', 'mask'])
     expect(LOOP.levels.find((level) => level.id === 'close')).toBe(entry)
     expect(inFullBand('close', entry!.practiceSeed)).toBe(true)
@@ -135,7 +135,7 @@ describe('"everything on" fails graded seeds, through the memory budget (accepta
       if (night === null) {
         refused += 1
         expect(bytes).toBeGreaterThan(stage.graphBudget ?? 0)
-        expect(servingMode(stage, levers).changes.at(-1)).toContain('more memory than the reach-in can spare')
+        expect(servingMode(stage, levers).changes.at(-1)).toContain('more memory than the GPU can spare for them')
       } else hostPoor += nightMeetsBar(stage, night) ? 1 : 0
     }
     console.log(`everything on: the engine would not start on ${refused} of ${BANDED.length} served seeds (${pct(refused, BANDED.length)}); it met the bar on ${hostPoor}`)
@@ -375,10 +375,11 @@ describe('the session: one night, closed-book, graded by replay', () => {
     const s = start()
     const stage = s.level.stages[0]
     expect(fullSession.ask(s)).toEqual({ kind: 'predict', stage: 'close' })
-    expect(stage.prediction).toMatchObject({ kind: 'number', unit: '%' })
+    expect(stage.prediction).toMatchObject({ kind: 'number' })
+    expect(wordsOf('close', stage).prediction).toMatchObject({ kind: 'number', unit: '%' })
     const naive = nightOf(stage, stage.naive)!
     expect(stage.answer).toBe(Math.round((100 * naive.bubbleUs) / naive.clockUs))
-    expect(() => fullSession.reduce(s, { t: 'run', until: 'step' })).toThrow('commit the prediction before the first night')
+    expect(() => fullSession.reduce(s, { t: 'run', until: 'step' })).toThrow('commit the prediction before the first run')
     const called = play(s, { t: 'commit', prediction: stage.answer })
     expect(fullSession.ask(called)).toEqual({ kind: 'serve', stage: 'close' })
     // One ring, whether it asks for a fire or for the rest, serves the whole night.
@@ -419,7 +420,7 @@ describe('the session: one night, closed-book, graded by replay', () => {
     expect(() => fullSession.reduce(s, { t: 'lever', name: 'inputIds', value: 'both' })).toThrow('the input ids come from the "device" or the "host"')
     expect(play(s, { t: 'capture', sizes: ladder }).stages[0].levers.captureSizes).toEqual(ladder)
     expect(() => fullSession.reduce(s, { t: 'capture', sizes: [ladder[1], ladder[0]] })).toThrow('ascending order')
-    expect(() => fullSession.reduce(s, { t: 'capture', sizes: [stage.budget + 1] })).toThrow('there is no mold of')
+    expect(() => fullSession.reduce(s, { t: 'capture', sizes: [stage.budget + 1] })).toThrow('there is no capture size')
     expect(() => fullSession.reduce(play(fullSession.init(fullSession.level('async', 0))), { t: 'lever', name: 'inputIds', value: 'host' })).toThrow('has no lever "inputIds"')
   })
 
@@ -435,7 +436,7 @@ describe('the session: one night, closed-book, graded by replay', () => {
     expect(served).toMatchObject({ ok: false, refused: true, metric: 0, tokens: 0, violations: 0 })
     const view = fullSession.view(s)
     expect(view.stage.verdict).toMatchObject({ kind: 'refused', throughputPermille: null })
-    expect(view.stage.verdict?.reason).toContain('more memory than the reach-in can spare')
+    expect(view.stage.verdict?.reason).toContain('more memory than the GPU can spare for them')
     expect(fullSession.grade(s, fullSession.ghost(s.level))).toEqual({ score: 0, ok: false })
     const debrief = fullSession.debrief(s, fullSession.ghost(s.level))
     expect(debrief.sentence).toContain('would not start')

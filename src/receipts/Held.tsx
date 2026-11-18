@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { readStoredReport, verdictOf } from '@es/verify'
 import { Button } from '@/design/components/Button'
 import { Readout } from '@/design/components/Readout'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { Label } from '@/design/components/Label'
 import { TextLink } from '@/design/components/TextLink'
 import type { HeldChallenge } from './challenge'
 import { selectContents, useCopy } from './clipboard'
@@ -77,9 +77,9 @@ function ChallengeLine({ challenge }: { challenge: HeldChallenge }) {
           seed <code>{seed}</code>
         </span>
       </div>
-      <TapeLabel size="sm" tilt="none" className="es-held__state">
+      <Label size="sm" tilt="none" className="es-held__state">
         {CHALLENGES[state]}
-      </TapeLabel>
+      </Label>
       <p className="es-held__when">
         issued <time dateTime={event.at}>{formatWhen(event.at)}</time>
         {state === 'open' ? (
@@ -92,7 +92,7 @@ function ChallengeLine({ challenge }: { challenge: HeldChallenge }) {
           </>
         ) : usedBy !== undefined ? (
           <>
-            , used by <TextLink to={detailAddress(usedBy)}>receipt {shortHash(usedBy)}</TextLink>
+            , used by <TextLink to={detailAddress(usedBy)}>result {shortHash(usedBy)}</TextLink>
           </>
         ) : null}
       </p>
@@ -157,9 +157,9 @@ function ReceiptLine({ held }: { held: HeldReceipt }) {
         </span>
       </div>
       {worth === undefined ? null : (
-        <TapeLabel size="sm" tilt="none" className="es-held__worth">
+        <Label size="sm" tilt="none" className="es-held__worth">
           {worth}
-        </TapeLabel>
+        </Label>
       )}
       <p className="es-held__when">
         made <time dateTime={receipt.createdAt}>{formatWhen(receipt.createdAt)}</time> by grader {receipt.grader.version} on {gpuLine(receipt)}
@@ -181,9 +181,9 @@ function ReceiptLine({ held }: { held: HeldReceipt }) {
 /** The receipts, newest first. Exported for the tests. */
 export function ReceiptList({ held }: { held: readonly HeldReceipt[] }) {
   return (
-    <More items={held} label="receipts">
+    <More items={held} label="results">
       {(shown) => (
-        <ul className="es-held" aria-label="Receipts held by this browser">
+        <ul className="es-held" aria-label="Results held by this browser">
           {shown.map((entry) => (
             <ReceiptLine key={entry.sha256} held={entry} />
           ))}

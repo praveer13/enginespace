@@ -62,7 +62,8 @@ test.afterEach(async ({ page, watch }) => {
   await expectNoRefusal(watch)
 })
 
-const block = (page: Page): Locator => page.locator('section[data-block="item"]')
+/** The ticket of the lesson's Test. The Read section holds a ticket of its own beside its claims (REDESIGN §2.5), so the page has two. */
+const block = (page: Page): Locator => page.locator('#test section[data-block="item"]')
 const stub = (page: Page, name: RegExp | string): Locator => block(page).getByRole('button', { name })
 
 interface Ticket {
@@ -92,7 +93,7 @@ async function ticket(page: Page): Promise<Ticket> {
 /** Pulls the first stub: an attempt starts, with the entropy the page reads then. A refusal by the policy is the ledger's, which loads now. */
 async function start(page: Page, watch: Watch, queue?: number[]): Promise<void> {
   if (queue !== undefined) await page.evaluate((seeds) => void (window.__queue = seeds), queue)
-  await stub(page, 'Start items').click()
+  await stub(page, 'Start questions').click()
   await expect(block(page)).toHaveAttribute('data-phase', 'asking')
   await expectNoRefusal(watch)
 }
@@ -119,7 +120,7 @@ async function fill(page: Page, which: 'right' | 'wrong', sure?: string): Promis
 }
 
 async function check(page: Page): Promise<void> {
-  await stub(page, /Check the ticket/).click()
+  await stub(page, /Check answer/).click()
   await expect(block(page)).toHaveAttribute('data-phase', 'revealed')
   await quiet(page, 300)
 }
@@ -171,7 +172,7 @@ async function play(page: Page, plan: ('right' | 'wrong')[]): Promise<number[]> 
     const current = await fill(page, which)
     seeds.push(current.seed)
     await check(page)
-    await stub(page, index === plan.length - 1 ? /Tally the tickets/ : /Next ticket/).click()
+    await stub(page, index === plan.length - 1 ? /See the result/ : /Next question/).click()
     if (index < plan.length - 1) await expect(block(page)).toHaveAttribute('data-phase', 'asking')
   }
   await expect(block(page)).toHaveAttribute('data-phase', 'done')
@@ -191,11 +192,11 @@ test.describe('accept 2', () => {
 
     await start(page, watch)
     const first = await ticket(page)
-    await expect(block(page).locator('.es-ticket__foot')).toContainText(`seed ${first.seed.toString(16).toUpperCase().padStart(8, '0')}`)
-    await expect(block(page).locator('.es-ticket__foot')).toContainText('unseen')
+    await expect(block(page).locator('.es-sheet__foot')).toContainText(`Seed ${first.seed.toString(16).toUpperCase().padStart(8, '0')}`)
+    await expect(block(page).locator('.es-sheet__foot')).toContainText("new numbers")
     const attemptOne = await play(page, ['right', 'wrong', 'right'])
 
-    await expect(block(page).getByRole('heading', { name: '2 of 3 right' })).toBeVisible()
+    await expect(block(page).getByRole('heading', { name: '2 of 3: not yet. New numbers when you retry.' })).toBeVisible()
     await stub(page, 'New numbers').click()
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
     const attemptTwo = await play(page, ['right', 'right', 'right'])
@@ -270,10 +271,10 @@ test.describe('a ticket', () => {
     // Item 1, numeric, wrong, sure. Item 2, numeric, right, no tap. Item 3, a choice, right, a guess.
     const one = await fill(page, 'wrong', 'sure')
     await check(page)
-    await stub(page, /Next ticket/).click()
+    await stub(page, /Next question/).click()
     const two = await fill(page, 'right')
     await check(page)
-    await stub(page, /Next ticket/).click()
+    await stub(page, /Next question/).click()
     const three = await fill(page, 'right', 'guess')
     await check(page)
 
@@ -314,11 +315,11 @@ test.describe('a ticket', () => {
   test('an empty slip, and a word, are asked for again and graded nothing; a choice needs a tick', async ({ page, watch }) => {
     await open(page, ROUTE)
     await start(page, watch, SEEDS)
-    await stub(page, /Check the ticket/).click()
-    await expect(block(page).getByRole('alert')).toContainText('Write a number, in µs, and then check the ticket.')
+    await stub(page, /Check answer/).click()
+    await expect(block(page).getByRole('alert')).toContainText('Write a number, in µs, then check it.')
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
     await field(page).fill('about two thousand')
-    await stub(page, /Check the ticket/).click()
+    await stub(page, /Check answer/).click()
     await expect(block(page).getByRole('alert')).toContainText('Write a number')
     await expect(field(page)).toHaveAttribute('aria-invalid', 'true')
     await field(page).fill('1,000')
@@ -327,13 +328,13 @@ test.describe('a ticket', () => {
     // Item 3 is a choice.
     await fill(page, 'right')
     await check(page)
-    await stub(page, /Next ticket/).click()
+    await stub(page, /Next question/).click()
     await fill(page, 'right')
     await check(page)
-    await stub(page, /Next ticket/).click()
+    await stub(page, /Next question/).click()
     await expect(block(page).locator('fieldset.es-item__choice')).toBeVisible()
-    await stub(page, /Check the ticket/).click()
-    await expect(block(page).getByRole('alert')).toContainText('Tick one line')
+    await stub(page, /Check answer/).click()
+    await expect(block(page).getByRole('alert')).toContainText('Choose one answer')
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
   })
 
@@ -343,7 +344,7 @@ test.describe('a ticket', () => {
     for (let item = 0; item < 2; item += 1) {
       await fill(page, 'right')
       await check(page)
-      await stub(page, /Next ticket/).click()
+      await stub(page, /Next question/).click()
     }
     const current = await fill(page, 'wrong', 'guess')
     await check(page)
@@ -357,8 +358,8 @@ test.describe('a ticket', () => {
     }
     await expect(block(page).locator('.es-item__option[data-yours="true"] .es-item__mark')).toContainText('Your pick.')
     await expect(block(page).locator('.es-item__option[data-key="true"] .es-item__mark')).toContainText('Right.')
-    await stub(page, /Tally the tickets/).click()
-    await expect(block(page).getByRole('heading', { name: '2 of 3 right' })).toBeVisible()
+    await stub(page, /See the result/).click()
+    await expect(block(page).getByRole('heading', { name: '2 of 3: not yet. New numbers when you retry.' })).toBeVisible()
     await expect(block(page).locator('.es-item__lines li')).toHaveText([/1.*right/s, /2.*right/s, /3.*missed/s])
   })
 })
@@ -391,7 +392,7 @@ test.describe('the keyboard', () => {
       heading.tabIndex = -1
       heading.focus()
     })
-    await tabTo(page, stub(page, 'Start items'))
+    await tabTo(page, stub(page, 'Start questions'))
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
     await expectNoRefusal(watch)
@@ -406,7 +407,7 @@ test.describe('the keyboard', () => {
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'revealed')
     await expect(block(page).getByRole('heading', { name: 'Right.' })).toBeFocused()
-    await tabTo(page, stub(page, /Next ticket/))
+    await tabTo(page, stub(page, /Next question/))
     await page.keyboard.press('Enter')
 
     // Item 2, numeric again, with a confidence tap by keyboard.
@@ -419,10 +420,10 @@ test.describe('the keyboard', () => {
     await tabTo(page, stub(page, 'sure'))
     await page.keyboard.press('Enter')
     await expect(stub(page, 'sure')).toHaveAttribute('aria-pressed', 'true')
-    await tabTo(page, stub(page, /Check the ticket/))
+    await tabTo(page, stub(page, /Check answer/))
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'revealed')
-    await tabTo(page, stub(page, /Next ticket/))
+    await tabTo(page, stub(page, /Next question/))
     await page.keyboard.press('Enter')
 
     // Item 3, a choice: the radios are one group, and the arrow keys move through it.
@@ -435,12 +436,12 @@ test.describe('the keyboard', () => {
     await tabTo(page, block(page).getByRole('radio').first())
     for (let presses = 0; presses < 5 && !(await radio.isChecked()); presses += 1) await page.keyboard.press('ArrowDown')
     await expect(radio).toBeChecked()
-    await tabTo(page, stub(page, /Check the ticket/))
+    await tabTo(page, stub(page, /Check answer/))
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'revealed')
-    await tabTo(page, stub(page, /Tally the tickets/))
+    await tabTo(page, stub(page, /See the result/))
     await page.keyboard.press('Enter')
-    await expect(block(page).getByRole('heading', { name: '3 of 3 right' })).toBeFocused()
+    await expect(block(page).getByRole('heading', { name: '3 of 3: passed' })).toBeFocused()
     await tabTo(page, stub(page, 'New numbers'))
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
@@ -455,7 +456,7 @@ test.describe('motion', () => {
     await open(page, ROUTE)
     await start(page, watch, SEEDS)
     await fill(page, 'right')
-    await stub(page, /Check the ticket/).click()
+    await stub(page, /Check answer/).click()
     const reveal = block(page).locator('.es-item__reveal')
     await expect(reveal).toBeVisible()
     const motion = await reveal.evaluate((element) => ({
@@ -468,20 +469,20 @@ test.describe('motion', () => {
   })
 })
 
-test.describe('with motion, the reveal is fed out in steps', () => {
-  test('the feed runs on the printer\'s duration and ends with everything showing', async ({ page, watch }) => {
+test.describe('with motion, the reveal is drawn at its end', () => {
+  test('the printer\'s feed is retired: the reveal is there at once, with no clip and no animation, and the verdict\'s focus ring keeps its sides', async ({ page, watch }) => {
     await open(page, ROUTE)
     await start(page, watch, SEEDS)
     await fill(page, 'right')
-    await stub(page, /Check the ticket/).click()
+    await stub(page, /Check answer/).click()
     const reveal = block(page).locator('.es-item__reveal')
     await expect(reveal).toBeVisible()
-    const duration = await reveal.evaluate((element) => getComputedStyle(element).animationDuration)
-    expect(duration).toBe('0.42s')
-    await quiet(page, 300)
-    expect(await page.evaluate(() => document.getAnimations().filter((animation) => (animation as CSSAnimation).animationName === 'es-item-feed' && animation.playState === 'running').length)).toBe(0)
-    // The feed holds no clip once it has run, so nothing of the reveal is cut off: the ring of the verdict that takes focus keeps its sides.
-    expect(await reveal.evaluate((element) => getComputedStyle(element).clipPath)).toBe('none')
+    const motion = await reveal.evaluate((element) => ({
+      name: getComputedStyle(element).animationName,
+      clip: getComputedStyle(element).clipPath,
+      running: document.getAnimations().filter((animation) => (animation as CSSAnimation).animationName === 'es-item-feed').length,
+    }))
+    expect(motion).toEqual({ name: 'none', clip: 'none', running: 0 })
   })
 })
 
@@ -507,23 +508,23 @@ for (const width of [360, 1280]) {
       await audit('idle')
       await start(page, watch, SEEDS)
       await audit('asking, numeric')
-      await stub(page, /Check the ticket/).click()
+      await stub(page, /Check answer/).click()
       await audit('asking, a word where a number belongs')
       await fill(page, 'wrong', 'sure')
       await check(page)
       await audit('revealed, wrong, numeric')
-      await stub(page, /Next ticket/).click()
+      await stub(page, /Next question/).click()
       await fill(page, 'right', 'think')
       await check(page)
       await audit('revealed, right, numeric')
-      await stub(page, /Next ticket/).click()
+      await stub(page, /Next question/).click()
       await audit('asking, a choice')
-      await stub(page, /Check the ticket/).click()
+      await stub(page, /Check answer/).click()
       await audit('asking, a choice with no tick')
       await fill(page, 'wrong', 'guess')
       await check(page)
       await audit('revealed, wrong, a choice')
-      await stub(page, /Tally the tickets/).click()
+      await stub(page, /See the result/).click()
       await audit('the tally')
     })
 
@@ -541,15 +542,15 @@ for (const width of [360, 1280]) {
       await fill(page, 'wrong', 'sure')
       await check(page)
       await reflows('revealed, numeric')
-      await stub(page, /Next ticket/).click()
+      await stub(page, /Next question/).click()
       await fill(page, 'right')
       await check(page)
-      await stub(page, /Next ticket/).click()
+      await stub(page, /Next question/).click()
       await reflows('asking, a choice')
       await fill(page, 'wrong', 'guess')
       await check(page)
       await reflows('revealed, a choice')
-      await stub(page, /Tally the tickets/).click()
+      await stub(page, /See the result/).click()
       await reflows('the tally')
     })
   })

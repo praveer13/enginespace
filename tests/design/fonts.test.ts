@@ -4,6 +4,8 @@
  *   - src/design/fonts.css declares exactly those files, each on the site's own origin.
  *   - Every font role starts with one of those faces.
  *   - Each face's licence file sits beside it, and NOTICE carries each licence.
+ * R-T16 (REDESIGN 2.8): Data Book has three faces, down from five. Doto, Handjet and Permanent Marker left public/fonts/, fonts.json,
+ * fonts.css and NOTICE with their licences.
  */
 import { describe, expect, test } from 'bun:test'
 import { createHash } from 'node:crypto'
@@ -61,6 +63,24 @@ postcss.parse(fontsCss).walkAtRules('font-face', (rule) => {
 })
 
 describe('the self-hosted faces', () => {
+  test('fonts.json pins three faces: Big Shoulders Display, Atkinson Hyperlegible and its Mono', () => {
+    expect([...new Set(manifest.faces.map((face) => face.family))].sort()).toEqual(['Atkinson Hyperlegible', 'Atkinson Hyperlegible Mono', 'Big Shoulders Display'])
+  })
+
+  test('the faces that left are gone from public/fonts, fonts.css and NOTICE, with their licences', () => {
+    const files = readdirSync(FONTS)
+    const notice = readFileSync(path.join(root, 'NOTICE'), 'utf8')
+    for (const gone of ['Doto', 'Handjet', 'Permanent Marker']) {
+      expect(fontsCss).not.toContain(gone)
+      expect(notice).not.toContain(gone)
+      expect(files.filter((file) => file.toLowerCase().includes(gone.toLowerCase().replace(' ', '')) || file.toLowerCase().includes(gone.toLowerCase().replace(' ', '-')))).toEqual([])
+    }
+    for (const role of ['font-numeric', 'font-readout', 'font-label'] as const) {
+      const family = roleOf(role)
+      expect(family.kind === 'font' ? family.family[0] : '', role).toMatch(/^Atkinson Hyperlegible/)
+    }
+  })
+
   test('every woff2 under public/fonts is in the manifest, pinned by its SHA-256', () => {
     const files = readdirSync(FONTS).filter((name) => name.endsWith('.woff2'))
     expect(files.sort()).toEqual(manifest.faces.map((face) => face.file).sort())

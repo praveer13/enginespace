@@ -54,8 +54,8 @@ export function axisTicks(window: TimeWindow, maxTicks: number): number[] {
 }
 
 /** How long the track slides when the clock advances, in ms: the bell's duration, or nothing under reduced motion. */
-export function scrollMs(bellMs: number, reducedMotion: boolean): number {
-  return reducedMotion ? 0 : Math.max(0, bellMs)
+export function scrollMs(stepMs: number, reducedMotion: boolean): number {
+  return reducedMotion ? 0 : Math.max(0, stepMs)
 }
 
 /** A tick's label: the clock value with its unit, which the label layer prints in the numeral face. */

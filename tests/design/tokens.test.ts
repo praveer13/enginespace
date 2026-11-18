@@ -67,8 +67,8 @@ describe('every role reaches CSS, Tailwind and the scenes', () => {
       'paper',
       'paper-ink',
       'paper-ink-2',
-      'lamp',
-      'tape',
+      'marker',
+      'slip',
       'text-1',
       'text-2',
       'text-3',
@@ -116,20 +116,17 @@ describe('every role reaches CSS, Tailwind and the scenes', () => {
 
   test('the scene materials are colours three can parse, taken from the roles', () => {
     const tokens = staticSceneTokens()
-    const { stainless, paper, tape, heatLamp, fluorescent } = tokens.materials
-    expect(stainless.color).toBe(resolveColor('surface-1'))
-    expect(paper.color).toBe(resolveColor('paper'))
-    expect(tape.color).toBe(resolveColor('tape'))
-    expect(heatLamp.color).toBe(resolveColor('lamp'))
-    expect(fluorescent.skyColor).toBe(resolveColor('light-fluorescent'))
-    for (const color of [stainless.color, paper.color, tape.color, heatLamp.color, ...tokens.palette]) expect(color).toMatch(/^#[0-9a-f]{6}$/)
-    expect(tokens.motion.bellMs).toBe(240)
+    const { fluorescent } = tokens.materials
+    expect(fluorescent.skyColor).toBe(resolveColor('light-ambient'))
+    expect(fluorescent.groundColor).toBe(resolveColor('surface-0'))
+    for (const color of [fluorescent.skyColor, fluorescent.groundColor, ...tokens.palette]) expect(color).toMatch(/^#[0-9a-f]{6}$/)
+    expect(tokens.motion.stepMs).toBe(240)
     expect(tokens.motion.reduced).toBe(false)
   })
 
   test('under reduced motion the scenes read zero durations', () => {
     const reduced = sceneTokensFrom((variable) => (variable.startsWith('--es-dur-') ? '0ms' : computedReader(tokensText)(variable)))
-    expect(reduced.motion).toMatchObject({ quickMs: 0, bellMs: 0, feedMs: 0, settleMs: 0, reduced: true })
+    expect(reduced.motion).toMatchObject({ quickMs: 0, stepMs: 0, feedMs: 0, settleMs: 0, reduced: true })
   })
 })
 
@@ -149,7 +146,7 @@ describe('contrast (ARCHITECTURE §11.2)', () => {
       'text-3',
       'paper-ink',
       'paper-ink-2',
-      'tape-ink',
+      'slip-ink',
       'focus',
       'edge',
       'status-ok',
@@ -236,8 +233,8 @@ describe('verify:tokens', () => {
     const { status, out } = run()
     expect(status).toBe(0)
     for (const name of ROLE_NAMES) expect(out).toContain(`  ${name} `)
-    expect(out).toContain('#ccd1d4')
-    expect(out).toContain('Doto, Handjet, monospace')
+    expect(out).toContain('#e9ece6')
+    expect(out).toContain('Atkinson Hyperlegible Mono, Atkinson Hyperlegible, monospace')
     expect(out).toContain('verify:tokens passed')
   })
 
@@ -257,7 +254,7 @@ describe('verify:tokens', () => {
   }
 
   const fixtures: [string, (css: string) => string, RegExp][] = [
-    ['system-colour', (css) => css.replace('--es-surface-0: #ccd1d4;', '--es-surface-0: Canvas;'), /system colour.*Canvas/],
+    ['system-colour', (css) => css.replace('--es-surface-0: #e9ece6;', '--es-surface-0: Canvas;'), /system colour.*Canvas/],
     ['system-colour-text', (css) => css.replace('--es-text-1: #17191d;', '--es-text-1: CanvasText;'), /system colour.*CanvasText/],
     [
       'system-font-stack',
@@ -265,7 +262,7 @@ describe('verify:tokens', () => {
       /system font stack/,
     ],
     ['empty-value', (css) => css.replace('--es-paper: #fafaf6;', '--es-paper: ;'), /empty value: --es-paper/],
-    ['marker', (css) => css.replace('--es-lamp: #ffb547;', '--es-lamp: #ffb547; /* placeholder until DESIGN.md */'), /placeholder/],
+    ['marker', (css) => css.replace('--es-marker: #ffb547;', '--es-marker: #ffb547; /* placeholder until DESIGN.md */'), /placeholder/],
   ]
 
   test.each(fixtures)('fails on a stylesheet with one placeholder: %s', (name, edit, message) => {

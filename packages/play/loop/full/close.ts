@@ -105,21 +105,12 @@ export function naiveLevers(slots: number, budget: number): Levers {
   return { async: false, inputIds: 'host', graphMode: 'NONE', captureSizes: vllmCaptureSizes({ maxNumSeqs: slots, maxBatchedTokens: budget }), runner: 'v1', maskOverlap: true }
 }
 
-export const CLOSE_COPY = {
-  title: 'Close the bubbles',
-  prompt:
-    "Tonight's tickets are all due at once. Choose the configuration from the cards before a single fire: whether the next call is written during the fire and where its ids come from, the runner, the drilled routines and the molds on the rack. One night is served, and the house's own night is the bar it is judged by.",
-  question: 'With nothing switched on (the legacy runner, the next call written after the fire, no routine drilled), what share of the night does the line sit dark?',
-} as const
-
 /** The stage before its house is known: everything a seed draws, the naive configuration, and a placeholder for the house. */
 export function closeDraft(seed: Seed): Draft {
   const d = drawClose(seed)
   const naive = naiveLevers(d.slots, d.budget)
   return {
     id: 'close',
-    title: CLOSE_COPY.title,
-    prompt: CLOSE_COPY.prompt,
     card: d.card,
     levers: ['async', 'inputIds', 'runner', 'graphMode', 'capture'],
     start: naive,
@@ -131,7 +122,7 @@ export function closeDraft(seed: Seed): Draft {
     slackPermille: 0,
     nights: 1,
     sealed: true,
-    prediction: { kind: 'number', question: CLOSE_COPY.question, unit: '%', tolerancePermille: 150 },
+    prediction: { kind: 'number', tolerancePermille: 150 },
     slots: d.slots,
     budget: d.budget,
     workloadSeed: seed,

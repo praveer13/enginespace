@@ -74,7 +74,7 @@ const KEPT = 4096
 
 /** Whether `seed` makes `id` a fair question. */
 export function inLevelBand(id: string, seed: Seed): boolean {
-  if (!isLevelId(id)) throw new RangeError(`The Reach-In has no level "${id}"`)
+  if (!isLevelId(id)) throw new RangeError(`KV page pool has no level "${id}"`)
   const key = `${id}/${seed}`
   let answer = known.get(key)
   if (answer === undefined) {

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react'
 import type { ReceiptRecord, Sha256 } from '@es/ledger'
-import { PrinterTape } from '@/design/components/PrinterTape'
-import type { PrinterTapeLine } from '@/design/components/PrinterTape'
+import { ReadoutStrip } from '@/design/components/ReadoutStrip'
+import type { ReadoutStripLine } from '@/design/components/ReadoutStrip'
 import { Readout } from '@/design/components/Readout'
-import { Ticket } from '@/design/components/Ticket'
+import { Count } from '@/evidence/Count'
+import { Sheet } from '@/design/components/Sheet'
 import { CHALLENGE_TTL_DAYS, countChallenges } from './challenge'
 import type { HeldChallenge } from './challenge'
 import { CHALLENGES, LEAD, RECEIPTS, TAPE } from './copy'
@@ -48,17 +49,16 @@ export interface ReceiptsViewProps {
 
 /** The page's tape: how many challenges are in each state and how many receipts the browser holds. */
 function Tape({ ready, counts, receipts }: { ready: boolean; counts: ReturnType<typeof countChallenges>; receipts: number }) {
-  const lines: PrinterTapeLine[] = (['open', 'used', 'expired'] as const).map((state) => ({
+  const lines: ReadoutStripLine[] = (['open', 'used', 'expired'] as const).map((state) => ({
     id: state,
     label: CHALLENGES[state],
-    value: <Readout value={counts[state]} tag="measured" size="sm" />,
+    value: <Count value={counts[state]} />,
   }))
-  lines.push({ id: 'receipts', label: 'receipts', value: <Readout value={receipts} tag="measured" size="sm" /> })
+  lines.push({ id: 'receipts', label: 'results', value: <Count value={receipts} /> })
   const empty = counts.open + counts.used + counts.expired + receipts === 0
   return (
-    <PrinterTape
+    <ReadoutStrip
       label={TAPE.label}
-      stamp={TAPE.stamp}
       state={!ready ? 'loading' : empty ? 'empty' : 'default'}
       empty={TAPE.empty}
       lines={ready && !empty ? lines : []}
@@ -76,16 +76,16 @@ function Lists({ props, held, records }: { props: ReceiptsViewProps; held: reado
           {CHALLENGES.title}
         </h2>
         <p className="es-panel__lead">
-          Every challenge this browser has issued. A token is open until a receipt uses it, and expires <Readout value={CHALLENGE_TTL_DAYS} tag="estimated" size="sm" /> days after it is issued.
+          Every challenge this browser has issued. A token is open until a receipt file uses it, and expires <Readout value={CHALLENGE_TTL_DAYS} tag="estimated" size="sm" /> days after it is issued.
         </p>
         {!ready ? (
-          <Ticket as="div" width="full" hole={false} state="loading" loadingLabel={CHALLENGES.loading} />
+          <Sheet as="div" width="full" hole={false} state="loading" loadingLabel={CHALLENGES.loading} />
         ) : held.length === 0 ? (
-          <Ticket as="div" width="full" hole={false} state="empty" empty={CHALLENGES.empty} />
+          <Sheet as="div" width="full" hole={false} state="empty" empty={CHALLENGES.empty} />
         ) : (
-          <Ticket as="div" width="full" hole={false} className="es-held-ticket">
+          <Sheet as="div" width="full" hole={false} className="es-held-ticket">
             <ChallengeList held={held} />
-          </Ticket>
+          </Sheet>
         )}
       </section>
       <section aria-labelledby="rc-receipts" className="es-panel">
@@ -94,13 +94,13 @@ function Lists({ props, held, records }: { props: ReceiptsViewProps; held: reado
         </h2>
         <p className="es-panel__lead">{RECEIPTS.lead}</p>
         {!ready ? (
-          <Ticket as="div" width="full" hole={false} state="loading" loadingLabel={RECEIPTS.loading} />
+          <Sheet as="div" width="full" hole={false} state="loading" loadingLabel={RECEIPTS.loading} />
         ) : records.length === 0 ? (
-          <Ticket as="div" width="full" hole={false} state="empty" empty={RECEIPTS.empty} />
+          <Sheet as="div" width="full" hole={false} state="empty" empty={RECEIPTS.empty} />
         ) : (
-          <Ticket as="div" width="full" hole={false} className="es-held-ticket">
+          <Sheet as="div" width="full" hole={false} className="es-held-ticket">
             <ReceiptList held={records} />
-          </Ticket>
+          </Sheet>
         )}
       </section>
       <ImportPanel ready={ready} readOnly={props.readOnly} memoryOnly={props.backend === 'memory'} state={props.importer} onChoose={props.onChoose} onClear={props.onClear} />
@@ -115,11 +115,11 @@ function Opened({ hash, ready, held, records }: { hash: Sha256; ready: boolean; 
     <div className="es-page__main es-receipts__opened">
       <BackLink />
       {!ready ? (
-        <Ticket as="section" width="wide" state="loading" loadingLabel={RECEIPTS.loadingDetail} tabIndex={-1} data-opened="" />
+        <Sheet as="section" width="wide" state="loading" loadingLabel={RECEIPTS.loadingDetail} tabIndex={-1} data-opened="" />
       ) : found === undefined ? (
-        <Ticket as="section" width="wide" title={RECEIPTS.notFound} titleAs="h2" foot={[`Hash ${hash.slice(0, 8)}`]} tabIndex={-1} data-opened="">
+        <Sheet as="section" width="wide" title={RECEIPTS.notFound} titleAs="h2" foot={[`Hash ${hash.slice(0, 8)}`]} tabIndex={-1} data-opened="">
           <p>{RECEIPTS.notFoundNote}</p>
-        </Ticket>
+        </Sheet>
       ) : found.ok ? (
         <ReceiptDetail held={found} challenges={held} />
       ) : (
@@ -151,7 +151,7 @@ export function ReceiptsView(props: ReceiptsViewProps) {
   return (
     <div className="es-page es-receipts" data-page="receipts" data-view={open === null ? 'lists' : 'receipt'}>
       <header className="es-page__header">
-        <h1 className="es-page__title">Receipts</h1>
+        <h1 className="es-page__title">GPU lab results</h1>
         <p className="es-page__lead">{LEAD}</p>
       </header>
       {open !== null ? (
@@ -163,7 +163,7 @@ export function ReceiptsView(props: ReceiptsViewProps) {
           <div className="es-page__main">
             <Lists props={props} held={held} records={records} />
           </div>
-          <aside className="es-page__side" aria-label="Your challenges and receipts, counted">
+          <aside className="es-page__side" aria-label="Your challenges and results, counted">
             <Tape ready={ready} counts={counts} receipts={records.length} />
           </aside>
         </div>

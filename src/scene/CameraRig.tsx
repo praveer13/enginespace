@@ -11,12 +11,12 @@ import { useKit } from './kit'
  * true orthographic camera, so lengths never depend on depth.
  *
  * Free orbit is optional and never needed (WCAG 2.5.7): with `orbit`, three's OrbitControls load in their own chunk and
- * turn the camera about the preset's target by drag, with up kept up and the camera kept above the steel. Every view a drag
+ * turn the camera about the preset's target by drag, with up kept up and the camera kept above the ground. Every view a drag
  * reaches has a preset button beside it.
  *
- * Parallax (scene kit v1) is a lean, not a move: with `parallax`, at T2 and up, a fine pointer over the canvas leans the camera a
- * few centimetres toward itself about the preset's target, easing there on the settle duration's pace, so the steel's highlights
- * slide as the reader looks around. It is off under reduced motion, for touch and a coarse pointer, and while orbit is on, and it
+ * Parallax is a lean, not a move: with `parallax`, at T2 and up, a fine pointer over the canvas leans the camera a
+ * few centimetres toward itself about the preset's target, easing there on the settle duration's pace, so the depth shows as the
+ * reader looks around. It is off under reduced motion, for touch and a coarse pointer, and while orbit is on, and it
  * holds frames only while it eases.
  */
 

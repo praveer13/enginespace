@@ -24,8 +24,8 @@ export function Component() {
   if (Specimen !== null && traceId !== undefined && seed !== null) {
     return (
       <div className="flex flex-col gap-6">
-        <h1>The Trace Room</h1>
-        <Suspense fallback={<p>Loading the tape.</p>}>
+        <h1>Traces</h1>
+        <Suspense fallback={<p>Loading the trace.</p>}>
           <Specimen id={traceId} seed={seed} />
         </Suspense>
       </div>
@@ -35,7 +35,7 @@ export function Component() {
     <Unbuilt {...UNBUILT.traceRoom} facts={traceId ? [`Trace id: ${traceId}`] : []}>
       {SHOW_SPECIMEN ? (
         <p>
-          A specimen tape is on show: <TextLink to={`/trace-room/${syntheticId(7)}`}>a synthetic night, seed 7</TextLink>.
+          A specimen trace is on show: <TextLink to={`/trace-room/${syntheticId(7)}`}>a synthetic run, seed 7</TextLink>.
         </p>
       ) : null}
     </Unbuilt>

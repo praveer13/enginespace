@@ -207,14 +207,14 @@ describe('night-waste', () => {
     }
   })
 
-  test('at level 3 the night is a tally of fires and sizes, and the solution says how many fires it holds', () => {
+  test('at level 3 the run is a tally of launches and sizes, and the solution says how many launches it holds', () => {
     for (const seed of served('night-waste', 3).slice(0, 40)) {
       const item = paddingWaste.make(seed, 3, 'night-waste')
-      const tally = item.givens.find((given) => given.label === 'the night, fires × tokens')?.value
+      const tally = item.givens.find((given) => given.label === 'the run, launches × tokens')?.value
       expect(tally?.t).toBe('code')
       const pairs = (tally?.t === 'code' ? tally.code : '').split(', ').map((pair) => pair.split(' × ').map(Number))
-      expect(pairs.reduce((sum, [fires]) => sum + fires, 0)).toBe(6)
-      expect(pairs.flatMap(([fires, tokens]) => Array.from({ length: fires }, () => tokens)).sort((a, b) => a - b)).toEqual(numbers(param(item, 'steps'), ',').sort((a, b) => a - b))
+      expect(pairs.reduce((sum, [launches]) => sum + launches, 0)).toBe(6)
+      expect(pairs.flatMap(([launches, tokens]) => Array.from({ length: launches }, () => tokens)).sort((a, b) => a - b)).toEqual(numbers(param(item, 'steps'), ',').sort((a, b) => a - b))
     }
   })
 

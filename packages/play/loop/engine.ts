@@ -131,15 +131,15 @@ export function askOf(s: LoopState): LoopAsk | null {
  * ticket is the k-th request of the sim's workload.
  */
 export function hang(s: LoopState, req: number, clip?: number): LoopState {
-  if (!s.waiting.includes(req)) throw new RangeError(`ticket ${req} is not waiting`)
-  if (!canHang(s)) throw new RangeError('static batching hangs nothing until every clip has cleared')
+  if (!s.waiting.includes(req)) throw new RangeError(`request ${req} is not waiting`)
+  if (!canHang(s)) throw new RangeError('static batching admits nothing until every slot has cleared')
   let at: number
   if (clip === undefined) {
     at = s.tray.indexOf(null)
-    if (at < 0) throw new RangeError('every clip is taken')
+    if (at < 0) throw new RangeError('every slot is taken')
   } else {
-    if (!Number.isInteger(clip) || clip < 0 || clip >= s.tray.length) throw new RangeError(`there is no clip ${clip}`)
-    if (s.tray[clip] !== null) throw new RangeError(`clip ${clip} is taken`)
+    if (!Number.isInteger(clip) || clip < 0 || clip >= s.tray.length) throw new RangeError(`there is no slot ${clip}`)
+    if (s.tray[clip] !== null) throw new RangeError(`slot ${clip} is taken`)
     at = clip
   }
   const hungBefore = s.level.outputs.length - s.waiting.length
@@ -160,9 +160,9 @@ export function setBatching(s: LoopState, mode: 'continuous' | 'static'): LoopSt
 
 /** Appends a span to a lane. A span with no length leaves none, and one that starts before the lane's last ended is a bug. */
 function pushSpan(lane: readonly Span[], span: Span): Span[] {
-  if (span.endUs < span.startUs) throw new Error(`a ${span.kind} span of fire ${span.step} ends before it starts`)
+  if (span.endUs < span.startUs) throw new Error(`a ${span.kind} span of step ${span.step} ends before it starts`)
   const last = lane[lane.length - 1]
-  if (last !== undefined && span.startUs < last.endUs) throw new Error(`a ${span.kind} span of fire ${span.step} starts before the lane's last span ended`)
+  if (last !== undefined && span.startUs < last.endUs) throw new Error(`a ${span.kind} span of step ${span.step} starts before the lane's last span ended`)
   return span.endUs === span.startUs ? [...lane] : [...lane, span]
 }
 
@@ -177,7 +177,7 @@ function launch(s: LoopState): LoopState {
   const index = s.fires.length
   const clips = s.tray.slice()
   const rows = clips.flatMap((req, clip) => (req === null ? [] : [clip]))
-  if (rows.length === 0) throw new RangeError('nothing is hung on the rail')
+  if (rows.length === 0) throw new RangeError('nothing is admitted to the batch')
   const fresh = clips.map((req) => req !== null && !s.prefilled[req])
   const prefillSeqs = fresh.filter(Boolean).length
 
@@ -232,7 +232,7 @@ function launch(s: LoopState): LoopState {
 function readBack(s: LoopState): LoopState {
   const fire = s.fires[s.reads]
   const forward = fire.record.forward
-  if (forward === null) throw new Error('internal: a fire with no forward')
+  if (forward === null) throw new Error('internal: a step with no forward')
   const placed = placeReadback(s.cpuT, forward.endUs, TICK_CARD.syncUs, TICK_CARD.samplePerSeqUs * fire.record.seqs)
   let cpu = pushSpan(s.cpu, span(fire.record.index, 'sync', placed.syncStart, placed.syncEnd))
   cpu = pushSpan(cpu, span(fire.record.index, 'sample', placed.syncEnd, placed.sampleEnd))
@@ -297,7 +297,7 @@ export function step(s: LoopState): LoopState {
   } else if (onLine(state) > 0) {
     state = readBack(state)
   } else {
-    throw new RangeError('nothing is hung on the rail, and nothing is on the line')
+    throw new RangeError('nothing is admitted to the batch, and nothing is running')
   }
   return settle(state)
 }
@@ -306,7 +306,7 @@ export function step(s: LoopState): LoopState {
 export function runToDecision(s: LoopState): LoopState {
   let state = step(s)
   for (let rung = 1; !levelDone(state) && askOf(state) === null; rung++) {
-    if (rung > MAX_FIRES) throw new RangeError('the bell rang without end')
+    if (rung > MAX_FIRES) throw new RangeError('the step loop ran without end')
     state = step(state)
   }
   return state
@@ -335,7 +335,7 @@ export function hangAll(s: LoopState): LoopState {
 export function playHouse(s: LoopState, stop: (state: LoopState) => boolean): LoopState {
   let state = s
   for (let turn = 0; !levelDone(state) && !stop(state); turn++) {
-    if (turn > MAX_FIRES) throw new RangeError('the house played without end')
+    if (turn > MAX_FIRES) throw new RangeError('the reference policy played without end')
     state = houseTurn(state)
   }
   return state

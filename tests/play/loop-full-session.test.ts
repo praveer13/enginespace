@@ -10,7 +10,7 @@ import { serviceSession } from '@es/play/loop/game'
 import { FULL_SERVICE } from '@es/play/loop/entry'
 import { buildFullLevel, FULL_LEVEL_IDS, NIGHTS_PER_STAGE } from '@es/play/loop/full/levels'
 import { nightOf } from '@es/play/loop/full/night'
-import { fullSession } from '@es/play/loop/full/session'
+import { copyOf, fullSession } from '@es/play/loop/full/session'
 import type { FullAction, FullState } from '@es/play/loop/full/types'
 import { seeds } from '../seeds'
 
@@ -25,7 +25,7 @@ describe('a stage, in order', () => {
   test('the prediction comes first: the bell does not ring before it, and it is called once', () => {
     const s = start('async')
     expect(fullSession.ask(s)).toEqual({ kind: 'predict', stage: '70b' })
-    expect(() => fullSession.reduce(s, { t: 'run', until: 'step' })).toThrow('commit the prediction before the first night')
+    expect(() => fullSession.reduce(s, { t: 'run', until: 'step' })).toThrow('commit the prediction before the first run')
     const called = play(s, { t: 'commit', prediction: 12000 })
     expect(fullSession.ask(called)).toEqual({ kind: 'serve', stage: '70b' })
     expect(() => fullSession.reduce(called, { t: 'commit', prediction: 1 })).toThrow('the prediction is committed already')
@@ -50,18 +50,18 @@ describe('a stage, in order', () => {
   test('a lever is the stage\'s own: one it does not have is refused, and so is a capture on a stage with no rack', () => {
     const s = play(start('async'), { t: 'commit', prediction: 0 })
     expect(() => fullSession.reduce(s, { t: 'lever', name: 'runner', value: 'v1' })).toThrow('the 70b stage has no lever "runner"')
-    expect(() => fullSession.reduce(s, { t: 'capture', sizes: [1] })).toThrow('the 70b stage has no mold rack')
+    expect(() => fullSession.reduce(s, { t: 'capture', sizes: [1] })).toThrow('the 70b stage has no capture sizes')
     expect(() => fullSession.reduce(s, { t: 'lever', name: 'async', value: 'on' })).toThrow('the async lever is on or off')
     expect(() => fullSession.reduce(s, { t: 'stage', to: 'comb' })).toThrow('the level has no stage "comb"')
     expect(() => fullSession.reduce(s, { t: 'run', until: 'forever' as 'step' })).toThrow('run until "step" or "decision"')
   })
 
-  test('the rack holds at most its molds, each once and in order, from the ladder', () => {
+  test('the capture sizes hold at most the stage’s limit, each once and in order, from the ladder', () => {
     const s = play(start('graphs'), { t: 'stage', to: 'sizes' }, { t: 'commit', prediction: 0 })
     expect(play(s, { t: 'capture', sizes: [3, 7, 12] }).stages[1].levers.captureSizes).toEqual([3, 7, 12])
-    expect(() => fullSession.reduce(s, { t: 'capture', sizes: [1, 2, 3, 4] })).toThrow('the rack holds at most 3 molds')
+    expect(() => fullSession.reduce(s, { t: 'capture', sizes: [1, 2, 3, 4] })).toThrow('at most 3 capture sizes')
     expect(() => fullSession.reduce(s, { t: 'capture', sizes: [7, 3] })).toThrow('ascending order')
-    expect(() => fullSession.reduce(s, { t: 'capture', sizes: [13] })).toThrow('there is no mold of 13')
+    expect(() => fullSession.reduce(s, { t: 'capture', sizes: [13] })).toThrow('there is no capture size 13')
   })
 
   test('a lever moved in the middle of a night puts that night aside; the next ring serves anew with the levers as they are', () => {
@@ -83,9 +83,9 @@ describe('a stage, in order', () => {
       const view = fullSession.view(s)
       expect(view.canFire).toBe(false)
       expect(view.stage.resolved.mode).toBeNull()
-      expect(view.stage.resolved.changes[view.stage.resolved.changes.length - 1]).toContain('more memory than the reach-in can spare')
+      expect(view.stage.resolved.changes[view.stage.resolved.changes.length - 1]).toContain('more memory than the GPU can spare for them')
       expect(view.stage.memory!.bytes).toBeGreaterThan(view.stage.memory!.budget)
-      expect(() => fullSession.reduce(s, { t: 'run', until: 'step' })).toThrow('this mode does not serve tonight')
+      expect(() => fullSession.reduce(s, { t: 'run', until: 'step' })).toThrow('this mode does not serve this run')
       return
     }
     throw new Error(`no seed of the first ${SEEDS.length} draws a night with room for decode graphs alone`)
@@ -135,7 +135,7 @@ describe('the house, the grade and the debrief', () => {
     // A practice stage names its lever; the graded stage weighs each lever from the configuration served, and names the one worth the most.
     if (missed.bar === 'throughput') expect(['async', 'graphMode', 'capture', 'runner']).toContain((debrief.names as { lever: string }).lever)
     else expect(debrief.names).toEqual({ lever: missed.levers[0] })
-    expect(debrief.sentence).toContain(missed.title)
+    expect(debrief.sentence).toContain(copyOf(level.id, missed.id).title)
   })
 })
 

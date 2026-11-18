@@ -8,7 +8,7 @@
  *
  * Every test that changes content changes a copy. Nothing here writes into the repository.
  */
-import { afterAll } from 'bun:test'
+import { afterAll, test } from 'bun:test'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -16,6 +16,13 @@ import { compileContent } from '../../scripts/content/build.ts'
 import type { CompileResult } from '../../scripts/content/build.ts'
 import { formatDiagnostic } from '../../scripts/content/parse.ts'
 import type { Diagnostic, Gate } from '../../scripts/content/parse.ts'
+
+/**
+ * `test.failing` and `test.todo` of Bun's runner, which the installed typings lack: a failing test passes while its body throws and fails
+ * once the body passes, so a mark of the openers table cannot outlive the task that clears it, and a todo runs nothing and is listed.
+ */
+export const failing = (test as unknown as { failing: (label: string, body: () => void) => void }).failing
+export const todo = (test as unknown as { todo: (label: string, body?: () => void) => void }).todo
 
 export const repo = path.resolve(import.meta.dirname, '../..')
 /** The root of the sample course: a `content/` and a `public/` that hold what the compiler tests copy, in the repo's own layout. */
@@ -158,6 +165,16 @@ export const swap =
   }
 
 export const compile = (edits: Record<string, Edit> = {}): CompileResult => compileContent({ root: project(edits) })
+
+let repoCompiled: CompileResult | undefined
+/**
+ * The repo's own content, compiled in memory once for the test file: what a build would write into `src/content/generated/` and
+ * `public/`, without a build having run. A test reads the compiled course through this, never from those folders, which `.gitignore`
+ * lists and which CI's unit job does not make (tests/ci/pristine.test.ts holds the suite to it).
+ */
+export const repoOutput = (file: string): string => output((repoCompiled ??= compileContent({ root: repo })), file)
+/** The compiled outputs of the repo's own content whose path starts with `prefix`, as text. */
+export const repoOutputsUnder = (prefix: string): string[] => ((repoCompiled ??= compileContent({ root: repo })).outputs.filter((one) => one.path.startsWith(prefix)).map((one) => one.text))
 
 export const read = (relative: string, root = repo): string => readFileSync(path.join(root, relative), 'utf8')
 

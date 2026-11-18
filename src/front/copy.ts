@@ -1,139 +1,159 @@
 /*
- * The front page's words (TRACKER W0-T18): every fixed string the page prints, in one place, so the page, the static shell the build
- * renders from it, and verify:numbers all read the same copy. The copy holds no number: the counts, ticks and hours come from the model
- * and the course index, and each is printed through a Readout with its tag (D-048). verify:numbers reads `frontCopy()` and fails on a
- * digit that no tag covers, as it does for a lesson.
+ * The front page's words (REDESIGN §3.1): every fixed string the page prints, in one place, so the page, the static shell the build renders
+ * from it, and verify:numbers all read the same copy. The copy holds no number of its own: the counts, ticks, minutes and hours come from
+ * the model, the course index and the pointer, and each is printed with its tag. verify:numbers reads `frontCopy()` and fails on a digit
+ * that no tag covers, as it does for a lesson.
  *
- * The kitchen word names the object and the engine term names the concept (GAMES.md §2.6, rule 2). The four outcomes are PRODUCT.md's,
- * word for word, with the modules docs/PLAN.md §2 lists for each and the games that teach them (D-049).
+ * The engine's term is the only name of anything here (REDESIGN §2.7). The four outcomes are PRODUCT.md's, word for word, with the modules
+ * docs/PLAN.md §2 lists for each.
  */
 
 export const HERO = {
-  headline: 'Fire the next step.',
-  /** Two short paragraphs, so the heading stays the largest text of the first viewport (its largest contentful paint). */
-  promise: [
-    'Every bell is one step of an LLM engine’s loop.',
-    'This course teaches vLLM and SGLang by having you run them yourself, then makes you prove it on a real GPU.',
-  ],
-  /** The primary action, on the order ticket's tear-off stub. */
-  start: 'Start service',
+  headline: 'Run one step of an LLM inference engine.',
+  /** What this is, at a desk's width: one paragraph, so the heading stays the largest text of the first viewport (its largest paint). */
+  lede: 'enginespace is a course on the internals of vLLM and SGLang, for engineers who finished kernelspace’s serving track. You run each mechanism, read the code that implements it, then prove it on a real GPU.',
+  live: 'The panel on the right is live. It takes about a minute.',
+  /** The same, at a phone's width, where the panel is under it. */
+  short: 'A course on vLLM and SGLang internals, for kernelspace graduates. Try the first mechanism here.',
+  /** The quiet line under it: the module range and the hours by lane, read from the course index. */
+  range: 'TR0 to the capstone',
+  hours: 'hours',
+  estimated: 'estimated',
+  /** The way past the demo: a text link to Course, which says where it goes. */
+  skip: 'Skip the demo and see the course',
+} as const
+
+/** A returning learner: where they left off, read from the pointer, and Continue. */
+export const RETURNING = {
+  /** Before the place: "You left off in TR2 lesson 1." */
+  leftOff: 'You left off in',
+  /** Before what comes next there: "Next: read why." */
+  next: 'Next:',
+  /** Where the pointer names no lesson: Review, or Course. */
+  elsewhere: 'Your way on is',
+  demo: 'The step loop on the right is still live, if you want a minute with it.',
+} as const
+
+/** The instrument's frame around the step loop (REDESIGN §2.6, §3.1). */
+export const FRAME = {
+  /** The step loop's role line (the roster's, REDESIGN §2.6). */
+  role: 'You are the scheduler.',
+  /** Before the level's place: "Demo 1 of 4 · Fill the batch". */
+  demo: 'Demo',
+  of: 'of',
+  parts: 'Parts',
+  /** The goal line's button on a phone, where it shows two lines. */
+  more: 'more',
+  less: 'less',
+  diagram: 'Diagram',
+  view: 'View',
+  /** Why the 3D view is not offered, when the device cannot draw it. */
+  no3d: 'This device draws the diagram only.',
+  /** The title block: what the drawing is a model of, its clock, and what it leaves out. */
+  model: 'Model of the step loop',
+  clock: 'synthetic ticks, not a measurement',
+  leavesOut: 'What this model leaves out',
+  table: 'State as a table',
+  loadingTable: 'Loading the run as a table…',
+  loadingCard: 'Loading the card…',
+  noScript: 'The demo needs JavaScript. The drawing above is its first frame.',
+} as const
+
+/** The dock: the controls, and the coach strip beside them. */
+export const DOCK = {
+  step: 'Step',
+  /** Step before any slot holds a request: an outline that says why it waits. */
+  stepWaits: 'Step: fill a slot first',
+  stepOver: 'Step: the level is over',
+  undo: 'Undo',
+  auto: 'Auto-step',
+  /** In the 3D view, which draws its chips on the canvas: the waiting requests as buttons. */
+  waiting: 'Waiting requests',
+  /** The coach strip's heading on a first visit. */
+  looking: 'What you are looking at',
+  next: 'Next',
+  skip: 'Skip intro',
+  /** The first move, around the request's name: "Put R1 in a slot.", and on a phone "Tap R1 to put it in a slot." */
+  put: 'Put',
+  inSlot: 'in a slot.',
+  tap: 'Tap',
+  toSlot: 'to put it in a slot.',
+  /** The guess on demo level 3 stays on the page. */
+  guessNote: 'Your guess stays on this page: nothing records it.',
 } as const
 
 /**
- * The printer's tape, the live readout (D-048: ticks, labelled synthetic, never µs): the last fire as it was cooked, and the next one
- * as the rail stands, before the bell. The kitchen word, then the engine term.
+ * The five parts of the first level, as the coach strip says them, one short line each: the brief's lines (§3.1), which the callout discs
+ * number on the drawing. The whole sentence of each, with the engine's identifier, is in the Parts list.
  */
-export const TAPE = {
-  /** The tape's name for a screen reader, and its stamp: every figure on it is the synthetic world's. */
-  name: "The printer's tape, in synthetic ticks",
-  stamp: 'synthetic ticks',
-  next: 'next fire',
-  fire: { kitchen: 'fire', engine: 'step' },
-  ticksPerStep: { kitchen: 'ticks per step', engine: null },
-  busy: { kitchen: 'stations busy', engine: 'batch' },
-  dark: { kitchen: 'dark stations', engine: 'empty slots' },
-  bubble: { kitchen: 'dark stretches', engine: 'bubble' },
-  clock: { kitchen: 'clock', engine: null },
-  /** Printed between the clock and par, on the run's last level. */
-  againstPar: 'against',
-  /** Between a count of stations and the rail's clips. */
-  of: 'of',
-  notYet: 'not yet',
-  /** The next fire's line before a ticket is on the rail: there is nothing to fire. */
-  nothingHung: 'hang a ticket',
-  /** The next fire's line once the level is over: the bell rings no more on this rail, so there is no fire to preview. */
-  levelOver: 'none · level over: see the debrief',
-  /** The next fire's stations are also the control that fills them: it hangs the next ticket in line on the first free clip. */
-  fill: 'Hang the next ticket on the rail',
-  /** After the count of clips taken, in the control's name. */
-  hung: 'hung',
+export const COACH_PARTS = [
+  { id: 'waiting', line: 'Waiting queue: requests not yet in the batch.' },
+  { id: 'slot', line: 'Batch slots: the running batch, one request in each.' },
+  { id: 'cpu', line: 'CPU lane: the engine core thread.' },
+  { id: 'gpu', line: 'GPU lane: one forward per step.' },
+  { id: 'step', line: 'Step: every live slot gets one token.' },
+] as const
+
+/** A level's result in the dock, and the way on from it (REDESIGN §2.4: the next demo level is amber, the course an outline beside it). */
+export const RESULT = {
+  passed: 'Passed.',
+  notYet: 'Not yet.',
+  /** Before the next level's title: "Next demo level: Refill a slot". */
+  nextDemo: 'Next demo level',
+  /**
+   * After the way on's own word and before the first lesson's name: "Start the course: TR1 lesson 1". The word is `nextStep`'s, from the
+   * pointer (src/settings/store.ts), so only the way on says Start.
+   */
+  course: 'the course',
+  again: 'Run this level again',
+  /** After the fourth level: the bridge to the course. */
+  bridge:
+    'You just ran the step loop by hand. The course starts one layer out, by following one request through the engine (TR1), then comes back to this loop with a real clock (TR2).',
 } as const
 
-export const DECK = {
-  /** The run's name, printed on the tape label at the pass's edge before the level's own name. */
-  run: 'First service',
-  over: 'The fire is in.',
-  debrief: 'See the debrief',
-  keys: 'Keys',
-  undo: 'Undo',
-  noScript: 'Service runs in your browser, so playing it needs JavaScript. The drawing above is its first frame.',
-  /** What dropping a ticket on the pass does, for the drag's own announcement. */
-  dropHere: 'Drop it on the pass to hang it on the rail.',
-  /** On the printer's housing, when it holds more tickets than its strip shows. */
-  more: 'More tickets inside',
-} as const
-
-export const NIGHT = {
-  title: 'The night so far',
-  lede: 'The same service as a table, for reading, zooming and screen readers. Every tick here is synthetic: this world is a model of the loop, and the real engine is the judge.',
-  card: 'What this world models',
-} as const
-
-export interface Dish {
+export interface Outcome {
   /** PRODUCT.md's outcome, word for word. */
   readonly outcome: string
   /** The modules that evidence it (docs/PLAN.md §2). */
   readonly modules: readonly string[]
-  /** The games that teach it, by their display names (D-049). */
-  readonly games: readonly string[]
 }
 
-export const ORDER = {
-  title: 'The order',
-  /** The ticket's foot line, printed under the four dishes: the table, and what it ordered. */
-  foot: ['Table: you', 'Four things to do'],
-  lede: 'By the end you will do these on vLLM and SGLang. Each is proved by checks you cannot fake: fresh seeds in your browser, then receipts from your own GPU.',
-  dishes: [
+/** Below the fold, in plain HTML: what you will be able to do, the path, how credit works, and the same way in. */
+export const OUTCOMES = {
+  title: 'What you will be able to do',
+  list: [
+    { outcome: 'Trace a request from the API server to the model runner, naming every queue, copy and sync.', modules: ['TR1'] },
+    { outcome: 'Split a TPOT into kernels, CPU gaps and overlap, and test one fix for it.', modules: ['TR2', 'TR3', 'TR6', 'capstone'] },
     {
-      outcome: 'Trace a request from the API server to the model runner, naming every queue, copy and sync.',
-      modules: ['TR1'],
-      games: ['Back of House'],
-    },
-    {
-      outcome: 'Split a TPOT into kernels, CPU gaps and overlap, and test one fix for it.',
-      modules: ['TR2', 'TR3', 'TR6', 'capstone'],
-      games: ['Service', 'The Tape'],
-    },
-    {
-      outcome:
-        'Implement a hybrid KV manager with adapter pages, the engine side of the KV connector and event contracts, and an exact rejection sampler.',
+      outcome: 'Implement a hybrid KV manager with adapter pages, the engine side of the KV connector and event contracts, and an exact rejection sampler.',
       modules: ['TR5a', 'TR5b', 'TR6'],
-      games: ['The Reach-In', 'The Dumbwaiter', 'The Tasting'],
     },
-    {
-      outcome: 'Benchmark open-loop with confidence intervals, and land one upstream artifact under the project’s AI-disclosure rules.',
-      modules: ['TR8', 'TR7'],
-      games: ['The Inspection'],
-    },
-  ] satisfies readonly Dish[],
-  /** The column heads, for a reader who reads the order line by line. */
+    { outcome: 'Benchmark open-loop with confidence intervals, and land one upstream artifact under the project’s AI-disclosure rules.', modules: ['TR8', 'TR7'] },
+  ] satisfies readonly Outcome[],
   modulesLabel: 'modules',
-  gamesLabel: 'played as',
 } as const
 
-export const MENU = {
-  title: 'The menu',
-  term: 'the course map',
-  lede: 'Every module from TR0 to the capstone, in the order you meet them. Each one runs Predict, Play, Build, Prove and Keep.',
-  columns: { module: 'module', course: 'course', lanes: 'where' },
-  hours: 'hours',
+export const PATH = {
+  title: 'The path',
+  lede: 'Every module, in order. Each lesson has up to four sections: Run, Read, Test and Keep.',
+  columns: { module: 'Module', course: 'Title', lanes: 'Needs', hours: 'Hours' },
   /** The tag of the hours column: every module's hours are [estimated] (docs/PLAN.md §4), so the head says it once. */
   estimated: 'estimated',
-  total: 'in all',
-  /** The three lanes of work (ARCHITECTURE §8.1), as the menu prints them. */
+  startHere: 'Start here',
+  unpublished: 'Not published yet',
+  total: 'In all',
+  /** The three lanes of work (ARCHITECTURE §8.1). */
   lanes: { B: 'browser', L: 'laptop', F: 'GPU' },
-  unavailable: 'The menu did not print. The course map has every module.',
+  unavailable: 'The path did not load. The Course page has every module.',
 } as const
 
-export const NEXT = {
-  /** The ticket's foot line, before its module's id. */
-  foot: 'Next ticket',
-  title: 'Read the engines',
-  body: 'Trace one request through vLLM and SGLang, from the API server to the model runner. You map it in the browser first, then follow your own map through a nano-vllm fork on a GPU.',
-  hours: 'hours',
-  start: 'Start TR1',
-  /** Printed under the stub while TR1's lessons are still being written, so the stub never promises more than the page holds. */
-  planned: 'TR1’s lessons are being written. Its page shows what it covers.',
+export const CREDIT = {
+  title: 'How credit works',
+  lines: [
+    'Reading earns nothing. A lesson is done when its Test is passed: questions on new numbers, or a graded level.',
+    'Practice, like this demo, is yours to repeat and records nothing. A graded run draws new numbers each time, so a pass cannot be memorised.',
+    'GPU labs are checked by a grader you run on your own GPU, against reference outputs. Your record stays on your device, and you can export it.',
+  ],
 } as const
 
 /** Every string above, in order, for verify:numbers and the tests. */
@@ -144,6 +164,6 @@ export function frontCopy(): string[] {
     else if (Array.isArray(value)) value.forEach(walk)
     else if (value !== null && typeof value === 'object') Object.values(value).forEach(walk)
   }
-  walk([HERO, TAPE, DECK, NIGHT, ORDER, MENU, NEXT])
+  walk([HERO, RETURNING, FRAME, DOCK, COACH_PARTS, RESULT, OUTCOMES, PATH, CREDIT])
   return out
 }

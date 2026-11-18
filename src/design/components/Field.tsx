@@ -1,17 +1,16 @@
 import clsx from 'clsx'
 import { useId, type InputHTMLAttributes, type ReactNode } from 'react'
 import { Icon } from './Glyph'
-import { TapeLabel } from './TapeLabel'
-import { PrintingDots } from './PrintingDots'
+import { Label } from './Label'
+import { LoadingDots } from './LoadingDots'
 
 /*
- * A field: masking tape with the label in marker, stuck over a slip of ticket paper with a ruled writing line. The rule
- * is the field's boundary at 3:1; the caret is the heat lamp's filament. A number field (`numeric`) types in the
- * printer's dots, as a committed prediction is printed.
+ * A field (REDESIGN 2.8): a plain label over a paper slip with a 2 px foot line, the field's boundary at 3:1; the caret is
+ * ink. A number field (`numeric`) types in the mono face with tabular figures.
  *
- * States: empty (the slip shows its hint in quiet text), hover (the rule darkens), focus (the heat lamp), disabled (a
- * greyed slip), loading (checking: the printer's dots at the end of the line), error (a red rule and a red line saying
- * what is wrong and how to fix it).
+ * States: empty (the slip shows its hint in quiet text), hover (the foot line darkens), focus (the ink ring), disabled (a
+ * dashed foot line), loading (checking: dots at the end of the line), error (the foot line and a line in the second ink
+ * saying what is wrong and how to fix it).
  */
 
 export interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
@@ -33,9 +32,9 @@ export function Field({ label, hint, error, loading = false, numeric = false, id
   const state = disabled ? 'disabled' : loading ? 'loading' : error ? 'error' : 'default'
   return (
     <div className={clsx('es-field', className)} data-state={state} data-numeric={numeric || undefined}>
-      <TapeLabel as="label" htmlFor={inputId} tilt="left" className="es-field__label">
+      <Label as="label" htmlFor={inputId} tilt="left" className="es-field__label">
         {label}
-      </TapeLabel>
+      </Label>
       <span className="es-field__slip" data-force={force}>
         <input
           id={inputId}
@@ -47,7 +46,7 @@ export function Field({ label, hint, error, loading = false, numeric = false, id
           inputMode={numeric ? 'decimal' : input.inputMode}
           {...input}
         />
-        {loading ? <PrintingDots /> : null}
+        {loading ? <LoadingDots /> : null}
       </span>
       {hint ? (
         <span className="es-field__hint" id={hintId}>

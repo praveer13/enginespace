@@ -1,6 +1,5 @@
 import type { ClaimTag } from '@es/schema'
-import { TapeLabel } from '@/design/components/TapeLabel'
-import './content.css'
+import { Label } from '@/design/components/Label'
 
 /*
  * One of the four tags (ARCHITECTURE §0) that an author wrote after a number: a strip of masking tape with the word in
@@ -11,10 +10,10 @@ import './content.css'
 export function TagChip({ tag }: { tag: ClaimTag }) {
   return (
     <span className="es-tag" data-tag={tag}>
-      <TapeLabel size="sm" tilt="none">
+      <Label size="sm" tilt="none">
         <span className="sr-only">tagged </span>
         {tag}
-      </TapeLabel>
+      </Label>
     </span>
   )
 }

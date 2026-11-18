@@ -45,8 +45,8 @@ describe('the levels and their pinned practice seeds', () => {
   })
 
   test('a level that the game does not have is refused, and so is a seed that is not an unsigned 32-bit integer', () => {
-    expect(() => verifierLevel('close', 1)).toThrow('The Tasting has no level "close"')
-    expect(() => verifierInBand('close', 1)).toThrow('The Tasting has no level "close"')
+    expect(() => verifierLevel('close', 1)).toThrow('The rejection sampler has no level "close"')
+    expect(() => verifierInBand('close', 1)).toThrow('The rejection sampler has no level "close"')
     expect(() => verifierLevel('constructor', 1)).toThrow('has no level')
     expect(() => verifierLevel('exact', -1)).toThrow('a seed is an unsigned 32-bit integer')
     expect(() => verifierInBand('exact', 2 ** 32)).toThrow('a seed is an unsigned 32-bit integer')
@@ -273,6 +273,6 @@ describe('the plates of a level, as the sim holds them', () => {
   test('counts of plates cross to the sim\'s distributions and back, and a weight that is not a whole plate is refused', () => {
     const { p } = pairOf(0, 'overlap')
     expect(toPlates(p).map((n) => n * 1024)).toEqual([...p.weights])
-    expect(() => toPlates({ weights: [1, 65_535, 0, 0, 0, 0], total: 65_536 })).toThrow('not a whole number of plates')
+    expect(() => toPlates({ weights: [1, 65_535, 0, 0, 0, 0], total: 65_536 })).toThrow('not a whole number of units')
   })
 })

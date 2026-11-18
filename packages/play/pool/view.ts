@@ -1,17 +1,20 @@
 /**
- * What the 2D view, the DOM mirror and (W1-T24) the 3D scene all draw (GAMES.md §8: "the rack, the rotation, the tickets, the kits, the
- * counters"): the state, read into pans, stations, tickets and the open ask.
+ * What the 2D diagram, the DOM mirror and the 3D scene all draw (GAMES.md §8): the state, read into pages, KV groups, requests and the
+ * open decision.
  *
- * Every figure comes from the sim's manager, the one that made the state: a ticket's hit is the sim's fixed point over the groups, its
- * pans are the ones the sim's plan names, and a dump's price is the hit that the waiting line would still have without the pan. The
- * view does no rule of its own. It is a function of the state alone (the manager it reads is the state's own, rebuilt from the log if
+ * Every figure comes from the sim's manager, the one that made the state: a request's prefix hit is the sim's fixed point over the groups,
+ * its pages are the ones the sim's plan names, and an eviction's cost is the hit that the waiting queue would still have without the page.
+ * The view does no rule of its own. It is a function of the state alone (the manager it reads is the state's own, rebuilt from the log if
  * the state came from elsewhere), and it never changes either.
  *
- * Names. The kitchen's word names an object and the engine's term rides beside it in the views that draw this: a pan is a page, a
- * station a group, a ticket a request, a table a session, a kit an adapter, and the rotation the free queue.
+ * Names. The fields keep their first names (`pans`, `stations`, `tickets`, `kits`, `rotation`), because a test, the scene and the mirror
+ * read them and ids do not change (REDESIGN §2.7, policy 7). On screen they are pages, KV groups, requests, LoRA adapters and the free
+ * queue. A page's label is display copy: `A·5` is conversation A's block 5, `S1·2` the first shared system prompt's block 2, and
+ * `adapter 1` an adapter's page.
  */
 import { kvHitFrom, kvTableRule } from '@es/sim/kv'
 import type { KvPage } from '@es/sim/kv'
+import { POOL_COPY } from './copy'
 import { kitReady, loadSteps, peek, planOf } from './engine'
 import type { PoolWork } from './engine'
 import { labelOf } from './labels'
@@ -20,7 +23,7 @@ import { priceOf } from './policy'
 import { scoreOf, unservedOf } from './score'
 import type { AskView, KitView, PanState, PanView, PoolState, PoolView, SegState, StationView, TicketView } from './types'
 
-/** Pans in a row of the reach-in (GAMES.md §8: "in rows of 16"). */
+/** Pages in a row of the pool's grid (GAMES.md §8: "in rows of 16"). */
 export const COLS = 16
 
 const two = (n: number): string => String(n + 1).padStart(2, '0')
@@ -104,7 +107,7 @@ function pansOf(state: PoolState, plans: ReadonlyMap<number, AdmitPlan>): PanVie
   for (const id of state.waiting) for (const page of plans.get(id)?.pages ?? []) spoken[page].push(id)
   return kv.pages.map((page: KvPage, id): PanView => {
     const common = { id, holders: holders[id], spokenFor: spoken[id], rank: rank[id] }
-    if (page.st === 'adapter') return { ...common, state: 'adapter', station: null, kit: page.adapter, refs: 0, hash: null, tape: `kit ${page.adapter + 1}`, block: null }
+    if (page.st === 'adapter') return { ...common, state: 'adapter', station: null, kit: page.adapter, refs: 0, hash: null, tape: `adapter ${page.adapter + 1}`, block: null }
     if (page.st === 'free') return { ...common, state: 'free', station: null, kit: null, refs: 0, hash: null, tape: null, block: null }
     const group = level.spec.groups[page.group]
     const label = page.hash === null ? undefined : labelOf(level, group.blockTokens, page.hash)
@@ -171,8 +174,8 @@ export function poolView(state: PoolState): PoolView {
   const pans = pansOf(state, plans)
   const tally: Record<PanState, number> = { free: 0, used: 0, cached: 0, shared: 0, adapter: 0, evicted: 0 }
   for (const pan of pans) tally[pan.state] += 1
-  // The count a reader reads off the cabinet's door is the sim's own: a pan is held when a ticket holds it, and cached when it keeps its tape
-  // and nobody does. A cached pan that a waiting ticket starts from is drawn as shared mise (green) but is still cached, and not held.
+  // The counts a reader reads over the grid are the sim's own: a page is in use when a request holds it, and cached when it keeps its hash
+  // and nobody does. A cached page that a waiting request would reuse is drawn as shared (green) but is still cached, and not in use.
   const stock = { bare: 0, held: 0, cached: 0, kits: 0 }
   for (const page of state.kv.pages) {
     if (page.st === 'free') stock.bare += 1
@@ -182,8 +185,8 @@ export function poolView(state: PoolState): PoolView {
   }
   return {
     level: level.id,
-    title: level.title,
-    prompt: level.prompt,
+    title: POOL_COPY[level.id].title,
+    prompt: POOL_COPY[level.id].prompt,
     graded: level.graded,
     synthetic: true,
     step: state.step,
@@ -197,7 +200,7 @@ export function poolView(state: PoolState): PoolView {
     kits: kitsOf(w, state),
     ask: askOf(w, state),
     counts: scoreOf(state),
-    predict: { ...level.predict, committed: state.predicted, open: state.history.length === 0 && !state.done },
+    predict: { ...POOL_COPY[level.id].predict, ...level.predict, committed: state.predicted, open: state.history.length === 0 && !state.done },
     tally,
     stock,
     cap: level.cap,

@@ -84,15 +84,25 @@ const test = base.extend<{ requests: string[] }>({
 const ROUTE = '/m/tr2/l3-async-scheduling-closes-the-bubble'
 const FIRST = { game: 'loop', level: 'first-4-par', mode: 'practice' } as const
 const SECOND = { game: 'loop', level: 'async', mode: 'practice' } as const
+/**
+ * Two game blocks that are open at once. TR2 lesson 3's two levels are not: the Run plays its opening levels one after the other, and starting
+ * the next folds the one before (REDESIGN §2.4). TR5a lesson 3 has the level in its Run and again, graded, in its Test, and both stay open.
+ */
+const PAIR_ROUTE = '/m/tr5a/l3-a-prefix-hit-must-hold-in-every-group'
+const PAIR_FIRST = { game: 'pool', level: 'evict', mode: 'practice' } as const
+const PAIR_SECOND = { game: 'pool', level: 'evict', mode: 'graded' } as const
+type Block = Pick<typeof FIRST, 'game' | 'level' | 'mode'>
 
 /** The page's Stages, in the order of the page: each block's phase (`live`, `waiting` for the lease, `loading`). */
 const phases = (page: Page) => page.locator('.es-stage').evaluateAll((stages) => stages.map((stage) => (stage as HTMLElement).dataset.stagePhase ?? ''))
-const stageOf = (page: Page, block: typeof FIRST | typeof SECOND) => embedOf(page, block).locator('.es-stage')
+const stageOf = (page: Page, block: Block) => embedOf(page, block).locator('.es-stage')
+/** The Frame's switch from a game's diagram to its 3D view: a game opens on its diagram, and its scene is one press away. */
+const take3d = (page: Page, block: Block) => embedOf(page, block).getByRole('button', { name: '3D', exact: true }).click()
 
 async function openLesson(page: Page, tier: number) {
-  await page.goto(`${ORIGIN}${ROUTE}?es-tier=${tier}`)
+  await page.goto(`${ORIGIN}${PAIR_ROUTE}?es-tier=${tier}`)
   await page.evaluate(() => document.fonts.ready)
-  await expect(ticketOf(page, FIRST)).toBeVisible()
+  await expect(ticketOf(page, PAIR_FIRST)).toBeVisible()
 }
 
 
@@ -103,37 +113,41 @@ test.describe('one live 3D canvas on a page of two games (acceptance 2)', () => 
     // No canvas before a level starts: the lesson's first paint holds no scene.
     expect(await page.locator('canvas').count()).toBe(0)
 
-    await startBlock(page, FIRST)
-    await expect(stageOf(page, FIRST)).toHaveAttribute('data-stage-phase', 'live', { timeout: 90_000 })
+    // A level opens on its diagram, with no scene: no canvas until the learner takes the 3D view.
+    await startBlock(page, PAIR_FIRST)
+    expect(await page.locator('canvas').count()).toBe(0)
+    await take3d(page, PAIR_FIRST)
+    await expect(stageOf(page, PAIR_FIRST)).toHaveAttribute('data-stage-phase', 'live', { timeout: 90_000 })
     expect(await page.locator('canvas').count()).toBe(1)
 
-    await startBlock(page, SECOND)
-    await expect(stageOf(page, SECOND)).toHaveAttribute('data-stage-phase', 'live', { timeout: 90_000 })
-    await expect(stageOf(page, FIRST)).toHaveAttribute('data-stage-phase', 'waiting')
+    await startBlock(page, PAIR_SECOND)
+    await take3d(page, PAIR_SECOND)
+    await expect(stageOf(page, PAIR_SECOND)).toHaveAttribute('data-stage-phase', 'live', { timeout: 90_000 })
+    await expect(stageOf(page, PAIR_FIRST)).toHaveAttribute('data-stage-phase', 'waiting')
     expect(await phases(page)).toEqual(['waiting', 'live'])
     expect(await page.locator('canvas').count()).toBe(1)
     // The first game shows its 2D view and says why, with the way back to 3D.
-    const back = stageOf(page, FIRST).getByRole('button', { name: 'Open this one in 3D' })
-    await expect(stageOf(page, FIRST).locator('[data-note="held"]')).toContainText('Another 3D view is open on this page.')
+    const back = stageOf(page, PAIR_FIRST).getByRole('button', { name: 'Open this one in 3D' })
+    await expect(stageOf(page, PAIR_FIRST).locator('[data-note="held"]')).toContainText('Another 3D view is open on this page.')
 
     await back.click()
-    await expect(stageOf(page, FIRST)).toHaveAttribute('data-stage-phase', 'live', { timeout: 90_000 })
-    await expect(stageOf(page, SECOND)).toHaveAttribute('data-stage-phase', 'waiting')
+    await expect(stageOf(page, PAIR_FIRST)).toHaveAttribute('data-stage-phase', 'live', { timeout: 90_000 })
+    await expect(stageOf(page, PAIR_SECOND)).toHaveAttribute('data-stage-phase', 'waiting')
     expect(await phases(page)).toEqual(['live', 'waiting'])
     expect(await page.locator('canvas').count()).toBe(1)
     // Each game kept its own session through it all: both are still at the start of their run, on their own level.
-    await expect(embedOf(page, FIRST)).toHaveAttribute('data-level', 'first-4-par')
-    await expect(embedOf(page, SECOND)).toHaveAttribute('data-level', 'async')
+    await expect(embedOf(page, PAIR_FIRST)).toHaveAttribute('data-level', 'evict')
+    await expect(embedOf(page, PAIR_SECOND)).toHaveAttribute('data-level', 'evict')
   })
 })
 
 /** A block of each game with a scene, in a lesson that holds it, and the stage id its scene's probe goes by. */
 const SCENES = [
-  { route: ROUTE, block: FIRST, name: 'Service, First service', probe: 'loop' },
+  { route: ROUTE, block: FIRST, name: 'Step loop, demo', probe: 'loop' },
   { route: ROUTE, block: SECOND, name: 'Service, the full service', probe: 'loop' },
-  { route: '/m/tr1/l1-five-mechanisms', block: { game: 'engine-floor', level: 'nano', mode: 'practice' }, name: 'Back of House', probe: 'engine-floor' },
-  { route: '/m/tr5a/l1-why-one-model-needs-several-kv-caches', block: { game: 'pool', level: 'one-group', mode: 'practice' }, name: 'The Reach-In', probe: 'pool' },
-  { route: '/m/tr6/l2-the-rejection-sampler-exactly', block: { game: 'verifier', level: 'overlap', mode: 'practice' }, name: 'The Tasting', probe: 'verifier' },
+  { route: '/m/tr5a/l1-why-one-model-needs-several-kv-caches', block: { game: 'pool', level: 'one-group', mode: 'practice' }, name: 'KV page pool', probe: 'pool' },
+  // The sampler offers its 3D on the chain only, the level whose rows give depth something to carry (wave R's finish review).
+  { route: '/m/tr6/l1-where-speculation-lives-in-the-step', block: { game: 'verifier', level: 'chain', mode: 'practice' }, name: 'Rejection sampler', probe: 'verifier' },
 ] as const
 
 test.describe("an embedded scene's budget (D-023, frozen; A§11.1: 100 draw calls)", () => {
@@ -144,6 +158,8 @@ test.describe("an embedded scene's budget (D-023, frozen; A§11.1: 100 draw call
         await page.goto(`${ORIGIN}${route}?es-tier=${tier}`)
         await page.evaluate(() => document.fonts.ready)
         await startBlock(page, block)
+        // Every game opens on its diagram (REDESIGN §2.9): its scene is one switch away.
+        await embedOf(page, block).getByRole('button', { name: '3D', exact: true }).click()
         const stage = embedOf(page, block).locator('.es-stage')
         await expect(stage).toHaveAttribute('data-stage-phase', 'live', { timeout: 90_000 })
         await expect(stage).toHaveAttribute('data-settled', 'true', { timeout: 60_000 })

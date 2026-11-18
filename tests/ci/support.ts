@@ -47,12 +47,12 @@ export const backticked = (cell: string) => [...cell.matchAll(/`([^`]+)`/g)].map
 
 /**
  * The id of a task of TRACKER.md, as a regular expression's source: a wave, a dash and a two-digit number (`W1-T14`). The wave is a digit,
- * and a carry-over wave adds a `b` to its digit (`W1b-T08`). Every reader of the tracker's headings takes its ids by this pattern. The
+ * and a carry-over wave adds a `b` to its digit (`W1b-T08`). Wave R, the redesign, has the letter alone (`R-T01`, D-068). Every reader of the tracker's headings takes its ids by this pattern. The
  * patterns that this one replaced read `W\d-T\d\d`, so W1b's tasks were invisible to the marker guard of workflows.test.ts, to its check of
  * the reserved steps and to verify:kc (docs/waves/W1b-report.md §10). tests/ci/task-ids.test.ts fails on a heading whose id this pattern
  * does not read, so a wave named in a new shape is a change here, and is never skipped without a word.
  */
-export const TASK_ID = String.raw`W\d+b?-T\d\d`
+export const TASK_ID = String.raw`(?:W\d+b?|R)-T\d\d`
 
 /** TRACKER.md's task headings (`#### [=] W1b-T08 · Lab pages hand over the crate · S · sonnet · deps: —`), each one's marker and id, in the order of the page. */
 export function taskHeadings(tracker: string): { marker: string; id: string }[] {

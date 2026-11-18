@@ -30,6 +30,7 @@ import {
   runStepLoop,
   vllmCaptureSizes,
   SMALL_CARD,
+  TICK_CARD,
 } from '../../packages/sim/steploop'
 import type { BackendSupport, GraphModeId } from '../../packages/sim/steploop'
 import { sglangDecodeBuckets, sglangPaddedSize } from '../../packages/sim/steploop/engine-defaults'
@@ -592,11 +593,11 @@ export const wasted = (rows: number, padded: number | null): number | null => (p
  * The reference of each prediction of TR2's lessons, from the numbers its prompt gives and the course's own functions. Nothing is stored in a
  * lesson (A§1, I3). The lesson's prediction box (W1b-T02) reads its answer from the run of the game block that follows the prediction, where
  * packages/play/predictions has a reading, and tests/play/predictions.test.ts holds each reading to the figure here; a prediction with no
- * reading waits for W2-T43, and its figure here is what that task starts from.
+ * run to read is revealed at commit (D-067), and its answer, which takes no run, is held to the same figure.
  */
 export const PREDICTIONS: Readonly<Record<string, { readonly unit: string; readonly reference: () => number }>> = {
-  // 700 µs of CPU work before the forward, 300 µs after, a forward of 2,000 µs, nothing overlapped: the GPU is busy 2,000 of 3,000 µs.
-  'tr2.l1.p1': { unit: 'percent', reference: () => (100 * 2000) / (700 + 300 + 2000) },
+  // The front page's ticks, nothing overlapped: a plan of 2, a forward of 4 and a read of 1, so the GPU is busy 4 of 7 ticks.
+  'tr2.l1.p1': { unit: 'percent', reference: () => (100 * TICK_CARD.forwardUs) / (TICK_CARD.scheduleBaseUs + TICK_CARD.forwardUs + TICK_CARD.syncUs) },
   // 100 decodes take 100 tokens of a budget of 2,048: the prompt's first chunk is what is left.
   'tr2.l2.p1': { unit: 'tokens', reference: () => BUDGET.budget - BUDGET.decoding },
   // 1,000 µs of plan and 500 µs of read against a forward of 1,200 µs, with async scheduling on: the CPU's work less the forward.

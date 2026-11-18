@@ -69,13 +69,13 @@ export const isGradedKind = (kind: Kind): boolean => GRADED.has(kind)
 /** What each kind is called and means, in the learner's words (A§7.2). */
 export const KIND_FACTS: Readonly<Record<Kind, { name: string; what: string }>> = {
   predict: { name: 'Predictions', what: 'A value you committed before the reveal, and what the reveal showed.' },
-  item: { name: 'Items', what: 'A generated question, and your answer.' },
-  play: { name: 'Game runs', what: 'A level played: its action log, which is regraded from its replay.' },
-  'lab-check': { name: 'Lab checks', what: 'A forge lab graded in this tab, check by check.' },
-  prove: { name: 'Prove-its', what: 'What you predicted a module would reply, and what it did, with your agent closed.' },
+  item: { name: 'Questions', what: 'A generated question, and your answer.' },
+  play: { name: 'Game runs', what: 'A level played. Its moves are kept, so its grade can be checked again by replaying them.' },
+  'lab-check': { name: 'Lab checks', what: 'A lab module you built and graded in this tab, check by check.' },
+  prove: { name: 'Predicted replies', what: 'What you said your lab module would reply before it ran, and what it replied, with your coding agent closed.' },
   'trace-mark': { name: 'Trace marks', what: 'Spans you marked on a trace, and how far off they were.' },
   challenge: { name: 'Challenges', what: 'Issued for a GPU or local lab. Not graded: a receipt is.' },
-  receipt: { name: 'Receipts', what: "A grader's receipt, checked in this browser." },
-  review: { name: 'Reviews', what: "Today's grade for a knowledge component." },
-  ack: { name: 'Acknowledgements', what: 'A screen or a change card you have seen. They carry no result.' },
+  receipt: { name: 'GPU lab results', what: "The receipt file a grader wrote, checked in this browser." },
+  review: { name: 'Reviews', what: 'A review question on a skill, and how it went.' },
+  ack: { name: 'Acknowledgements', what: 'A screen, or a note that a source changed, that you have seen. They carry no result.' },
 }

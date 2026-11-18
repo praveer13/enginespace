@@ -1,11 +1,11 @@
-//! The reference rotation: what a finished src/rotation.rs does. The `reference` and `solved` features build this file in its place.
+//! The reference free queue (`Rotation`): what a finished src/rotation.rs does. The `reference` and `solved` features build this file in its place.
 //! No zip carries it (W1-T11), and the site never shows it.
 
 use crate::Touch;
 
 pub struct Rotation {
     capacity: usize,
-    /// The front is the next to dump.
+    /// The front is the next to evict.
     keys: Vec<u32>,
 }
 

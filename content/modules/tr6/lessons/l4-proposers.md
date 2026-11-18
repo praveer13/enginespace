@@ -29,6 +29,14 @@ The `model` key of the configuration follows the same split. It names a draft mo
 
 None of this changes the sampler. An n-gram or suffix proposer names a token and no probability, so the sampler treats q as one-hot on it, which the second lesson worked through. By default a model-based draft is one-hot as well, because `draft_sample_method` defaults to `greedy`. {{claim:vllm.spec.draft-sample-greedy}} The proposers differ in cost and in how often they are right, not in what the output is.
 
+The `greedy-ngram` level deals the n-gram case from the table's first rows: a draft that copies the token which followed the same context earlier and knows nothing of the odds, so its q puts everything on one token. At temperature zero the target always sends back its most likely token, and then at full temperature you set the residual that keeps the output exactly p.
+
+:::game
+id: verifier
+level: greedy-ngram
+mode: practice
+:::
+
 ## Which one fits
 
 vLLM's guide gives two pieces of advice to hold against any proposer. Speculation pays under medium-to-low QPS, memory-bound workloads. {{claim:vllm.spec.where-it-pays}} And the methods fall into two groups: the model-based ones, EAGLE, MTP, draft models and PARD, give the best latency reduction, and the simpler ones, n-gram and suffix, give modest speedups without adding work at peak traffic. {{claim:vllm.spec.model-based-vs-simple}}
@@ -43,6 +51,23 @@ title: A prefetcher with and without training
 body: Hardware prefetchers fall into two groups. A stride prefetcher needs no training. It watches the addresses so far, guesses the next one, and pays only when the access pattern repeats. A learned prefetcher is trained on traces and pays on patterns that a stride cannot see. The n-gram and suffix proposers are the first group, copying what the text has already said. An EAGLE head or an MTP module is the second, trained on the target's own features.
 breaks: A wrong prefetch costs bandwidth and the program still reads the right data. A wrong draft costs verified positions and the sampler still returns the target's distribution, but a model-based proposer also has a price that a prefetcher has not, which is the weights and the forward passes of the model that drafts.
 :::
+
+Commit to a choice. Its reveal gives the rule, and the sections after it work the rule through.
+
+:::predict
+id: tr6.l4.p1
+prompt: A team writes its own proposer and loads it with the method custom_class on vLLM v0.33.0, and changes nothing else in the engine's defaults. Which runner serves it, and is async scheduling on?
+answer:
+  kind: choice
+  options:
+    - { id: mrv2-on, text: "MRV2, with async scheduling on" }
+    - { id: mrv1-on, text: "MRV1, with async scheduling on" }
+    - { id: mrv1-off, text: "MRV1, with async scheduling off" }
+    - { id: refused, text: "The engine refuses to start" }
+reveal: at-commit
+kcs: [tr6.proposer-families]
+:::
+
 
 ## EAGLE-3 and MTP, as reading
 
@@ -59,28 +84,10 @@ What the three share, and what the pinned code shows, is an input that a draft m
 
 Medusa and the MLP speculator are gone. They were removed in v0.33.0, so a guide that still lists them describes an older engine. {{claim:vllm.spec.medusa-removed}}
 
-Commit to a choice before you read on. The answer is in the next section, and the game below is the n-gram proposer's side of the sampler, which you can play first.
-
-:::predict
-id: tr6.l4.p1
-prompt: A team writes its own proposer and loads it with the method custom_class on vLLM v0.33.0, and changes nothing else in the engine's defaults. Which runner serves it, and is async scheduling on?
-answer:
-  kind: choice
-  options:
-    - { id: mrv2-on, text: "MRV2, with async scheduling on" }
-    - { id: mrv1-on, text: "MRV1, with async scheduling on" }
-    - { id: mrv1-off, text: "MRV1, with async scheduling off" }
-    - { id: refused, text: "The engine refuses to start" }
-reveal: after-game
-kcs: [tr6.proposer-families]
-:::
-
-The Tasting's `greedy-ngram` level deals the case of the table's first rows: a copier who plates what the night served lately and knows nothing of the odds, so its q is one dish. At temperature zero the chef always sends back her favourite, and then at full temperature you sculpt the re-plating that keeps the output her tasting.
-
-:::game
-id: verifier
-level: greedy-ngram
-mode: practice
+:::item
+family: tr6.which-runner
+level: 0
+count: 1
 :::
 
 ## What moved at v0.33.0
@@ -113,15 +120,9 @@ kind: notional-machine
 id: spec
 :::
 
-## What to carry
-
-- A proposer needs something. The n-gram method needs the prompt, suffix decoding needs the prompt, earlier outputs and a package, a draft model needs a second model, an EAGLE-3 head needs training on the target's hidden states, and MTP needs a target that was trained with it.
-- In the code, the difference between a head and a model is whether the target's hidden states go in. In a config check, `eagle` means that they do, and MTP is included.
-- At the pin, `suffix` and `custom_class` run on MRV1, and on MRV1 async scheduling turns itself off for the methods outside a short list. Compare a speculative run only with a plain run on the same runner and the same async setting.
-
 ## Exit check
 
-This lesson tests one skill: telling the proposers of the pinned engines apart by what each needs, and saying which runner a configuration runs on (`tr6.proposer-families`). The ticket is three items on fresh seeds, drawn from what a method drafts from, which method fits what a team has, and the runner and async setting that a configuration ends up with. It is passed with at least two right (ASSESSMENT §4.2).
+This lesson tests one skill: telling the proposers of the pinned engines apart by what each needs, and saying which runner a configuration runs on (`tr6.proposer-families`). The question set is three items on fresh seeds, drawn from what a method drafts from, which method fits what a team has, and the runner and async setting that a configuration ends up with.
 
 :::item
 family: tr6.which-runner

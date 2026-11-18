@@ -26,15 +26,15 @@ import { PRACTICE, bulk, houseActions, playThrough, practiceOf, stateAfter } fro
 const S = poolSession
 const textOf = (state: PoolState): string => canonicalJson(state)
 
-/** The hashes of the house's runs on the practice seeds [measured 2026-11-04 at d287a14, the tip of wave-1, with this task's files; the same in a browser: e2e/pool.spec.ts]. */
+/** The hashes of the house's runs on the practice seeds [measured 2026-11-04 at d287a14, the tip of wave-1, with this task's files; the same in a browser: e2e/pool.spec.ts]. Re-measured 2026-11-15 on R-T02's branch: a level no longer holds its display words (`copy.ts`), so each hash is that of the old state without them; scripts/state-copy-equivalence.ts proves it. */
 const GOLDEN: Readonly<Record<PoolLevelId, string>> = {
-  'one-group': 'dfff95cc',
-  'two-kinds': 'a5afdb78',
-  evict: '427f825e',
-  'same-size': '6134538a',
-  state: '548984aa',
-  adapters: 'b6ce7544',
-  manager: '517835a0',
+  'one-group': '824600f1',
+  'two-kinds': 'e5d69230',
+  evict: '06b88fb1',
+  'same-size': '6bfc2832',
+  state: 'd87f6c7d',
+  adapters: '0c5c5052',
+  manager: '8fc89e92',
 }
 
 /** The first state of the house's run at which `want` holds, or null. */
@@ -174,27 +174,27 @@ describe('the reducer refuses what the open ask does not allow', () => {
   test('a ticket is hung only if it is offered; pans are dumped only if an eviction is asked for, and as many as it asks', () => {
     expect(admitting).not.toBeNull()
     expect(evicting).not.toBeNull()
-    refuses(admitting, { t: 'admit', req: 99 }, 'cannot hang now')
-    refuses(admitting, { t: 'evict', pages: [0] }, 'no pans are being asked for')
-    refuses(admitting, { t: 'preempt', req: 0 }, 'no ticket is being asked for')
+    refuses(admitting, { t: 'admit', req: 99 }, 'cannot be admitted now')
+    refuses(admitting, { t: 'evict', pages: [0] }, 'no pages are being asked for')
+    refuses(admitting, { t: 'preempt', req: 0 }, 'no request is being asked for')
     refuses(admitting, { t: 'prefetch', adapter: null }, 'no kit is being offered')
-    refuses(evicting, { t: 'admit', req: null }, 'no ticket is being offered to hang')
+    refuses(evicting, { t: 'admit', req: null }, 'no request is being offered to admit')
     const ask = evicting.ask as Extract<PoolAsk, { kind: 'evict' }>
-    refuses(evicting, { t: 'evict', pages: ask.candidates.slice(0, ask.need - 1) }, `dump exactly ${ask.need} pans`)
-    refuses(evicting, { t: 'evict', pages: ask.candidates.slice(0, ask.need + 1) }, `dump exactly ${ask.need} pans`)
-    refuses(evicting, { t: 'evict', pages: [] }, `dump exactly ${ask.need} pans`)
+    refuses(evicting, { t: 'evict', pages: ask.candidates.slice(0, ask.need - 1) }, `evict exactly ${ask.need} pages`)
+    refuses(evicting, { t: 'evict', pages: ask.candidates.slice(0, ask.need + 1) }, `evict exactly ${ask.need} pages`)
+    refuses(evicting, { t: 'evict', pages: [] }, `evict exactly ${ask.need} pages`)
   })
 
   test('a pan is dumped once, and only a cached pan that nothing holds and the ticket being hung does not start from', () => {
     const ask = evicting.ask as Extract<PoolAsk, { kind: 'evict' }>
-    if (ask.need >= 2) refuses(evicting, { t: 'evict', pages: [ask.candidates[0], ask.candidates[0], ...ask.candidates.slice(1, ask.need - 1)] }, 'a pan can be dumped once')
+    if (ask.need >= 2) refuses(evicting, { t: 'evict', pages: [ask.candidates[0], ask.candidates[0], ...ask.candidates.slice(1, ask.need - 1)] }, 'a page can be evicted once')
     const view = S.view(evicting)
     // A bare pan, a pan that a ticket on the line holds, and a pan the hanging ticket starts from are not offered.
     const offered = new Set(ask.candidates)
     const refused = view.pans.filter((pan) => !offered.has(pan.id)).map((pan) => pan.id)
     expect(refused.length).toBeGreaterThan(0)
     const others = ask.candidates.slice(0, ask.need - 1)
-    for (const page of refused.slice(0, 6)) refuses(evicting, { t: 'evict', pages: [...others, page] }, `pan ${page} is not a cached pan that can be dumped`)
+    for (const page of refused.slice(0, 6)) refuses(evicting, { t: 'evict', pages: [...others, page] }, `page ${page} is not a cached page that can be evicted`)
     const target = view.tickets[ask.target]
     const hitPans = view.pans.filter((pan) => pan.spokenFor.includes(target.id)).map((pan) => pan.id)
     for (const page of hitPans) expect(offered.has(page)).toBe(false)
@@ -220,8 +220,8 @@ describe('the reducer refuses what the open ask does not allow', () => {
   test('nothing follows the end of the night', () => {
     const ghost = S.ghost(level)
     expect(S.done(ghost)).toBe(true)
-    refuses(ghost, { t: 'admit', req: null }, 'the night is over')
-    refuses(ghost, { t: 'commit', prediction: 1 }, 'the night is over')
+    refuses(ghost, { t: 'admit', req: null }, 'the run is over')
+    refuses(ghost, { t: 'commit', prediction: 1 }, 'the run is over')
   })
 
   test('a kit is brought in only if it is offered, and only for a waiting ticket that needs it', () => {
@@ -231,7 +231,7 @@ describe('the reducer refuses what the open ask does not allow', () => {
     const ask = asking.ask as Extract<PoolAsk, { kind: 'prefetch' }>
     refuses(asking, { t: 'prefetch', adapter: 99 }, 'cannot come in now')
     expect(ask.candidates.length).toBeGreaterThan(0)
-    refuses(asking, { t: 'admit', req: null }, 'no ticket is being offered to hang')
+    refuses(asking, { t: 'admit', req: null }, 'no request is being offered to admit')
   })
 
   test('only a ticket on the line can be pulled', () => {
@@ -240,7 +240,7 @@ describe('the reducer refuses what the open ask does not allow', () => {
     expect(pulling).not.toBeNull()
     const ask = pulling.ask as Extract<PoolAsk, { kind: 'preempt' }>
     const waiting = pulling.waiting[0]
-    refuses(pulling, { t: 'preempt', req: waiting ?? 99 }, 'is not on the line')
+    refuses(pulling, { t: 'preempt', req: waiting ?? 99 }, 'is not running')
     expect(ask.candidates).toEqual([...pulling.running])
   })
 })

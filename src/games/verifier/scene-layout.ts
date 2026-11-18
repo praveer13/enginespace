@@ -1,320 +1,191 @@
 /*
- * The Tasting's kitchen (GAMES.md §2.6 "The Tasting", §10 "3D scene"; scene kit v1): the session's view turned into what the scene
- * draws, so the scene adds nothing the session did not compute and decides nothing. No three here: it is tested under Bun, and only
- * the scene's lazy chunk holds it.
+ * The rejection sampler's skylines (REDESIGN §2.8, §2.9; scene kit's flat track): the session's view turned into the model the scene draws,
+ * so the scene adds nothing the session did not compute and decides nothing. No three here: it is tested under Bun, and only the scene's
+ * lazy chunk holds it.
  *
- *   - The room is Service's: floor, tile on two walls, the hood over a cold line, a speed rack, and the pass, here as deep as the run.
- *     Its light, baked into the tile and the floor, is full over the line and the pass, and dims toward the corners, up the wall over
- *     the line and behind the pass.
- *   - Each dish of a course has three stacks across the pass: the commis's plates on its left, the chef's in her wire dispenser,
- *     whose foot is the target's blue and whose wires stand a few plates over her stack, and what went out on its right. A plate's
- *     edge band is its part (`Band`): in a practice run the plates both stacks share are the overlap's, the commis's extra the
- *     draft's and the chef's extra the residual's; a graded run's stacks are plain, the commis's the draft's and the chef's the
- *     target's.
- *   - A drafted plate is the commis's plate at its coin's height, pulled out of his stack: level and toward the chef and the expo when
- *     she keeps it, tipped away from her when she sends it back. Of the latest rounds, one plate for each place.
- *   - What went out is a stack of white side plates edged in grey beside her dispenser, as many as went out of the dish there, up to
- *     the top of her dispenser's wires: settled, it stands exactly as tall as her stack, and the two skylines are one.
- *   - `gamma` lays a run of eight stacks across the pass: the plates the walk keeps if it gets that far, and the rest it sends back.
- *     The courses the commis plates stand upright; the rest wait upside down, unplated.
- *   - Three heat lamps hang over where a round begins (the front course), straight over it, so each one's pool lies on its plates and
- *     the steel between them, under the shade that lights it; or over `gamma`'s plated run.
- *   - A run's courses are named on tape at the pass's left end, which runs on past the soup for them (scene-plan.ts); a single
- *     course's counts are on one paper tag a dish, hung from the pass's edge under its tape: the commis's plates, then the chef's.
+ *   - One row of bars for each draft position, the first nearest and the rest behind it, so that the rows' skylines line up into depth.
+ *     Over a run the bonus token's row is the last. `gamma` has one row of its positions.
+ *   - In a row, each token has two bars side by side, as tall as their counts out of the axis the rows share: the draft's q, then the
+ *     target's p. Where a level lets the decomposition print, each bar is cut where the rule cuts it: the accepted part min(p, q), which
+ *     both bars share, in the overlap's green; then the draft's excess in the draft's yellow and the residual (p - q)+ in the residual's
+ *     red. Uncut, q is the draft's yellow and p the target's blue. The forms carry the part besides its colour: the draft is hatched, the
+ *     residual is a groove, the accepted part and the target are solid.
+ *   - What the sampler put out is a ring on the target bar, as high as the output: it settles onto p as the rule is exact, and the
+ *     scene's one authored move is that settling (FlatTrack's `from`).
+ *   - A drawn round is a dot on its q bar's front, at its coin's height: solid where it landed in the accepted part, hollow above it.
  *
- * Every word and number is a DOM label anchored here (D-021, GAMES.md §2.6 rule 7).
+ * Every word and number is a label for the DOM layer (D-021): a row's name, a token's number under its pair, and a bar's count over it.
  */
 import type { RowView, VerifierView } from '@es/play/verifier/types'
-import type { RoomLight } from '@/scene/props/set'
-import type { PropSpec } from '@/scene/props/specs'
-import { columnX, FRONT, FULL, NAMES, roomOf, rowZ, STACKS, stackHeight, TOP, type Plan, type Vec3 } from './scene-plan'
-
-export type Band = 'probability-overlap' | 'probability-draft' | 'probability-residual' | 'probability-target'
-
-export interface Stack {
-  readonly id: string
-  /** The middle of its foot, on the counter. */
-  readonly at: Vec3
-  /** Each plate's edge, from the bottom. */
-  readonly bands: readonly Band[]
-  /** Upside down: plates waiting, not plated (`gamma`, past the run). */
-  readonly flipped?: boolean
-}
-
-export interface Marker {
-  /** One place: the row, the dish and the plate pulled. */
-  readonly id: string
-  /** The commis's stack's foot, and which of its plates is pulled. */
-  readonly at: Vec3
-  readonly plate: number
-  readonly kept: boolean
-  readonly band: Band
-  readonly row: number
-  /** The latest round that pulled it: a round newer than the scene has seen drops its plates. */
-  readonly round: number
-}
-
-/** What went out of a dish here: a stack of side plates beside her dispenser. */
-export interface Served {
-  readonly id: string
-  /** The stack's foot, on the counter. */
-  readonly at: Vec3
-  /** The most plates it stands, her dispenser's top: more than that waits there, and the mirror prints the figure. */
-  readonly cap: number
-  /** What went out of this dish here, in plates out of sixty-four, or null when nothing has (or a graded recipe hides it). */
-  readonly out: number | null
-}
-
-export interface Tape {
-  readonly id: string
-  readonly center: Vec3
-  readonly size: readonly [number, number]
-  readonly rotation: Vec3
-  readonly text: string
-}
-
-/** A dish's name on the pass's edge, a course's name, and a dish's counts hung under its tape. */
-export type AnchorKind = 'tape' | 'row' | 'count'
-
-export interface Anchor {
-  readonly id: string
-  readonly kind: AnchorKind
-  readonly at: Vec3
-  /** A tape's words, or a tag's two counts: the commis's plates, then the chef's. */
-  readonly text: string
-}
-
-export interface LampLight {
-  readonly id: string
-  readonly at: Vec3
-  readonly target: Vec3
-}
-
-export interface TastingKitchen {
-  readonly items: readonly PropSpec[]
-  readonly lights: readonly LampLight[]
-  readonly bell: Vec3
-  readonly room: RoomLight
-}
-
-/** A chef's dispenser: its foot, and how high its wires stand over the counter, a few plates over her stack. */
-export interface Dispenser {
-  readonly at: Vec3
-  readonly top: number
-}
-
-export interface TastingScene {
-  readonly stacks: readonly Stack[]
-  readonly dispensers: readonly Dispenser[]
-  readonly served: readonly Served[]
-  readonly markers: readonly Marker[]
-  readonly tapes: readonly Tape[]
-  readonly anchors: readonly Anchor[]
-  /** Where the heat lamps hang: across the pass over the present, as x and z. */
-  readonly lamps: readonly (readonly [number, number])[]
-  /** The present has a place: the lamps burn and their light falls. */
-  readonly lit: boolean
-}
+import type { ColorRoleName } from '@/design/tokens'
+import type { FlatBox, FlatLabel, FlatModel, FlatSegment } from '@/scene/flat-track'
+import type { MarkForm } from '@/scene/marks'
+import { GAMMA, geoOf, type Bounds, type Geo } from './scene-plan'
 
 export interface SceneFlags {
-  /** Draw each plate's part (the overlap, and each side's extra). A graded run leaves it out. */
+  /** Draw each bar's cut (the accepted part and each side's excess). A graded run leaves it out. */
   readonly scaffold: boolean
-  /** Draw what went out. A graded recipe hides it while the run is on: it is the live meter. */
+  /** Draw what went out: the live meter. A graded recipe hides it while the run is on. */
   readonly outcome: boolean
+  /** The canvas is narrower than `ROOMY`: a row's name is its number alone, and the counts of several rows are left to the table. */
+  readonly narrow?: boolean
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* The kitchen: what stands still                                                                                     */
-/* ------------------------------------------------------------------------------------------------------------------ */
+/**
+ * The axis every row shares: axis.ts's `axisOf`, which the diagram holds. It is written out here because a module that the page and the
+ * scene both imported would join the page's chunk, and the scene would reach the whole game through it (tests/play/verifier-scene.test.ts
+ * holds the two to the same figure).
+ */
+const axisOf = (view: VerifierView): number => Math.max(8, Math.ceil(Math.max(...view.rows.flatMap((row) => [...row.p, ...(row.q ?? [])])) / 8) * 8)
 
-const CEILING = 2.95
-/** The hood over the line: its top, its skirt's height and its depth from the wall [estimated]. */
-const HOOD = { top: 2.38, height: 0.34, depth: 1.05 } as const
-const LINE = { depth: 0.8, height: 0.9, width: 0.58 } as const
-const STATIONS = ['griddle', 'burners', 'fryer', 'burners', 'griddle'] as const
+/** The parts of a bar, with the role and form each is drawn in (the 2D diagram's colours, hatching and glyphs). */
+export const PART: Record<'draft' | 'target' | 'accepted' | 'residual', { role: ColorRoleName; form: MarkForm }> = {
+  draft: { role: 'probability-draft', form: 'marked' },
+  target: { role: 'probability-target', form: 'solid' },
+  accepted: { role: 'probability-overlap', form: 'solid' },
+  residual: { role: 'probability-residual', form: 'groove' },
+}
 
-export function tastingKitchen(plan: Plan, lamps: TastingScene['lamps']): TastingKitchen {
-  const { lineZ, wallZ, sideX } = roomOf(plan)
-  const lineWidth = STATIONS.length * LINE.width
-  // The bell at the pass's front, between the last two dishes, where the shot over the course keeps it, clear of the plates a round pulls.
-  const bell: Vec3 = [columnX(plan, plan.columns - 1.5) - 0.05, TOP, FRONT - 0.045]
-  const items: PropSpec[] = [
-    { kind: 'floor', id: 'floor', at: [0, 0, wallZ / 2 + 1.6], width: 14, depth: 9 },
-    { kind: 'tile-wall', id: 'wall', at: [0, 0, wallZ], width: 14, height: 3.1 },
-    { kind: 'tile-wall', id: 'side', at: [sideX, 0, wallZ / 2 + 0.6], yaw: Math.PI / 2, width: 1.6 - wallZ, height: 3.1 },
-    { kind: 'hood', id: 'hood', at: [0, HOOD.top, wallZ], width: lineWidth + 0.4, depth: HOOD.depth, height: HOOD.height },
-    // The hood's lip: a drawn steel bar along its skirt's foot, so the skirt reads as formed sheet over the line and not as a slab.
-    { kind: 'rail', id: 'lip', at: [0, HOOD.top - HOOD.height + 0.035, wallZ + HOOD.depth + 0.013], length: lineWidth + 0.4 },
-    ...STATIONS.map((kind, s): PropSpec => ({ kind, id: `station-${s}`, at: [(s + 0.5 - STATIONS.length / 2) * LINE.width, 0, lineZ], width: LINE.width - 0.01, depth: LINE.depth, height: LINE.height, channel: s })),
-    { kind: 'pass', id: 'pass', at: [plan.x, 0, FRONT - plan.depth / 2], width: plan.width, depth: plan.depth, height: TOP, strip: 0 },
-    { kind: 'bell-base', id: 'bell', at: bell },
-    ...lamps.map(([x, z], i): PropSpec => ({ kind: 'heat-lamp', id: `lamp-${i}`, at: [x, CEILING, z], drop: CEILING - plan.mouth - 0.2015, hang: 'cord' })),
+/** How far the output's ring stands out from the bar, how tall it is, and how big a drawn round's dot is and how far it stands off the bar, in px. */
+const RING = { out: 2, height: 2.4 } as const
+const DOT = { size: 7, off: 2.5 } as const
+/** A token's count is not drawn over a bar in a canvas narrower than this unless the drawing is one row [estimated]: the state table carries every one. */
+export const ROOMY = 560
+
+export interface Skyline {
+  readonly model: FlatModel
+  /** The rows drawn, and the sizes they are drawn at (the cameras frame them). */
+  readonly rows: number
+  readonly geo: Geo
+}
+
+interface Column {
+  readonly x0: number
+  readonly x1: number
+}
+
+/** The base plate and the paper on it, round a drawing's bounds. */
+function platesOf(bounds: Bounds, pad: number): FlatBox[] {
+  return [
+    { id: 'plate/base', x0: bounds.x0 - pad, x1: bounds.x1 + pad, z0: bounds.z0 - pad, z1: bounds.z1 + pad, y0: -8, height: 7.4, role: 'surface-2', form: 'solid', shadow: false },
+    { id: 'plate/sheet', ...bounds, y0: -0.6, height: 0.6, role: 'paper', form: 'solid', shadow: false },
   ]
-  return {
-    items,
-    // Each lamp's light leaves its shade's mouth, over a run as over a course: its pool on the counter is the kit's spread, whatever its height.
-    lights: lamps.map(([x, z], i) => ({ id: `lamp-${i}`, at: [x, plan.mouth - 0.02, z], target: [x, TOP, z] })),
-    bell,
-    // Full over the middle of the line and over the pass, easing down to a quarter of that, veiled in the haze's deep steel, 1.6 metres
-    // further out, from a hand over the line's worktops to 80 cm up the wall, and half a metre behind the pass [estimated]: the wall over
-    // the line falls away into the haze before the hood and never stops the room, and the floor seen under the pass, through its open
-    // shelf, is in its shade.
-    room: { x: 0, half: lineWidth / 4, above: LINE.height + 0.1, beyond: plan.back, reach: [1.6, 0.8, 0.5], dim: 0.25, veil: 0.7 },
+}
+
+/** A bar of one or two parts, from its foot: the part's id, how tall (in px) and what it is. */
+function stack(id: string, x: Column, z0: number, z1: number, parts: readonly { part: keyof typeof PART; height: number }[], pick: string, hollow = false): FlatBox[] {
+  let y = 0
+  const out: FlatBox[] = []
+  for (const { part, height } of parts) {
+    if (height <= 0) continue
+    out.push({ id: `${id}/${part}`, x0: x.x0, x1: x.x1, z0, z1, y0: y, height, role: PART[part].role, form: hollow ? 'hollow' : PART[part].form, pick })
+    y += height
   }
+  return out
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* The tasting: what the view says                                                                                    */
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-/** A run of plates, each with one edge. */
-const run = (count: number, band: Band): Band[] => Array.from({ length: Math.max(0, count) }, () => band)
-
-/**
- * The lamps over `gamma`'s first `count` positions: one over each when they are few, else three spread over them. Each list is made once
- * and kept, so the scene sees the same lamps until the run's length changes, and builds its room again only then.
- */
-const gammaLamps = new Map<number, TastingScene['lamps']>()
-function lampsOver(plan: Plan, count: number): TastingScene['lamps'] {
-  const left = columnX(plan, 0)
-  const right = columnX(plan, count - 1)
-  const n = Math.min(3, count)
-  if (!gammaLamps.has(count)) gammaLamps.set(count, Array.from({ length: n }, (_, i) => [n === 1 ? left : left + ((right - left) * i) / (n - 1), 0] as const))
-  return gammaLamps.get(count) ?? []
+/** The ring that is the sampler's output over a bar: a thin hollow collar at the output's height. */
+function ring(id: string, x: Column, z0: number, z1: number, out: number): FlatBox {
+  return { id, x0: x.x0 - RING.out, x1: x.x1 + RING.out, z0: z0 - RING.out, z1: z1 + RING.out, y0: Math.max(0, out), height: RING.height, role: 'text-1', form: 'hollow', shadow: false }
 }
 
 /**
- * Over a course: a lamp over each two dishes, between their pairs, so the whole course stands in their light [estimated]. Each hangs
- * straight over the course being tasted, the front one, and its light falls plumb, so its pool lies on the steel round the plates under
- * it and nowhere else: the kit's light is a cone of haze and an edgeless pool where it lands, with no spot light, so no lobe of the
- * lamp's light slides along brushed steel toward the eye.
+ * The skylines of a view. `settled` says where the ring of a view that has put nothing out stands: at the foot (true, for the view an
+ * authored move starts from, so that the first rounds' ring rises out of the paper) or not drawn (false).
  */
-const ROW_LAMPS: TastingScene['lamps'] = [
-  [-0.8, 0],
-  [0, 0],
-  [0.8, 0],
-]
-
-/**
- * How many plates a dispenser's wires stand over the chef's stack [estimated]: what went out stands up to there, so a dish that went out
- * more often than she sends it stands over her stack, and more than that waits at the wires' top.
- */
-const SPARE = 6
-
-/** A strip of tape on the pass's rolled front edge, under a column, tilted back with the edge. */
-function edgeTape(plan: Plan, column: number, text: string): Tape {
-  return { id: `col-${column}`, center: [columnX(plan, column), TOP - 0.03, FRONT + 0.017], size: [0.19, 0.046], rotation: [-0.45, 0, ((column * 7) % 5) * 0.008 - 0.016], text }
+export function skylineOf(view: VerifierView, flags: SceneFlags, settled = false): Skyline {
+  return view.level === 'gamma' ? gammaSkyline(view) : rowsSkyline(view, flags, settled)
 }
 
-/**
- * What stands still, kept while it does not change: the same lists come back for every view of a course, so the scene builds its stacks
- * and dispensers once for the course and not on every draw. One scene lives on a page at a time (the Stage's lease), so one is kept.
- */
-let standing: { key: string; stacks: readonly Stack[]; dispensers: readonly Dispenser[] } | null = null
-function keep(stacks: readonly Stack[], dispensers: readonly Dispenser[]): { stacks: readonly Stack[]; dispensers: readonly Dispenser[] } {
-  const key = JSON.stringify([stacks, dispensers])
-  if (standing?.key !== key) standing = { key, stacks, dispensers }
-  return standing
-}
-
-export function tastingScene(view: VerifierView, plan: Plan, flags: SceneFlags): TastingScene {
-  if (plan.kind === 'gamma') return gammaScene(view, plan)
-  const stacks: Stack[] = []
-  const dispensers: Dispenser[] = []
-  const served: Served[] = []
-  const markers = new Map<string, Marker>()
-  const tapes: Tape[] = view.dishes.map((name, d) => edgeTape(plan, d, name))
-  const anchors: Anchor[] = []
-  const single = view.rows.length === 1
+function rowsSkyline(view: VerifierView, flags: SceneFlags, settled: boolean): Skyline {
+  const n = Math.max(1, view.rows.length)
+  const GEO = geoOf(n, flags.narrow)
+  const axis = view.rows.length === 0 ? 8 : axisOf(view)
+  const scale = GEO.height / axis
+  const ox = n > 1 ? GEO.names : 0
+  const bounds: Bounds = { x0: 0, x1: ox + view.dishes.length * GEO.col, z0: 0, z1: (n - 1) * GEO.row + GEO.depth + GEO.tags }
+  const boxes: FlatBox[] = []
+  const labels: FlatLabel[] = []
+  const rules: FlatSegment[] = []
+  const bars = (t: number): { q: Column; p: Column } => {
+    const x = ox + t * GEO.col + (GEO.col - 2 * GEO.bar - GEO.gap) / 2
+    return { q: { x0: x, x1: x + GEO.bar }, p: { x0: x + GEO.bar + GEO.gap, x1: x + 2 * GEO.bar + GEO.gap } }
+  }
   view.rows.forEach((row: RowView, r) => {
-    const z = rowZ(r)
-    row.p.forEach((p, d) => {
-      const q = row.q?.[d] ?? 0
-      const agreed = Math.min(p, q)
-      const at = (side: number): Vec3 => [columnX(plan, d) + side, TOP, z]
-      const commis = at(STACKS.commis)
-      const chef = at(STACKS.chef)
-      if (q > 0) stacks.push({ id: `q${r}-${d}`, at: commis, bands: flags.scaffold ? [...run(agreed, 'probability-overlap'), ...run(q - agreed, 'probability-draft')] : run(q, 'probability-draft') })
-      if (p > 0) {
-        const chefBands = flags.scaffold && row.q !== null ? [...run(agreed, 'probability-overlap'), ...run(p - agreed, 'probability-residual')] : run(p, 'probability-target')
-        stacks.push({ id: `p${r}-${d}`, at: chef, bands: chefBands })
+    // The first row stands nearest the viewer, so the later rows stand behind it.
+    const z0 = (n - 1 - r) * GEO.row
+    const z1 = z0 + GEO.depth
+    const split = flags.scaffold && row.agreed !== null
+    // The row's name on the left, in the label column, and its footing rule.
+    if (n > 1) labels.push({ id: `row-${r}`, at: [GEO.pad / 2, 0, (z0 + z1) / 2], text: flags.narrow ? (row.kind === 'bonus' ? '+' : String(r + 1)) : row.label, kind: 'row', place: 'right' })
+    rules.push({ x0: ox, z0: z1 + 4, x1: bounds.x1, z1: z1 + 4 })
+    row.p.forEach((p, t) => {
+      const { q: qc, p: pc } = bars(t)
+      const q = row.q?.[t] ?? null
+      const agreed = split ? (row.agreed?.[t] ?? null) : null
+      const pick = `col-${t}`
+      if (q !== null) {
+        const parts = agreed === null ? [{ part: 'draft' as const, height: q * scale }] : [{ part: 'accepted' as const, height: agreed * scale }, { part: 'draft' as const, height: (q - agreed) * scale }]
+        boxes.push(...stack(`r${r}/q${t}`, qc, z0, z1, parts, pick))
+        if (q > 0) labels.push({ id: `q-${r}-${t}`, at: [(qc.x0 + qc.x1) / 2, q * scale, (z0 + z1) / 2], text: String(q), kind: 'slab', place: 'above', minWidth: n > 1 ? ROOMY : undefined })
       }
-      const cap = Math.min(FULL, p + SPARE)
-      dispensers.push({ at: chef, top: stackHeight(cap) })
-      served.push({ id: `out${r}-${d}`, at: at(STACKS.out), cap, out: flags.outcome && row.out !== null ? row.out[d] : null })
-      // A dish's counts on one paper tag, the commis's then the chef's, hung from the pass's edge under the dish's tape: the counter in
-      // front of a pair has no room for a tag in front of the tape from a phone's height or level with the counter.
-      if (single) anchors.push({ id: `count-${d}`, kind: 'count', at: [columnX(plan, d), TOP - 0.2, FRONT + 0.03], text: `${q} · ${p}` })
+      const parts = agreed === null ? [{ part: 'target' as const, height: p * scale }] : [{ part: 'accepted' as const, height: agreed * scale }, { part: 'residual' as const, height: (p - agreed) * scale }]
+      boxes.push(...stack(`r${r}/p${t}`, pc, z0, z1, parts, pick))
+      if (p > 0) labels.push({ id: `p-${r}-${t}`, at: [(pc.x0 + pc.x1) / 2, p * scale, (z0 + z1) / 2], text: String(p), kind: 'slab', place: 'above', minWidth: n > 1 ? ROOMY : undefined })
+      // What went out: a ring on the target bar, as high as the output (or at the foot, in the view a move starts from).
+      const out = flags.outcome ? (row.out?.[t] ?? (settled ? 0 : null)) : null
+      if (out !== null) boxes.push(ring(`r${r}/out${t}`, pc, z0, z1, out * scale))
+      // The rounds drawn: dots on the draft bar's front, at their coins' heights.
+      for (const m of row.markers) {
+        if (m.token !== t || q === null) continue
+        const cx = (qc.x0 + qc.x1) / 2
+        boxes.push({ id: `r${r}/dot${t}/${m.round}`, x0: cx - DOT.size / 2, x1: cx + DOT.size / 2, z0: z1, z1: z1 + DOT.off, y0: m.height * scale - DOT.size / 2 + 0.5, height: DOT.size, role: 'text-1', form: m.kept ? 'solid' : 'hollow', shadow: false })
+      }
     })
-    for (const m of row.markers) {
-      const q = row.q?.[m.token] ?? 0
-      if (q === 0) continue
-      const plate = Math.min(q - 1, Math.max(0, Math.floor(m.height)))
-      const agreed = Math.min(row.p[m.token], q)
-      const id = `${r}:${m.token}:${plate}`
-      markers.set(id, {
-        id,
-        at: [columnX(plan, m.token) + STACKS.commis, TOP, z],
-        plate,
-        kept: m.kept,
-        band: flags.scaffold && plate < agreed ? 'probability-overlap' : 'probability-draft',
-        row: r,
-        round: Math.max(m.round, markers.get(id)?.round ?? -1),
-      })
-    }
-    // A course's name on the strip left of the soup, each a step further left into depth, so a far name stands clear of the stacks in front.
-    if (!single) tapes.push({ id: `row-${r}`, center: [plan.x - plan.width / 2 + NAMES - r * 0.06, TOP + 0.0009, z + 0.02], size: [0.3, 0.045], rotation: [-Math.PI / 2, 0, 0.04 - r * 0.02], text: row.kind === 'bonus' ? "chef's extra" : row.label })
   })
-  return {
-    ...keep(stacks, dispensers),
-    served,
-    markers: [...markers.values()],
-    tapes,
-    anchors: [...anchors, ...tapeAnchors(tapes)],
-    lamps: ROW_LAMPS,
-    lit: view.present !== null,
-  }
+  // A token's number under its pair, on the front row's apron, and the column rules between tokens.
+  const frontZ = bounds.z1 - GEO.tags + 8
+  view.dishes.forEach((_, t) => {
+    const { q, p } = bars(t)
+    labels.push({ id: `token-${t}`, at: [(q.x0 + p.x1) / 2, 0, frontZ], text: String(t), kind: 'tick', place: 'below' })
+  })
+  return { model: finish(boxes, labels, rules, bounds, GEO.pad), rows: n, geo: GEO }
 }
 
-/** The words on each strip of tape, anchored at its middle: a dish's, or a course's. */
-const tapeAnchors = (tapes: readonly Tape[]): Anchor[] => tapes.map((tape) => ({ id: `tape-${tape.id}`, kind: tape.id[0] === 'r' ? 'row' : 'tape', at: tape.center, text: tape.text }))
-
-/** `gamma`: a stack of sixty-four for each position of the run, the plates the walk keeps if it gets that far, then the rest. */
-function gammaScene(view: VerifierView, plan: Plan): TastingScene {
+/** `gamma`: a bar for each position, cut at the share the target accepts, and a ring at how far the walk reaches. */
+function gammaSkyline(view: VerifierView): Skyline {
+  const GEO = geoOf(1)
   const gamma = view.gamma
+  const alphas = gamma?.alphas.slice(0, gamma.max) ?? []
+  const bounds: Bounds = { x0: 0, x1: Math.max(1, alphas.length) * GAMMA.col, z0: 0, z1: GEO.depth + GEO.tags }
+  const boxes: FlatBox[] = []
+  const labels: FlatLabel[] = []
   const pick = gamma?.pick ?? 0
-  const stacks: Stack[] = (gamma?.alphas ?? []).slice(0, plan.columns).map((alpha, j) => {
-    const kept = Math.round((alpha * FULL) / 1000)
-    return { id: `g${j}`, at: [columnX(plan, j), TOP, 0], bands: [...run(kept, 'probability-overlap'), ...run(FULL - kept, 'probability-draft')], flipped: j >= pick }
+  let reach = 1
+  alphas.forEach((alpha, at) => {
+    reach = (reach * alpha) / 1000
+    const x0 = at * GAMMA.col + (GAMMA.col - GAMMA.bar) / 2
+    const column = { x0, x1: x0 + GAMMA.bar }
+    // The positions past the chosen draft length are not drafted: they stand as outlines.
+    const hollow = pick >= 1 && at >= pick
+    const accepted = (alpha / 1000) * GEO.height
+    boxes.push(...stack(`g${at}`, column, 0, GEO.depth, [{ part: 'accepted', height: accepted }, { part: 'draft', height: GEO.height - accepted }], `col-${at}`, hollow))
+    boxes.push(ring(`g${at}/reach`, column, 0, GEO.depth, reach * GEO.height))
+    labels.push({ id: `token-${at}`, at: [(column.x0 + column.x1) / 2, 0, GEO.depth + 12], text: String(at + 1), kind: 'tick', place: 'below' })
   })
-  const tapes = Array.from({ length: plan.columns }, (_, j) => edgeTape(plan, j, String(j + 1)))
-  return {
-    ...keep(stacks, []),
-    served: [],
-    markers: [],
-    tapes,
-    anchors: tapeAnchors(tapes),
-    lamps: lampsOver(plan, Math.max(1, pick)),
-    lit: pick >= 1 && !view.done,
-  }
+  return { model: finish(boxes, labels, [{ x0: 0, z0: GEO.depth + 4, x1: bounds.x1, z1: GEO.depth + 4 }], bounds, GEO.pad), rows: 1, geo: GEO }
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* What moved                                                                                                         */
-/* ------------------------------------------------------------------------------------------------------------------ */
+function finish(boxes: FlatBox[], labels: FlatLabel[], rules: FlatSegment[], bounds: Bounds, pad: number): FlatModel {
+  return { plates: platesOf(bounds, pad), boxes, wires: [], rules, inks: [], cursors: [], labels, bounds }
+}
 
 /**
- * How a new view moves the scene: on the bell (rounds drawn: the new rounds' plates drop and what went out settles), as the learner's
- * own change of the recipe or the card (what went out settles, nothing drops), or as a cut (a new level, an undo, the first frame).
+ * The labels a shot shows. Over the run, every one. From the side the rows stand behind one another and their names would pile at the
+ * far end, so a row is told by its height; in the side view and in one draft position the counts of the rows behind would stand over the
+ * front row's, so only the front row's are printed (the table carries every one).
  */
-export type Change = 'bell' | 'settle' | 'cut'
-
-export function changeOf(before: VerifierView | null, after: VerifierView): Change {
-  if (before === null || before.level !== after.level) return 'cut'
-  if (after.counters.rounds > before.counters.rounds) return 'bell'
-  if (after.counters.rounds < before.counters.rounds && after.counters.rounds > 0) return 'cut'
-  return before.gamma?.pick !== after.gamma?.pick ? 'cut' : 'settle'
+export function labelsFor(model: FlatModel, shot: string): readonly FlatLabel[] {
+  if (shot === 'side' || shot === 'course') return model.labels.filter((label) => label.kind !== 'row' && (label.kind !== 'slab' || /^[qp]-0-/.test(label.id)))
+  return model.labels
 }
-
-/** How many plates what went out stands, for `out` plates: none for none, and no more than her dispenser's top (the mirror prints every figure). */
-export const servedPlates = (served: Served): number => Math.min(served.cap, Math.max(0, served.out ?? 0))

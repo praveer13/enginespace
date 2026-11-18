@@ -11,6 +11,7 @@ import { renderToString } from 'react-dom/server'
 import { createStaticHandler, createStaticRouter, StaticRouterProvider } from 'react-router'
 import { routes } from '@/routes'
 import { cssVar, PAIRS, resolveColor, ROLE_NAMES, roleOf, rolesIn, type ColorRoleName } from '@/design/tokens'
+import { findBanned } from '@/copy/banned'
 import { read } from '../ci/support'
 
 async function render(url: string): Promise<string> {
@@ -60,20 +61,19 @@ describe('/design', () => {
 
   test('shows every component of the design system', () => {
     for (const title of [
-      'Ticket',
-      'Stub',
-      'Rail',
-      'Printer tape',
+      ...PART_TITLES,
+      'Sheet',
+      'Primary button',
+      'Readout strip',
       'Readout',
-      'Tape label',
-      'Pan',
-      'Station light',
-      'Bell',
+      'Label',
+      'Busy mark',
+      'Step control',
       'Button',
       'Link',
       'Toggle',
       'Field',
-      'The board and the menu',
+      'The header and the navigation',
       'Marks',
     ])
       expect(html).toContain(`<h3 class="es-spec__component-title">${title}</h3>`)
@@ -81,8 +81,8 @@ describe('/design', () => {
 
   test('shows each component in its states', () => {
     for (const state of ['hover', 'focus', 'active', 'disabled', 'loading', 'error', 'empty']) expect(text).toContain(`>${state}</figcaption>`)
-    expect(text).toContain('a ticket you pick up: hover')
-    expect(text).toContain('under the lamp')
+    expect(text).toContain('a sheet you pick up: hover')
+    expect(text).toContain('marked now')
   })
 
   test("shows the Link in each of its forms: the router's, an unavailable one, a file of the site, and another site's", () => {
@@ -103,6 +103,106 @@ describe('/design', () => {
     expect(other).toContain('(opens in a new tab)')
     // The base is read from the build, as the About page reads it, so that a preview under a subpath keeps the link right.
     expect(read('src/pages/Design.tsx')).toContain("file={`${import.meta.env.BASE_URL ?? '/'}third-party-licenses.txt`}")
+  })
+})
+
+/** Wave R's components (REDESIGN 2.8, stage 1), in the order /design shows them: before the components every page is drawn with today. */
+const PART_TITLES = [
+  'Marker',
+  'Callout',
+  'Parts list',
+  'Legend',
+  'Note',
+  'Popover',
+  'Stamp',
+  'Title block',
+  'Section list',
+  'Level menu',
+  'Goal line',
+  'Delta',
+  'Number line',
+  'The way on',
+]
+
+describe('/design: the lesson\'s and the instrument\'s parts (R-T05)', () => {
+  let html = ''
+  let text = ''
+  beforeAll(async () => {
+    html = await render('/design')
+    text = decode(html)
+  })
+
+  /** One specimen's markup, from its section to the next specimen's. */
+  const specimen = (title: string) => {
+    const at = new RegExp(`<section class="es-spec__component"[^>]*aria-label="${title}"`).exec(html)?.index ?? -1
+    const next = html.indexOf('<section class="es-spec__component"', at + 1)
+    return at < 0 ? '' : html.slice(at, next < 0 ? undefined : next)
+  }
+  const labels = (title: string) => [...specimen(title).matchAll(/<figcaption class="es-spec__state-label">([^<]+)<\/figcaption>/g)].map((match) => decode(match[1]))
+
+  test('shows each new component first, in the order of the brief, ahead of Sheet', () => {
+    const order = [...PART_TITLES, 'Sheet'].map((title) => html.indexOf(`<h3 class="es-spec__component-title">${title}</h3>`))
+    expect(order.every((at) => at > 0)).toBe(true)
+    expect(order).toEqual([...order].sort((a, b) => a - b))
+  })
+
+  test.each([
+    ['Callout', ['default', 'hover', 'focus', 'active', 'selected', 'disabled']],
+    ['Parts list', ['hover', 'focus', 'active', 'disabled', 'empty']],
+    ['Popover', ['default', 'hover', 'focus', 'active', 'disabled']],
+    ['Stamp', ['hover', 'focus', 'active', 'disabled', 'open: the tag legend']],
+    ['Section list', ['an entry: hover', 'an entry: focus', 'an entry: active', 'the strip, closed', 'the strip, open']],
+    ['Level menu', ['live', 'hover', 'focus', 'active', 'disabled']],
+    ['The way on', ['first visit', 'outline', 'unavailable']],
+  ] as const)('%s is shown in its states', (title, states) => {
+    const shown = labels(title)
+    for (const state of states) expect([state, shown.includes(state)]).toEqual([state, true])
+  })
+
+  test('each forced state reaches its control: a pointer state is drawn without a pointer', () => {
+    for (const title of ['Callout', 'Popover', 'Stamp', 'Level menu', 'Section list', 'Parts list'])
+      for (const state of ['hover', 'focus', 'active']) expect([title, state, specimen(title).includes(`data-force="${state}"`)]).toEqual([title, state, true])
+  })
+
+  test('the amber controls show one state at a time, each state a radio button of its group, so a screen holds one amber fill', () => {
+    for (const [title, states] of [
+      ['The way on', ['first visit', 'with reviews and a note', 'hover', 'focus', 'active']],
+      ['Primary button', ['default', 'hover', 'focus', 'active', 'disabled', 'loading', 'error', 'on a sheet, as a link']],
+    ] as const) {
+      const shown = specimen(title)
+      expect([title, [...shown.matchAll(/type="radio"/g)].length]).toEqual([title, states.length])
+      for (const state of states) expect([title, state, shown.includes(`<span>${state}</span>`)]).toEqual([title, state, true])
+      expect([title, [...shown.matchAll(/es-primary-button__pull|data-emphasis="primary"/g)].length > 0]).toEqual([title, true])
+    }
+  })
+
+  test('has no kitchen word in what it says: the guard reads the page as a learner would', () => {
+    const words = html.replace(/<style[\s\S]*?<\/style>/g, ' ').replace(/<[^>]+>/g, '\n') + [...html.matchAll(/(?:aria-label|alt|title)="([^"]*)"/g)].map((match) => match[1]).join('\n')
+    expect(findBanned(decode(words)).map((found) => `"${found.match}" (${found.rule})`)).toEqual([])
+  })
+
+  test('every section rail on the page is a nav with its own name, and holds one current step', () => {
+    const rails = [...specimen('Section list').matchAll(/<nav class="es-srail"[^>]*aria-label="([^"]+)"/g)].map((match) => match[1])
+    expect(rails.length).toBeGreaterThanOrEqual(5)
+    expect(new Set(rails).size).toBe(rails.length)
+    expect([...specimen('Section list').matchAll(/aria-current="step"/g)]).toHaveLength(rails.length)
+  })
+
+  test('the stamp opens the tag legend, and the open popover and stamp are dialogs named by their titles', () => {
+    expect(text).toContain('How numbers are tagged')
+    expect([...specimen('Stamp').matchAll(/es-taglegend__line/g)]).toHaveLength(4)
+    expect([...html.matchAll(/role="dialog" aria-labelledby="/g)].length).toBeGreaterThanOrEqual(2)
+  })
+
+  test('the level menu is one select, and the markers carry a word', () => {
+    expect([...specimen('Level menu').matchAll(/<select/g)]).toHaveLength(5)
+    expect([...specimen('Marker').matchAll(/<span class="es-marker__word">[^<]+<\/span>/g)]).toHaveLength(3)
+  })
+
+  test('the parts are drawn by one stylesheet of the design system, loaded with them and not with every page', () => {
+    for (const file of ['Marker', 'Callout', 'PartsList', 'Legend', 'Note', 'Popover', 'Stamp', 'TitleBlock', 'SectionRail', 'LevelMenu', 'GoalLine', 'DeltaChip', 'NumberLine', 'NextStep'])
+      expect([file, read(`src/design/components/${file}.tsx`).includes("import '../parts.css'")]).toEqual([file, true])
+    expect(read('src/design/components.css')).not.toContain('.es-pop')
   })
 })
 
@@ -138,16 +238,20 @@ describe('/design: landmarks, and what the lights say', () => {
     expect(landmarks(html).filter((landmark) => landmark === 'region: Motion')).toHaveLength(1)
   })
 
-  test('the toggle and the station light say that a light that is on burns the heat lamp, and a lane is a mark beside it', () => {
-    expect(text).toContain("a pilot light that burns the heat lamp's amber when it is on")
-    expect(text).toContain("it burns the heat lamp's amber while it cooks")
+  // R-T16 (REDESIGN 2.8): the switch says its state in a word and has no light, and a busy light is a solid ink disc, never amber.
+  test('the switch and the busy light say their state as a shape and a word, and a lane is a mark beside it', () => {
+    expect(text).toContain('A switch: a flat track, a square thumb, and the state as a word. On, the track is dark. No light.')
+    expect(text).toContain('a solid ink disc while it works, an open ring while it waits')
+    const toggle = html.slice(html.indexOf('aria-label="Toggle"'), html.indexOf('aria-label="Field"'))
+    expect(toggle.length).toBeGreaterThan(0)
+    expect(toggle).not.toMatch(/pilot|heat lamp|es-toggle__pilot/)
     expect(text).toContain("dark, the lane's mark stays")
     expect(text).not.toContain('burns green')
     expect(text).not.toContain("lit in its lane's colour")
-    // The marks of the lanes shown: the line's is the green board's square, the expo's the blue board's circle.
-    const station = html.slice(html.indexOf('aria-label="Station light"'), html.indexOf('aria-label="Bell"'))
+    // The marks of the lanes shown: the line's is green's hexagon, the expo's blue's circle (REDESIGN §2.8, the one colour code).
+    const station = html.slice(html.indexOf('aria-label="Busy mark"'), html.indexOf('aria-label="Step control"'))
     expect(station).toContain('data-lane="gpu"')
-    expect(station).toContain('data-glyph="square"')
+    expect(station).toContain('data-glyph="hexagon"')
     expect(station).toContain('data-lane="cpu"')
     expect(station).toContain('data-glyph="circle"')
   })
@@ -223,14 +327,14 @@ describe('/design: motion', () => {
     }
   })
 
-  test('moves nothing until the bell is rung: no motion has run, and the runner is marked aria-hidden', () => {
+  test('moves nothing until the step is pressed: no motion has run, and the runner is marked aria-hidden', () => {
     expect(section()).not.toContain('data-ran')
-    expect(html).toContain('Nothing moves until you ring.')
+    expect(html).toContain('Nothing moves until you press it.')
     expect([...section().matchAll(/<span class="es-spec__motion-track" aria-hidden="true">/g)]).toHaveLength(4)
   })
 
   test('has a bell to ring, and a status region that is there from the start', () => {
-    expect(section()).toMatch(/<button[^>]*>Ring the bell<\/button>/)
+    expect(section()).toMatch(/<button[^>]*>Step<\/button>/)
     expect(section()).toContain('<p role="status" class="sr-only"></p>')
   })
 
@@ -258,7 +362,7 @@ describe('/design: each scene beside its 2D twin', () => {
     const views = html.slice(html.indexOf('class="es-kit__views"'), html.indexOf('class="es-kit__deck"'))
     expect(views.indexOf('data-view="3d"')).toBeLessThan(views.indexOf('data-view="2d"'))
     expect(decode(views)).toContain('2D twin')
-    expect(decode(views)).toContain('3D · the pass')
+    expect(decode(views)).toContain('3D · the lanes')
   })
 
   test('the 3D view paints its 2D twin first, so a device that cannot draw 3D loses nothing', () => {

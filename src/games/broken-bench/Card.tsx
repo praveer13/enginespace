@@ -7,7 +7,7 @@ export function WorldCard() {
   return (
     <div className="flex flex-col gap-3" data-bench-card="">
       <p>
-        <strong>Models.</strong> A benchmark client that sends a seeded stream of requests to a server and logs what a client logs: when each order was due, when it was sent, when its first
+        <strong>Models.</strong> A benchmark client that sends a seeded stream of requests to a server and logs what a client logs: when each request was due, when it was sent, when its first
         token and its last arrived. The server is the step loop run coarse, on kernelspace&apos;s S5 card for a 70B model on H100s. Latency is counted from the due time, a percentile is
         read by nearest rank, and an interval on a p99 is a seeded percentile bootstrap. A flaw is one thing a harness did wrong, and the corrected number is the log timed again, the log
         less its warm-up, or the benchmark run again with the flaw taken out.
@@ -18,7 +18,7 @@ export function WorldCard() {
       </p>
       <p>
         <strong>Calibrated against.</strong> The step-loop model and the S5 card inside its box. Nothing in the client model has been compared with a benchmark of a real engine yet. The
-        flaws are the real tools&apos; (<code>vllm bench serve</code> and SGLang&apos;s <code>bench_serving</code>), and each ruling cites its instance with the day it was read.
+        flaws are the real tools&apos; (<code>vllm bench serve</code> and SGLang&apos;s <code>bench_serving</code>), and each report's debrief cites its instance with the day it was read.
       </p>
     </div>
   )

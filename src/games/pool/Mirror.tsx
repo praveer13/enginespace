@@ -1,165 +1,128 @@
-import { formatReadout } from '@/design/format'
-import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
-import { Readout } from '@/design/components/Readout'
 import { MirrorTable, type MirrorColumn, type MirrorRow } from '@/games/kit/MirrorTable'
 import type { PanState, PoolView, TicketView } from '@es/play/pool/types'
 import type { PoolRun } from './types'
+import { reqName } from './words'
 
 /*
- * The Reach-In's mirror (GAMES.md §2.3, §8 "2D path"; A§6.9): the printer's tape with the counters of the night, and two DOM tables that
- * list everything the drawing shows, so a screen reader, a zoomed page and a phone read what the rack and the pass show and nothing is
- * only in the picture. The page table lists every pan that holds something (id, form, station, tape, hash, holders), and the request
- * table every ticket (its place, its tokens, the hit it found and the blocks it holds at each group). Column heads are the engine's
- * terms, with the kitchen's word under each, and the cells say the kitchen's words (GAMES.md §2.6, rule 2; §8, "2D path"). Every time is
- * a step of the model's clock and every count is a count of tokens, pans or tickets of the synthetic world, and the heads say so (D-048).
- *
- * The lamp falls on the present: the ticket the open ask is about.
+ * KV page pool's state as a table (GAMES.md §2.3, §8 "2D path"; A§6.9; REDESIGN §2.6): two DOM tables that list everything the diagram
+ * shows, so a screen reader, a zoomed page and a phone read what the grid, the batch and the free queue show, and nothing is only in the
+ * picture. The request table lists every request that has arrived (its conversation, its tokens, the prefix hit it found, what it
+ * recomputed, and the blocks it holds in each KV group), and the page table every page that holds something (its state, its group, its
+ * label, its hash and the requests that hold it). Every time is a step of the model's clock and every count is a count of the synthetic
+ * world, and the summary says so (D-048). The row the open decision is about carries the marker.
  */
 
-/** The kitchen's word, then the engine's term (GAMES.md §2.6, rule 2). */
-const pair = (kitchen: string, engine: string) => (
-  <>
-    {kitchen} <span className="text-text-2">· {engine}</span>
-  </>
-)
+const FORMS: Record<PanState, string> = { free: 'free', used: 'in use', cached: 'cached', shared: 'cached, a prefix hit waits on it', adapter: "an adapter's", evicted: 'evicted' }
+const STATUS: Record<TicketView['status'], string> = { future: 'not arrived', waiting: 'waiting', running: 'running', done: 'finished' }
 
-function linesOf(view: PoolView): PrinterTapeLine[] {
-  const c = view.counts
-  const served = view.tickets.filter((ticket) => ticket.status === 'done').length
-  return [
-    { id: 'step', label: pair('step', 'engine step'), value: <Readout value={view.step} pad={4} tag="synthetic" size="sm" /> },
-    { id: 'served', label: pair('tickets served', 'completed'), value: <Readout value={served} unit="requests" tag="synthetic" size="sm" /> },
-    { id: 'shared', label: pair('shared mise', 'hit tokens'), value: <Readout value={c.hitTokens} unit="tokens" tag="synthetic" size="sm" /> },
-    { id: 'prepped', label: pair('prepped again', 'recomputed tokens'), value: <Readout value={c.recomputedTokens} unit="tokens" tag="synthetic" size="sm" />, tone: c.recomputedTokens > 0 ? 'ink-2' : 'ink' },
-    { id: 'dumped', label: pair('pans dumped', 'evictions'), value: <Readout value={c.evictions} unit="pages" tag="synthetic" size="sm" /> },
-    { id: 'pulled', label: pair('tickets pulled', 'preemptions'), value: <Readout value={c.preemptions} unit="requests" tag="synthetic" size="sm" /> },
-    ...(view.kits.length === 0
-      ? []
-      : [{ id: 'stall', label: pair('kit stall steps', 'adapter stalls'), value: <Readout value={c.adapterStallSteps} unit="steps" tag="synthetic" size="sm" />, tone: c.adapterStallSteps > 0 ? ('ink-2' as const) : ('ink' as const) }]),
-    { id: 'price', label: 'price', value: <Readout value={c.cost} unit="tokens" tag="derived" size="sm" /> },
-  ]
-}
-
-const FORMS: Record<PanState, string> = { free: 'bare', used: 'held', cached: 'cached', shared: 'shared mise', adapter: "a kit's", evicted: 'dumped' }
-const STATUS: Record<TicketView['status'], string> = { future: 'thinking', waiting: 'waiting', running: 'on the line', done: 'served' }
-
-const head = (term: string, unit: string) => (
-  <>
-    {term}
-    <span className="block text-sm font-normal text-text-2">{unit}</span>
-  </>
-)
+const n = (value: number) => <span className="font-numeric">{value}</span>
 
 const TICKET_COLUMNS: readonly MirrorColumn[] = [
-  { key: 'ticket', head: head('Request', 'the ticket'), label: 'Request, the ticket' },
+  { key: 'ticket', head: 'Request' },
   { key: 'status', head: 'State' },
-  { key: 'tokens', head: head('Tokens', 'synthetic'), label: 'Tokens, synthetic', numeric: true },
-  { key: 'hit', head: head('Hit tokens', 'shared mise, synthetic'), label: 'Hit tokens, shared mise, synthetic', numeric: true },
-  { key: 'prepped', head: head('Recomputed tokens', 'prepped again, synthetic'), label: 'Recomputed tokens, prepped again, synthetic', numeric: true },
-  { key: 'pans', head: head('Blocks per group', 'pans at each station'), label: 'Blocks per group, pans at each station' },
+  { key: 'tokens', head: 'Tokens', numeric: true },
+  { key: 'hit', head: 'Prefix-hit tokens', numeric: true },
+  { key: 'recomputed', head: 'Recomputed tokens', numeric: true },
+  { key: 'blocks', head: 'Blocks per KV group' },
 ]
 
-/** A ticket's pans at each station, in words: `full0 9, sw0 2, sw1 2`. A waiting ticket's are the pans it would find and the pans it must take. */
-function pansOf(ticket: TicketView, view: PoolView): string {
+/** A request's blocks in each group, in words: `full0 9, sw0 2, sw1 2`. A waiting request's are the blocks it would reuse and the ones it needs. */
+function blocksOf(ticket: TicketView, view: PoolView): string {
   if (ticket.ruler.length === 0) return 'none'
   return ticket.ruler
     .map((row, g) => {
       const held = row.filter((seg) => seg === 'held').length
-      const shared = row.filter((seg) => seg === 'hit').length
+      const hit = row.filter((seg) => seg === 'hit').length
       const fresh = row.filter((seg) => seg === 'fresh').length
-      const text = ticket.status === 'running' ? `${held}` : `${shared} shared, ${fresh} to take`
+      const text = ticket.status === 'running' ? `${held}` : `${hit} reused, ${fresh} new`
       return `${view.stations[g].id} ${text}`
     })
     .join(', ')
 }
 
-/** The tickets the drawing shows: the ones that have arrived. A ticket still thinking is not on the pass, so it is not a row. */
+/** The requests the diagram shows: the ones that have arrived. */
 function ticketRows(view: PoolView): MirrorRow[] {
   const lit = view.ask === null ? [] : view.ask.kind === 'evict' ? (view.ask.for === 'admit' ? [view.ask.target] : []) : view.ask.kind === 'preempt' ? [view.ask.stalled] : []
   return view.tickets
     .filter((ticket) => ticket.status !== 'future')
-    .map((ticket): MirrorRow => ({
-    id: `ticket-${ticket.id}`,
-    lamp: lit.includes(ticket.id),
-    cells: {
-      ticket: (
-        <>
-          <span className="font-numeric">{`No. ${ticket.no}`}</span>
-          <span className="text-text-2">{` · table ${ticket.letter}, ${ticket.turn + 1} of ${ticket.turns}`}</span>
-        </>
-      ),
-      status: STATUS[ticket.status],
-      tokens: <span className="font-numeric">{formatReadout(ticket.tokens)}</span>,
-      hit: <span className="font-numeric">{formatReadout(ticket.hit)}</span>,
-      prepped: <span className="font-numeric">{formatReadout(ticket.recomputed)}</span>,
-      pans: pansOf(ticket, view),
-    },
-  }))
+    .map(
+      (ticket): MirrorRow => ({
+        id: `request-${ticket.id}`,
+        lamp: lit.includes(ticket.id),
+        cells: {
+          ticket: (
+            <>
+              <span className="font-numeric">{reqName(ticket.id)}</span>
+              <span className="text-text-2">{` · conversation ${ticket.letter}, turn ${ticket.turn + 1} of ${ticket.turns}`}</span>
+            </>
+          ),
+          status: STATUS[ticket.status],
+          tokens: n(ticket.tokens),
+          hit: n(ticket.hit),
+          recomputed: n(ticket.recomputed),
+          blocks: blocksOf(ticket, view),
+        },
+      }),
+    )
 }
 
-const PAN_COLUMNS: readonly MirrorColumn[] = [
-  { key: 'pan', head: head('Page', 'the pan'), label: 'Page, the pan' },
+const PAGE_COLUMNS: readonly MirrorColumn[] = [
+  { key: 'page', head: 'Page' },
   { key: 'form', head: 'State' },
-  { key: 'station', head: head('Group', 'the station'), label: 'Group, the station' },
-  { key: 'tape', head: 'Tape' },
-  { key: 'hash', head: head('Hash', 'last six digits'), label: 'Hash, last six digits' },
-  { key: 'refs', head: head('Refs', 'tickets that hold it'), label: 'Refs, tickets that hold it' },
+  { key: 'group', head: 'KV group' },
+  { key: 'label', head: 'Label' },
+  { key: 'hash', head: 'Hash, last six digits' },
+  { key: 'holders', head: 'Held by' },
 ]
 
-function panRows(view: PoolView): MirrorRow[] {
+function pageRows(view: PoolView): MirrorRow[] {
   return view.pans
-    .filter((pan) => pan.state !== 'free')
-    .map((pan): MirrorRow => ({
-      id: `pan-${pan.id}`,
-      cells: {
-        pan: <span className="font-numeric">{String(pan.id + 1).padStart(3, '0')}</span>,
-        form: FORMS[pan.state],
-        station: pan.station === null ? (pan.kit === null ? '' : `kit ${pan.kit + 1}`) : view.stations[pan.station].id,
-        tape: pan.tape ?? '',
-        hash: pan.hash === null ? '' : <span className="font-numeric">{pan.hash.toString(16).slice(-6)}</span>,
-        refs: pan.holders.length === 0 ? '' : pan.holders.map((id) => `No. ${view.tickets[id].no}`).join(', '),
-      },
-    }))
+    .filter((page) => page.state !== 'free')
+    .map(
+      (page): MirrorRow => ({
+        id: `page-${page.id}`,
+        cells: {
+          page: <span className="font-numeric">{page.id + 1}</span>,
+          form: FORMS[page.state],
+          group: page.station === null ? (page.kit === null ? '' : `adapter ${page.kit + 1}`) : view.stations[page.station].id,
+          label: page.tape ?? '',
+          hash: page.hash === null ? '' : <span className="font-numeric">{page.hash.toString(16).slice(-6)}</span>,
+          holders: page.holders.map((id) => reqName(id)).join(', '),
+        },
+      }),
+    )
 }
-
-const num = (value: number) => <span className="font-numeric">{formatReadout(value)}</span>
 
 export function Mirror({ run }: { run: PoolRun }) {
   const { view } = run
   const c = view.counts
   const served = view.tickets.filter((ticket) => ticket.status === 'done').length
   return (
-    <div className="flex flex-col gap-6">
-      <PrinterTape label="The printer: the night so far, in synthetic units" lines={linesOf(view)} feed={view.step} empty="Nothing printed yet" />
+    <>
       <MirrorTable
         id={run.mirrorId}
-        head="Mirror · the tickets"
-        caption="Every ticket of the night: its place, its tokens, the shared mise it found, what it prepped again, and its pans at each station"
+        head="Requests"
+        caption="Every request that has arrived: its state, its tokens, its prefix hit, what it recomputed, and its blocks in each KV group"
         summary={
           <>
-            Step {num(view.step)}. Tickets served {num(served)} of {num(view.tickets.length)}. Shared mise {num(c.hitTokens)} tokens, prepped again {num(c.recomputedTokens)} tokens, pans dumped{' '}
-            {num(c.evictions)}, tickets pulled {num(c.preemptions)}
-            {view.kits.length > 0 ? <>, kit stall steps {num(c.adapterStallSteps)}</> : null}. Pans: bare {num(view.stock.bare)}, held {num(view.stock.held)}, cached{' '}
-            {num(view.stock.cached)}
-            {view.stock.kits > 0 ? <>, kits {num(view.stock.kits)}</> : null}. Every figure is a count of the synthetic world.
+            Step {n(view.step)}. Finished {n(served)} of {n(view.tickets.length)} requests. Prefix-hit tokens {n(c.hitTokens)}, recomputed tokens {n(c.recomputedTokens)}, evictions{' '}
+            {n(c.evictions)}, preemptions {n(c.preemptions)}
+            {view.kits.length > 0 ? <>, steps waiting for an adapter {n(c.adapterStallSteps)}</> : null}, cost {n(c.cost)}. Pages: free {n(view.stock.bare)}, in use{' '}
+            {n(view.stock.held)}, cached {n(view.stock.cached)}
+            {view.stock.kits > 0 ? <>, adapters {n(view.stock.kits)}</> : null}. Every figure is a count of the synthetic model.
           </>
         }
         columns={TICKET_COLUMNS}
         rows={ticketRows(view)}
-        empty="No ticket has arrived yet."
+        empty="No request has arrived yet."
       />
-      <details className="es-mirror-fold">
-        <summary className="cursor-pointer font-bold">
-          All pans that hold something ({formatReadout(view.pans.length - view.tally.free)} of {formatReadout(view.pans.length)})
-        </summary>
-        <MirrorTable
-          head="Mirror · the pans"
-          caption="Every pan that holds something: its form, its station, its tape, its hash and the tickets that hold it"
-          columns={PAN_COLUMNS}
-          rows={panRows(view)}
-          empty="Every pan is bare."
-        />
-      </details>
-    </div>
+      <MirrorTable
+        head="Pages"
+        caption={`Every page that holds something: ${view.pans.length - view.tally.free} of ${view.pans.length}, with its state, KV group, label, hash and the requests that hold it`}
+        columns={PAGE_COLUMNS}
+        rows={pageRows(view)}
+        empty="Every page is free."
+      />
+    </>
   )
 }

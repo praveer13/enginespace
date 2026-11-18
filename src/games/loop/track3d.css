@@ -1,0 +1,119 @@
+/*
+ * The step loop's 3D time track, its page layer (Scene3D.tsx): every word and number on the plate, as DOM over the canvas (D-021),
+ * set as the 2D diagram sets them (loop.css), so a row's name, a request and a tick read the same in either view. Every colour, face and
+ * size is a token role; this file names none of its own. No amber here: the cursor's sheet is the marker, and its word is ink.
+ */
+
+/*
+ * The 3D view's box is the diagram's: on /play/loop it fills the frame's view, which fits the first screen beside the dock at desk widths
+ * and over the pinned dock on a phone (src/games/kit/frame.css), so the diagram, the control and the readout share the viewport (P5).
+ * Elsewhere (a lesson's column) it takes about 16:10 of the first screen [estimated].
+ */
+.es-track-stage {
+  height: clamp(20rem, min(62svh, 46vw), 46rem);
+}
+
+@media (min-width: 64rem) {
+  .es-frame[data-placement='page'] [data-surface='3d']:has(> .es-track-stage),
+  .es-frame[data-placement='page'] .es-track-stage {
+    height: 100%;
+    min-height: 20rem;
+  }
+}
+
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame[data-placement='page'] .es-track-stage {
+    height: max(9rem, calc(67svh - 19.5rem));
+  }
+}
+
+.es-track3d {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.es-track-label {
+  color: var(--es-text-1);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-caption);
+  font-weight: var(--es-font-label-weight);
+  line-height: 1.2;
+}
+
+/* A row's name in the label column, and the axis's unit under it. A long name wraps inside the column as the 2D label does, so it never
+   runs over the first slab of its row, which the tilt brings closer to the column on the far rows. */
+.es-track-label--row {
+  font-size: var(--es-size-caption);
+}
+
+.es-label.es-track-label--row {
+  max-width: 7.5rem;
+  white-space: normal;
+}
+
+.es-track-label--axis {
+  color: var(--es-text-3);
+  font-size: var(--es-size-micro);
+  font-weight: 400;
+}
+
+/* A request on its chip, in the numbers' face. */
+.es-track-label--chip {
+  font-family: var(--es-font-numeric);
+  font-size: var(--es-size-caption);
+  font-variant-numeric: tabular-nums;
+}
+
+/* A slab's own words: on a slip of paper, so they read on blue, green and yellow alike. */
+.es-track-label--slab,
+.es-track-label--dim,
+.es-track-label--caption {
+  padding: 0 0.25rem;
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+}
+
+.es-track-label--slab {
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-micro);
+  font-weight: 400;
+}
+
+.es-track-label--idle {
+  color: var(--es-text-3);
+  font-size: var(--es-size-micro);
+  font-weight: 400;
+}
+
+/* A bubble's value on its dimension line, as an engineering drawing writes it. */
+.es-track-label--dim {
+  font-family: var(--es-font-numeric);
+  font-size: var(--es-size-micro);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+.es-track-label--tick {
+  color: var(--es-text-2);
+  font-family: var(--es-font-numeric);
+  font-size: var(--es-size-micro);
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+}
+
+.es-track-label--now {
+  font-size: var(--es-size-micro);
+}
+
+/* Compare's three schedulers, each over its band, and the line that says what a camera of the model's own runs shows. */
+.es-track-label--band {
+  font-size: var(--es-size-note);
+}
+
+.es-track-label--caption {
+  color: var(--es-text-2);
+  font-size: var(--es-size-micro);
+  font-weight: 400;
+  box-shadow: var(--es-shadow-paper);
+}

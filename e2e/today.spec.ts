@@ -25,8 +25,6 @@ import type { Locator, Page } from '@playwright/test'
 import type { LedgerEvent } from '../packages/ledger'
 import { FAMILIES, familyById, plain } from '../packages/play/items'
 import type { Gen, Item } from '../packages/play/items'
-import { bubbleWidth } from '../packages/play/items/families/tr2/bubble-width'
-import { stepOrder } from '../packages/play/items/families/tr2/step-order'
 import { deriveCards } from '../src/items/today/cards'
 import { addDays, formatDay } from '../src/items/today/days'
 import { drawForKc } from '../src/items/today/draw'
@@ -160,7 +158,7 @@ const root = (page: Page): Locator => page.locator('[data-page="today"]')
 const phase = (page: Page, name: string): Locator => page.locator(`.es-prep[data-phase="${name}"]`)
 const block = (page: Page): Locator => page.locator('section[data-block="item"]')
 const stub = (page: Page, name: RegExp | string): Locator => page.locator('main').getByRole('button', { name })
-const start = (page: Page): Locator => stub(page, 'Start the prep')
+const start = (page: Page): Locator => stub(page, 'Start review')
 const field = (page: Page): Locator => block(page).locator('input.es-field__input')
 
 interface Ticket {
@@ -213,7 +211,7 @@ async function fill(page: Page, which: 'right' | 'wrong', sure?: string): Promis
 }
 
 async function check(page: Page): Promise<void> {
-  await stub(page, /Check the ticket/).click()
+  await stub(page, /Check answer/).click()
   await expect(block(page)).toHaveAttribute('data-phase', 'revealed')
   await quiet(page, 300)
 }
@@ -244,28 +242,32 @@ const queue = (page: Page, entropy: number[]) => page.evaluate((values) => void 
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 test.describe('the prep list', () => {
-  test('names the ideas that are due, each with its title and its id on tape, and says about how long it takes; it never says what is overdue', async ({ page }) => {
+  test('names the ideas that are due, each by its sentence, its module and when it was last seen, and says about how long it takes; it never says what is overdue', async ({ page }) => {
     await visit(page, earned({ bubble: 6, overlap: 5 }))
     await expect(phase(page, 'list')).toBeVisible()
-    await expect(page.getByRole('heading', { level: 1, name: 'Today' })).toBeVisible()
-    await expect(page.getByRole('heading', { level: 2, name: 'Prep list' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Review' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'Review set: 2 questions' })).toBeVisible()
+    await expect(page.locator('.es-prep__head')).toContainText('questions today, about')
     const lines = page.locator('.es-prep__list .es-prep__line')
     await expect(lines).toHaveCount(2)
-    for (const kc of [BUBBLE, OVERLAP]) await expect(page.locator('.es-prep__list .es-prep__kc', { hasText: kc })).toBeVisible()
-    // Each line names the family that will serve it. Two families assess the bubble and take turns by the reviews the card has had (one so far,
-    // so the second); the overlap has one.
-    await expect(lines.filter({ hasText: BUBBLE })).toContainText(stepOrder.title)
-    await expect(lines.filter({ hasText: OVERLAP })).toContainText(bubbleWidth.title)
-    await expect(page.locator('.es-prep__list .es-ticket__foot')).toContainText('about')
-    await expect(page.locator('.es-prep__list .es-ticket__foot')).toContainText('2')
-    await expect(page.locator('.es-prep__list .es-ticket__foot')).toContainText('estimated')
-    await expect(page.locator('.es-prep__list .es-ticket__foot')).toContainText('nothing is timed')
+    // Each row says its idea in the course's own sentence, its module, and the day it was last seen; no id of the idea is printed.
+    await expect(lines.first()).toContainText('You can say')
+    await expect(lines.first()).toContainText('TR2')
+    await expect(lines.first()).toContainText('last seen')
+    for (const kc of [BUBBLE, OVERLAP]) await expect(page.locator('.es-prep__list')).not.toContainText(kc)
     await expect(start(page)).toBeVisible()
-    // The lamp falls on the list, the place the next decision acts on.
+    // The sheet the next decision acts on, with the amber button in its head, and the quiet column beside it.
     await expect(page.locator('.es-prep__list')).toHaveAttribute('data-lamp', 'true')
-    const text = (await root(page).innerText()).toLowerCase()
+    await expect(page.locator('.es-prep__head').getByRole('button', { name: 'Start review' })).toBeVisible()
+    await expect(page.locator('.es-prep__aside')).toContainText('Ideas passed')
+    // The page's own words, not the course's sentences about the ideas (one of them says a plan runs "behind" a step).
+    const text = (await root(page).evaluate((element) => {
+      const copy = element.cloneNode(true) as HTMLElement
+      copy.querySelectorAll('.es-prep__idea').forEach((idea) => idea.remove())
+      return copy.innerText
+    })).toLowerCase()
     for (const word of ['overdue', 'behind', 'backlog', 'late', 'missed out', 'streak']) expect(text, word).not.toContain(word)
-    // No ticket has been drawn, so no seed is on the page.
+    // No question has been drawn, so no seed is on the page.
     await expect(block(page)).toHaveCount(0)
     await expect(page.locator('[data-seed]')).toHaveCount(0)
   })
@@ -273,9 +275,11 @@ test.describe('the prep list', () => {
   test('has nothing to prep before anything is earned, and says what earns something', async ({ page }) => {
     await visit(page, [])
     await expect(phase(page, 'empty')).toBeVisible()
-    await expect(page.getByRole('heading', { level: 2, name: 'Nothing to prep yet' })).toBeVisible()
-    await expect(page.getByRole('link', { name: 'Start with TR2' })).toHaveAttribute('href', '/m/tr2')
-    await expect(page.getByRole('link', { name: 'Open the course map' })).toHaveAttribute('href', '/map')
+    await expect(page.getByRole('heading', { level: 2, name: 'Nothing to review yet' })).toBeVisible()
+    // The one amber control is the way on, from nextStep: on an empty ledger, the first lesson.
+    await expect(page.locator('.es-prep .es-header__next[data-emphasis="primary"]')).toHaveAttribute('href', '/m/tr1/l1-five-mechanisms')
+    await expect(page.locator('.es-prep .es-header__next')).toContainText('Start: TR1 lesson 1')
+    await expect(page.getByRole('link', { name: 'Open the course' })).toHaveAttribute('href', '/map')
     await expect(start(page)).toHaveCount(0)
   })
 
@@ -283,10 +287,12 @@ test.describe('the prep list', () => {
     const events = earned({ bubble: 0, overlap: 0 })
     await visit(page, events)
     await expect(phase(page, 'rest')).toBeVisible()
-    await expect(page.getByRole('heading', { level: 2, name: 'Nothing is due today' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'Nothing is due today.' })).toBeVisible()
     // Two Good first reviews are due in two days.
-    await expect(page.locator('.es-prep__next')).toHaveText(`Your next prep is ${formatDay(dayOffset(2))}.`)
+    await expect(page.locator('.es-prep__next')).toHaveText(`Your next review is ${formatDay(dayOffset(2))}.`)
     await expect(stub(page, 'Review ahead')).toBeVisible()
+    // The way on is the amber Continue; Review ahead is the quiet button beside it.
+    await expect(page.locator('.es-prep .es-header__next[data-emphasis="primary"]')).toBeVisible()
   })
 
   test('is a welcome-back after a week of no graded work, and says so, kindly, with no number in it', async ({ page }) => {
@@ -312,11 +318,11 @@ test.describe('a prep', () => {
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
     await expect(block(page)).toHaveAttribute('data-lamp', 'true')
     await expect(block(page)).toHaveAttribute('data-kc', first)
-    await expect(block(page).locator('h3.es-item__count')).toBeFocused()
-    await expect(block(page).locator('h3.es-item__count')).toContainText('Item 1 of 2')
+    await expect(block(page).locator('h2.es-item__count')).toBeFocused()
+    await expect(block(page).locator('h2.es-item__count')).toContainText('Question 1 of 2')
     const one = await ticket(page)
-    await expect(block(page).locator('.es-ticket__foot')).toContainText(`seed ${one.seed.toString(16).toUpperCase().padStart(8, '0')}`)
-    await expect(block(page).locator('.es-ticket__foot')).toContainText('unseen')
+    await expect(block(page).locator('.es-sheet__foot')).toContainText(`Seed ${one.seed.toString(16).toUpperCase().padStart(8, '0')}`)
+    await expect(block(page).locator('.es-sheet__foot')).toContainText('new numbers')
     await fill(page, 'right', 'sure')
     await check(page)
     await expect(block(page).getByRole('heading', { name: 'Right.' })).toBeFocused()
@@ -325,20 +331,20 @@ test.describe('a prep', () => {
     const today = dayOffset(0)
     const card = deriveCards(events, appKcsOfRef, today).cards.get(first)
     await expect(block(page).locator('.es-prep__back')).toContainText(formatDay(returnDay(card, today, 4)))
-    await stub(page, /Next ticket/).click()
+    await stub(page, /Next question/).click()
 
     // Ticket 2: a line to tick, and a wrong answer, said with a guess.
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
     await expect(block(page)).toHaveAttribute('data-kc', second)
-    await expect(block(page).locator('h3.es-item__count')).toContainText('Item 2 of 2')
-    await expect(block(page).locator('h3.es-item__count')).toBeFocused()
+    await expect(block(page).locator('h2.es-item__count')).toContainText('Question 2 of 2')
+    await expect(block(page).locator('h2.es-item__count')).toBeFocused()
     const two = await fill(page, 'wrong', 'guess')
     expect(two.kind).toBe('choice')
     await check(page)
     await expect(block(page).getByRole('heading', { name: 'Not this one.' })).toBeFocused()
-    await stub(page, /Finish the prep/).click()
+    await stub(page, /Finish the review/).click()
 
-    // The close: the tally, what became of each idea, the printer's counts, and when the list is pinned up again.
+    // The close: the tally, the next review, what became of each idea and the way on.
     await expect(phase(page, 'done')).toBeVisible()
     await expect(page.getByRole('heading', { name: '1 of 2 right' })).toBeFocused()
     const done = page.locator('.es-prep__ticket[data-state="done"]')
@@ -346,8 +352,8 @@ test.describe('a prep', () => {
     await expect(done.locator('.es-prep__line[data-line="done"][data-ok="true"]')).toHaveCount(1)
     await expect(done.locator('.es-prep__line[data-line="done"][data-ok="false"]')).toHaveCount(1)
     await expect(done.locator('.es-prep__return')).toHaveCount(2)
-    await expect(page.getByRole('figure', { name: 'The prep, printed' })).toContainText('tickets')
-    await expect(page.locator('.es-prep__next')).toContainText('Your next prep is')
+    await expect(page.locator('.es-prep__next')).toContainText('Next review:')
+    await expect(page.locator('.es-prep__aside')).toContainText('Ideas passed')
     await expect(stub(page, 'Review ahead')).toBeVisible()
 
     // The ledger holds one review for each ticket, with the model's grade, the seed that was drawn, the tap, and no key.
@@ -377,7 +383,7 @@ test.describe('a prep', () => {
         const current = await fill(page, 'right')
         seeds.push(current.seed)
         await check(page)
-        await stub(page, at === 0 ? /Next ticket/ : /Finish the prep/).click()
+        await stub(page, at === 0 ? /Next question/ : /Finish the review/).click()
       }
       await expect(phase(page, 'done')).toBeVisible()
     }
@@ -393,7 +399,7 @@ test.describe('a prep', () => {
   test('is resumed by reading the ledger again: after one ticket is checked, a reload holds only what is left', async ({ page }) => {
     test.setTimeout(120_000)
     const events = earned({ bubble: 6, overlap: 5 })
-    const [first, second] = order(events)
+    const [first] = order(events)
     await visit(page, events)
     await start(page).click()
     await expect(block(page)).toHaveAttribute('data-kc', first)
@@ -404,7 +410,6 @@ test.describe('a prep', () => {
     await expect(phase(page, 'list')).toBeVisible()
     const lines = page.locator('.es-prep__list .es-prep__line')
     await expect(lines).toHaveCount(1)
-    await expect(lines.first()).toContainText(second)
   })
 
   test('a number is asked for when a word is written, and a line when none is ticked, and nothing is written to the ledger by a refusal', async ({ page }) => {
@@ -415,10 +420,57 @@ test.describe('a prep', () => {
     await start(page).click()
     await expect(block(page)).toHaveAttribute('data-kind', 'numeric')
     await field(page).fill('plenty')
-    await stub(page, /Check the ticket/).click()
+    await stub(page, /Check answer/).click()
     await expect(block(page).locator('.es-field__error')).toContainText('Write a number')
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
     expect(await ledger(page)).toHaveLength(0)
+  })
+})
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* A phone: the primary button is on the first screen                                                                 */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+test.describe('a phone, 390 x 844', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  /** The one amber control of the screen is inside the first screen, whole. */
+  async function primaryInFirstScreen(page: Page, label: string): Promise<void> {
+    const amber = page.locator('main .es-primary-button__pull, main .es-header__next[data-emphasis="primary"]').first()
+    await expect(amber, `${label}: the amber control`).toBeVisible()
+    const box = await amber.boundingBox()
+    expect(box, label).not.toBeNull()
+    expect((box?.y ?? 0) + (box?.height ?? 0), `${label}: its foot is inside the first screen`).toBeLessThanOrEqual(844)
+    expect(box?.y ?? 0, label).toBeGreaterThanOrEqual(0)
+  }
+
+  test('has the primary button inside the first screen in every state, and Check answer is the bar at the foot of a session', async ({ page }) => {
+    test.setTimeout(120_000)
+    await visit(page, [])
+    await primaryInFirstScreen(page, 'nothing passed yet')
+    await visit(page, earned({ bubble: 0, overlap: 0 }))
+    await primaryInFirstScreen(page, 'nothing due')
+    const events = earned({ bubble: 6, overlap: 5 })
+    const [first, second] = order(events)
+    await visit(page, events)
+    await queue(page, [entropyFor(events, first, 'numeric'), entropyFor(events, second, 'choice')])
+    await primaryInFirstScreen(page, 'due')
+    await start(page).click()
+    await expect(block(page)).toHaveAttribute('data-phase', 'asking')
+    await primaryInFirstScreen(page, 'in a session')
+    await fill(page, 'wrong', 'sure')
+    await check(page)
+    // After the check the reveal is long, and the next button stays at the foot of the screen while it is read.
+    await page.evaluate(() => window.scrollTo(0, 0))
+    await primaryInFirstScreen(page, 'a checked question')
+    await expect(stub(page, /Next question/)).toBeVisible()
+    await stub(page, /Next question/).click()
+    await expect(block(page)).toHaveAttribute('data-kc', second)
+    await fill(page, 'right')
+    await check(page)
+    await stub(page, /Finish the review/).click()
+    await expect(phase(page, 'done')).toBeVisible()
+    await primaryInFirstScreen(page, 'done')
   })
 })
 
@@ -440,10 +492,10 @@ test.describe('the keyboard, at 360 px', () => {
     // The way in: the skip link first, and it works. Then Tab reaches the stub that starts the prep, and Enter pulls it.
     expect((await walk.press('Tab')).name).toBe('Skip to main content')
     expect((await walk.press('Enter')).tag).toBe('main')
-    await walk.tabTo('Start the prep', 12)
+    await walk.tabTo('Start review', 12)
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
-    await expect(block(page).locator('h3.es-item__count')).toBeFocused()
+    await expect(block(page).locator('h2.es-item__count')).toBeFocused()
 
     // Ticket 1, a number: the slip is next, Enter checks it, and the verdict takes focus.
     const one = await ticket(page)
@@ -452,21 +504,21 @@ test.describe('the keyboard, at 360 px', () => {
     await expect(field(page)).toBeFocused()
     // A field draws its ring on its slip, which holds focus (`:focus-within`), and the walk reads the focused control and what is inside it.
     await expect(field(page).locator('xpath=ancestor::span[contains(@class, "es-field__slip")]')).toHaveCSS('outline-style', 'solid')
-    await expect(field(page).locator('xpath=ancestor::span[contains(@class, "es-field__slip")]')).toHaveCSS('outline-width', '2px')
+    await expect(field(page).locator('xpath=ancestor::span[contains(@class, "es-field__slip")]')).toHaveCSS('outline-width', '3px')
     await page.keyboard.type(String(one.item.answer.truth))
     await tabToButton(page, walk, 'sure')
     await page.keyboard.press('Space')
     await expect(stub(page, 'sure')).toHaveAttribute('aria-pressed', 'true')
-    await tabToButton(page, walk, /Check the ticket/)
+    await tabToButton(page, walk, /Check answer/)
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'revealed')
     await expect(block(page).getByRole('heading', { name: 'Right.' })).toBeFocused()
-    await tabToButton(page, walk, /Next ticket/)
+    await tabToButton(page, walk, /Next question/)
     await page.keyboard.press('Enter')
 
     // Ticket 2, a choice: the radios are one group and the arrow keys move through it.
     await expect(block(page)).toHaveAttribute('data-phase', 'asking')
-    await expect(block(page).locator('h3.es-item__count')).toBeFocused()
+    await expect(block(page).locator('h2.es-item__count')).toBeFocused()
     const two = await ticket(page)
     if (two.item.answer.kind !== 'choice') throw new Error('a choice item')
     const wanted = two.item.answer.options.find((option) => two.item.answer.kind === 'choice' && option.id === two.item.answer.correct)
@@ -475,10 +527,10 @@ test.describe('the keyboard, at 360 px', () => {
     await walk.press('Tab')
     for (let presses = 0; presses < 5 && !(await radio.isChecked()); presses += 1) await walk.press('ArrowDown')
     await expect(radio).toBeChecked()
-    await tabToButton(page, walk, /Check the ticket/)
+    await tabToButton(page, walk, /Check answer/)
     await page.keyboard.press('Enter')
     await expect(block(page)).toHaveAttribute('data-phase', 'revealed')
-    await tabToButton(page, walk, /Finish the prep/)
+    await tabToButton(page, walk, /Finish the review/)
     await page.keyboard.press('Enter')
 
     // The close: its headline takes focus, and the way on is one Tab away.
@@ -510,7 +562,7 @@ test.describe('motion', () => {
     await visit(page, earned({ bubble: 6, overlap: 5 }))
     await start(page).click()
     await fill(page, 'right')
-    await stub(page, /Check the ticket/).click()
+    await stub(page, /Check answer/).click()
     const reveal = block(page).locator('.es-item__reveal')
     await expect(reveal).toBeVisible()
     const motion = await reveal.evaluate((element) => ({
@@ -564,20 +616,20 @@ for (const width of [360, 1280]) {
       await start(page).click()
       await expect(block(page)).toHaveAttribute('data-phase', 'asking')
       await audit(page, 'asking, a number')
-      await stub(page, /Check the ticket/).click()
+      await stub(page, /Check answer/).click()
       await audit(page, 'asking, a word where a number belongs')
       await fill(page, 'wrong', 'sure')
       await check(page)
       await audit(page, 'checked, wrong, a number')
-      await stub(page, /Next ticket/).click()
+      await stub(page, /Next question/).click()
       await expect(block(page)).toHaveAttribute('data-phase', 'asking')
       await audit(page, 'asking, a choice')
-      await stub(page, /Check the ticket/).click()
+      await stub(page, /Check answer/).click()
       await audit(page, 'asking, a choice with no tick')
       await fill(page, 'right', 'think')
       await check(page)
       await audit(page, 'checked, right, a choice')
-      await stub(page, /Finish the prep/).click()
+      await stub(page, /Finish the review/).click()
       await expect(phase(page, 'done')).toBeVisible()
       await audit(page, 'the close of a prep')
       await stub(page, 'Review ahead').click()

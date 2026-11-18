@@ -1,14 +1,14 @@
 /*
- * W1-T29's acceptance checks for The Tasting's 3D scene, in Playwright's Chromium, through `/play/verifier`:
+ * The rejection sampler's 3D skylines (R-T42), in Playwright's Chromium, through `/play/verifier`:
  *
- *   1. Scene budgets as in W1-T18: at most 100 draw calls on every level, played with its draws, read from the scene's own
- *      `renderer.info` (A§11.1), at T1 and at T2. (The chunk's 40 KB gz is a build check: verify:bundle gates it, and the task's result
- *      records the measured size.)
- *   2. The observed skyline updates in batches, not per draw: a hundred rounds drawn at once move the scene once, and it settles.
- *   3. Reduced motion shows each batch's final histogram: a draw cuts to its end, and then no animation frame is asked for.
+ *   1. Scene budgets as before: at most 100 draw calls on every level, played with its draws, read from the scene's own `renderer.info`
+ *      (A§11.1), at T1 and at T2. (The chunk's 40 KB gz is a build check: verify:bundle gates it, and the task's result records it.)
+ *   2. The output's ring settles onto p as rounds are drawn, in one move: a hundred rounds drawn at once move the scene once, and it settles.
+ *   3. Reduced motion shows each batch's end: a draw cuts to it, and then no animation frame is asked for.
  *   And the rest of the scene contract: `V` swaps 2D and 3D and keeps the run, `C` and the buttons reach every shot, the capture is not
- *   blank, all text is DOM, every name stands whole inside the box in every shot, a dish's tape picked on the pass hands focus to its
- *   weight, and each heat lamp's pool lies on the steel under it, on the course being tasted.
+ *   blank, the parts stand in their colours, all text is DOM, and every label stands whole inside the box in every shot. Wave R's finish
+ *   review offers the 3D view on the chain only, the level whose rows give depth something to carry; a level of one draft position has
+ *   no 3D switch, so the recipe level's pick in the scene has no scene to be made in.
  *
  * How it runs, as e2e/loop-scene.spec.ts does: one test build with `VITE_ES_TEST_HOOKS=1` (it exposes `window.__esScene` and honours
  * `?es-tier=<0-3>`), served by `context.route` so no server runs, with any request off the origin failing the test. Chromium renders
@@ -25,10 +25,14 @@ import { test as base, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { build } from 'vite'
 import { buildLevel } from '../packages/play/verifier/levels'
+import { verifierInit, verifierReduce, verifierSession } from '../packages/play/verifier/session'
 import { excessPlates, keptPlates, sweepOfLevel, thousandths, tokensOf } from '../packages/play/verifier/state'
-import { columnX, FRONT, planOf, roomOf, TOP } from '../src/games/verifier/scene-plan'
+import type { VerifierAction, VerifierLevelId } from '../packages/play/verifier/types'
+import { skylineOf } from '../src/games/verifier/scene-layout'
+import { PX } from '../src/scene/flat-track'
 import type { FrameStats } from '../src/scene/stage-runtime'
 import type { SceneHook } from '../src/scene/test-hook'
+import { bannedOn } from './support/copy-scan'
 import { pixelStats } from './support/pixels'
 
 declare global {
@@ -100,16 +104,32 @@ const test = base.extend<{ requests: string[] }>({
   ],
 })
 
+/** A level's view after some actions, on its practice seed: the layout the scene draws, in the test's own terms. */
+const buildView = (id: VerifierLevelId, ...actions: VerifierAction[]) => verifierSession.view(actions.reduce(verifierReduce, verifierInit(buildLevel(id, id === 'chain' ? 1 : 0))))
+/** A box's top, in px. */
+const topOf = (box: { y0?: number; height: number }): number => (box.y0 ?? 0) + box.height
+
 const stage = (page: Page) => page.locator('[data-stage="verifier"]')
 const game = (page: Page) => page.locator('section[data-game="verifier"]')
 const probe = (page: Page) => page.evaluate(() => window.__esScene?.probes.verifier?.info() ?? null)
-const camera = (page: Page) => page.getByRole('group', { name: 'Camera on the pass' })
+const camera = (page: Page) => page.getByRole('group', { name: 'Camera on the sampler' })
 const weight = (page: Page, dish: number) => page.locator(`[data-vf-dish="${dish}"]`)
 
-async function open(page: Page, level: string, tier: number) {
+async function open(page: Page, level: string, tier: number, to3d = true) {
+  await page.addInitScript(() => {
+    try {
+      localStorage.setItem('es:intro', JSON.stringify({ verifier: ['draft', 'target', 'token', 'accepted', 'residual', 'alpha', 'round', 'output', 'position', 'bonus', 'gamma'] }))
+    } catch {
+      // No storage: the intro shows.
+    }
+  })
   await page.goto(`${ORIGIN}/play/verifier?level=${level}&es-tier=${tier}`)
   await page.evaluate(() => document.fonts.ready)
   await expect(game(page)).toBeVisible()
+  if (!to3d) return
+  // The diagram is the default view (R-T30, REDESIGN §2.9): 3D is one switch away, on the chain, the level whose rows give depth something.
+  await page.getByRole('button', { name: '3D', exact: true }).click()
+  await expect(game(page)).toHaveAttribute('data-view', '3d')
 }
 
 /** Scrolls the scene into view, waits until it is drawn and settled, and until no frame has been drawn for half a second. */
@@ -148,32 +168,48 @@ async function draw(page: Page, presses = 1) {
 async function play(page: Page, level: string) {
   if (level === 'overlap' || level === 'chain') {
     const answer = level === 'overlap' ? String(keptPlates(buildLevel('overlap', 0))) : (thousandths(tokensOf(buildLevel('chain', 1))) / 1000).toFixed(3)
-    await page.getByLabel(level === 'overlap' ? 'Plates kept' : 'Courses per round').fill(answer)
+    await page.getByLabel(level === 'overlap' ? 'Accepted, in sixty-fourths' : 'Tokens per round').fill(answer)
     await page.keyboard.press('Enter')
     await draw(page, 5)
   } else if (level === 'exact' || level === 'greedy-ngram') {
     const built = buildLevel(level, 0)
     if (built.id === 'greedy-ngram') {
       const favourite = built.p[0].indexOf(Math.max(...built.p[0]))
-      await page.getByRole('button', { name: built.draft === favourite ? 'Kept' : 'Sent back', exact: true }).click()
+      await page.getByRole('button', { name: built.draft === favourite ? 'Accepted' : 'Rejected', exact: true }).click()
     }
     const recipe = built.id === 'greedy-ngram' ? built.p[0].map((w, x) => (x === built.draft ? 0 : w)) : excessPlates(built)
     for (const [dish, value] of recipe.entries()) if (value > 0) await weight(page, dish).fill(String(value))
     await draw(page, 5)
   } else if (level === 'mutants') {
-    await page.getByRole('button', { name: /^Taste/ }).first().click()
+    await page.getByRole('button', { name: /^Sample/ }).first().click()
   } else if (level === 'gamma') {
     const built = buildLevel('gamma', 0)
-    for (let k = 0; k < sweepOfLevel(built).best; k++) await page.getByRole('button', { name: 'Plate one course further ahead' }).click()
+    for (let k = 0; k < sweepOfLevel(built).best; k++) await page.getByRole('button', { name: 'Propose one more token' }).click()
   }
 }
 
-test.describe('the draw-call budget on every level (A§11.1)', () => {
+/** The levels with one draft position: depth would carry nothing there, so the 3D view is not offered (wave R's finish review). */
+const ONE_POSITION = ['overlap', 'exact', 'greedy-ngram', 'mutants', 'gamma'] as const
+
+test.describe('3D only where depth carries something', () => {
+  test('a level of one draft position offers no 3D switch, and the chain does', async ({ page }) => {
+    test.setTimeout(120_000)
+    for (const level of ONE_POSITION) {
+      await open(page, level, 2, false)
+      await expect(game(page).getByRole('button', { name: '3D', exact: true }), `${level}: no 3D switch`).toHaveCount(0)
+      await expect(game(page)).toHaveAttribute('data-view', '2d')
+    }
+    await open(page, 'chain', 2)
+    await settle(page)
+  })
+})
+
+test.describe('the draw-call budget on every level that has a scene (A§11.1)', () => {
   for (const tier of [1, 2]) {
-    test(`every level, played with its draws, draws in at most 100 calls, at T${tier}`, async ({ page }) => {
+    test(`the chain, played with its draws, draws in at most 100 calls, at T${tier}`, async ({ page }) => {
       test.setTimeout(600_000)
       let most: FrameStats | null = null
-      for (const level of ['overlap', 'exact', 'chain', 'greedy-ngram', 'mutants', 'gamma']) {
+      for (const level of ['chain']) {
         await open(page, level, tier)
         await settle(page)
         await play(page, level)
@@ -190,11 +226,11 @@ test.describe('the draw-call budget on every level (A§11.1)', () => {
   }
 })
 
-test.describe('batches (W1-T29, accept 2): the observed skyline moves once for a batch, not once a round', () => {
+test.describe('batches: the output skyline settles once for a batch, not once a round', () => {
   test('a hundred rounds drawn at once move the scene once, and it settles', async ({ page }) => {
-    await open(page, 'overlap', 1)
+    await open(page, 'chain', 1)
     await settle(page)
-    await page.getByLabel('Plates kept').fill(String(keptPlates(buildLevel('overlap', 0))))
+    await page.getByLabel('Tokens per round').fill('2.4')
     await page.keyboard.press('Enter')
     await settle(page)
     // Every time the scene starts to move, the Stage takes its "settled" mark away: count those.
@@ -212,15 +248,15 @@ test.describe('batches (W1-T29, accept 2): the observed skyline moves once for a
     expect(await page.evaluate(() => window.__cycles)).toBe(1)
     const frames = ((await probe(page))?.frames ?? 0) - before
     console.log(`a draw of 100 rounds: one move of ${frames} frames`)
-    // One drop and one settle, a second or so at T1's 30 frames a second [estimated], however many rounds the batch drew.
+    // One settling of 640 ms, a second or so at T1's 30 frames a second [estimated], however many rounds the batch drew.
     expect(frames).toBeLessThanOrEqual(60)
   })
 })
 
-test.describe('reduced motion (A§6.9; W1-T29, accept 3): a batch cuts to its final histogram', () => {
+test.describe('reduced motion (A§6.9): a batch cuts to its end', () => {
   test.use({ reducedMotion: 'reduce' })
 
-  test('a draw redraws the tasting in place in a frame or two, and then no animation frame is asked for', async ({ page, context }) => {
+  test('a draw redraws the skylines in place in a frame or two, and then no animation frame is asked for', async ({ page, context }) => {
     await context.addInitScript(() => {
       window.__raf = 0
       const request = window.requestAnimationFrame.bind(window)
@@ -231,7 +267,7 @@ test.describe('reduced motion (A§6.9; W1-T29, accept 3): a batch cuts to its fi
     })
     await open(page, 'chain', 1)
     await settle(page)
-    await page.getByLabel('Courses per round').fill('2.4')
+    await page.getByLabel('Tokens per round').fill('2.4')
     await page.keyboard.press('Enter')
     await settle(page)
     const before = (await probe(page))?.frames ?? 0
@@ -247,33 +283,35 @@ test.describe('reduced motion (A§6.9; W1-T29, accept 3): a batch cuts to its fi
 })
 
 test.describe('the views and the camera (A§6.8)', () => {
-  test('`V` swaps 2D and 3D and keeps the run: the recipe and the rounds drawn', async ({ page }) => {
-    await open(page, 'exact', 2)
+  test('`V` swaps 2D and 3D and keeps the run: the prediction and the rounds drawn', async ({ page }) => {
+    await open(page, 'chain', 2)
     await settle(page)
     await expect(game(page)).toHaveAttribute('data-view', '3d')
-    await weight(page, 0).fill('7')
+    await page.getByLabel('Tokens per round').fill('2.4')
+    await page.keyboard.press('Enter')
     await draw(page)
     await settle(page)
-    const rounds = () => page.locator('.es-vf-under__count').first().textContent()
-    const before = { recipe: await weight(page, 0).inputValue(), rounds: await rounds() }
-    expect(before.recipe).toBe('7')
+    const rounds = () => page.locator('[data-readout-id="rounds"] dd').first().textContent()
+    const committed = () => page.locator('[data-verifier-controls]').getAttribute('data-ask')
+    const before = { recipe: await committed(), rounds: await rounds() }
+    expect(before.recipe).toBe('finish')
     await focusGame(page)
     await page.keyboard.press('KeyV')
     await expect(game(page)).toHaveAttribute('data-view', '2d')
-    await expect(page.locator('[data-surface="2d"] [data-verifier-view] .es-vf-drawing > svg')).toBeVisible()
+    await expect(page.locator('[data-surface="2d"] [data-verifier-view] .es-vf__bar').first()).toBeVisible()
     await expect(stage(page)).toHaveCount(0)
-    expect({ recipe: await weight(page, 0).inputValue(), rounds: await rounds() }).toEqual(before)
+    expect({ recipe: await committed(), rounds: await rounds() }).toEqual(before)
     await focusGame(page)
     await page.keyboard.press('KeyV')
     await expect(game(page)).toHaveAttribute('data-view', '3d')
     await settle(page)
-    expect({ recipe: await weight(page, 0).inputValue(), rounds: await rounds() }).toEqual(before)
+    expect({ recipe: await committed(), rounds: await rounds() }).toEqual(before)
   })
 
   test('`C` cycles every shot and each button reaches its own', async ({ page }) => {
     await open(page, 'chain', 2)
     await settle(page)
-    const names = ['Over the run', 'One course', 'Walk with the chef']
+    const names = ['Over the run', 'One draft position', 'From the side']
     const pressed = () => camera(page).locator('button[aria-pressed="true"]').textContent()
     expect(await pressed()).toBe(names[0])
     for (const name of [...names.slice(1), names[0]]) {
@@ -291,15 +329,15 @@ test.describe('the views and the camera (A§6.8)', () => {
   })
 })
 
-test.describe('labels (W1\'s finish review, round 2): every name stands whole inside the box, in every shot', () => {
-  test('over the run, one course and walking with the chef, no tape or tag on the pass is cut by the box\'s edge', async ({ page }) => {
+test.describe('labels: every one stands whole inside the box, in every shot', () => {
+  test('over the run, one draft position and following the target, no tape or tag on the pass is cut by the box\'s edge', async ({ page }) => {
     await open(page, 'chain', 2)
     await settle(page)
-    await page.getByLabel('Courses per round').fill('2.4')
+    await page.getByLabel('Tokens per round').fill('2.4')
     await page.keyboard.press('Enter')
     await draw(page)
     await settle(page)
-    for (const name of ['Over the run', 'One course', 'Walk with the chef']) {
+    for (const name of ['Over the run', 'One draft position', 'From the side']) {
       await camera(page).getByRole('button', { name }).click()
       await settle(page)
       await frame(page)
@@ -314,22 +352,8 @@ test.describe('labels (W1\'s finish review, round 2): every name stands whole in
           })
           .map((label) => label.textContent ?? '')
       })
-      expect(cut, `${name}: names cut by the box's edge`).toEqual([])
+      expect(cut, `${name}: labels cut by the box's edge`).toEqual([])
     }
-  })
-})
-
-test.describe('picks (A§6.8, GAMES.md §10 "Controls"): a dish picked in the scene hands focus to its weight', () => {
-  test('picking the fish\'s tape on the pass\'s edge focuses the fish\'s weight', async ({ page }) => {
-    await open(page, 'exact', 2)
-    await settle(page)
-    const plan = planOf('rows', 1)
-    const at = await page.evaluate((point) => (window.__esScene as SceneHook).probes.verifier.project(point), [columnX(plan, 2), TOP - 0.03, FRONT + 0.017] as [number, number, number])
-    if (!at) throw new Error('the tape is behind the camera')
-    const box = await stage(page).locator('canvas').boundingBox()
-    if (!box) throw new Error('no canvas')
-    await page.mouse.click(box.x + at.x, box.y + at.y)
-    await expect(weight(page, 2)).toBeFocused()
   })
 })
 
@@ -354,102 +378,22 @@ async function colourAt(page: Page, point: [number, number, number]): Promise<[n
   }, at)
 }
 
-/** How much the canvas's luma varies over a `w` by `h` px patch round a scene point, read back from the kept frame: its standard deviation, 0 to 1. */
-async function spreadAt(page: Page, point: [number, number, number], w: number, h: number): Promise<number> {
-  const at = await page.evaluate((p) => (window.__esScene as SceneHook).probes.verifier.project(p), point)
-  if (!at) throw new Error('the point is behind the camera')
-  return page.evaluate(
-    ({ x, y, w, h }) => {
-      const canvas = document.querySelector<HTMLCanvasElement>('[data-stage="verifier"] canvas')
-      if (!canvas) throw new Error('no canvas')
-      const copy = document.createElement('canvas')
-      copy.width = canvas.width
-      copy.height = canvas.height
-      const context = copy.getContext('2d')
-      if (!context) throw new Error('no 2D canvas')
-      context.drawImage(canvas, 0, 0)
-      const scale = canvas.width / canvas.getBoundingClientRect().width
-      const { data } = context.getImageData(Math.round((x - w / 2) * scale), Math.round((y - h / 2) * scale), Math.round(w * scale), Math.round(h * scale))
-      let sum = 0
-      let squares = 0
-      const n = data.length / 4
-      for (let i = 0; i < data.length; i += 4) {
-        const luma = (0.2126 * data[i] + 0.7152 * data[i + 1] + 0.0722 * data[i + 2]) / 255
-        sum += luma
-        squares += luma * luma
-      }
-      const mean = sum / n
-      return Math.sqrt(Math.max(0, squares / n - mean * mean))
-    },
-    { x: at.x, y: at.y, w, h },
-  )
-}
-
-test.describe('the back wall (W1b\'s finish review, round 2): over one course its tile shows through the haze', () => {
-  test('at 1440, the wall between two lamps, over the line, is tile veiled in haze and not one flat plane', async ({ page }) => {
-    await open(page, 'overlap', 2)
+test.describe('the parts (REDESIGN §3.5): the draft is yellow and the target blue, as the legend says', () => {
+  test('before the decomposition prints, a q bar\'s top is the draft\'s yellow and a p bar\'s the target\'s blue', async ({ page }) => {
+    await open(page, 'chain', 2)
     await settle(page)
     await page.addStyleTag({ content: '.es-labels { visibility: hidden !important; }' })
     await frame(page)
-    // Round 2's wall was the haze's flat colour behind the lamps (a patch's standard deviation 0); the tile's courses and grout show
-    // through it now, between the lamps' cones, from a hand over the line's worktops up toward the hood.
-    const { wallZ } = roomOf(planOf('rows', 1))
-    for (const [x, y] of [
-      [-0.4, 1.2],
-      [0.4, 1.2],
-      [-0.4, 1.6],
-    ] as const) {
-      const spread = await spreadAt(page, [x, y, wallZ], 60, 24)
-      console.log(`the wall at x ${x}, ${y} m up: a luma spread of ${spread.toFixed(4)}`)
-      expect(spread, `the tile behind the lamps at x ${x}, ${y} m up`).toBeGreaterThan(0.004)
-    }
-  })
-})
-
-test.describe('`gamma`: a run of stacks, the kept plates at the bottom whether a stack is plated or waits upside down', () => {
-  test('past the pick, a stack turned over still has the overlap\'s plates at the counter and the draft\'s above them', async ({ page }) => {
-    await open(page, 'gamma', 2)
-    await settle(page)
-    for (let k = 0; k < 3; k++) await page.getByRole('button', { name: 'Plate one course further ahead' }).click()
-    await settle(page)
-    await page.addStyleTag({ content: '.es-labels { visibility: hidden !important; }' })
-    await frame(page)
-    const plan = planOf('gamma', 1)
-    const level = buildLevel('gamma', 0)
-    if (level.id !== 'gamma') throw new Error('gamma')
-    // Position 2 is plated and upright; position 6 waits upside down. Each is sampled a hand over the counter and near its top, where its
-    // kept plates (the overlap's green) and its sent-back ones (the draft's yellow) stand. A plate's part is its edge band, between the
-    // glaze of its lip and its rim, so the sample is a pale tint: the yellow's has far more red than blue in it, the green's about as much.
-    for (const position of [1, 5]) {
-      const kept = Math.round((level.alphas[position] * 64) / 1000)
-      expect(kept).toBeGreaterThan(20)
-      expect(kept).toBeLessThan(50)
-      const low = await colourAt(page, [columnX(plan, position), TOP + 0.06, 0.061])
-      const high = await colourAt(page, [columnX(plan, position), TOP + 0.66, 0.061])
-      console.log(`position ${position + 1}: low ${low.map(Math.round).join(',')}, high ${high.map(Math.round).join(',')}`)
-      const warmth = ([red, , blue]: [number, number, number]) => red - blue
-      expect(warmth(high) - warmth(low), `position ${position + 1}: the draft's yellow stands over the overlap's green`).toBeGreaterThan(40)
-    }
-  })
-})
-
-test.describe('the lamps\' light (W1b\'s finish review, round 1): one pool on the course being tasted, under the lamp that lights it', () => {
-  test('over one course, the steel under a lamp, in front of its plates, is warmer than the steel between two lamps', async ({ page }) => {
-    await open(page, 'overlap', 2)
-    await settle(page)
-    await page.addStyleTag({ content: '.es-labels { visibility: hidden !important; }' })
-    await frame(page)
-    // Open steel 12 cm in front of the course: under the left lamp and the middle one, each between two dishes' pairs, and between two
-    // lamps, in the next gap between pairs, where no pool reaches. The right lamp's pool holds the bell.
-    const warmth = ([red, , blue]: [number, number, number]) => red - blue
-    for (const [lamp, between] of [
-      [-0.8, -0.4],
-      [0, 0.4],
-    ] as const) {
-      const under = await colourAt(page, [lamp, TOP, 0.12])
-      const off = await colourAt(page, [between, TOP, 0.12])
-      console.log(`the lamp over x ${lamp}: under it ${under.map(Math.round).join(',')}, between lamps ${off.map(Math.round).join(',')}`)
-      expect(warmth(under) - warmth(off), `the pool under the lamp over x ${lamp}`).toBeGreaterThan(12)
+    const view = buildView('chain')
+    const { model } = skylineOf(view, { scaffold: true, outcome: true })
+    const tops = (prefix: string) => model.boxes.filter((box) => box.id.startsWith(prefix)).sort((a, b) => b.height - a.height)[0]
+    const q = tops('r0/q')
+    const p = tops('r0/p')
+    for (const [bar, name] of [[q, 'q'], [p, 'p']] as const) {
+      const colour = await colourAt(page, [((bar.x0 + bar.x1) / 2) / PX, topOf(bar) / PX, ((bar.z0 + bar.z1) / 2) / PX])
+      console.log(`a ${name} bar's top: ${colour.map(Math.round).join(',')}`)
+      // Yellow has far more red than blue in it, blue far more blue than red.
+      expect(name === 'q' ? colour[0] - colour[2] : colour[2] - colour[0], `the ${name} bar's colour`).toBeGreaterThan(60)
     }
   })
 })
@@ -458,7 +402,7 @@ test.describe('the picture (A§10.1; GAMES.md §2.6 rule 7)', () => {
   test('the 3D capture is not blank: its pixels vary, and it is kept as an artifact', async ({ page }, info) => {
     await open(page, 'chain', 2)
     await settle(page)
-    await page.getByLabel('Courses per round').fill('2.4')
+    await page.getByLabel('Tokens per round').fill('2.4')
     await page.keyboard.press('Enter')
     await draw(page, 5)
     await settle(page)
@@ -474,18 +418,29 @@ test.describe('the picture (A§10.1; GAMES.md §2.6 rule 7)', () => {
     console.log(`3D capture ${sampled.width}x${sampled.height}: ${sampled.colours} distinct colours in ${sampled.samples} samples, luma spread ${sampled.spread.toFixed(1)}; kept at ${shot}`)
   })
 
-  test('all text is DOM: the dishes\' names on their tape and the stacks\' counts are page text over the canvas', async ({ page }) => {
-    await open(page, 'overlap', 2)
+  test('all text is DOM: the tokens\' numbers and the bars\' counts are page text over the canvas', async ({ page }) => {
+    await open(page, 'chain', 2)
     await settle(page)
     const labels = stage(page).locator('.es-labels')
-    for (const dish of ['soup', 'salad', 'fish', 'steak', 'pasta', 'tart']) await expect(labels.locator('.es-vf-label--tape', { hasText: dish })).toHaveCount(1)
-    // One paper tag a dish, hung under its tape: the commis's plates, then the chef's.
-    const level = buildLevel('overlap', 0)
-    const counts = await labels.locator('.es-vf-label--count').allTextContents()
-    expect(counts).toEqual(level.p[0].map((p, d) => `${level.q[0][d]} · ${p}`))
-    // Every name is marker on masking tape, at the size ramp's smallest step at least.
-    for (const size of await labels.locator('.es-vf-label.es-tape').evaluateAll((nodes) => nodes.map((node) => parseFloat(getComputedStyle(node).fontSize)))) expect(size).toBeGreaterThanOrEqual(11)
+    // A token's number stands under its pair of bars; the legend says the columns are tokens 0 to 5.
+    for (const token of ['0', '1', '2', '3', '4', '5']) await expect(labels.locator('.es-vf-label--tick', { hasText: new RegExp(`^${token}$`) })).toHaveCount(1)
+    // Each bar's count over it: the draft's q and the target's p, out of 64.
+    const level = buildLevel('chain', 1)
+    const counts = (await labels.locator('.es-vf-label--slab').allTextContents()).map(Number).sort((a, b) => a - b)
+    expect(counts).toEqual([...level.p.flat(), ...level.q.flat()].filter((n) => n > 0).sort((a, b) => a - b))
+    // Every label is at the size ramp's smallest step at least.
+    for (const size of await labels.locator('.es-vf-label').evaluateAll((nodes) => nodes.map((node) => parseFloat(getComputedStyle(node).fontSize)))) expect(size).toBeGreaterThanOrEqual(11)
     await expect(stage(page).locator('.es-stage__scene')).toHaveAttribute('aria-hidden', 'true')
     expect(await stage(page).locator('canvas').evaluate((canvas) => canvas.textContent)).toBe('')
+  })
+})
+
+// The copy guard over the 3D view (REDESIGN 2.7): the route sweep reads every page with 3D off, so the words that only 3D shows are read here, at a desk.
+test.describe('the words of the 3D view (R-T14)', () => {
+  test('no banned word or phrase on the verifier with 3D on, before a move', async ({ page }) => {
+    test.setTimeout(120_000)
+    await open(page, 'chain', 1)
+    await page.waitForTimeout(500)
+    expect(await bannedOn(page), 'banned words on the page in 3D').toEqual([])
   })
 })

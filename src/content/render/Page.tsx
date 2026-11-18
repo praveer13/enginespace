@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
-import { Stub } from '@/design/components/Stub'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
+import { Label } from '@/design/components/Label'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 import { useDocumentTitle } from '../load'
 import './content.css'
 import { kernelspaceLabel, kernelspaceUrl, titled } from './model'
@@ -53,9 +53,9 @@ export function PageHeader({ crumbs, current, title, tapes = [] }: PageHeaderPro
       {tapes.length > 0 ? (
         <ul className="es-doc__tapes" aria-label="Status">
           {tapes.map((tape, at) => (
-            <TapeLabel key={tape} as="li" tilt={at % 2 === 0 ? 'left' : 'right'}>
+            <Label key={tape} as="li" tilt={at % 2 === 0 ? 'left' : 'right'}>
               {tape}
-            </TapeLabel>
+            </Label>
           ))}
         </ul>
       ) : null}
@@ -105,17 +105,17 @@ export function PageNotice(props: NoticeProps) {
       <h1 className="es-doc__title">{title}</h1>
       <div className="es-doc__tickets">
         {props.kind === 'loading' ? (
-          <Ticket as="section" width="wide" head={ticket} state="loading" loadingLabel={`Printing the ${props.what}`} />
+          <Sheet as="section" width="wide" head={ticket} state="loading" loadingLabel={`Printing the ${props.what}`} />
         ) : props.kind === 'missing' ? (
-          <Ticket as="section" width="wide" head={ticket} state="empty" empty={props.message} stub={<Stub to={props.back.to}>{props.back.label}</Stub>} />
+          <Sheet as="section" width="wide" head={ticket} state="empty" empty={props.message} stub={<PrimaryButton to={props.back.to}>{props.back.label}</PrimaryButton>} />
         ) : (
-          <Ticket
+          <Sheet
             as="section"
             width="wide"
             head={ticket}
             state="error"
             error={props.message}
-            stub={<Stub onClick={() => window.location.reload()}>Reload page</Stub>}
+            stub={<PrimaryButton onClick={() => window.location.reload()}>Reload page</PrimaryButton>}
           />
         )}
       </div>

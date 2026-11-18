@@ -21,6 +21,7 @@ import type { StepLoopConfig, StepLoopRun } from '@es/sim/steploop'
 // table, which its first paint has no room for (packages/sim/workload/draw.ts, D-059).
 import { genFixedWorkload } from '@es/sim/workload/draw'
 import type { Workload, WorkloadSpec } from '@es/sim/workload'
+import { LOOP_COPY } from './copy'
 import type { LeverAccess, LoopGoal, LoopLevel, LoopLevelId } from './types'
 
 /** Clips on the rail (D-043) [estimated]. */
@@ -49,49 +50,32 @@ export const PASS_SCORE = 0.9
 export const LEVEL_IDS: readonly LoopLevelId[] = ['first-1-fill', 'first-2-slot', 'first-3-gap', 'first-4-par']
 
 interface LevelDef {
-  readonly title: string
-  readonly prompt: string
   readonly requests: number
   readonly opening: number | null
   readonly goal: LoopGoal
   readonly overlap: LeverAccess
 }
 
-/*
- * The copy follows GAMES.md §2.6 ("First service's copy"): the kitchen word names the object and the engine term rides beside it.
- * It carries no digit, so no number goes untagged: the counters are Readouts, and the mirror holds every figure.
- */
 const DEFS: Readonly<Record<LoopLevelId, LevelDef>> = {
   'first-1-fill': {
-    title: 'Fill the rail',
-    prompt: 'Tap a ticket to hang it on the rail (put a request in the batch). Hang as many as there are clips, then ring the bell.',
     requests: 6,
     opening: null,
     goal: 'first-fire',
     overlap: 'locked',
   },
   'first-2-slot': {
-    title: 'A clip empties',
-    prompt:
-      'Ring the bell until a ticket ends. Its clip opens and the line waits for you: hang the next ticket (refill the slot), or ring the bell to leave the clip empty.',
     requests: 6,
     opening: 1,
     goal: 'first-stop-handled',
     overlap: 'locked',
   },
   'first-3-gap': {
-    title: 'Mind the gap',
-    prompt:
-      'The stations go dark between fires while the expo writes the next call. Turn on "Write the next call during this fire" (overlap, async scheduling), then keep ringing the bell until a plate is binned.',
     requests: 6,
     opening: 2,
     goal: 'first-ghost',
     overlap: 'free',
   },
   'first-4-par': {
-    title: 'Your turn',
-    prompt:
-      'A burst of tickets and both tools: refill every clip the moment it opens, and write the next call during the fire. Serve every ticket and beat par.',
     requests: 12,
     opening: null,
     goal: 'all-served',
@@ -197,14 +181,12 @@ export const outputsOf = (seed: Seed, requests: number): number[] => frontPageWo
 
 /** The level `id` on `seed`. Throws for a level that Service does not have. */
 export function buildLevel(id: string, seed: Seed): LoopLevel {
-  if (!isLevelId(id)) throw new RangeError(`Service has no level "${id}"`)
+  if (!isLevelId(id)) throw new RangeError(`Step loop has no level "${id}"`)
   assertSeed(seed)
   const def = DEFS[id]
   return {
     id,
     seed,
-    title: def.title,
-    prompt: def.prompt,
     slots: SLOTS,
     outputs: outputsOf(seed, def.requests),
     opening: def.opening,
@@ -215,4 +197,4 @@ export function buildLevel(id: string, seed: Seed): LoopLevel {
 }
 
 /** The titles of the levels, for the registry's record and its test. */
-export const levelTitle = (id: LoopLevelId): string => DEFS[id].title
+export const levelTitle = (id: LoopLevelId): string => LOOP_COPY[id].title

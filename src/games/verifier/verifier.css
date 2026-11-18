@@ -1,72 +1,425 @@
 /*
- * The Tasting's page (src/games/verifier): the few parts that no component of the design system draws. Every value is a token role
- * (src/design/tokens.css), and every face is a role's: tests/design/literals.test.ts holds this file to it.
+ * The rejection sampler in the instrument frame (REDESIGN §2.6, §2.8, §3.5): the diagram (a pair of bars for each token, a row for each
+ * draft position), its legend, the dock's decisions, the readout strip and the result. Token roles only (src/design/tokens.css), and every
+ * face is a role's: tests/design/literals.test.ts holds this file to it. A bar's meaning is its colour with its pattern and its outline,
+ * so it never rests on colour alone (WCAG 1.4.1): the draft is hatched, the target solid, the accepted part and the residual solid in
+ * their own colours beside the legend's glyphs, a drawn round a solid or a hollow dot, and the output a ring on a dashed line.
  */
 
-.es-vf-view {
+/* ------------------------------------------------------------------------------------------------ the diagram */
+
+.es-vf {
   display: flex;
   flex-direction: column;
+  gap: var(--es-space-4);
+  min-width: 0;
+  min-height: 100%;
+  padding: var(--es-space-3) var(--es-space-4);
+  /* Plain paper: a graticule here would be neither the cells' grid nor a value axis (REDESIGN 2.8). */
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+  /* One draft position fills the diagram's box; a run of them shares it, a row each. The box is 100svh less the page's chrome. */
+  --es-plot: clamp(8rem, calc(100svh - 35rem), 20rem);
+}
+
+.es-vf[data-rows='2'],
+.es-vf[data-rows='3'],
+.es-vf[data-rows='4'],
+.es-vf[data-rows='5'],
+.es-vf[data-rows='6'] {
+  --es-plot: clamp(2.75rem, calc((100svh - 41rem) / var(--es-rows, 3)), 9rem);
   gap: var(--es-space-3);
 }
 
-.es-vf-drawing {
-  position: relative;
+.es-frame[data-placement='embed'] .es-vf {
+  --es-plot: 9rem;
 }
 
-.es-vf-drawing > svg {
-  display: block;
-  width: 100%;
-  height: auto;
+.es-frame[data-placement='embed'] .es-vf[data-rows='2'],
+.es-frame[data-placement='embed'] .es-vf[data-rows='3'],
+.es-frame[data-placement='embed'] .es-vf[data-rows='4'],
+.es-frame[data-placement='embed'] .es-vf[data-rows='5'],
+.es-frame[data-placement='embed'] .es-vf[data-rows='6'] {
+  --es-plot: 4rem;
 }
 
-/* The drawing alone, as the 3D view's first paint and its fallback: it fits the scene's box. */
-.es-vf-view[data-part='drawing'],
-.es-vf-view[data-part='drawing'] > .es-vf-drawing,
-.es-vf-view[data-part='drawing'] > .es-vf-drawing > svg {
-  height: 100%;
-  min-height: 0;
+.es-vf__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-1);
+  min-width: 0;
 }
 
-/* A target over each dish's column of the drawing, for a pointer: it hands focus to the dish's weight. */
-.es-vf-taps {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-}
-
-.es-vf-tap {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  pointer-events: auto;
-  cursor: pointer;
-}
-
-/* The key: the masking tape that names the dishes, naming the plates, each with the drawn shape that carries its colour. */
-.es-vf-key {
+.es-vf__label {
   display: flex;
   flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--es-space-3);
+  margin: 0;
+  font-size: var(--es-size-note);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.es-vf__count {
+  color: var(--es-text-2);
+  font-weight: 400;
+}
+
+/* On a phone, while the first run names the parts, the count stands back from the label to leave room for the intro's numbered disc; at a
+   desk the disc stands in the diagram's gutter (frame.css). */
+@media (max-width: 63.999rem) {
+  .es-frame:is([data-intro='parts'], [data-intro='look']) .es-vf__label > .es-vf__count {
+    margin-inline-start: 2.25rem;
+  }
+}
+
+.es-vf__tokens {
+  display: grid;
+  grid-template-columns: repeat(var(--es-cols, 6), minmax(0, 1fr));
   gap: var(--es-space-2) var(--es-space-3);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.es-vf-under {
+.es-vf__token {
   display: flex;
-  flex-wrap: wrap;
+  min-width: 0;
+  flex-direction: column;
   align-items: center;
-  gap: var(--es-space-2) var(--es-space-6);
+  gap: var(--es-space-1);
 }
 
-.es-vf-under__count {
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: baseline;
+.es-vf__token[data-tap] {
+  cursor: pointer;
+}
+
+.es-vf__pair {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  box-sizing: border-box;
+  width: 100%;
+  height: var(--es-plot);
+  padding-top: 1.125rem;
+  border-bottom: 2px solid var(--es-edge);
+}
+
+.es-vf__bar {
+  --es-bar-edge: var(--es-cat-white-edge);
+  position: relative;
+  box-sizing: border-box;
+  flex: 0 1 1.75rem;
+  min-width: 0;
+  height: var(--es-h);
+  min-height: 2px;
+  border: 2px solid var(--es-bar-edge);
+  background: var(--es-paper);
+}
+
+.es-vf__bar[data-kind='draft'] {
+  --es-bar-edge: var(--es-cat-yellow-edge);
+}
+
+.es-vf__bar[data-kind='target'] {
+  --es-bar-edge: var(--es-cat-blue-edge);
+}
+
+.es-vf__value {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  margin-bottom: 1px;
+  color: var(--es-paper-ink);
+  font-size: var(--es-size-micro);
+  line-height: 1;
+  transform: translateX(-50%);
+}
+
+.es-vf__fill {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column-reverse;
+  overflow: hidden;
+}
+
+.es-vf__seg {
+  flex: none;
+  width: 100%;
+  min-height: 0;
+  transition: height var(--es-dur-step) var(--es-ease-settle);
+}
+
+.es-vf__seg + .es-vf__seg {
+  border-bottom: 1px solid var(--es-paper);
+}
+
+.es-vf__seg[data-part='accepted'] {
+  background: var(--es-probability-overlap);
+}
+
+.es-vf__seg[data-part='target'] {
+  background: var(--es-probability-target);
+}
+
+.es-vf__seg[data-part='residual'] {
+  background: var(--es-probability-residual);
+}
+
+/* The draft is hatched: a state is a pattern before it is a colour. */
+.es-vf__seg[data-part='draft'] {
+  background:
+    repeating-linear-gradient(135deg, var(--es-cat-yellow-edge) 0 1px, transparent 1px 5px),
+    var(--es-probability-draft);
+}
+
+/* A drawn round: a draft token set down at a random height in its q bar. Solid where it is accepted, hollow where it is rejected. */
+.es-vf__dot {
+  position: absolute;
+  left: 50%;
+  box-sizing: border-box;
+  width: 0.5rem;
+  height: 0.5rem;
+  border: 2px solid var(--es-paper-ink);
+  border-radius: var(--es-radius-round);
+  background: var(--es-paper);
+  transform: translate(-50%, 50%);
+}
+
+.es-vf__dot[data-kept] {
+  background: var(--es-paper-ink);
+}
+
+/* What the sampler emitted: a dashed line across the target bar with a ring on it, settling onto the bar's top as the rule is exact. */
+.es-vf__out {
+  position: absolute;
+  right: -3px;
+  left: -3px;
+  height: 0;
+  border-top: 2px dashed var(--es-paper-ink);
+  transition: bottom var(--es-dur-feed) var(--es-ease-settle);
+  pointer-events: none;
+}
+
+.es-vf__out::after {
+  content: '';
+  position: absolute;
+  top: -0.4375rem;
+  left: 50%;
+  box-sizing: border-box;
+  width: 0.625rem;
+  height: 0.625rem;
+  border: 2px solid var(--es-paper-ink);
+  border-radius: var(--es-radius-round);
+  background: var(--es-probability-observed);
+  transform: translateX(-50%);
+}
+
+.es-vf__name {
+  color: var(--es-text-2);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-caption);
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+/* Under the first row, each further row keeps its bars and drops the token names the first row already wrote. */
+.es-vf__row ~ .es-vf__row .es-vf__name {
+  display: none;
+}
+
+/* The draft-length level: one bar for each position, drafted ones in full and the rest dimmed. */
+.es-vf__token[data-vf-token]:not([data-drafted]) .es-vf__bar[data-kind='draft'] {
+  border-style: dashed;
+}
+
+.es-vf__row[data-vf-gamma] .es-vf__token[data-drafted] .es-vf__bar {
+  border-width: 3px;
+}
+
+/* ------------------------------------------------------------------------------------------------ the legend */
+
+.es-vf__legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-1);
+}
+
+.es-vf__legend .es-legend {
+  gap: var(--es-space-1) var(--es-space-6);
+}
+
+/* The names in the legend are the parts' popovers, drawn at the legend's own line: 24 px tall (WCAG 2.2's floor), so two rows of them never overlap. */
+.es-vf__legend .es-pop__trigger {
+  min-width: 1.5rem;
+  min-height: 1.5rem;
+}
+
+.es-vf__legend .es-legend__entry {
+  min-height: 1.5rem;
+}
+
+.es-vf__note {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  line-height: 1.4;
+}
+
+.es-vf__dotkey {
+  display: inline-block;
+  box-sizing: border-box;
+  width: 0.625rem;
+  height: 0.625rem;
+  border: 2px solid var(--es-paper-ink);
+  border-radius: var(--es-radius-round);
+  background: var(--es-paper);
+  vertical-align: baseline;
+}
+
+.es-vf__dotkey[data-kept] {
+  background: var(--es-paper-ink);
+}
+
+.es-vf__cameras {
+  display: flex;
+  flex-direction: column;
   gap: var(--es-space-2);
 }
 
-/* The recipe: a column for each dish, as wide as the dish is in the drawing above it, so that a thumb finds the one it means. */
+.es-vf__mode {
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+@media (max-width: 63.999rem) {
+  .es-vf {
+    padding: var(--es-space-2);
+    gap: var(--es-space-2);
+    --es-plot: clamp(4.5rem, 20svh, 8rem);
+  }
+
+  .es-frame[data-placement='embed'] .es-vf {
+    --es-plot: 6rem;
+  }
+
+  .es-vf[data-rows='2'],
+  .es-vf[data-rows='3'],
+  .es-vf[data-rows='4'],
+  .es-vf[data-rows='5'],
+  .es-vf[data-rows='6'] {
+    --es-plot: 2.75rem;
+  }
+
+  .es-vf__tokens {
+    gap: var(--es-space-1) var(--es-space-2);
+  }
+
+  .es-vf__bar {
+    flex-basis: 1.125rem;
+  }
+
+  .es-vf__name {
+    font-size: var(--es-size-micro);
+  }
+
+  .es-vf__legend .es-legend {
+    gap: var(--es-space-1) var(--es-space-3);
+  }
+}
+
+/* A lesson's dock: the bars of one draft position, compact. */
+.es-vf-mini {
+  --es-plot: 4rem;
+  gap: var(--es-space-2);
+  min-height: 0;
+  padding: var(--es-space-3);
+  border: 1px solid var(--es-paper-rule);
+}
+
+.es-vf-mini__line {
+  margin: 0;
+  font-size: var(--es-size-note);
+}
+
+/* ------------------------------------------------------------------------------------------------ the dock */
+
+.es-vf-dock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-4);
+}
+
+.es-vf-dock__title {
+  margin: 0 0 var(--es-space-1);
+  font-size: var(--es-size-control);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.es-vf-dock__text {
+  margin: 0 0 var(--es-space-2);
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-vf-dock__note {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  line-height: 1.4;
+}
+
+.es-vf-dock__section {
+  min-width: 0;
+}
+
+.es-vf-dock__stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+}
+
+.es-vf-dock__form {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--es-space-3);
+}
+
+.es-vf-dock__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-3);
+}
+
+/* The intro's amber ring sits on the level's first move, with its word under it. */
+.es-vf-dock__ring {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--es-space-1);
+  margin: 6px;
+}
+
+.es-vf-dock__ring .es-marker__ring {
+  display: flex;
+}
+
+.es-vf-dock__ring .es-marker__ring > * {
+  flex: 1 1 auto;
+}
+
+.es-vf-recipe .es-vf-dock__ring {
+  display: flex;
+  margin: 6px 2px;
+}
+
+/* The weights: a column for each token, as wide as the token is in the bars above it, so that a thumb finds the one it means. */
 .es-vf-recipe {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -80,6 +433,48 @@
   min-width: 0;
 }
 
+@media (max-width: 30rem) {
+  .es-vf-recipe {
+    gap: var(--es-space-1);
+  }
+}
+
+.es-vf-stepper__label {
+  justify-self: center;
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-caption);
+  white-space: nowrap;
+}
+
+.es-vf-draws {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+}
+
+/* On a phone the decision is one block of whole controls over the readout: Finish and the three draws in two rows, and the sentence the
+   heading already says is left to the wide dock, so the pinned dock cuts no line and no button. */
+@media (max-width: 63.999rem) {
+  .es-vf-dock__stack > .es-vf-dock__text {
+    display: none;
+  }
+
+  .es-vf-dock__finish {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--es-space-2);
+  }
+
+  .es-vf-dock__finish > .es-vf-draws {
+    display: contents;
+  }
+
+  .es-vf-dock__finish .es-button {
+    width: 100%;
+  }
+}
+
+
 .es-vf-stepper {
   display: grid;
   align-content: start;
@@ -88,9 +483,6 @@
   min-width: 0;
 }
 
-.es-vf-stepper__label {
-  justify-self: center;
-}
 
 .es-vf-stepper[data-layout='row'] {
   grid-template-columns: auto auto auto;
@@ -128,7 +520,7 @@
   width: 5rem;
 }
 
-/* The weight is typed on a slip of ticket paper in the printer's dots, like a field's. */
+/* The weight is typed in a numeric field on paper, like a Field's. */
 .es-vf-slip {
   display: flex;
   background-color: var(--es-paper);
@@ -146,7 +538,7 @@
   background: transparent;
   color: var(--es-paper-ink);
   font-family: var(--es-font-numeric);
-  font-size: var(--es-size-plate);
+  font-size: var(--es-size-control);
   font-weight: 900;
   letter-spacing: 0.02em;
   text-align: center;
@@ -176,21 +568,15 @@
 }
 
 .es-vf-slip:focus-within {
-  border-bottom-color: var(--es-lamp-ring);
-  outline: 2px solid var(--es-focus);
+  border-bottom-color: var(--es-text-1);
+  outline: 3px solid var(--es-focus);
   outline-offset: 2px;
   box-shadow:
     var(--es-shadow-paper),
-    0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent);
+    0 0 0 7px var(--es-paper);
 }
 
-.es-vf-draws {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--es-space-2);
-}
-
-/* The five cards of the audit: a ticket each, in as many columns as fit. */
+/* The five cards of the audit: a card each, in as many columns as fit. */
 .es-vf-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
@@ -235,38 +621,102 @@
 }
 
 .es-vf-select:focus-visible {
-  border-bottom-color: var(--es-lamp-ring);
+  border-bottom-color: var(--es-text-1);
 }
 
-/* The levels: a row of plates that wraps, with the way into a graded run under it. */
-.es-vf-rail {
+
+.es-vf-card {
+  min-width: 0;
+  padding: var(--es-space-3);
+  border: 1px solid var(--es-paper-rule);
+  background: var(--es-paper);
+}
+
+.es-vf-card__head {
+  margin: 0 0 var(--es-space-1);
+  font-size: var(--es-size-control);
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------------------------------------------ the readout strip */
+
+.es-vf-strip {
   display: flex;
   flex-direction: column;
-  gap: var(--es-space-3);
-  padding-top: var(--es-space-4);
-  border-top: 1px dashed var(--es-edge);
+  gap: var(--es-space-1);
 }
 
-.es-vf-levels {
+.es-vf-strip__head {
   display: flex;
-  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--es-space-2);
   margin: 0;
-  padding: 0;
-  list-style: none;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  font-weight: 700;
 }
 
-.es-vf-mode {
+.es-vf-strip__list {
+  display: grid;
+  grid-template-columns: repeat(var(--es-items, 5), minmax(0, auto));
+  justify-content: space-between;
+  gap: 0 var(--es-space-2);
+  margin: 0;
+  /* The delta stands over its number for one second, in a band the list keeps free for it. */
+  padding-top: 1.125rem;
+}
+
+.es-vf-strip__item {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--es-space-2) var(--es-space-4);
+  min-width: 0;
+  flex-direction: column-reverse;
 }
 
-@media (max-width: 30rem) {
-  .es-vf-recipe {
-    gap: var(--es-space-1);
+.es-vf-strip__label {
+  color: var(--es-text-2);
+  font-size: var(--es-size-micro);
+  line-height: 1.2;
+}
+
+.es-vf-strip__value {
+  position: relative;
+  margin: 0;
+  font-size: var(--es-size-control);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 63.999rem) {
+  .es-vf-strip__value {
+    font-size: var(--es-size-base);
   }
+}
+
+.es-vf-strip__delta {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  font-size: var(--es-size-caption);
+}
+
+/* ------------------------------------------------------------------------------------------------ the result */
+
+.es-vf-debrief__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-4);
+  min-width: 0;
+}
+
+.es-vf-debrief__body p {
+  margin: 0;
+}
+
+.es-vf-engine h4 {
+  margin: 0 0 var(--es-space-1);
+  font-size: var(--es-size-control);
 }
 
 /* Two facts of a debrief, each a name and its figure. */
@@ -289,58 +739,89 @@
 
 .es-vf-facts dd {
   margin: 0;
-}
 
-/* The title of the next level can be longer than the stub's line at 320 px (WCAG 1.4.10): the label wraps beside its arrow. */
-[data-verifier-debrief] .es-stub__label {
+/* ------------------------------------------------------------------------------------------------ the 3D scene's print */
+
   white-space: normal;
 }
 
 /*
- * The 3D scene's print (Scene3D.tsx): the dishes' and the courses' names in marker on masking tape, and the dishes' counts on paper tags in
- * the printer's dots, all DOM over the canvas (D-021). The scene's box is a size container, so print scales with the pass and not with
- * the window, and never below the size ramp's smallest step, whatever the box.
+ * The 3D scene's print (Scene3D.tsx): every word and number on the plate, as DOM over the canvas (D-021), set as the 2D diagram sets them,
+ * so a row's name, a token's number and a bar's count read the same in either view. Every colour, face and size is a token role.
  */
-.es-vf-scene {
-  container-type: size;
+.es-vf-stage {
+  height: clamp(18rem, min(56svh, 34vw), 32rem);
+}
+
+@media (max-width: 29.9rem) {
+  .es-vf-stage {
+    height: clamp(18.75rem, 112vw, 60svh);
+  }
+}
+
+/* On the game's page the box is the frame's view, which fits the first screen beside the dock at desk widths and over the pinned dock on
+   a phone (src/games/kit/frame.css), so the skylines, the control and the readout share the viewport (P5). */
+@media (min-width: 64rem) {
+  .es-frame[data-placement='page'] [data-surface='3d']:has(> .es-vf-stage),
+  .es-frame[data-placement='page'] .es-vf-stage {
+    height: 100%;
+    min-height: 20rem;
+  }
+}
+
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame[data-placement='page'] .es-vf-stage {
+    height: max(9rem, calc(67svh - 19.5rem));
+  }
+}
+
+.es-vf3d {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .es-vf-label {
-  line-height: 1;
+  color: var(--es-text-1);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-caption);
+  font-weight: var(--es-font-label-weight);
+  line-height: 1.2;
   text-align: center;
   white-space: nowrap;
 }
 
-/* Marker on masking tape: the design system's tape (.es-tape), torn off at the size of the print, every word on its own strip. */
-.es-vf-label.es-tape {
-  padding: 0.22em 0.65em 0.16em;
-  font-size: clamp(var(--es-size-micro), 1.8cqi, var(--es-size-caption));
-  line-height: 1.15;
+/* A draft position's name in the label column: it wraps inside the column and never runs over its first bar. */
+.es-label.es-vf-label--row {
+  max-width: 6.5rem;
+  text-align: left;
+  white-space: normal;
 }
 
-/* A dish's counts, the commis's plates and then the chef's, on one paper tag in the printer's dots. */
-.es-vf-label--count {
-  padding: 0.2em 0.35em 0.15em;
-  border: 1px solid var(--es-paper-rule);
+/* A token's number under its pair of bars, in the numbers' face. */
+.es-vf-label--tick {
+  color: var(--es-text-2);
+  font-family: var(--es-font-numeric);
+  font-size: var(--es-size-caption);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--es-font-numeric-weight);
+}
+
+/* A bar's count over it, on a slip of paper so that it reads on blue, green, yellow and red alike. */
+.es-vf-label--slab {
+  padding: 0 0.25rem;
   background-color: var(--es-paper);
-  box-shadow: var(--es-shadow-paper);
   color: var(--es-paper-ink);
   font-family: var(--es-font-numeric);
-  font-weight: var(--es-font-numeric-weight);
+  font-size: var(--es-size-micro);
   font-variant-numeric: tabular-nums;
-  font-size: clamp(var(--es-size-micro), 1.15cqi, var(--es-size-print));
+  font-weight: var(--es-font-numeric-weight);
 }
 
-/* In a box narrower than the camera's portrait width (camera-rig.ts, 480 px), the strip of the courses' names stands outside the box. */
-@container (max-width: 479.98px) {
-  .es-vf-label--row {
+/* On a phone the weights are typed or tapped on their columns: the number pad is the way, and the plus and minus buttons would take a third
+   of the dock's height, so only the fields stay. */
+@media (max-width: 47.999rem) {
+  .es-vf-recipe .es-vf-step {
     display: none;
-  }
-}
-
-/* At a small phone's width, six names side by side keep their size and give up some of their tape. */
-@container (max-width: 299.98px) {
-  .es-vf-label.es-tape {
-    padding-inline: 0.4em;
   }
 }

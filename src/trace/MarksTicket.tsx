@@ -5,7 +5,7 @@ import { Field } from '@/design/components/Field'
 import { Icon } from '@/design/components/Glyph'
 import { Readout } from '@/design/components/Readout'
 import type { NumberTag } from '@/design/components/Readout'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 import { formatReadout } from '@/design/format'
 import { CATEGORY_WORDS, LABEL_MAX, overlaps, unaccountedNs } from './marks'
 import type { Annotations } from './marks'
@@ -56,7 +56,7 @@ export function MarksTicket({ index, state, readOnly, tag, source, labelId, disp
   }
 
   return (
-    <Ticket as="section" width="full" hole={false} head="Marks" foot={[readOnly ? 'This tape is for reading' : 'Practice: nothing here is saved']} className="es-trace__marks" data-trace-marks="">
+    <Sheet as="section" width="full" hole={false} head="Marks" foot={[readOnly ? 'This trace is for reading' : 'Practice: nothing here is saved']} className="es-trace__marks" data-trace-marks="">
       <p data-marks-summary="" className="flex flex-wrap items-baseline gap-x-2">
         <span>
           {marks.length === 0 ? 'No marks yet.' : marks.length === 1 ? '1 mark.' : `${marks.length} marks.`}
@@ -86,7 +86,7 @@ export function MarksTicket({ index, state, readOnly, tag, source, labelId, disp
       )}
       {readOnly ? null : target === null ? (
         <p className="mt-3 text-text-2" data-label-hint="">
-          Start a mark, or choose one below, to write words on its tape.
+          Start a mark, or choose one below, to write words on it.
         </p>
       ) : (
         <div className="mt-3">
@@ -95,7 +95,7 @@ export function MarksTicket({ index, state, readOnly, tag, source, labelId, disp
             id={labelId}
             data-command="label"
             label="Label"
-            hint={`Words for the tape, up to ${LABEL_MAX} letters. Enter leaves the field.`}
+            hint={`Words for the mark, up to ${LABEL_MAX} letters. Enter leaves the field.`}
             defaultValue={current}
             maxLength={LABEL_MAX}
             autoComplete="off"
@@ -175,6 +175,6 @@ export function MarksTicket({ index, state, readOnly, tag, source, labelId, disp
           </tbody>
         </table>
       </div>
-    </Ticket>
+    </Sheet>
   )
 }

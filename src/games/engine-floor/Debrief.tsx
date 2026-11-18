@@ -1,40 +1,75 @@
-import { useId, useMemo, type ReactNode } from 'react'
+import { useContext, useMemo, type ReactNode } from 'react'
 import { drawInBand } from '@es/play'
+import { FLOOR_COPY } from '@es/play/engine-floor/copy'
 import { ENGINE_NAMES } from '@es/play/engine-floor/engine'
-import { factsOf, type HouseFacts } from '@es/play/engine-floor/facts'
-import { frameSvg, layoutMap, mapOfScenario } from '@es/play/engine-floor/layout'
+import { boundaryStagesOut, factsOf, MAX_PREDICTION, type PathFacts } from '@es/play/engine-floor/facts'
 import { rivalScenario } from '@es/play/engine-floor/levels'
 import { floorSession } from '@es/play/engine-floor/session'
 import { referenceOf } from '@es/play/engine-floor/stages'
-import { FLOOR_NAMES } from '@es/play/engine-floor/words'
+import { FLOOR_NAMES, floorKindOf, handoffWords, permalink, placeKey, placeName, splitCode } from '@es/play/engine-floor/words'
+import type { StageNote } from '@es/play/engine-floor/types'
 import { entryOf } from '@es/sim/lifecycle'
-import type { Scenario } from '@es/sim/lifecycle'
+import type { Place, Scenario } from '@es/sim/lifecycle'
 import { Button } from '@/design/components/Button'
-import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
+import { NumberLine } from '@/design/components/NumberLine'
+import { Stamp } from '@/design/components/Stamp'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket } from '@/design/components/Ticket'
-import { Cite } from './Cite'
-import { Code } from './Code'
-import { svgToReact } from './svg'
+import { Debrief as Result } from '@/games/kit/Debrief'
+import { LessonRunContext } from '@/games/kit/lessonRun'
+import { MirrorTable, type MirrorColumn, type MirrorRow } from '@/games/kit/MirrorTable'
+import { verdictOf } from '@/games/kit/verdict'
 import { TapeCheck } from './TapeCheck'
 import type { FloorOutcome, FloorRun } from './types'
-import { useOrientation } from './useOrientation'
 
 /*
- * Back of House's debrief (GAMES.md §5, "Core loop" step 6; §2.4 test 7: the first wrong stage): one sentence that says what the run did;
- * the first stage that did not hold, from its source; the prediction against the path's own count; and the engine's house laid beside
- * the other engine's, with what differs said in words and set in bold. Where does detokenizing run? How many ZMQ hops? How do the ranks
- * get the batch?
+ * Request path's result (GAMES.md §5, "Core loop" step 6; REDESIGN §2.6): the kit's debrief, filled. The verdict word from the grade, one
+ * sentence that says what the run did, the ways on (the next level first; in a lesson, the lesson's), then the first stage that did not
+ * hold with the mechanism that was wrong and both stages' sources, the prediction beside the path's own count on one number line, and this
+ * engine's path set beside another engine's as two small swimlanes, with what differs marked in words and in bold.
  *
- * The house run is the ghost: it is the engine's own path, which the page reads from the pinned lifecycle data. A learner whose
- * path held already has it, and one whose path did not sees the stage that failed beside the engine's. The counts are derived from
- * the stages (packages/play/engine-floor/facts.ts), so each is a Readout that says so.
+ * The graded map adds two things: whether the scenario passed (the whole path right on its one run), and the path read against the
+ * scenario's synthetic trace (TapeCheck.tsx). Its own way on is another fresh scenario, since the same one cannot be graded twice.
  *
- * The graded `map` (W1-T19) adds two things to it. It says whether the scenario was passed, which is the whole path right on the one
- * run, and it reads the path against the scenario's tape (TapeCheck.tsx): the table of `spanCheck` and the lifecycle trace in the trace
- * viewer. A graded run's own way on is another fresh scenario, since the same one cannot be graded twice.
+ * It is a chunk of its own, loaded when a run ends, and it imports nothing that only the game's chunk holds (the swimlane, the dock's
+ * pieces): a lazy chunk that did would fold the game's own chunk into a shared one, and `verify:bundle` finds a game by that chunk.
  */
+
+/** A line with its code spans set in the code face. */
+function Spans({ text }: { text: string }) {
+  return (
+    <>
+      {splitCode(text).map((piece, index) =>
+        piece.code ? (
+          <code key={index} className="es-type-mono [overflow-wrap:anywhere]">
+            {piece.text}
+          </code>
+        ) : (
+          <span key={index}>{piece.text}</span>
+        ),
+      )}
+    </>
+  )
+}
+
+/** A stage with where it is read: its mechanism and label, its places, and its file, symbol and line at the pin as a link. */
+function Source({ title, note }: { title: string; note: StageNote }) {
+  return (
+    <div className="es-floor-source" data-cite="">
+      <p className="es-floor-source__title">{title}</p>
+      <p>
+        <strong>{handoffWords(note.mechanism)}</strong>: <Spans text={note.label} />. {ENGINE_NAMES[note.engine]}, from <code>{placeName(note.from)}</code> to{' '}
+        <code>{placeName(note.to)}</code>.
+      </p>
+      <p className="es-floor-source__link">
+        <TextLink href={permalink(note.source)}>
+          <code>{note.source.path}</code>
+        </TextLink>{' '}
+        · <code>{note.source.symbol}</code> · line <span className="font-numeric">{note.source.line}</span>
+      </p>
+    </div>
+  )
+}
 
 export interface DebriefProps {
   run: FloorRun
@@ -42,31 +77,84 @@ export interface DebriefProps {
   /** The level after this one, or null on the last. */
   next: { id: string; title: string } | null
   onNext: () => void
-  /** A graded run on a fresh scenario, for a level that can be graded. Null or left out where it cannot. */
+  /** A graded run on a fresh scenario, for the level that can be graded. Null where it cannot. */
   onGraded?: (() => void) | null
-  /** Back to the level in practice, for a graded run. */
-  onPractice?: (() => void) | null
+  /** Inside a lesson: the ways on are the lesson's, and none of them leaves it. */
+  embedded?: boolean
 }
 
 /** The one true thing, in a sentence (GAMES.md §5, "Module and concept"). */
 const ONE_TRUE_THING =
   'A request crosses a boundary only through the mechanism that crosses it: a queue between threads, IPC or shared memory between processes, a copy or a launch between the host and the GPU, and a sync before anyone reads what the GPU brought back. What differs from engine to engine is the architecture, which is why the stages differ and the rules do not.'
 
-/** A house drawn flat: an engine's whole path, every stop inked and the ticket home. */
-function House({ scenario, label }: { scenario: Scenario; label: string }) {
-  const orientation = useOrientation()
-  const id = useId().replaceAll(/\W/g, '')
-  const drawing = useMemo(() => svgToReact(frameSvg(layoutMap(mapOfScenario(scenario, label), { orientation }), id)), [scenario, label, orientation, id])
+const count = (value: number) => <span className="font-numeric">{value}</span>
+const windows = (facts: PathFacts): number => facts.byMechanism.ipc + facts.byMechanism.shm
+const place = (text: string | null) => (text === null ? <span className="text-text-2">nowhere</span> : <code>{text}</code>)
+
+/** A path drawn small: a column per process (the GPU last), a row per stage, and the arrows; the hops between processes drawn heavier. */
+interface Mini {
+  readonly width: number
+  readonly height: number
+  readonly columns: readonly { readonly key: string; readonly name: string; readonly kind: ReturnType<typeof floorKindOf>; readonly x: number }[]
+  readonly nodes: readonly { readonly x: number; readonly y: number; readonly crosses: boolean }[]
+}
+
+const MINI = { width: 184, row: 11, top: 6, pad: 6 }
+
+function miniOf(sc: Scenario): Mini {
+  const path = referenceOf(sc)
+  const entry = entryOf(sc.engine)
+  const keyOf = (place: Place) => (place.device === 'gpu' ? 'gpu' : place.process)
+  const order: string[] = []
+  const places = new Map<string, Place>()
+  for (const place of [entry, ...path.flatMap((stage) => [stage.from, stage.to])]) {
+    const key = keyOf(place)
+    if (!order.includes(key)) order.push(key)
+    if (!places.has(key)) places.set(key, place)
+  }
+  const keys = [...order.filter((key) => key !== 'gpu'), ...order.filter((key) => key === 'gpu')]
+  const step = (MINI.width - 2 * MINI.pad) / Math.max(keys.length, 1)
+  const xOf = (place: Place) => Math.round(MINI.pad + step * (keys.indexOf(keyOf(place)) + 0.5))
+  const columns = keys.map((key) => {
+    const place = places.get(key) as Place
+    const kind = floorKindOf(place)
+    return { key, name: FLOOR_NAMES[kind], kind, x: xOf(place) }
+  })
+  const nodes = [{ x: xOf(entry), y: MINI.top, crosses: false }, ...path.map((stage, at) => ({ x: xOf(stage.to), y: MINI.top + (at + 1) * MINI.row, crosses: placeKey(stage.from).split('|')[0] !== placeKey(stage.to).split('|')[0] }))]
+  return { width: MINI.width, height: MINI.top + (path.length + 1) * MINI.row, columns, nodes }
+}
+
+function MiniLanes({ mini, label }: { mini: Mini; label: string }) {
   return (
-    <div className="[&>svg]:block [&>svg]:h-auto [&>svg]:w-full" data-floor-house="">
-      {drawing}
-    </div>
+    <svg className="es-floor-mini" width={mini.width} height={mini.height} viewBox={`0 0 ${mini.width} ${mini.height}`} role="img" aria-label={label}>
+      {mini.columns.map((column) => (
+        <line key={column.key} x1={column.x} y1={0} x2={column.x} y2={mini.height} className="es-lanes__life" />
+      ))}
+      {mini.nodes.slice(1).map((node, at) => {
+        const prev = mini.nodes[at]
+        const mid = Math.round((prev.y + node.y) / 2)
+        return (
+          <polyline
+            key={at}
+            points={`${prev.x},${prev.y} ${prev.x},${mid} ${node.x},${mid} ${node.x},${node.y}`}
+            fill="none"
+            stroke="var(--es-paper-ink)"
+            strokeWidth={node.crosses ? 2.25 : 1}
+          />
+        )
+      })}
+      {mini.nodes.map((node, at) => (
+        <circle key={at} cx={node.x} cy={node.y} r={at === 0 ? 3 : node.crosses ? 3 : 2} className={at === 0 ? 'es-lanes__start' : 'es-lanes__node'} />
+      ))}
+    </svg>
   )
 }
 
-const count = (value: number) => <Readout value={value} tag="derived" size="sm" />
-const windows = (facts: HouseFacts): number => facts.byMechanism.ipc + facts.byMechanism.shm
-const place = (text: string | null) => (text === null ? <span className="text-text-2">nowhere</span> : <code className="es-type-mono">{text}</code>)
+/** A process's name in a sentence: "an API server", "a tokenizer process", "one process". An initialism keeps its capitals. */
+const inSentence = (name: string): string => {
+  const word = /^[A-Z][A-Z]/.test(name) ? name : name.charAt(0).toLowerCase() + name.slice(1)
+  return word.startsWith('one ') ? word : `${/^[aeiouAEIOU]/.test(word) ? 'an' : 'a'} ${word}`
+}
 
 interface FactRow {
   readonly id: string
@@ -76,48 +164,84 @@ interface FactRow {
   readonly differs: boolean
 }
 
-/** The facts set side by side. A row whose two values differ is the difference, and is set in bold with a word that says so for a screen reader. */
-function factRows(a: HouseFacts, b: HouseFacts): FactRow[] {
-  const ranks = (facts: HouseFacts) =>
-    facts.ranksVia === null ? <span className="text-text-2">one rank: nothing to send</span> : <Code>{`${facts.ranksVia.mechanism} · ${facts.ranksVia.label}`}</Code>
+/** The facts set side by side. A row whose two values differ is a difference, set in bold with the word "differs". */
+function factRows(a: PathFacts, b: PathFacts): FactRow[] {
+  const ranks = (facts: PathFacts) =>
+    facts.ranksVia === null ? <span className="text-text-2">one rank</span> : <Spans text={`${facts.ranksVia.mechanism} · ${facts.ranksVia.label}`} />
   return [
-    { id: 'boundaries', term: "Process boundaries a sampled token crosses on its way to the client", mine: count(a.boundariesOut), theirs: count(b.boundariesOut), differs: a.boundariesOut !== b.boundariesOut },
+    { id: 'boundaries', term: "Process boundaries on a sampled token's way out", mine: count(a.boundariesOut), theirs: count(b.boundariesOut), differs: a.boundariesOut !== b.boundariesOut },
+    { id: 'processes', term: 'Processes the path visits', mine: count(a.processes), theirs: count(b.processes), differs: a.processes !== b.processes },
     { id: 'zmq', term: 'Hops over ZMQ', mine: count(a.zmqHops), theirs: count(b.zmqHops), differs: a.zmqHops !== b.zmqHops },
     { id: 'detok', term: 'Where detokenizing runs', mine: place(a.detokenizesAt), theirs: place(b.detokenizesAt), differs: a.detokenizesAt !== b.detokenizesAt },
     ...(a.ranksVia === null && b.ranksVia === null
       ? []
       : [{ id: 'ranks', term: 'How the ranks get the batch', mine: ranks(a), theirs: ranks(b), differs: a.ranksVia?.label !== b.ranksVia?.label }]),
-    { id: 'processes', term: 'Processes the path visits', mine: count(a.processes), theirs: count(b.processes), differs: a.processes !== b.processes },
-    { id: 'windows', term: 'Windows between processes (IPC and shared memory)', mine: count(windows(a)), theirs: count(windows(b)), differs: windows(a) !== windows(b) },
-    { id: 'spikes', term: 'Spikes (queues) on the path', mine: count(a.byMechanism.queue), theirs: count(b.byMechanism.queue), differs: a.byMechanism.queue !== b.byMechanism.queue },
+    { id: 'ipc', term: 'IPC and shared-memory hops', mine: count(windows(a)), theirs: count(windows(b)), differs: windows(a) !== windows(b) },
+    { id: 'queues', term: 'Queues on the path', mine: count(a.byMechanism.queue), theirs: count(b.byMechanism.queue), differs: a.byMechanism.queue !== b.byMechanism.queue },
     { id: 'stages', term: 'Stages in the path', mine: count(a.stages), theirs: count(b.stages), differs: a.stages !== b.stages },
   ]
 }
 
-/** The floors that only one house has: the architecture's difference, in the kitchen's words. */
-const onlyIn = (facts: HouseFacts, other: HouseFacts): string[] => facts.floors.filter((kind) => !other.floors.includes(kind)).map((kind) => FLOOR_NAMES[kind].toLowerCase())
+/** One engine's path, small, with its processes named under it and those the other engine lacks marked. */
+function OnePath({ scenario, facts, other, name }: { scenario: Scenario; facts: PathFacts; other: PathFacts; name: string }) {
+  const mini = useMemo(() => miniOf(scenario), [scenario])
+  return (
+    <figure className="es-floor-pair__one" data-floor-path-of={scenario.engine}>
+      <figcaption className="es-floor-pair__name">{name}</figcaption>
+      <MiniLanes mini={mini} label={`${name}: its whole path, ${facts.stages} stages, time running down.`} />
+      <ul className="es-floor-pair__procs" aria-label={`The processes of ${name}, left to right`}>
+        {mini.columns.map((column) => {
+          const only = !other.kinds.includes(column.kind)
+          return (
+            <li key={column.key} data-only={only || undefined}>
+              {column.name}
+              {only ? <span className="es-floor-pair__only"> · only here</span> : null}
+            </li>
+          )
+        })}
+      </ul>
+    </figure>
+  )
+}
 
-function Houses({ scenario }: { scenario: Scenario }) {
+const FACT_COLUMNS = (a: string, b: string): readonly MirrorColumn[] => [
+  { key: 'term', head: 'Fact' },
+  { key: 'mine', head: a },
+  { key: 'theirs', head: b },
+]
+
+/** Two engines' paths side by side, with their differences marked. */
+function PathPair({ scenario }: { scenario: Scenario }) {
   const rival = rivalScenario(scenario)
   const mine = factsOf(referenceOf(scenario), entryOf(scenario.engine))
   const theirs = factsOf(referenceOf(rival), entryOf(rival.engine))
   const names = [ENGINE_NAMES[scenario.engine], ENGINE_NAMES[rival.engine]]
-  const mineOnly = onlyIn(mine, theirs)
-  const theirsOnly = onlyIn(theirs, mine)
-  const rows = factRows(mine, theirs)
+  const mineOnly = mine.kinds.filter((kind) => !theirs.kinds.includes(kind)).map((kind) => inSentence(FLOOR_NAMES[kind]))
+  const theirsOnly = theirs.kinds.filter((kind) => !mine.kinds.includes(kind)).map((kind) => inSentence(FLOOR_NAMES[kind]))
+  const rows: MirrorRow[] = factRows(mine, theirs).map((row) => ({
+    id: row.id,
+    cells: {
+      term: (
+        <span className={row.differs ? 'es-floor-pair__differs' : undefined} data-differs={row.differs || undefined}>
+          {row.term}
+          {row.differs ? <span className="es-floor-pair__word"> · differs</span> : null}
+        </span>
+      ),
+      mine: row.differs ? <strong>{row.mine}</strong> : row.mine,
+      theirs: row.differs ? <strong>{row.theirs}</strong> : row.theirs,
+    },
+  }))
   return (
-    <section aria-label="Two houses, side by side" className="flex flex-col gap-4" data-floor-houses="">
-      <h3>Two houses, side by side</h3>
-      <figure className="flex flex-col gap-1">
-        <figcaption className="font-bold">{names[0]}</figcaption>
-        <House scenario={scenario} label={`The house of ${names[0]}: its whole path, every stage held.`} />
-      </figure>
-      <figure className="flex flex-col gap-1">
-        <figcaption className="font-bold">{names[1]}</figcaption>
-        <House scenario={rival} label={`The house of ${names[1]}: its whole path, every stage held.`} />
-      </figure>
+    <section aria-label="Two engines' paths, side by side" className="es-floor-pair" data-floor-houses="">
+      <h4 className="es-floor-pair__head">
+        Two engines&apos; paths, side by side <Stamp word="derived" />
+      </h4>
+      <div className="es-floor-pair__row">
+        <OnePath scenario={scenario} facts={mine} other={theirs} name={names[0]} />
+        <OnePath scenario={rival} facts={theirs} other={mine} name={names[1]} />
+      </div>
       {mineOnly.length > 0 || theirsOnly.length > 0 ? (
-        <p className="max-w-prose" data-floor-floors="">
+        <p data-floor-floors="">
           {mineOnly.length > 0 ? (
             <>
               <strong>{names[0]}</strong> has {mineOnly.join(' and ')}, which {names[1]} does not.{' '}
@@ -130,91 +254,86 @@ function Houses({ scenario }: { scenario: Scenario }) {
           ) : null}
         </p>
       ) : null}
-      <div role="region" aria-label="How the two houses differ" tabIndex={0} className="overflow-x-auto">
-        <table className="w-full border-collapse text-left" data-floor-facts="">
-          <caption className="pb-2 text-left font-bold">How the two houses differ</caption>
-          <thead>
-            <tr>
-              <th scope="col" className="border-b border-edge py-2 pr-4 font-bold">
-                Fact
-              </th>
-              <th scope="col" className="border-b border-edge py-2 pr-4 font-bold">
-                {names[0]}
-              </th>
-              <th scope="col" className="border-b border-edge py-2 font-bold">
-                {names[1]}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id} className="border-b border-paper-rule" data-differs={row.differs || undefined}>
-                <th scope="row" className={row.differs ? 'py-2 pr-4 text-left font-bold underline decoration-2 underline-offset-4' : 'py-2 pr-4 text-left font-normal'}>
-                  {row.term}
-                  {row.differs ? <span className="sr-only"> (the houses differ)</span> : null}
-                </th>
-                <td className={row.differs ? 'py-2 pr-4 font-bold' : 'py-2 pr-4'}>{row.mine}</td>
-                <td className={row.differs ? 'py-2 font-bold' : 'py-2'}>{row.theirs}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <div data-floor-facts="">
+        <MirrorTable head="How the two paths differ" caption="Counted from the two pinned paths, so each is only as good as the stages are" columns={FACT_COLUMNS(names[0], names[1])} rows={rows} />
       </div>
-      <p className="text-text-2">Every count is derived from the stages of the two pinned paths, and so is only as good as the stages are.</p>
     </section>
   )
 }
 
-/** The ticket's title: how the run ended, in the words of the level that allows one run as well as of the ones that allow many. */
-function titleOf(run: FloorRun, ok: boolean): string {
-  if (ok) return 'Every hand-off held.'
-  return run.view.mistake === null && run.view.stop === null ? 'The path stopped short.' : 'A hand-off broke.'
-}
-
-export function Debrief({ run, outcome, next, onNext, onGraded = null, onPractice = null }: DebriefProps) {
+export function Debrief({ run, outcome, next, onNext, onGraded = null, embedded = false }: DebriefProps) {
   const { view } = run
   const { debrief, grade } = outcome
   const scenario = view.scenario
   const truth = factsOf(referenceOf(scenario), entryOf(scenario.engine)).boundariesOut
   const predicted = view.prediction
-  const last = next === null
   const graded = run.mode === 'graded'
   const map = view.level === 'map'
+  const verdict = verdictOf(grade, map)
 
-  function newTray() {
-    const entropy = crypto.getRandomValues(new Uint32Array(1))[0]
-    run.restart(drawInBand(floorSession, view.level, entropy))
-  }
+  const newScenario = () => run.restart(drawInBand(floorSession, view.level, crypto.getRandomValues(new Uint32Array(1))[0]))
 
+  // In a lesson: its way on leads the result. A guess the lesson asked in this level's slot is revealed by the lesson's own ticket beside the
+  // run, which reads the answer once; the result does not draw a second one.
+  const lesson = useContext(LessonRunContext)
+  const onward = lesson?.onward ?? null
+  const lessonReveal = lesson !== null && lesson.reveal !== null && lesson.reveal !== undefined
+
+  const primary =
+    onward !== null ? (
+      <PrimaryButton onClick={() => onward.select()}>
+        {onward.label}
+      </PrimaryButton>
+    ) : graded && onGraded !== null ? (
+      <PrimaryButton onClick={onGraded}>
+        Another fresh scenario
+      </PrimaryButton>
+    ) : next !== null ? (
+      <PrimaryButton onClick={onNext}>
+        {`Next level: ${next.title}`}
+      </PrimaryButton>
+    ) : embedded ? null : (
+      <TextLink to="/map">Open the course</TextLink>
+    )
+
+  const mistake = view.mistake
   return (
-    <div className="flex max-w-3xl flex-col gap-6" data-floor-debrief="">
-      {/* The verdict's stamped headline leads the paper, with no head line over it (DESIGN.md, Tickets): the level's tape names the level. */}
-      <Ticket
-        as="section"
-        width="full"
-        hole={false}
-        titleAs="h3"
-        title={titleOf(run, grade.ok)}
-        stub={
-          graded && onGraded !== null ? (
-            <Stub onClick={onGraded}>Another fresh scenario</Stub>
-          ) : last ? (
-            <Stub to="/map">Open the course map</Stub>
-          ) : (
-            <Stub onClick={onNext}>Next level</Stub>
-          )
-        }
-      >
-        <p className="es-type-body">
-          <Code>{debrief.sentence}</Code>
-        </p>
+    <Result
+      className="es-floor-debrief"
+      verdict={verdict}
+      sentence={
+        mistake !== null && view.served ? (
+          <>
+            The request reached the client on run <span className="font-numeric">{view.runs}</span>.
+          </>
+        ) : (
+          <Spans text={debrief.sentence} />
+        )
+      }
+      actions={
+        <>
+          {primary}
+          <Button variant="quiet" onClick={() => (graded ? newScenario() : run.restart())}>
+            Run again
+          </Button>
+          <Button variant="quiet" onClick={newScenario}>
+            {map ? 'Another scenario' : 'New numbers'}
+          </Button>
+          {map && !graded && onGraded !== null ? (
+            <Button variant="quiet" onClick={onGraded}>
+              Start a graded run
+            </Button>
+          ) : null}
+        </>
+      }
+    >
+      <div className="es-floor-debrief__body" data-floor-debrief="">
         {map ? (
-          <p className="max-w-prose" data-floor-graded={graded ? (grade.ok ? 'passed' : 'missed') : 'practice'}>
+          <p data-floor-graded={graded ? (grade.ok ? 'passed' : 'missed') : 'practice'}>
             {graded ? (
               <>
-                <strong>{grade.ok ? 'Passed.' : 'Not passed.'}</strong>{' '}
-                {grade.ok ? 'The whole path was right on its first run, and every stage matches a span of the tape, in order. ' : 'The level asks for the whole path, right on its first run. '}
-                It asks that of <Readout value={3} tag="estimated" size="sm" /> fresh scenarios, and each gets its own run.
+                {grade.ok ? 'The whole path was right on its one run, and every stage matches a span of the trace, in order. ' : 'The level asks for the whole path, right on its one run. '}
+                {FLOOR_COPY.map.passRule} It asks that of <span className="font-numeric">3</span> fresh scenarios, a bar that is an estimate, and each gets its own run.
               </>
             ) : (
               <>
@@ -223,69 +342,68 @@ export function Debrief({ run, outcome, next, onNext, onGraded = null, onPractic
             )}
           </p>
         ) : null}
-        {view.mistake !== null ? (
-          <div className="flex flex-col gap-3" data-floor-first-wrong="">
-            {view.mistake.expected === null ? null : <Cite title={`What ${ENGINE_NAMES[view.pin.engine]} does there`} note={view.mistake.expected} />}
-            <Cite title="What was laid" note={view.mistake.laid} />
-          </div>
-        ) : null}
-        <p className="flex flex-wrap items-baseline gap-x-2" data-floor-prediction-result="">
-          <strong>Your prediction:</strong>
-          {predicted === null ? <span>none</span> : <span className="font-numeric text-size-plate">{predicted}</span>}
-          <span>
-            {predicted === truth ? 'It was right: the path has' : 'The path has'} {count(truth)} process {truth === 1 ? 'boundary' : 'boundaries'} on a sampled token&apos;s way to the client.
-          </span>
-        </p>
-        <p className="flex flex-wrap items-baseline gap-x-3 text-text-2" data-floor-counts="">
-          <span>
-            Stages that held before the first that did not: <span className="font-numeric">{run.score.survived}</span> of {count(view.stages)}
-          </span>
-          <span>
-            Runs: <span className="font-numeric">{view.runs}</span>
-          </span>
-        </p>
-        {last || graded ? null : (
-          <p className="text-text-2" data-floor-next="">
-            Next level: <strong className="text-text-1">{next.title}</strong>
+        {/* A run that reached the client after an earlier one stopped: this run's outcome first, then the one rule that keeps it from a pass. */}
+        {mistake !== null && view.served ? (
+          <p className="es-floor-debrief__clean" data-floor-clean-rule="">
+            <strong>This run reached the client.</strong> A pass needs a path that holds with no stop on the way, and an earlier run stopped: Run again
+            for a clean one.
           </p>
+        ) : null}
+        {mistake === null ? null : (
+          <section className="es-floor-debrief__wrong" aria-label="The first stage that did not hold" data-floor-first-wrong="">
+            <p>
+              <strong>{view.served ? 'Where the earlier run stopped' : 'The first stage that did not hold'}</strong>: stage <span className="font-numeric">{mistake.at + 1}</span>, laid as{' '}
+              <strong>{handoffWords(mistake.laid.mechanism)}</strong>
+              {mistake.expected === null ? '.' : <>, where {ENGINE_NAMES[view.pin.engine]} has {handoffWords(mistake.expected.mechanism)}.</>}
+            </p>
+            {mistake.expected === null ? null : <Source title={`What ${ENGINE_NAMES[view.pin.engine]} does there`} note={mistake.expected} />}
+            <Source title="What was laid" note={mistake.laid} />
+          </section>
         )}
-      </Ticket>
-
-      <TapeCheck view={view} />
-
-      <Houses scenario={scenario} />
-
-      <section aria-label="What to take away" className="flex flex-col gap-2">
-        <p className="es-type-body max-w-prose">{ONE_TRUE_THING}</p>
-      </section>
-
-      <div className="flex flex-wrap items-center gap-4">
-        {graded ? (
-          <>
-            {onGraded === null ? null : (
-              <Button variant="ink" onClick={onGraded}>
-                Another fresh scenario
-              </Button>
-            )}
-            {onPractice === null ? null : (
-              <Button variant="plate" onClick={onPractice}>
-                Practice this level
-              </Button>
-            )}
-          </>
+        {lessonReveal ? (
+          <p data-floor-lesson-guess="">The lesson&apos;s guess for this run is revealed beside it, in the lesson.</p>
         ) : (
-          <>
-            <Button variant="plate" onClick={() => run.restart()}>
-              Play this level again
-            </Button>
-            <Button variant="ink" onClick={newTray}>
-              {map ? 'Try another scenario' : 'Shuffle the tray'}
-            </Button>
-            {onGraded === null ? null : <Button onClick={onGraded}>Start a graded run</Button>}
-          </>
+          <div data-floor-prediction-result="">
+            <NumberLine
+              caption="Process boundaries on a sampled token's way to the client: your prediction and the path's count"
+              min={0}
+              max={MAX_PREDICTION}
+              pins={[
+                ...(predicted === null ? [] : [{ id: 'guess', kind: 'guess' as const, value: predicted, label: 'your prediction' }]),
+                { id: 'answer', kind: 'result', value: truth, label: 'the path' },
+              ]}
+            />
+            <p>{predicted === truth ? 'Your prediction was right.' : `The path has ${truth} process ${truth === 1 ? 'boundary' : 'boundaries'} there.`}</p>
+            {/* What was counted, by name: the reveal says which stages cross, not a number alone. */}
+            <p data-floor-counted="">
+              {(() => {
+                const crossing = boundaryStagesOut(referenceOf(scenario), entryOf(scenario.engine))
+                return crossing.length === 0 ? (
+                  'Counted from the stage that samples the token to the client: no stage on that stretch crosses into another process.'
+                ) : (
+                  <>
+                    Counted from the stage that samples the token to the client:{' '}
+                    {crossing.map((stage, at) => (
+                      <span key={stage.id}>
+                        {at > 0 ? '; ' : ''}
+                        <Spans text={stage.label} />
+                      </span>
+                    ))}
+                    .
+                  </>
+                )
+              })()}
+            </p>
+          </div>
         )}
-        {last ? <TextLink to="/m/tr1">Open TR1</TextLink> : null}
+        <p className="es-floor-debrief__counts" data-floor-counts="">
+          {mistake === null ? 'Stages that held: ' : 'Stages that held before the first stop: '}
+          <span className="font-numeric">{run.score.survived}</span> of {count(view.stages)}. Runs: <span className="font-numeric">{view.runs}</span>.
+        </p>
+        <TapeCheck view={view} />
+        <PathPair scenario={scenario} />
+        <p className="es-floor-debrief__truth">{ONE_TRUE_THING}</p>
       </div>
-    </div>
+    </Result>
   )
 }

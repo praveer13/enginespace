@@ -1,34 +1,342 @@
 /*
- * The full service's controls and stages (src/games/loop/full): the few parts no component of the design system draws. Every value is
- * a token role (src/design/tokens.css), and every face is a role's: tests/design/literals.test.ts holds this file to it.
+ * The step loop's five full levels in the instrument frame (src/games/loop/full): the cost card's strip and the diagram's few marks that
+ * loop.css does not draw (eager launches, a graph replay, padding, the grammar mask, the reference run's outline), the dock's rows, the result
+ * and what follows it. Every value is a token role (src/design/tokens.css), and every face is a role's: tests/design/literals.test.ts holds
+ * this file to it. It loads with the full levels' chunk, never with the demo levels' route or the front page.
  */
 
-/* The stages of a level, as a row of plates under the controls' head. */
+/* ------------------------------------------------------------------------------------------------ the diagram */
+
+.es-fl__view {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+
+/* The cost card as one row: its name, its prices, one stamp and "Fit run". */
+.es-fl__card {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-1) var(--es-space-4);
+  padding: var(--es-space-2) var(--es-space-3);
+  border-bottom: 1px solid var(--es-paper-rule);
+  color: var(--es-paper-ink);
+  font-size: var(--es-size-caption);
+}
+
+.es-fl__card-name {
+  display: flex;
+  align-items: baseline;
+  gap: var(--es-space-2);
+  margin: 0;
+}
+
+.es-fl__card-name strong {
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-note);
+  font-weight: var(--es-font-label-weight);
+}
+
+.es-fl__prices {
+  display: flex;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  gap: var(--es-space-1) var(--es-space-4);
+  margin: 0;
+}
+
+.es-fl__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--es-space-1);
+}
+
+.es-fl__item dt {
+  color: var(--es-text-2);
+}
+
+.es-fl__item dd {
+  margin: 0;
+}
+
+.es-fl__us {
+  font-family: var(--es-font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.es-fl__unit {
+  color: var(--es-text-2);
+  font-weight: 400;
+}
+
+.es-fl__card-tools {
+  display: flex;
+  align-items: center;
+  gap: var(--es-space-2);
+  margin-left: auto;
+}
+
+/* Eager launches: a comb of thin ticks on a spine, in the CPU's blue. No fill, so it reads as a row of calls and not as one slab. */
+.es-fl__spine {
+  fill: var(--es-cat-blue-edge);
+}
+
+.es-fl__tick {
+  stroke: var(--es-cat-blue-edge);
+  stroke-width: 1.5;
+}
+
+/* A graph replay: one slab in the CPU's blue with a second outline inside it, so that it is a framed slab and not a plain call. */
+.es-fl__frame {
+  fill: none;
+  stroke: var(--es-cat-blue-ink);
+  stroke-width: 1;
+}
+
+.es-lanes__slab[data-fl='replay'] {
+  stroke-width: 2;
+}
+
+/* A forward, the slots-live strip under it, and the padded end of a forward (diagonal hatch). */
+.es-fl__forward {
+  fill: var(--es-lane-gpu);
+  stroke: var(--es-cat-green-edge);
+  stroke-width: 1;
+}
+
+.es-fl__padding {
+  fill: url(#es-fl-pad);
+  stroke: var(--es-cat-green-edge);
+  stroke-width: 1;
+  stroke-dasharray: 3 2;
+}
+
+.es-fl__hatch {
+  stroke: var(--es-cat-green-edge);
+  stroke-width: 1.5;
+}
+
+.es-fl__live {
+  fill: var(--es-surface-2);
+  stroke: var(--es-cat-white-edge);
+  stroke-width: 1;
+}
+
+.es-fl__copy {
+  fill: var(--es-lane-copy);
+  stroke: var(--es-cat-brown-edge);
+}
+
+/* The grammar mask's own row: vertical stripes, in the brown, apart from the CPU's solid blue and the padding's diagonal. */
+.es-fl__mask {
+  fill: url(#es-fl-mask);
+  stroke: var(--es-cat-brown-edge);
+  stroke-width: 1;
+}
+
+.es-fl__stripe {
+  stroke: var(--es-cat-brown-edge);
+  stroke-width: 2;
+}
+
+/* The reference run: hollow outlines under the learner's lanes, on the same axis. */
+.es-fl__ref {
+  fill: none;
+  stroke: var(--es-text-1);
+  stroke-width: 1.5;
+}
+
+.es-fl__ref-idle {
+  fill: none;
+  stroke: var(--es-cat-white-edge);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.es-fl__ref-key {
+  display: inline-block;
+  width: 0.875rem;
+  height: 0.625rem;
+  flex: none;
+  border: 1.5px solid var(--es-text-1);
+}
+
+/* The legend: the code's colours (Legend), then the shapes colour does not tell apart. */
+.es-fl__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-1) var(--es-space-4);
+}
+
+.es-fl__shapes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-1) var(--es-space-4);
+  margin: 0;
+  padding: 0;
+  color: var(--es-text-1);
+  font-size: var(--es-size-caption);
+  list-style: none;
+}
+
+.es-fl__shapes li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--es-space-2);
+}
+
+.es-fl__swatch {
+  display: inline-block;
+  width: 1.25rem;
+  height: 0.75rem;
+  flex: none;
+  border: 1px solid var(--es-cat-blue-edge);
+  background: var(--es-lane-cpu);
+}
+
+.es-fl__swatch[data-shape='eager'] {
+  background: repeating-linear-gradient(90deg, var(--es-cat-blue-edge) 0 1.5px, transparent 1.5px 4px);
+}
+
+.es-fl__swatch[data-shape='replay'] {
+  outline: 1px solid var(--es-cat-blue-ink);
+  outline-offset: -3px;
+  border-width: 2px;
+}
+
+.es-fl__swatch[data-shape='padding'] {
+  border: 1px dashed var(--es-cat-green-edge);
+  background: repeating-linear-gradient(45deg, var(--es-cat-green-edge) 0 1.5px, transparent 1.5px 5px);
+}
+
+.es-fl__swatch[data-shape='mask'] {
+  border-color: var(--es-cat-brown-edge);
+  background: repeating-linear-gradient(90deg, var(--es-cat-brown-edge) 0 2px, transparent 2px 5px);
+}
+
+.es-fl__swatch[data-shape='reference'] {
+  border: 1.5px solid var(--es-text-1);
+  background: none;
+}
+
+/* ------------------------------------------------------------------------------------------------ the dock */
+
+.es-fd {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+  min-width: 0;
+}
+
+.es-fd__prompt,
+.es-fd__rule {
+  margin: 0;
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-fd__rule {
+  padding: var(--es-space-2) var(--es-space-3);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-trim);
+  background: var(--es-surface-1);
+}
+
+.es-fd__prediction {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--es-space-2);
+  padding-block: var(--es-space-2);
+  border-block: 1px solid var(--es-paper-rule);
+}
+
+.es-fd__prediction .es-field {
+  width: min(100%, 14rem);
+}
+
+.es-fd__question,
+.es-fd__label {
+  margin: 0;
+  font-size: var(--es-size-note);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.es-fd__called {
+  margin: 0;
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-fd__sub {
+  display: block;
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.es-fd__code {
+  color: var(--es-text-2);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-caption);
+  font-weight: 400;
+}
+
+.es-fd__alert,
+.es-fd__error {
+  color: var(--es-paper-ink-2);
+  font-weight: 700;
+}
+
+.es-fd__error {
+  margin: 0;
+  font-size: var(--es-size-caption);
+}
+
+.es-fd__levers {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+}
+
+.es-fd__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-3);
+}
+
+.es-fd__row .es-loopdock__step .es-primary-button,
+.es-fd__row .es-loopdock__step .es-button {
+  min-width: 8rem;
+}
+
+/* A stage served at the bar carries a ring beside its name: a shape as well as the word for a reader. */
 .es-full-stages ol {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--es-space-2);
+  gap: var(--es-space-1) var(--es-space-2);
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-/* A stage served at the bar carries a dot of the lamp's filament beside its name: a shape as well as the word for a reader. */
 .es-full-stages__done {
   display: inline-block;
   width: var(--es-space-2);
   height: var(--es-space-2);
   margin-left: var(--es-space-2);
-  border: 2px solid var(--es-lamp-ring);
+  border: 2px solid var(--es-marker-edge);
   border-radius: var(--es-radius-round);
 }
 
-/* The cost card's line: printed small, under the prompt. */
-.es-full-card {
-  font-size: var(--es-size-note);
-}
-
-/* A called number or choice, in the printer's dots. */
+/* A committed number or choice, in the numeric face. */
 .es-full-said {
   font-family: var(--es-font-numeric);
   font-weight: var(--es-font-numeric-weight);
@@ -46,7 +354,7 @@
   flex-basis: 100%;
 }
 
-/* A choice is a sentence ("It fits inside the fire: the line never waits for ..."), longer than a phone's line (WCAG 1.4.10): its plate wraps. */
+/* A choice is a sentence, longer than a phone's line (WCAG 1.4.10): its button wraps. */
 .es-full-choices .es-button {
   max-width: 100%;
   justify-content: flex-start;
@@ -61,7 +369,7 @@
   gap: var(--es-space-2);
 }
 
-/* The rack's ladder: a plate for each size, wrapping on a phone. */
+/* The capture sizes: a button for each size, wrapping on a phone. */
 .es-full-ladder {
   display: flex;
   flex-direction: column;
@@ -70,6 +378,12 @@
   margin: 0;
   padding: 0;
   border: 0;
+}
+
+.es-full-ladder legend {
+  padding: 0;
+  font-size: var(--es-size-note);
+  font-weight: 700;
 }
 
 .es-full-ladder__row {
@@ -83,52 +397,96 @@
   padding-inline: var(--es-space-1);
 }
 
+/* The runs the stage has served. */
 .es-full-nights {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-/* Compose's configuration: the engines' own lines, in the code face on a paper slip. */
-.es-full-config {
-  margin: 0;
-}
-
-.es-full-config figcaption {
-  font-family: var(--es-font-display);
-  font-weight: var(--es-font-display-weight);
-  text-transform: uppercase;
-  letter-spacing: 0.07em;
-}
-
-.es-full-config pre {
-  overflow-x: auto;
-  margin: var(--es-space-1) 0 0;
-  padding: var(--es-space-3);
-  background: var(--es-surface-1);
-  border: 1px solid var(--es-edge);
-  border-radius: var(--es-radius-trim);
-  font-family: var(--es-font-mono);
-  font-size: var(--es-size-print);
-  line-height: var(--es-font-mono-leading);
-}
-
-.es-full-notes {
   display: flex;
   flex-direction: column;
   gap: var(--es-space-1);
   margin: 0;
-  padding-left: var(--es-space-4);
+  padding: 0;
+  font-size: var(--es-size-note);
+  list-style: none;
 }
 
-/*
- * `close`'s four cards under the view (CloseCards.tsx): a slip each, in a grid of two columns on a wide page and one on a phone. A slip is a list of
- * rows, each a label and the figures it names, which wrap under the label when the slip is narrow.
- */
+.es-full-nights li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-3);
+}
+
+.es-fd__run-no {
+  font-weight: 700;
+}
+
+.es-fd__run-word {
+  color: var(--es-text-2);
+}
+
+.es-full-nights li[data-ok] .es-fd__run-word {
+  color: var(--es-text-1);
+  font-weight: 700;
+}
+
+.es-fd__verdict {
+  padding: var(--es-space-2) var(--es-space-3);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-trim);
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+}
+
+.es-fd__verdict-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-1);
+  margin: 0;
+  font-size: var(--es-size-note);
+}
+
+.es-fd__verdict-list > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--es-space-1) var(--es-space-3);
+}
+
+.es-fd__verdict-list dd {
+  margin: 0;
+}
+
+.es-fd__verdict-word dd {
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------------------------------------------ the cards of `close` */
+
 .es-close-cards {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
   gap: var(--es-space-4);
+}
+
+.es-fd__card {
+  min-width: 0;
+  padding: var(--es-space-3);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-trim);
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+}
+
+.es-fd__card-title {
+  margin: 0 0 var(--es-space-2);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-note);
+  font-weight: var(--es-font-label-weight);
+}
+
+.es-fd__card-head {
+  color: var(--es-text-2);
+  font-weight: 400;
 }
 
 .es-close-card {
@@ -136,6 +494,7 @@
   flex-direction: column;
   gap: var(--es-space-2);
   margin: 0;
+  font-size: var(--es-size-note);
 }
 
 .es-close-row {
@@ -173,17 +532,154 @@
   text-align: left;
 }
 
-/*
- * The debrief's ticket (FullDebrief.tsx) is a size container, so that on narrow paper its stage table prints each stage as a block of its
- * own, as the mirror's table does (components.css, "the mirror's table"), and never scrolls sideways under the learner's call.
- */
-.es-full-debrief {
+/* ------------------------------------------------------------------------------------------------ the result */
+
+.es-fd-result {
+  min-width: 0;
   container-type: inline-size;
 }
 
-/* The way into a graded run, above the controls: a line of words and one button. */
-.es-full-mode {
+.es-fd-result__again {
+  margin: 0;
+}
+
+.es-fd-result__scroll {
+  overflow-x: auto;
+}
+
+.es-fd-result__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--es-size-note);
+  text-align: left;
+}
+
+.es-fd-result__table caption {
   padding-bottom: var(--es-space-2);
+  font-weight: 700;
+  text-align: left;
+}
+
+.es-fd-result__table th,
+.es-fd-result__table td {
+  padding: var(--es-space-2) var(--es-space-3) var(--es-space-2) 0;
+  border-bottom: 1px solid var(--es-paper-rule);
+  vertical-align: top;
+}
+
+.es-fd-result__table thead th {
+  border-bottom-color: var(--es-edge);
+  font-weight: 700;
+}
+
+.es-fd-result__table tbody th {
+  font-weight: 400;
+}
+
+.es-fd-result__table tr[data-differs] td:first-of-type {
+  font-weight: 700;
+}
+
+.es-fd-result__sub {
+  display: block;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+}
+
+/* On narrow room each stage prints as a block of its own, its figures after their column's name, so nothing scrolls sideways. */
+@container (max-width: 28rem) {
+  .es-fd-result__table[data-full-stages-table] thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .es-fd-result__table[data-full-stages-table] tr,
+  .es-fd-result__table[data-full-stages-table] td,
+  .es-fd-result__table[data-full-stages-table] th {
+    display: block;
+  }
+
+  .es-fd-result__table[data-full-stages-table] td::before {
+    display: block;
+    color: var(--es-text-2);
+    content: attr(data-label);
+    font-size: var(--es-size-caption);
+  }
+}
+
+/* After the result: a disclosure each for the configuration as the engines read it, their settings, and what to run on a real engine. */
+.es-fd-after {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+}
+
+.es-fd-after__item {
+  border-top: 1px solid var(--es-paper-rule);
+  padding-top: var(--es-space-2);
+}
+
+.es-fd-after__item > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.es-fd-after__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+  padding-top: var(--es-space-3);
+}
+
+.es-fd-after__title {
+  margin: 0;
+  font-family: var(--es-font-label);
+  font-weight: var(--es-font-label-weight);
+}
+
+/* Compose's configuration: the engines' own lines, in the code face on a paper slip. */
+.es-full-config {
+  margin: 0;
+}
+
+.es-full-config figcaption {
+  font-family: var(--es-font-label);
+  font-weight: var(--es-font-label-weight);
+}
+
+.es-full-config pre {
+  overflow-x: auto;
+  margin: var(--es-space-1) 0 0;
+  padding: var(--es-space-3);
+  background: var(--es-surface-1);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-trim);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-print);
+  line-height: var(--es-font-mono-leading);
+}
+
+.es-full-notes {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-1);
+  margin: 0;
+  padding-left: var(--es-space-4);
+}
+
+/* The way into a graded run, in the foot strip: a line of words and one button. */
+.es-full-mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-3);
+}
+
+.es-full-mode > p {
+  margin: 0;
 }
 
 /* In production: a setting, what it says, and its claims as a ledger under it. */
@@ -205,34 +701,155 @@
   list-style: none;
 }
 
-/*
- * The full service's labels over Service's 3D pass (src/games/loop/Scene3D.tsx draws them as DOM, D-021): they load with the full
- * service, so the scene's own chunk carries none of them. The scene's stylesheet loads after this one, so each names the label's base
- * class too and wins over it in any order. Their print scales with the scene's box, a size container.
- */
+/* The readout strip of a closed-book stage says why it is empty. */
+.es-loopstrip__hidden {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+}
 
-/* The mold rack: each mold's size printed small on the steel in front of it, and the mold the fire dropped into under the lamp, its size
-   on a chip of the lamp's amber with the filament's edge (One Lamp: the present). */
-.es-loop-label.es-loop-label--mold {
+/* On a phone the strip is one line: the stage's own metric, median TPOT, GPU busy and the bubble per step. The state table holds the rest. */
+@media (max-width: 63.999rem) {
+  [data-full-readout] .es-loopstrip__list > :nth-child(n + 5) {
+    display: none;
+  }
+}
+
+/* The closed-book stage's four cards, a disclosure under the lanes that stands open. */
+.es-fl__cards {
+  padding: var(--es-space-2) var(--es-space-3) var(--es-space-3);
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+.es-fl__cards > summary {
+  margin-bottom: var(--es-space-2);
+  cursor: pointer;
+  font-size: var(--es-size-note);
+  font-weight: 700;
+}
+
+/* What the stage asks, under the lanes: the diagram's box has the room, and the dock keeps its room for the controls. */
+.es-fl__prompt {
+  max-width: 60ch;
+  margin: 0;
+  padding: var(--es-space-2) var(--es-space-3);
   color: var(--es-text-1);
-  font-family: var(--es-font-numeric);
-  font-size: clamp(0.5625rem, 0.9cqi, var(--es-size-caption)); /* impeccable-disable-line design-system-font-size -- a mold's size under a ring a few centimetres across */
+  font-size: var(--es-size-note);
+  line-height: 1.45;
 }
 
-.es-loop-label.es-loop-label--pick {
-  padding: 0.15em 0.4em 0.1em;
-  border: 1px solid var(--es-lamp-ring);
-  border-radius: var(--es-radius-round);
-  background-color: var(--es-lamp);
-  color: var(--es-paper-ink);
-  font-family: var(--es-font-numeric);
-  font-size: clamp(var(--es-size-micro), 1cqi, var(--es-size-print));
+.es-fl__stage {
+  margin: var(--es-space-1) 0 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
 }
 
-/* The allergy card's head, printed in the ribbon's red: never mistaken for an order. */
-.es-loop-label.es-loop-label--card {
-  color: var(--es-paper-ink-2);
-  font-size: clamp(0.5rem, 0.8cqi, var(--es-size-stamp)); /* impeccable-disable-line design-system-font-size -- the head of a card a few centimetres wide */
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
+.es-fl__label-slip {
+  fill: var(--es-paper);
+  opacity: 0.92;
+}
+
+.es-fl__live-fill {
+  fill: var(--es-lane-gpu);
+  opacity: 0.55;
+}
+
+/* The strip's lead number runs wide with the reference's beside it: it takes two columns of the strip. */
+.es-loopstrip__list > [data-readout-id='clock'],
+.es-loopstrip__list > [data-readout-id='capture'] {
+  grid-column: span 2;
+}
+
+.es-loopstrip__list {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* The result's primary control names its next level in full: it wraps inside the dock, and never runs past it. */
+.es-fd-result .es-debrief__actions .es-button {
+  max-width: 100%;
+  height: auto;
+  min-height: 2.75rem;
+  line-height: 1.2;
+  text-align: left;
+  white-space: normal;
+}
+
+@media (max-width: 63.999rem) {
+  /* A phone has one line for the strip and one for the readout. */
+  .es-fl__prompt {
+    display: none;
+  }
+
+  .es-fl__item[data-more],
+  .es-loopstrip__ref {
+    display: none;
+  }
+
+  .es-fl__card {
+    padding: var(--es-space-1) var(--es-space-2);
+    gap: var(--es-space-1) var(--es-space-3);
+  }
+
+  .es-fl__prices {
+    flex: 0 1 auto;
+    font-size: var(--es-size-micro);
+  }
+
+  .es-loopstrip__list > [data-readout-id='clock'],
+  .es-loopstrip__list > [data-readout-id='capture'] {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 63.999rem) {
+  /* The stage is in the dock's tabs and the menu's face; the strip's second line is the phone's to spare. */
+  .es-fl__stage {
+    display: none;
+  }
+
+  /* The card's name and its tools share a line, and the prices stand under them. */
+  .es-fl__card-name {
+    flex: 1 1 auto;
+  }
+
+  .es-fl__card-tools {
+    order: 1;
+    margin-left: 0;
+  }
+
+  .es-fl__prices {
+    order: 2;
+    flex-basis: 100%;
+  }
+
+  /* A lever's hint is still its description for a screen reader, and takes no line of the pinned dock. */
+  .es-fd__levers .es-toggle__hint {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  /* Step, Auto and Run to the end share one row of 44 px controls. */
+  .es-fd__row {
+    flex-wrap: nowrap;
+    gap: var(--es-space-2);
+  }
+
+  .es-fd__row .es-loopdock__step {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+
+  .es-fd__row .es-loopdock__step .es-primary-button,
+  .es-fd__row .es-loopdock__step .es-button {
+    min-width: 0;
+  }
+
+  .es-fd__row > .es-button {
+    flex: none;
+    padding-inline: var(--es-space-3);
+  }
 }

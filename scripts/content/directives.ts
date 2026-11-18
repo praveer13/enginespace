@@ -117,6 +117,8 @@ export interface LinkEnv {
   cardKinds: ReadonlyMap<string, string>
   /** Whether a figure's file exists, given its `src`. */
   figureExists(src: string): boolean
+  /** Replays a figure's actions (R-T45). Absent in a compile that has no sessions to replay on. */
+  replay?: ReplayCheck
 }
 
 export interface LinkProblem {
@@ -142,6 +144,24 @@ export const unknownGame = (id: string, env: LinkEnv, path: (string | number)[])
 export const unknownLab = (id: string, env: LinkEnv, path: (string | number)[]): LinkProblem[] =>
   env.labs.has(id) ? [] : [{ code: 'unknown-lab', path, message: `no lab "${id}": ARCHITECTURE §9.2 has ${list(env.labs)}` }]
 
+/** A figure's `replay`, as the block carries it. */
+export type FigureReplay = NonNullable<Extract<DirectiveBlock, { type: 'figure' }>['replay']>
+
+/**
+ * Whether a figure's actions replay on the game's pure session: null when they do, else the reason, naming the action (`at` is its place in the log, or
+ * null when the level itself could not be built). The sessions live in packages/play, which the Vite config's closure cannot import (it has no
+ * `@es` paths), so the check is given to the compiler by scripts/content/replay.ts, as verify:content does, and a compile without it checks the shape alone.
+ */
+export type ReplayCheck = (replay: FigureReplay) => { reason: string; at: number | null } | null
+
+/** The problem a figure's replay has, if it has one: the action that fails, or the level that cannot be built. */
+function replayProblems(given: FigureReplay, check: ReplayCheck): LinkProblem[] {
+  const failed = check(given)
+  if (failed === null) return []
+  const path: (string | number)[] = failed.at === null ? ['replay', 'level'] : ['replay', 'actions', failed.at]
+  return [{ code: 'replay', path, message: `the figure's replay does not replay on ${given.game}: ${failed.reason}` }]
+}
+
 /** The links a block makes to games, labs, KCs, cards and figures that the repo has to answer. */
 export function blockLinks(block: DirectiveBlock, env: LinkEnv): LinkProblem[] {
   switch (block.type) {
@@ -163,7 +183,10 @@ export function blockLinks(block: DirectiveBlock, env: LinkEnv): LinkProblem[] {
       return []
     }
     case 'figure':
-      return env.figureExists(block.src) ? [] : [{ code: 'missing-file', path: ['src'], message: `no file public/${block.src}: a figure's src is a path under public/` }]
+      return [
+        ...(env.figureExists(block.src) ? [] : [{ code: 'missing-file', path: ['src'], message: `no file public/${block.src}: a figure's src is a path under public/` }]),
+        ...(block.replay === undefined || env.replay === undefined ? [] : replayProblems(block.replay, env.replay)),
+      ]
     default:
       return []
   }

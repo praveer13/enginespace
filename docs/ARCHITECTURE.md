@@ -4,7 +4,7 @@
 
 **Scope.** This document covers the site and its repo layout, the routes, the content format, the pure simulation package, the game framework on react-three-fiber, progress and evidence, the grading pipeline, the local grader and its receipts, CI, budgets and exact dependency versions. Three neighbours own the rest:
 - `docs/ASSESSMENT.md`, written in parallel, owns grading policy: what earns credit, the provenance weights and the pass bars. This document owns the formats and mechanics that carry them out. The design review of 2026-11-03 reconciled the two (D-043 to D-046); on credit, ASSESSMENT.md wins.
-- The visual identity is The Pass, a restaurant line kitchen and its expo pass (D-047). Its direction contract sits in the front page's surface brief (`.impeccable/surfaces/src-front-frontpage-tsx.md`), the design system applies it (W0-T05), and `DESIGN.md` documents the built world at the end of W0 (W0-T25). Nothing here picks a colour, a typeface or a visual style; scenes are described by their objects, cameras and interactions only, and GAMES.md §2.6 names those objects in the kitchen.
+- The visual identity is Data Book (D-062, the owner's choice of 2026-11-16 at the look gate): the engine drawn as its engineers draw it, on flat paper with one amber mark for "now". It replaced The Pass (D-047), a restaurant kitchen. Its direction contract sits in the front page's surface brief (`.impeccable/surfaces/src-front-frontpage-tsx.md`), the design system applies it, and `DESIGN.md` documents the look (wave R's last task rewrites it). Nothing here picks a colour, a typeface or a visual style; scenes are described by their objects, cameras and interactions only, and GAMES.md §2.6 names those objects with the engine's own terms (D-063).
 - Decisions are logged in [DECISIONS.md](DECISIONS.md) as `D-nnn`, and tasks are listed in [TRACKER.md](TRACKER.md) as `W<wave>-T<nn>`.
 
 **Sources.**
@@ -123,7 +123,7 @@ enginespace/
   src/
     main.tsx  App.tsx  routes.tsx
     pages/              one lazy module per route (§3)
-    front/              the front page: static-shell hydration, The Loop in 2D, the 3D upgrade
+    front/              the front page: static-shell hydration, the step loop in 2D, the 3D upgrade
     games/<id>/         View2D.tsx  Scene3D.tsx  Mirror.tsx  Controls.tsx  Debrief.tsx
     scene/              the scene kit (§6.4): Stage, tiers, governor, primitives, post-FX, fallback
     trace/              the trace viewer (W1-T09): Canvas2D lanes, marks and a DOM mirror over a trace@1 (§5.7, GAMES.md §2.6)
@@ -164,21 +164,21 @@ React Router 7.18.1 in library mode: `createBrowserRouter` with a `lazy` loader 
 
 | Route | Page | Lazy chunks | Phone (360 px) |
 |---|---|---|---|
-| `/` | Front page: The Loop (2D first, then 3D), the promise, the four outcomes, a map teaser | entry + `front`; `scene-loop` after LCP | yes; 3D at tier 1 or 2D |
-| `/map` | Course map: TR0-TR8 and the capstone, with lanes, hours, kernelspace prerequisites, and evidence state per module | `map` | yes |
-| `/m/:module` | Module page: its loop (Predict → Play → Build → Prove → Keep), lessons, games, labs and evidence | `module` + the module's JSON | yes |
-| `/m/:module/:lesson` | Lesson | `lesson` + the lesson's JSON; game chunks on demand | yes |
-| `/play` | Games index | `play-index` | yes |
+| `/` | Front page: "Run one step of an LLM inference engine." The step loop's timing diagram, live from the first paint (2D first, then 3D after the largest paint on a capable desktop), beside what this is. Below the fold, in plain HTML: what you will be able to do (the four outcomes), how credit works, and the path (every module in order). A returning learner reads where they left off, with Continue | entry + `front`; `scene-loop` after LCP | yes; a phone stays in 2D until asked |
+| `/map` | Course (the header's label for the course map): TR0-TR8 and the capstone, with lanes, hours, kernelspace prerequisites, the way on and the evidence state per module | `map` | yes |
+| `/m/:module` | Module page: its lessons with their state in words, its games, labs and evidence, and the way on | `module` + the module's JSON | yes |
+| `/m/:module/:lesson` | Lesson: one page of Run, Read, Test and Keep, with the instrument in Run (§4.8) | `lesson` + the lesson's JSON; game chunks on demand | yes |
+| `/play` | Games: the nine games as a plain list, each with its role line, its rule and its levels marked practice or graded | `play-index` | yes |
 | `/play/:game` | One game, full screen, at any level | `game-<id>`; `scene-<id>` lazily | yes; 2D or tier 1 |
 | `/labs/:lab` | Lab page. A forge lab hands over its crate, the packer's zip, with its size, its SHA-256 and a line that checks the download (W1b-T08); it takes a dropped `.wasm` and shows per-check results. `hybrid-kv`'s page also plays the slot-baseline readout of TR5a §5 once its adapter-pages check (s5) passes (W1b-T08). A GPU or local lab offers the kit download, a challenge and the receipt import. | `lab`, `forge.worker` | laptop-first; read-only on phones |
-| `/trace-room` and `/trace-room/:trace` | The Trace Room: pinned and synthetic traces, and Gap Hunt | `trace-room` | laptop-first for the timeline viewer; Gap Hunt's graded levels also work on phones, marking by list, and count the same (ASSESSMENT §4.3) |
-| `/receipts` | Receipts: issue a challenge, import a bundle, and list receipts. A receipt's detail opens at `/receipts#<sha256>`. | `receipts`, `receipt.worker` | yes (list and detail) |
-| `/today` | Keep: spaced review of the KCs earned so far | `today` | yes |
-| `/evidence` | The learner's evidence (the Mirror): progress derived from the ledger; export, import and undo | `evidence` | yes |
-| `/design` | The design-system page: token roles and values, components and states, motion, and scene-kit specimens, each beside its 2D twin | `design` | yes |
+| `/trace-room` and `/trace-room/:trace` | Traces: pinned and synthetic traces with their cards and a viewer; trace attribution joins them when it is built | `trace-room` | laptop-first for the timeline viewer; trace attribution's graded levels will also work on phones, marking by list, and count the same (ASSESSMENT §4.3) |
+| `/receipts` | GPU lab results: issue a challenge, import a bundle, and list receipts. A receipt's detail opens at `/receipts#<sha256>`. | `receipts`, `receipt.worker` | yes (list and detail) |
+| `/today` | Review: spaced review of the skills passed so far, as a question set | `today` | yes |
+| `/evidence` | Progress: the learner's evidence (the Mirror) as dated rows in words, derived from the ledger; export, import and undo | `evidence` | yes |
+| `/design` | Design system: token roles and values, components and states, motion, and the scene-kit specimen beside its 2D twin. Reached from where it is used, not from the chrome | `design` | yes |
 | `/settings` | 3D on or off, quality tier cap, reduced motion, data and reset | `settings` | yes |
 | `/about` | What each world models and ignores; claims and sources; licences; privacy | `about` | yes |
-| `/changes` | Change cards: claims and pins that moved | `changes` | yes |
+| `/changes` | Sources and changes: claims and pins that moved | `changes` | yes |
 | `*` | Not found | entry | yes |
 
 **Ids.** Module ids are `tr0`, `tr1`, `tr2`, `tr3`, `tr4`, `tr5a`, `tr5b`, `tr6`, `tr7`, `tr8` and `capstone`. Lesson ids look like `tr2.l3`. Game ids are listed in §6.1, and lab ids look like `tr8.replay`. A receipt sits in the URL fragment, which browsers never send to a server, as statespace does.
@@ -192,7 +192,7 @@ React Router 7.18.1 in library mode: `createBrowserRouter` with a `lazy` loader 
 
 ### 3.3 Navigation
 
-The primary navigation is Map · Play · Today · Receipts · Evidence, and the footer links About, Changes, Settings and Design. The Trace Room is reached from TR3, the capstone and the map.
+The header reads Course · Games · Review · Progress, with Continue at the right. Continue goes to the next step the ledger and the bookmark name (`nextStep`, D-066), and says where it goes. On a phone the four links fold behind a Navigation button. The footer links About, How numbers are tagged (a place on About), Sources and changes, and Settings. GPU lab results, Traces and the design system are reached from where they are used, never from the chrome.
 
 ---
 
@@ -266,7 +266,7 @@ The cap is eight types, enforced by `verify:content`.
 | Block | Carries | Writes to the ledger |
 |---|---|---|
 | prose (implicit) | Markdown, `{{claim:id}}`, the four tags as chips, `{{ks:T5.L7}}` links | nothing |
-| `predict` | A prompt, an answer shape (numeric with tolerance, choice, or interval), a reveal point and KCs | `predict` (graded at reveal) |
+| `predict` | A prompt, an answer shape (numeric with tolerance, choice, or interval), a reveal kind and KCs. The reveal is `after-game`, which shows the answer once the learner has played the level the guess is about, or `at-commit`, which shows it at once, worked from the question's own numbers or from the claim it is about (D-067). Neither earns credit | `predict` (value and truth, no seed) |
 | `item` | A generator family, level and count. Items are drawn on fresh seeds at grade time (§8.2). | `item` |
 | `game` | A game id, a level and a mode (`practice` or `graded`). It embeds `src/games/<id>` (§6). | `play` |
 | `trace` | A pinned trace id or a seeded synthetic trace, plus span tasks | `trace-mark` |
@@ -322,7 +322,7 @@ KCs come from a ref→KC map at read time and are never stored (kernelspace's ru
 | Output | Where | Size target |
 |---|---|---|
 | Course index: modules, lessons, titles, routes and hours | `src/content/generated/index.json`, in the entry closure | ≤ 6 KB gz [estimated] |
-| Course map: each module's prerequisites, artifacts and KCs, each KC's description and edges, and the ref→KC table (§4.5) | `src/content/generated/map.json`, one lazy chunk read by `/map`, the module pages and the progress code; kept out of the index because the index is in the entry closure | ≤ 12 KB gz [estimated] |
+| Course map: each module's prerequisites, artifacts and KCs, each KC's description and edges, the ref→KC table (§4.5) and the lessons table (§4.8) | `src/content/generated/map.json`, one lazy chunk read by `/map`, the module pages and the progress code; kept out of the index because the index is in the entry closure | ≤ 12 KB gz [estimated] |
 | One JSON per lesson, per module and per card | `src/content/generated/{lessons,modules,cards}/*.json`, one lazy chunk each through `import.meta.glob`, whose tables sit in `src/content/load-lessons.ts`: the index and the claims, which the front page and the games read, are in `load.ts` without them (D-059) | ≤ 40 KB gz each [estimated] |
 | Learner's-agent export, with keys and answers stripped | `public/md/<module>/<lesson>.md`, `public/llms.txt` | — |
 | Claims for `/about` and the claim chips | `public/claims.json` (lazy) | — |
@@ -333,6 +333,25 @@ KCs come from a ref→KC map at read time and are never stored (kernelspace's ru
 ### 4.7 Content gates
 
 `verify:content` covers schemas, ids, refs, the block cap, and links to games, labs, claims and KCs. `verify:claims` checks fields, recomputes derived claims and reports TTLs. `verify:numbers` checks tags. `verify:kc` checks the graph. The export-freshness check covers the Markdown export. The section 10.2 table lists every gate.
+
+### 4.8 The lessons table, sections and "done" (REDESIGN §2.4 and §2.5; D-066)
+
+**The lessons table.** `map.json` carries `lessons`: one row for every built lesson, in course order, derived by the compiler from the lesson's compiled blocks and nothing else (`lessonRow` in `scripts/content/build.ts`, schema `mapLessonSchema` in `packages/schema/compiled.ts`). A row holds the lesson's id, module, route, title, minutes, lanes (`needs`), `rev`, its `opener`, and what each part holds:
+- `opener` is one of three, read from the file's shape: **A** (run first: at most 60 words, then guesses and the game, before the first `##`), **B** (a primer of 61 to 200 words, then the run) or **C** (read first: the first game sits after the first `##`, or there is none);
+- `run`, `inline`, `predicts`: the refs of the opening game blocks, of the practice game blocks inside the reading, and of the guesses;
+- `checkpoints`: the item families asked before the last heading, with their counts;
+- `test`: the item families of the question set, with counts, and the graded game refs;
+- `anchors`: the heading ids of Read and Test, so a link lands in the part.
+The compiler warns `no-test` for a lesson with no item block and no graded level under its last heading, because such a lesson could never be done. The table adds no front-matter key and no block type (§4.3 stays at eight).
+
+**Sections.** `groupSections(blocks)` (`src/content/render/sections.ts`) derives a lesson page's four sections from the same blocks: **Run** (the setup or primer, the guesses this run answers, the instrument, the debrief), **Read** (the prose, one part for each `##`, with its figures, code and any checkpoint), **Test** (the lead-in, the question set on new numbers, and each graded level with its pass rule shown before the run) and **Keep** (generated: what to carry, the Build row, the lesson record and the way on). Every word is in the DOM and visible, so find-in-page and the Markdown export keep working.
+
+**What "done" means.** Reading writes no event, so only Run and Test have a state, and both are read from the ledger alone (`src/progress/next.ts`, pure, no clock and no store):
+- **Run is done** when a `play` event exists for each of the opener's refs. A lesson that opens on reading has no Run.
+- **Test is passed** when the last `count` attempts at each of the question families were right at full weight, and each graded level has a passing graded run. A practice pass never passes a graded level. It is *tried* when any attempt exists.
+- **A lesson is done** when its Test is passed. It is *started* when any event is its own, and *not started* otherwise. An event belongs to a lesson by the ref or family its row lists, and by the `rev` it carries where several lessons list it, so a run on an older revision shows "re-check" and loses nothing.
+- **The bookmark and the pointer are not progress.** The bookmark (`es:here`) is the place last in view on a lesson page, written after two seconds on a heading or on a click. The pointer (`es:next`) is a copy of `nextStep`'s last answer, so that a page that opens no ledger can label Continue. Both live in `localStorage` inside try/catch, are cleared by "erase this device", and are never read as evidence (D-066).
+- **`nextStep(events, lessons, bookmark)`** answers "what next" for every page by five rules in order: start the course when there is no event and no bookmark; otherwise take the lesson last worked on; its Run if not done, else the bookmark's part, else Read if the Test has no attempt, else the Test; when it is done, the next lesson not done, counting the lessons skipped; and when none is left, Review if something is due, else Course. Reviews due never change the answer for a lesson: a page shows them beside it as a second, quiet line.
 
 ---
 
@@ -366,15 +385,15 @@ KCs come from a ref→KC map at read time and are never stored (kernelspace's ru
 | `physics` | kernelspace's S5 card (vendored, unchanged): `stepCard(spec, tp, load)` gives a step's µs; table rows for H100 FP8, B200 FP8 and B200 NVFP4 | `steploop`, `bench`, the capstone's roofline | W0 |
 | `host` | The host card: CPU µs per phase of a step (§5.3) | `steploop` | W0 |
 | `workload` | Seeded request streams from tables or vendored slices (BurstGPT v2.0, Mooncake), with attribution | `steploop`, `bench`, `kv` | W0 |
-| `steploop` | The engine step loop: CPU and GPU lanes, async scheduling, CUDA-graph modes and dispatch keys, the structured-output mask, speculation's step shape (§5.3) | The Loop, TR2, TR6's mask overlap, TR8, the capstone | W0 (v0), W1 (v1) |
-| `lifecycle` | One request's path through vLLM's or SGLang's processes as data: stages, location, mechanism | Engine Floor, TR1 | W1 |
-| `kv` | A hybrid KV manager: groups, a shared page pool, sliding windows, prefix hashing, adapter pages, events (§5.4) | The Pool, the `hybrid-kv` lab, TR5b | W1 |
-| `spec` | The exact rejection sampler, chi-square, the acceptance-length model (§5.5) | The Verifier, the `rejection-sampler` lab, `steploop` | W1 |
-| `bench` | Arrival processes, the client measurement model, statistics, the broken-benchmark corpus (§5.6) | Broken Bench, TR8, receipt verification | W1 |
-| `trace` | `trace@1`, synthetic generation, attribution, structural checks, physics floors (§5.7) | Gap Hunt, the Trace Room, TR1 span checks, receipt verification | W1 |
-| `tensor` | Shape, stride, view and copy rules; Triton-style grid coverage | Shape Shifter, TR0 | W2 |
+| `steploop` | The engine step loop: CPU and GPU lanes, async scheduling, CUDA-graph modes and dispatch keys, the structured-output mask, speculation's step shape (§5.3) | Step loop, TR2, TR6's mask overlap, TR8, the capstone | W0 (v0), W1 (v1) |
+| `lifecycle` | One request's path through vLLM's or SGLang's processes as data: stages, location, mechanism | Request path, TR1 | W1 |
+| `kv` | A hybrid KV manager: groups, a shared page pool, sliding windows, prefix hashing, adapter pages, events (§5.4) | KV page pool, the `hybrid-kv` lab, TR5b | W1 |
+| `spec` | The exact rejection sampler, chi-square, the acceptance-length model (§5.5) | Rejection sampler, the `rejection-sampler` lab, `steploop` | W1 |
+| `bench` | Arrival processes, the client measurement model, statistics, the broken-benchmark corpus (§5.6) | Broken benchmark, TR8, receipt verification | W1 |
+| `trace` | `trace@1`, synthetic generation, attribution, structural checks, physics floors (§5.7) | Trace attribution, the Traces page, TR1 span checks, receipt verification | W1 |
+| `tensor` | Shape, stride, view and copy rules; Triton-style grid coverage | Tensor views, TR0 | W2 |
 | `backends` | Attention-backend selection as an ordered rule table from pinned data | Dispatch, TR4 | W2 |
-| `tiers` | KV tiers (GPU, CPU, disk), connector operations, `kv-events@1` and a reference consumer | Switchyard, the `kv-publisher` lab, TR5b | W2 |
+| `tiers` | KV tiers (GPU, CPU, disk), connector operations, `kv-events@1` and a reference consumer | KV offload, the `kv-publisher` lab, TR5b | W2 |
 
 ### 5.3 The step-loop model
 
@@ -579,7 +598,7 @@ Every world has a card in `content/cards/<world>.md` with three parts:
 - **"Ignores"**, the S5 card's style of list (kernelspace s5.md §3.5);
 - **"Calibrated against"**, naming claims, fits or "nothing yet".
 
-Every game, every graded task and the Trace Room show their card. `verify:games` fails a game whose card is missing.
+Every game, every graded task and the Traces page show their card. `verify:games` fails a game whose card is missing.
 
 ### 5.10 Test strategy
 
@@ -600,33 +619,33 @@ Every game, every graded task and the Trace Room show their card. `verify:games`
 
 ### 6.1 Roster
 
-Each game's rule is the concept it teaches (D-005). Six games are 3D, and every 3D game also has a 2D view and a DOM mirror. "Axes" names what each spatial dimension carries.
+Each game's rule is the concept it teaches (D-005). Five games are 3D, and every 3D game also has a 2D view and a DOM mirror. Request path is 2D: its swimlane is its one view (R-T43 removed its 3D scene). "Axes" names what each spatial dimension carries.
 
-| Id | Game | Display name (D-049) | Module | The rule (= the concept) | 3D: objects, axes and camera | Graded artifact |
-|---|---|---|---|---|---|---|
-| `loop` | **The Loop** (front page) | **Service** · *the step loop* | TR2; TR6's mask level | A step costs the GPU about the same with one request or many, so every slot should stay live (the front page's lesson). The GPU idles whenever the CPU's work for the next step is not ready. You close the bubbles with async scheduling, CUDA graphs, capture sizes and dispatch keys, without letting a step read a token before it is sampled. | A CPU lane and a GPU lane run as parallel tracks along time. Batch slots stack across the track's width. Steps are slabs; kernel launches are combs that collapse into one replay slab when a graph hits; bubbles are open gaps on the GPU track. At the near end, the bay holds the tray of slots and the waiting requests, where the front page's visitor batches by hand (GAMES.md §3). Camera presets: along time, side and top. | TR2's "toggled until bubbles close" on fresh seeds (B) |
-| `engine-floor` | **The Engine Floor** | **Back of House** · *a request's lifecycle* | TR1 | A request moves only when you name the mechanism that moves it (queue, IPC, copy, sync or compute) and where it runs. The map you build is then checked span by span against a trace. | Processes are platforms (API server, engine core, workers), with the GPU on a lower deck. Queues are buffers and IPC is a bridge. One request capsule travels. Camera stops follow the request. | Lifecycle map by span checks (B) |
-| `pool` | **The Pool** | **The Reach-In** · *hybrid KV pages and adapters* | TR5a | One physical page pool serves every KV group and the adapters. A request runs only when all its groups' blocks and its adapter are resident. Sliding windows free pages, and you admit, preempt and load adapters to keep goodput up without running out. This is S-LoRA's design: at the pins, vLLM and SGLang keep adapters in slots, and the In-production card shows that (D-042). | A rack of physical pages, each at a fixed position for its whole life, with its group or adapter shown as a glyph rather than a shelf (a partitioned rack would draw what unified paging removes); a free line in eviction order along the rack's base; a request's block table is one thread per group to its pages; an adapter's pages are linked by their own thread, not contiguous (GAMES.md §8). Presets: front, per-group filter, top. | The `hybrid-kv` forge lab (B) |
-| `verifier` | **The Verifier** | **The Tasting** · *speculative decoding's verifier* | TR6 | Accept a drafted token with probability min(1, p/q), and on rejection resample from the residual (p − q)⁺. The game runs your rule over 20,000 seeded draws [estimated], and only an exact rule's histogram matches p under chi-square. | Depth carries the draft chain: one skyline row per draft position, then a bonus row, each over the vocabulary, with columns that stack the overlap min(p, q), a reject cap where q > p and a recovery well where p > q. Drafted tokens drop onto their row, the walk stops at the first rejection, and the output skyline at the front converges on p (GAMES.md §10). | The `rejection-sampler` forge lab (B) |
-| `shape-shifter` | **Shape Shifter** | **Sheet Pan** · *tensor views and copies* | TR0 | A tensor is a buffer plus a shape and strides. Views move no data and `contiguous()` copies. Reach the target layout with the fewest copies, then tile it with a Triton-style grid that covers every element once. | The tensor is a block of cells above a strip, the buffer. A thread runs through the cells in stride order and re-weaves on a view; cells move on a copy. Program instances are tiles over the block. | Items on fresh seeds (B); the TR0 forward lab (L) |
-| `switchyard` | **The Switchyard** | **The Dumbwaiter** · *KV offload, connector and events* | TR5b | A KV block moves between GPU, CPU and disk only through the connector. Every move must be published in an order that lets a consumer rebuild the exact cache, and the consumer's view is checked after every event. | Three decks for the tiers, with blocks as cars on rails and events as signals. The consumer's ledger is a board beside the yard. | The `kv-publisher` forge lab (B); the toy connector (F) |
-| `broken-bench` | **Broken Bench** (2D) | **The Inspection** · *benchmark methodology* | TR8 | A published number is wrong because of one flaw. You find the flaw from the setup and the logs, then predict the corrected p99 with an interval. | — | The seeded corpus (B) |
-| `gap-hunt` | **Gap Hunt** (2D) | **The Tape** · *trace attribution* | TR3; capstone | Every ns of a step window belongs to exactly one category: TPOT = GPU-busy (kernel or copy-only) + CPU-gap + both-idle, with overlap reported beside it (GAMES.md §6). You mark spans until every ns is accounted for, then name the gap's cause from the launch queue. | — | Attribution of pinned and synthetic traces (B) |
-| `dispatch` | **Dispatch** (2D) | **Line Check** · *attention backend selection* | TR4 | The engine picks an attention backend by matching model and GPU features against each backend's support. You predict the pick and its fallback before the reveal. | — | Items on fresh seeds from pinned data (B) |
+| Id | Title · subtitle (D-063) | Module | The rule (= the concept) | 3D: objects, axes and camera | Graded artifact |
+|---|---|---|---|---|---|
+| `loop` | **Step loop** · *Keep every slot live, and never make the GPU wait for the CPU.* | TR2; TR6's mask level | A step costs the GPU about the same with one request or many, so every slot should stay live (the front page's lesson). The GPU idles whenever the CPU's work for the next step is not ready. You close the bubbles with async scheduling, CUDA graphs, capture sizes and dispatch keys, without letting a step read a token before it is sampled. | The 2D timing diagram laid flat on an engraved plate and lifted into depth: a CPU row and a row for each batch slot along time, with the waiting queue as chips, idle as dashed boxes with their values, and the now cursor. Cameras: Lifted, Side (the 2D diagram pixel for pixel), Along time, Top, Compare and Scale (GAMES.md §3). | TR2's "toggled until bubbles close" on fresh seeds (B) |
+| `engine-floor` | **Request path** · *Every queue, IPC hop, copy and sync between the API server and the GPU.* | TR1 | A request moves only when you name the mechanism that moves it (queue, IPC, copy, sync or compute) and where it runs. The map you build is then checked span by span against a trace. | — | Lifecycle map by span checks (B) |
+| `pool` | **KV page pool** · *One page pool serves every KV group and every adapter.* | TR5a | One physical page pool serves every KV group and the adapters. A request runs only when all its groups' blocks and its adapter are resident. Sliding windows free pages, and you admit, preempt and load adapters to keep goodput up without running out. This is S-LoRA's design: at the pins, vLLM and SGLang keep adapters in slots, and the In-production card shows that (D-042). | A rack of physical pages, each at a fixed position for its whole life, in a well on a plate. A page's state is a form and a glyph (free hollow, in use solid, cached hatched, shared dotted, adapter a groove); a selected page fans into its layers, and a request's threads reach each of its pages. Cameras: front, one KV group, from above (GAMES.md §8). | The `hybrid-kv` forge lab (B) |
+| `verifier` | **Rejection sampler** · *Accept with min(1, p/q), resample from (p - q)+, and the output is exactly p.* | TR6 | Accept a drafted token with probability min(1, p/q), and on rejection resample from the residual (p − q)⁺. The game runs your rule over 20,000 seeded draws [estimated], and only an exact rule's histogram matches p under chi-square. | Depth carries the draft chain: one row of bars for each draft position, then a bonus row, each over the vocabulary, with the draft's q hatched, the target's p solid, the accepted base and the residual groove where a level prints them. Drafted tokens are dots, the walk stops at the first rejection, and the output ring settles onto p. Cameras: over the run, one draft position, from the side (GAMES.md §10). | The `rejection-sampler` forge lab (B) |
+| `shape-shifter` | **Tensor views** · *A view relabels the buffer. A copy moves every element.* | TR0 | A tensor is a buffer plus a shape and strides. Views move no data and `contiguous()` copies. Reach the target layout with the fewest copies, then tile it with a Triton-style grid that covers every element once. | The tensor is a block of cells above a strip, the buffer. A thread runs through the cells in stride order and re-weaves on a view; cells move on a copy. Program instances are tiles over the block. | Items on fresh seeds (B); the TR0 forward lab (L) |
+| `switchyard` | **KV offload** · *A page in transit cannot be read, and every move is published as an event.* | TR5b | A KV block moves between GPU, CPU and disk only through the connector. Every move must be published in an order that lets a consumer rebuild the exact cache, and the consumer's view is checked after every event. | Three decks for the tiers, with blocks as cars on rails and events as signals. The consumer's ledger is a board beside the yard. | The `kv-publisher` forge lab (B); the toy connector (F) |
+| `broken-bench` | **Broken benchmark** · *Latency counts from when a request was due.* | TR8 | A published number is wrong because of one flaw. You find the flaw from the setup and the logs, then predict the corrected p99 with an interval. | — | The seeded corpus (B) |
+| `gap-hunt` | **Trace attribution** · *Every nanosecond of a step belongs to a kernel, a copy, a CPU gap or idle.* | TR3; capstone | Every ns of a step window belongs to exactly one category: TPOT = GPU-busy (kernel or copy-only) + CPU-gap + both-idle, with overlap reported beside it (GAMES.md §6). You mark spans until every ns is accounted for, then name the gap's cause from the launch queue. | — | Attribution of pinned and synthetic traces (B) |
+| `dispatch` | **Backend dispatch** · *The first attention backend that meets every requirement takes the call.* | TR4 | The engine picks an attention backend by matching model and GPU features against each backend's support. You predict the pick and its fallback before the reveal. | — | Items on fresh seeds from pinned data (B) |
 
-The Loop and Gap Hunt live in **the Trace Room**, the course's world (catalog §3.5): owner-captured traces beside the step-loop sim.
+Five games are built: step loop, request path, KV page pool, rejection sampler and broken benchmark. Trace attribution will live on the Traces page (`/trace-room`), the course's world (catalog §3.5), with owner-captured traces beside the step-loop sim.
 
-The learner sees each game's display name over its subtitle (D-049); the Game column keeps the working names, which these docs use as shorthand. GAMES.md §2.6 gives every game's kitchen objects, cameras and materials in The Pass (D-047). No id, rule or object above changes.
+The learner sees each game's title over its subtitle, the rule in one line (D-063, which supersedes D-049); these docs use the same titles. GAMES.md §2.6 gives the naming and drawing rules, every game's role line, the objects each draws in the engine's terms, and the history of the kitchen's names. No id, rule or object above changes.
 
 ### 6.2 The 3D gate, kept and amended (D-019)
 
 kernelspace's seven-test gate (`games-3d.md` §2.3; PLAN-100X §5.4.0) still applies, with one change made by the owner's decision D-005.
 
 - **Required:** tests 1 (intrinsic: winning means applying the concept), 3 (model-backed: every mark is computed by `packages/sim`), 4 (recurrence: used in at least 3 sessions, through levels, fresh seeds or later modules), 6 (load: pausable or turn-based, at most one new representation at a time, a 2D path, a DOM mirror and reduced motion) and 7 (debrief: a graded item or prediction names the concept).
-- **Test 5 (schematic) is restated:** no photoreal hardware and no decorative particles behind prose. The look is The Pass (D-047): the design system applies its direction contract, and DESIGN.md documents the built world.
+- **Test 5 (schematic) is restated:** no photoreal hardware and no decorative particles behind prose. The look is Data Book (D-062): the design system applies its direction contract, and DESIGN.md documents the look.
 - **Test 2 (≥3 axes reasoned about together) becomes advisory** under D-005. Each 3D game names its axes in §6.1. A game whose third axis is weak keeps its 3D for attention, and its 2D view is a first-class path, never a degraded one.
 
-`verify:games` checks the mechanical part: a display name and a subtitle (D-049), and a registered 2D view, mirror, debrief, card, keyboard map, KCs and sources, for every game. It also measures the blind-strategy bound of ASSESSMENT §4.1 for every graded level, through the game's own session (`packages/play/<id>/blind.ts`).
+`verify:games` checks the mechanical part: a display name and a subtitle (D-063), and a registered 2D view, mirror, debrief, card, keyboard map, KCs and sources, for every game. It also measures the blind-strategy bound of ASSESSMENT §4.1 for every graded level, through the game's own session (`packages/play/<id>/blind.ts`).
 
 ### 6.3 Anatomy of a game
 
@@ -645,7 +664,7 @@ src/games/<id>/
   Debrief.tsx
 ```
 
-- **Registry.** `packages/play/registry.ts` records, for each game: id, module, title (the display name) and subtitle (the engine concept, D-049), KCs, `has3d`, the keyboard map, the levels, the card id and the source claims. `src/games/registry.ts` maps ids to lazy components (kernelspace's `PLAY_REGISTRY` pattern).
+- **Registry.** `packages/play/registry.ts` records, for each game: id, module, title (the engine's term) and subtitle (the rule in one line, D-063), KCs, `has3d`, the keyboard map, the levels, the card id and the source claims. `src/games/registry.ts` maps ids to lazy components (kernelspace's `PLAY_REGISTRY` pattern).
 - **The action log is the record.** A run stores `{seed, level, actions[], rev}`. The score is a cache that can be recomputed: grading replays the actions through the pure reducer at grade time, so an edited score in IndexedDB changes nothing.
 - **The ghost stays hidden.** The hidden reference runs in lockstep and is read only by the debrief, kernelspace's rule.
 - **Modes.**
@@ -667,20 +686,18 @@ Every scene is built from these parts. A primitive takes positioned data from a 
 | `LabelLayer` | All text is DOM, projected from anchor points and re-projected only when the camera moves. No in-canvas text, so no drei `Text` (PLAN-100X §5.4.0), and screen readers and zoom work. |
 | `TimeAxis` | A scrolling µs window with ticks, in steps under reduced motion. |
 | `Selection` | Pointer picks (`instanceId`) and keyboard selection share one model. The selection is mirrored by the DOM list's roving tabindex. |
-| `PostFX` | Tiered post-processing (§6.5), in its own lazy chunk. |
-| `scene-tokens.ts` | Reads the design system's CSS custom properties (`getComputedStyle`) into material parameters when the scene mounts and when the theme changes. Role names come from `src/design/tokens.ts`; values come from the design system, which applies D-047's direction contract (W0-T05). |
+| `FlatTrack`, `FlatLights` | The flat plate the built games draw on: a pure `FlatModel` (boxes with a form and a role, dashed wires, graticule lines, an unlit cursor) drawn in eight or fewer instanced draw calls, matte on contact shadows with baked occlusion, under one hemisphere and one key light. No environment map, fog or bloom. |
+| `scene-tokens.ts` | Reads the design system's CSS custom properties (`getComputedStyle`) into material parameters when the scene mounts and when the theme changes. Role names come from `src/design/tokens.ts`; values come from the design system, which applies D-062's direction contract (W0-T05). |
 
 No drei (D-021). The kit implements its few helpers (adaptive DPR, a frame monitor, a camera rig) in under 2 KB gz each [estimated], following kernelspace's `Cube3D.tsx` ("no texture, no drei"). A later task that needs a drei helper adds an exact pin and a DECISIONS entry.
 
-### 6.5 Post-processing within a budget
+### 6.5 Post-processing: none (R-T44)
 
-- **Source.** Effects come from three's own addons (`three/addons/postprocessing/`: `EffectComposer`, `RenderPass`, `UnrealBloomPass` at half resolution, FXAA through `ShaderPass`, and `OutputPass`). They are locked to `three` 0.185.1 and add no dependency (D-021). `SMAAPass` is not used: it alone is 35,631 B gz [measured 2026-11-04 by W0-T15, three 0.185.1, `gzip -9`], over the `postfx` budget below (D-023).
-- **Loading.** The effects load in the `postfx` chunk, at tier 2 and above only.
-- **Budget:**
-  - at most two full-screen passes beyond the scene render;
-  - at most 2.0 ms of GPU time per frame at tier 3 on the reference laptop [estimated], checked by hand at each wave's exit, because CI runners have no GPU;
-  - `postfx` ≤ 25 KB gz [estimated].
-- **When effects turn off.** Effects never change intensity faster than 3 Hz (WCAG 2.3.1). They switch off under `prefers-contrast: more` and when the tier drops below 2. Whether and where to use bloom at all is the look's call (D-047): The Pass blooms only what glows, the heat lamps' housings (`src/scene/postfx/plan.ts`), and DESIGN.md says that glow belongs to light sources alone. The kit only offers bloom within this budget.
+Data Book's scenes are flat solids with hard edges, contact shadows and one amber cursor, and nothing in them glows, so the kit has no post-processing. R-T44 deleted the composer, the bloom plan and the `postfx` chunk with the kitchen's lamps. The effects this section once budgeted (`three/addons/postprocessing/`, `UnrealBloomPass`, FXAA, SMAA) are not in the tree, and `SMAAPass` stays unused.
+- **Anti-aliasing** is the context's own multisampling at tiers 2 and 3, and none at tier 1 (§6.6).
+- **No glow.** A scene that wants one needs the owner's decision and a new section here (D-062, GAMES.md §2.6, drawing rule 4: amber means "now").
+- **The gate's `postfx` row** stays in `verify:bundle`'s table at 25 KB gz [estimated] and prints `skip` while `src/scene/postfx` does not exist. The gate was not edited.
+- **Frame budget.** At most 2.0 ms of GPU time per frame at tier 3 on the reference laptop [estimated], checked by hand at each wave's exit, because CI runners have no GPU.
 
 ### 6.6 Device tiers and adaptive quality
 
@@ -688,12 +705,11 @@ No drei (D-021). The kit implements its few helpers (adaptive DPR, a frame monit
 |---|---|---|---|---|
 | View | 2D only | 3D | 3D | 3D |
 | DPR cap | — | 1.0 | 1.5 | 2.0 |
-| Antialiasing | — | none | FXAA | FXAA |
-| Post passes | — | 0 | ≤1 | ≤2 |
+| Antialiasing | — | none | MSAA | MSAA |
 | Instances per scene | — | ≤10k | ≤30k | ≤50k |
 | Animation cap | — | 30 fps | 60 fps | 60 fps |
 
-All tier values are [estimated] and start from games-3d.md's proposals: at most 100 draw calls, at most 50k instances, DPR capped at 1.5, GPU memory under 200 MB per scene. Real-time shadow maps stay off at T1 and T2, and T3 allows one shadow-casting light at most [estimated].
+All tier values are [estimated] and start from games-3d.md's proposals: at most 100 draw calls, at most 50k instances, DPR capped at 1.5, GPU memory under 200 MB per scene. Real-time shadow maps stay off at T1; a scene may ask for them from T2 (three shadow-casting lights at T2, four at T3 [estimated], a departure from games-3d.md's proposal), and no scene does, because Data Book's depth is its contact shadows and baked occlusion.
 
 **Starting tier.**
 - **T0:**
@@ -701,9 +717,10 @@ All tier values are [estimated] and start from games-3d.md's proposals: at most 
   - context creation with `failIfMajorPerformanceCaveat` fails (software rendering);
   - the learner chose 2D in Settings;
   - or the context was lost twice in a session.
-- **T1:** `(pointer: coarse)`, `deviceMemory ≤ 4`, `hardwareConcurrency ≤ 4`, or a maximum texture size below 8192 [estimated thresholds].
+- **T1:** `(pointer: coarse)`, `deviceMemory ≤ 4`, `hardwareConcurrency ≤ 4`, or a maximum texture size below 8192 [estimated thresholds]. A phone has a coarse pointer, so a phone starts at T1.
 - **T2:** everything else.
 - **T3:** never a starting tier; reached only by the governor.
+- **Where a phone starts.** A phone starts every view in 2D, whatever its tier. Each game opens in its 2D view on every device, and 3D is one press of the view switch (or `V`) away. The front page loads the 3D scene by itself only after the largest paint, on idle, at T1 or above, and never on a phone in the hand (a coarse pointer under 48rem, `HANDHELD_QUERY` in `src/front/upgrade.ts`), with data saver off and on a connection not reported as 2G. A phone that asks for 3D gets T1's limits: 10k instances, 30 fps and no multisampling.
 - `saveData` keeps the 3D from auto-loading but allows it on request. No `detect-gpu`: it fetches benchmark data from a CDN by default, which breaks I1 (D-022).
 
 **The governor.**
@@ -750,7 +767,6 @@ All tier values are [estimated] and start from games-3d.md's proposals: at most 
 - **Splitting.**
   - Every route is lazy, and every game's view is lazy.
   - Each 3D scene is its own chunk (`scene-<id>`) over one shared `three-vendor` chunk, set in `manualChunks` for `three` and `@react-three/fiber`.
-  - `postfx` loads at tier 2 and above only.
   - Workers, lesson JSON and traces each load on demand.
 - **Prefetching.**
   - On the front page, after LCP and on idle (`requestIdleCallback`, or after a 1.5 s timeout [estimated]), the `three-vendor` and `scene-loop` chunks are prefetched. This happens only at tier 1 or above, without `saveData`, and on a connection not reported as `2g`.
@@ -758,7 +774,7 @@ All tier values are [estimated] and start from games-3d.md's proposals: at most 
   - So the entry names no page's chunk. Vite gives each lazy import a list of the chunks it needs (`__vite__mapDeps`), and the entry's lists named every chunk of every page, about 19 B gz a name, on every page (D-023's W1 note). The entry's lazy imports keep no list but their stylesheets, and every other lazy import keeps only the chunks its importer has not already loaded (`build.modulePreload.resolveDependencies`, vite.config.ts).
 - **First-paint budget**, gated by `verify:bundle` from Vite's manifest (§11.1):
   - The entry chunk and the chunks it imports statically (`react-vendor`) are ≤ 110 KB gz together, with a target of ≤ 100 KB [estimated].
-  - The front page's first-paint closure (entry, the `front` route, The Loop's 2D view, the step-loop core and the content index) is ≤ 150 KB gz [estimated], with a target of ≤ 130 KB. D-053 to D-055 raised the gate during W1, and D-059 put it back and fitted the closure to it.
+  - The front page's first-paint closure (entry, the `front` route, the step loop's 2D view, the step-loop core and the content index) is ≤ 150 KB gz [estimated], with a target of ≤ 130 KB. D-053 to D-055 raised the gate during W1, and D-059 put it back and fitted the closure to it.
   - kernelspace's whole-app entry measured 115.7 KB gz [measured at its d31a770, recorded in its `verify-bundle.ts`], which makes these figures reachable.
   - Vite's modulepreload polyfill is off (`build.modulePreload.polyfill: false`, D-023's W1 note). Every browser since Firefox 115 and Safari 17 has `<link rel=modulepreload>`, and the polyfill cost 289 B gz of the front page's closure [measured 2026-11-04].
 
@@ -767,10 +783,10 @@ All tier values are [estimated] and start from games-3d.md's proposals: at most 
 This section reads D-004 as "3D on a capable device within seconds, playable in 2D from the very first paint". The owner confirms or changes that reading through O-11.
 
 1. **Static HTML (no JavaScript).**
-   - It holds the heading, one line of promise and the poster: an inline SVG of The Loop at its practice seed.
+   - It holds the heading, one line of promise and the poster: an inline SVG of the step loop's timing diagram at its practice seed.
    - `scripts/posters.ts` renders the poster at build time from the same `packages/play/loop/layout.ts` that the 2D view uses, so the poster is the 2D mirror's first frame.
    - The box reserves the game's final size, so nothing shifts later (CLS ≤ 0.1).
-2. **Entry hydration.** The 2D Loop becomes playable with GAMES.md §3.1's "First loop" (D-043): the visitor places waiting requests into a tray of slots by hand, refills a slot when a request stops (continuous batching), and turns on overlap (async scheduling). The readouts are the model's clock in synthetic ticks, useful tokens, ghost tokens and GPU-busy ticks. CUDA graphs are left to TR2's levels. The DOM mirror sits under it.
+2. **Entry hydration.** The 2D step loop becomes playable in the instrument frame: four demo levels (GAMES.md §3.1, D-043) in which the visitor puts waiting requests into batch slots by hand, refills a slot when a request stops (continuous batching), and turns on overlap (async scheduling), with a coach strip that names the five parts first. The readouts are the model's clock in synthetic ticks, useful tokens, ghost tokens and GPU-busy ticks. CUDA graphs are left to TR2's levels. The state table sits under it.
 3. **After LCP, at tier 1 or above.**
    - The 3D chunks load and the scene replaces the SVG in the same box: a crossfade, or a cut under reduced motion.
    - The session, and so the visitor's toggles, carry over.
@@ -1167,7 +1183,7 @@ TypeScript writes `schemas/vectors/*.json`, Python's tests read them, and `labs.
 | `verify:numbers` | An untagged number in prose (§4.4) |
 | `verify:kc` | A cycle; an item, level or check without a KC |
 | `verify:items` | A non-deterministic generator; an out-of-band seed; a blind strategy above its bound |
-| `verify:games` | A game missing its display name or subtitle (D-049), 2D view, mirror, debrief, card, keyboard map, KCs or sources, in `Game.tsx` and in any shell it loads on demand; a session importing the DOM; a graded level whose best scene-blind strategy passes more than 15% of its banded seeds [estimated] (ASSESSMENT §4.1) |
+| `verify:games` | A game missing its display name or subtitle (D-063), 2D view, mirror, debrief, card, keyboard map, KCs or sources, in `Game.tsx` and in any shell it loads on demand; a session importing the DOM; a graded level whose best scene-blind strategy passes more than 15% of its banded seeds [estimated] (ASSESSMENT §4.1) |
 | `verify:determinism` | §5.1's lint; a changed golden vector without `--write` |
 | `verify:boundaries` | §2.3's import rules; a static path from the entry to `three` |
 | `verify:bundle` | §11.1's gated budgets |
@@ -1223,7 +1239,7 @@ uv comes from `astral-sh/setup-uv`, pinned to 0.10.2 as the table says, and the 
 | Any other route's closure, excluding 3D | ≤ 200 KB gz | — | kernelspace's `/boot` and `/today` gate, 200 KB [measured precedent] | `verify:bundle` |
 | `three-vendor` (three plus R3F) | ≤ 245 KB gz | — | [derived: kernelspace measured 238 to 242.4 KB] | `verify:bundle` |
 | Each `scene-<id>` | ≤ 40 KB gz | — | kernelspace's scene gate [measured precedent] | `verify:bundle` |
-| `postfx` | ≤ 25 KB gz | — | [estimated] | `verify:bundle` |
+| `postfx` | ≤ 25 KB gz | — | [estimated]; the row skips while no post-processing exists (§6.5) | `verify:bundle` |
 | `receipt.worker`, `forge.worker` | ≤ 60 KB and ≤ 40 KB gz | — | [estimated] | `verify:bundle` |
 | Lesson JSON | ≤ 40 KB gz each | — | [estimated] | `verify:content` |
 | LCP on the front page, mobile lab profile (Chromium, 4× CPU, 1.6 Mbit/s, 150 ms RTT) | ≤ 2.5 s | ≤ 1.5 s [estimated] | Core Web Vitals' "good" bound [unverified: not re-fetched on 2026-11-03]; the LCP element is static HTML | nightly |
@@ -1378,7 +1394,7 @@ Hours are the catalog's [estimated] figures; the total is about 91 h.
 | Module | h | Games | Sim modules | B (browser) | L/F (grader) | Wave |
 |---|---|---|---|---|---|---|
 | TR0 PyTorch and Triton reading | 7 | `shape-shifter` (3D) | `tensor` | items on shapes, strides and grid coverage | Qwen3-0.6B forward against HF to 1e-3 (L, CPU) | W2 |
-| TR1 Read the engines | 10 | `engine-floor` (3D) | `lifecycle`, `trace` | lifecycle map by span checks | nano-vllm fork with lifecycle spans (F) | B: W1 · F: W2 |
+| TR1 Read the engines | 10 | `engine-floor` (2D) | `lifecycle`, `trace` | lifecycle map by span checks | nano-vllm fork with lifecycle spans (F) | B: W1 · F: W2 |
 | TR2 The step loop | 10 | `loop` (3D; the front page) | `steploop`, `physics`, `host` | toggled until the bubbles close | — | W0 (front page) · W1 |
 | TR3 Profile a real engine | 12 | `gap-hunt` (2D) | `trace` | attribute 6-10 pinned traces | profile report on vLLM (F) | W2 |
 | TR4 Backends as a consumer | 7 | `dispatch` (2D) | `backends` | predict-then-reveal items | backend sweeps (F) | W2 |
@@ -1396,7 +1412,7 @@ Hours are the catalog's [estimated] figures; the total is about 91 h.
 - **Fresh pins.** vLLM 0.33.0 and SGLang 0.5.23 were days old on 2026-11-03 [measured].
   - vLLM has shipped no x.y.1 patch since 0.28.
   - v0.33.0's CUDA 13 wheels need a host driver of R580 or newer, and rental hosts' drivers are [unverified] (vllm U1). If the gate fails, v0.32.0 is the fallback (D-035, O-4).
-- **No real traces yet.** The owner has not captured reference traces (PRODUCT.md). Until W2-T21 captures them and W2-T22 fits the host card to them, the Trace Room and Gap Hunt ship synthetic traces, labelled, and the host card stays [estimated].
+- **No real traces yet.** The owner has not captured reference traces (PRODUCT.md). Until W2-T21 captures them and W2-T22 fits the host card to them, the Traces page and trace attribution ship synthetic traces, labelled, and the host card stays [estimated].
 - **Grader trust.** §8.6 states the limit. A receipt from an unknown grader build earns no credit.
 - **Extension points move.** The proposer, connector and profiler hooks in vLLM and SGLang can change between minors. Each GPU lab keeps a per-pin shim in `labs/gpu/<lab>/starter/`, and the quarterly re-pin carries that cost (catalog §9 puts Engine Internals' upkeep at about 10 h a quarter [estimated]; PLAN.md §11 estimates 14-25 h [estimated], counting the trace re-capture and the host-card refit).
 - **The Wire has not shipped.** TR5b owns a minimal connector contract and `kv-events@1` until WR3 ships, then reconciles (D-034).

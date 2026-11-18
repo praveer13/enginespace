@@ -262,7 +262,7 @@ export function slotNightPlan(night: SlotNight): SlotNightPlan {
       for (const [i, reply] of replies.entries()) {
         const at = from + i
         if (at === 0) {
-          if (reply !== 'ok') return wrongReply('init', 'ok', reply, 'the module did not start for the night')
+          if (reply !== 'ok') return wrongReply('init', 'ok', reply, 'the module did not start')
           continue
         }
         const op = night.script[at - 1]

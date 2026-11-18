@@ -6,19 +6,22 @@ Builds on kernelspace: `ks:T5.L5`, `ks:T1.L4`, `ks:t1.internal-frag`.
 
 Knowledge components: `tr5a.page-size-unification`.
 
-The last lesson gave a request three tables, and the three draw from one free queue. A free queue works only if its entries are interchangeable: a page that a sliding group lets go has to be good for a full group, and for a state group. So a block of every group has to be the same number of bytes. This lesson is how vLLM makes that so for the models it serves, and what it costs when the layers do not divide evenly.
+Every group's page is the same number of bytes, so the planner cuts a model's layers into groups that fill one page, and pads the group that comes up short. This level gives you a model's layer counts. Count the KV groups it needs, then see what the padding wastes.
+
+- A page is the layers in one group, times the tokens in a block, times the bytes that one token needs in one layer.
+- The pool has a single page size, so every group holds the same number of layers: the group size.
+- The group size is the smallest layer count of any kind, or the largest when that is under 1.5 times the smallest [measured].
+- Each kind of layer fills `ceil(count / size)` groups, and a group that comes up short is padded with layers that hold nothing.
+
+> **Play.** The game `pool`, level `same-size`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
 ## What a page is
 
+The last lesson gave a request three tables, and the three draw from one free queue. A free queue works only if its entries are interchangeable: a page that a sliding group lets go has to be good for a full group, and for a state group. So a block of every group has to be the same number of bytes.
+
 A block is the memory reserved for a block's worth of tokens in the layers of one group, and a page is its size in bytes: the layers the block serves, times the tokens in a block, times the bytes that one token needs in one layer. The layers in that product are the group's and not the model's. **layers x block size x kv hidden size** [measured] The pool has a single page size, so every group has to reach it. **one pool, one page size** [measured]
 
-In a model of full attention alone there is nothing to reach, because every block serves every layer. In a hybrid the groups are made of different numbers of layers, and a recurrent layer's state is a different quantity from a token's key and value. The planner has to choose the groups so that the products agree. Commit to one prediction, then play `same-size`.
-
-> **Predict `tr5a.l2.p1`.** A model has 12 sliding-window layers and 13 full-attention layers [estimated], and every layer costs the same bytes for a token. The planner gives each group the same number of layers, and pads a group that comes up short. How many KV cache groups does it make of this model?
->
-> The learner commits to a number in `groups`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
-
-> **Play.** The game `pool`, level `same-size`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
+In a model of full attention alone there is nothing to reach. In a hybrid the groups are made of different numbers of layers, and a recurrent layer's state is a different quantity from a token's key and value. The planner has to choose the groups so that the products agree.
 
 ## The five cases
 
@@ -36,9 +39,15 @@ vLLM's design document walks through five cases, from a toy to the awkward ones.
 
 **No regular pattern.** Gemma-3-27b has 52 sliding-window layers and 10 full-attention layers [measured]. Grouped by their ratio that is 26 sliding groups and 5 full groups of 2 layers each [measured], too many small groups. **52 sliding and 10 full** [measured] **too many small groups** [measured] So the planner groups by the smallest layer count among the kinds, which is 10 here [derived]. That is one full group and 6 sliding groups [derived], and 6 groups of 10 layers hold 60 slots for 52 sliding layers, so 8 of them are padding. **the fewest layers of any type** [measured]
 
+Commit to one number before the rule is worked on a small model. A model's layer counts decide how many groups it makes, and a drafter's one extra layer can decide it.
+
+> **Predict `tr5a.l2.p1`.** A model has 12 sliding-window layers and 13 full-attention layers [estimated], and every layer costs the same bytes for a token. The planner gives each group the same number of layers, and pads a group that comes up short. How many KV cache groups does it make of this model?
+>
+> The learner commits to a number in `groups`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
+
 The document draws the padding in the last group, and the code spreads it: group `i` takes every sixth layer from layer `i`, so four groups have 9 layers and 1 of padding, and two have 8 layers and 2 of padding [derived]. **layers[i::num_groups]** [measured] **group size - layers % group size** [measured] The course follows the code, because the code is what runs.
 
-**Different bytes.** A recurrent layer's state can be much bigger than one token's KV in an attention layer, and the pool has one page size. The planner makes the attention block bigger, in multiples of the kernel's block, until one layer's block is at least a layer's state, and it pads the state up to that size. Then it groups as in the third case. **attention page >= state page, state padded to it** [measured] **the smallest multiple of the kernel block that holds the state** [measured] Commit to one more number before you play `state`.
+**Different bytes.** A recurrent layer's state can be much bigger than one token's KV in an attention layer, and the pool has one page size. The planner makes the attention block bigger, in multiples of the kernel's block, until one layer's block is at least a layer's state, and it pads the state up to that size. Then it groups as in the third case. **attention page >= state page, state padded to it** [measured] **the smallest multiple of the kernel block that holds the state** [measured] Commit to one more number before you run the `state` level.
 
 > **Predict `tr5a.l2.p2`.** A model has 8 attention layers that cost 1,024 bytes a token each [estimated], and 24 recurrent layers whose state is 32,768 bytes each [estimated]. The attention block starts at 16 tokens [estimated] and grows 16 tokens at a time until one layer's block holds a layer's state. How many tokens does the block hold when it stops?
 >
@@ -69,11 +78,15 @@ To group a model by hand:
 3. Split each kind into `ceil(count / size)` groups, and spread its layers over them.
 4. The page is `size × tokens in a block × bytes per token per layer`, and the padding is the slots of the groups less the real layers.
 
-For the model of the prediction, 13 full layers and 12 sliding ones [estimated], the largest count is under 1.5 times the smallest, so the size is 13 [derived]. The full layers make one group of 13 [derived]. The sliding layers make another, with 1 layer of padding, which is 2 groups and 26 slots for 25 layers [derived].
+For the model in that guess, 13 full layers and 12 sliding ones [estimated], the largest count is under 1.5 times the smallest, so the size is 13 [derived]. The full layers make one group of 13 [derived]. The sliding layers make another, with 1 layer of padding, which is 2 groups and 26 slots for 25 layers [derived].
+
+Check the grouping on a new model before you read on.
+
+> **Practice.** Items from the generator family `tr5a.blocks-held`, level `3`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## One block, many pieces
 
-A page is one id, and it has to be good in every layer of its group. For a model with `n` groups of `m` layers each, vLLM allocates `m` buffers, and each buffer is shared by `n` layers, one from each group. One logical block is then `m` pieces in `m` buffers, and a group's block ids name the same pieces in each. **one buffer per layer of a group, shared by one layer from each group** [measured] In the scene, the pan at the head of the ticket in focus fans out into the layers of its group, with the padding layers drawn bare.
+A page is one id, and it has to be good in every layer of its group. For a model with `n` groups of `m` layers each, vLLM allocates `m` buffers, and each buffer is shared by `n` layers, one from each group. One logical block is then `m` pieces in `m` buffers, and a group's block ids name the same pieces in each. **one buffer per layer of a group, shared by one layer from each group** [measured]
 
 ![The memory layout of the design document's request, a grid of pages by buffers](../../figures/tr5a/l2-one-block-many-pieces.svg)
 
@@ -91,16 +104,9 @@ _A grid with a row for each page of the request and a column for each of ten buf
 
 Read the document and the planner side by side. [The document](https://github.com/vllm-project/vllm/blob/v0.33.0/docs/design/hybrid_kv_cache_manager.md) is the five cases. The code that does them is `_get_kv_cache_groups_uniform_page_size` in [`kv_cache_planning.py`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/core/kv_cache_planning.py) for the grouping, and `_align_hybrid_block_size` in [`platforms/interface.py`](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/platforms/interface.py) for the Mamba block. The document was written at an earlier commit and says so, and the code is the authority. Where they disagree, as on where the padding goes, follow the code.
 
-## What to carry
-
-- Every group's block is one page, so the groups are made of equal numbers of layers, and a group that comes up short is padded.
-- The group size is the smallest layer count of any kind, unless the largest is under 1.5 times that [measured], and it is a heuristic that the document admits can fail.
-- A recurrent layer's state is made to fit by growing the attention block, which makes hits coarser.
-- Padding is a share of a group's pages, and a sliding group has few pages at a long length.
-
 ## Exit check
 
-This lesson tests one skill: working out how a model's layers become groups of one page size, and where the padding goes (`tr5a.page-size-unification`). The exit ticket is three items on fresh seeds at the third level. Each gives a model by its layer counts and a request's length, and asks for the pages the request holds, so the groups have to be worked out first. It is passed with at least two right, one of them numeric (ASSESSMENT §4.2). The graded `manager` level of the fourth lesson draws its model from its seed, and on half the seeds that model is one of this lesson's two page-size cases, so it grades the skill on fresh seeds as well.
+Three questions on new numbers test one skill: working out how a model's layers become groups of one page size, and where the padding goes. Each gives a model by its layer counts and a request's length, and asks for the pages the request holds, so the groups have to be worked out first. The graded `manager` level of the fourth lesson draws its model from its seed, and on half the seeds that model is one of this lesson's two page-size cases, so it grades the skill on fresh seeds as well.
 
 > **Practice.** Items from the generator family `tr5a.blocks-held`, level `3`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

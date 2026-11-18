@@ -111,8 +111,8 @@ export const fakeSources: Sources = {
     ],
   } satisfies ContentIndex,
   games: [
-    { id: 'loop', title: 'Service', subtitle: 'the step loop', has3d: true },
-    { id: 'gap-hunt', title: 'The Tape', subtitle: 'trace attribution', has3d: false },
+    { id: 'loop', title: 'Step loop', subtitle: 'Keep every slot live, and never make the GPU wait for the CPU.', has3d: true },
+    { id: 'gap-hunt', title: 'Trace attribution', subtitle: 'Every nanosecond of a step belongs to a kernel, a copy, a CPU gap or idle.', has3d: false },
   ],
   labs: ['hybrid-kv', 'tr8.replay'],
   traces: ['synthetic-1'],

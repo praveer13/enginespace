@@ -1,18 +1,19 @@
 # SGLang at the pin: the overlap loop, result_queue, FutureMap, three streams and the Rust pieces
 
-_Read the engines · lesson `tr1.l6` · review · about 40 minutes [estimated]_
+_Read the engines · lesson `tr1.l6` · review · about 48 minutes [estimated]_
 
 Builds on kernelspace: `ks:T5.L10`, `ks:T5.L6`, `ks:T0.L6`.
 
 Knowledge components: `tr1.sglang-lifecycle`.
 
-Mini-SGLang is the small cousin of the engine you read now: its README calls it a compact implementation of SGLang. **a compact implementation of SGLang** [measured] The two share a shape, so what you learned about Mini-SGLang's processes, mailbox and overlap loop carries over, in a bigger form. SGLang v0.5.23 is the version the course pins. Its scheduler file, [`scheduler.py`](https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py), is 6,409 lines [measured] and its tokenizer manager file, [`tokenizer_manager.py`](https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/tokenizer_manager.py), is 4,107 [measured], counted with `wc -l` on 2026-11-05 in the tarball of the tag, whose commit is `297e54f`. So this lesson does not read the files. It reads the loop that makes SGLang SGLang, the things the loop leans on, and the places where the engine differs from vLLM in ways that a map of one would get wrong about the other.
+This lesson reads SGLang at the version the course pins, v0.5.23. The `sglang` level draws it:
 
-The shape is three components. The tokenizer manager tokenizes requests and sends them on. The scheduler runs in a subprocess, schedules batches, runs the forward and sends the output tokens on. The detokenizer manager runs in another subprocess, turns the tokens into text and sends it back. **tokenizer manager, scheduler, detokenizer manager** [measured] The HTTP server, the engine and the tokenizer manager all run in the main process, and the processes talk over ZeroMQ. **ZMQ IPC** [measured] So SGLang has no API server process of its own. The main process does the work of the front end and the tokenizer both.
+- **Main process**: the HTTP server, the engine and the tokenizer manager, so SGLang has no API server process of its own.
+- **Scheduler**: a subprocess that schedules batches, runs the forward and sends the output tokens on.
+- **Detokenizer manager**: another subprocess, which turns the tokens into text.
+- **Between processes**: ZeroMQ.
 
-## Before you play
-
-Two questions, to commit to before you lay the path. The first is the game's own. The second is about what a request for two samples makes the engine do, and the answer is different in every engine you have read.
+New next to Mini-SGLang: the same overlap loop at full size, with a queue of results, three streams, a prefix hit that the radix tree finds before the batch is built, and a request for two samples.
 
 > **Predict `tr1.l6.p1`.** In SGLang v0.5.23, serving a streamed answer at one rank, how many process boundaries does a sampled token cross on its way to the client?
 >
@@ -22,9 +23,13 @@ Two questions, to commit to before you lay the path. The first is the game's own
 >
 > The learner commits to a number in `requests`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
 
-Then play the `sglang` level on its practice seed. The scheduler launches one batch and reads the result of the one before it in the next turn of its loop, and a prefix hit is found in the radix tree before the batch is built.
-
 > **Play.** The game `engine-floor`, level `sglang`, in `practice` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
+
+## SGLang next to Mini-SGLang
+
+Mini-SGLang is the small cousin of the engine you read now: its README calls it a compact implementation of SGLang. **a compact implementation of SGLang** [measured] The two share a shape, so what you learned about Mini-SGLang's processes, mailbox and overlap loop carries over, in a bigger form. SGLang v0.5.23 is the version the course pins. Its scheduler file, [`scheduler.py`](https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/scheduler.py), is 6,409 lines [measured] and its tokenizer manager file, [`tokenizer_manager.py`](https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/tokenizer_manager.py), is 4,107 [measured], counted with `wc -l` on 2026-11-05 in the tarball of the tag, whose commit is `297e54f`. So this lesson does not read the files. It reads the loop that makes SGLang SGLang, the things the loop leans on, and the places where the engine differs from vLLM in ways that a map of one would get wrong about the other.
+
+The shape is three components. The tokenizer manager tokenizes requests and sends them on. The scheduler runs in a subprocess, schedules batches, runs the forward and sends the output tokens on. The detokenizer manager runs in another subprocess, turns the tokens into text and sends it back. **tokenizer manager, scheduler, detokenizer manager** [measured] The HTTP server, the engine and the tokenizer manager all run in the main process, and the processes talk over ZeroMQ. **ZMQ IPC** [measured] So SGLang has no API server process of its own. The main process does the work of the front end and the tokenizer both.
 
 ## The path, by symbol
 
@@ -53,11 +58,15 @@ Here is the whole path of the practice level: one streamed request at one rank, 
 | `sglang.handle-loop` | `handle_loop` appends to `out_list` and sets the request's event | queue | [`_handle_batch_output`](https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/managers/tokenizer_manager.py#L2779) |
 | `sglang.sse-chunk` | the handler streams a chunk to the client | IPC | [`_generate_completion_stream`](https://github.com/sgl-project/sglang/blob/v0.5.23/python/sglang/srt/entrypoints/openai/serving_completions.py#L403) |
 
+One question on the mechanism between two stages of the path.
+
+> **Practice.** Items from the generator family `tr1.which-mechanism`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+
 ## Two languages
 
 SGLang is Python at the pin, with Rust beside it, and a lifecycle map has to say which path it draws. The default request path is Python end to end. A Rust HTTP server exists in the tree, a typed frontend that exchanges requests and responses with the Python scheduler, and it is opt-in: its switch is off by default. **a typed HTTP frontend in Rust** [measured] **off** [measured] vLLM has the same arrangement. It ships a Rust frontend that talks to the Python engine core over ZeroMQ, its README calls it experimental, and its switch is off. **experimental** [measured] **off** [measured]
 
-SGLang's Rust is on by default in one place, and it is in the middle of the path. The core of the radix tree is the Rust one by default, chosen by an environment variable, and the Python core is a switch away. **rust** [measured] The Rust core is conditional, though. The registry falls back to Python for a list of cases, so a trace can come from the Python core on another machine. **conditional** [measured] The path above is the same either way, because the radix match is a call inside the scheduler's process and not a hop.
+SGLang's Rust is on by default in one place, and it is in the middle of the path. The core of the radix tree is the Rust one by default, chosen by an environment variable, and the Python core is a switch away. **rust** [measured] The Rust core is conditional, though. The registry falls back to Python for a list of cases, so a trace can come from the Python core on another machine. **conditional** [measured] The path is the same either way, because the radix match is a call inside the scheduler's process and not a hop.
 
 ## The overlap loop
 
@@ -103,6 +112,10 @@ Read the order. The loop receives requests, picks the next batch, launches it wi
 
 There is one exception worth knowing, because it is a rule about when overlap is worth having. For two consecutive prefill batches the loop can process the first one's result at once, to keep the first batch's time to first token short, and it does so only if an environment switch is set. **overlap off between two prefills** [measured] The switch is off by default. **false** [measured]
 
+One question on where a stage runs.
+
+> **Practice.** Items from the generator family `tr1.where-does-it-run`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+
 ## What the loop leans on
 
 Overlap works only if the CPU can launch batch N plus one without having batch N's answer on the host. SGLang's trick is the most surprising thing in the engine: in the plain path, the next batch's input ids do not come from the host.
@@ -119,11 +132,19 @@ The loop works with three streams. The model runner creates the forward stream. 
 
 _Two lanes against time, the host above and the GPU below, in three turns of the loop. In each turn the host lane has a schedule block and a launch block, and from the second turn on a dashed wait block and a process block for the batch before. The GPU lane has three forward blocks end to end with no gap. An arrow runs from each launch block to the start of its forward, and the arrow from the second launch is labelled queued, because the first forward is still running. Each wait block ends where the forward it waits for ends. The copy back to the host is not drawn, and nothing is to scale._
 
+One more, on where a stage of SGLang's path runs.
+
+> **Practice.** Items from the generator family `tr1.where-does-it-run`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+
 ## A prefix hit and a request for two samples
 
 A prefix hit is found while the batch is built, and it is the `sglang.prefix-hit` stage of the path. In the scheduler's loop over the waiting requests, each candidate's prefix is matched against the tree cache by `init_next_round_input`, before the batch adder is asked to take the request. **matched in the scheduler's loop over waiting requests** [measured] The match is capped one token short of the input, so the last token is always computed, and the comment gives the reason as the logprob computation. **at most one token less than the input** [measured] It is one rule in four spellings. nano-vllm never looks up a prompt's last block, **the last block is never looked up** [measured] vLLM defaults the longest hit to the prompt length less one, **prompt length less one** [measured] and Mini-SGLang matches all of the input ids but the last. **input_ids[: input_len - 1]** [measured]
 
-The second prediction's answer is three. When a request asks for `n` greater than one, the tokenizer manager does not send it once. It first sends the shared prompt as a request of its own with `max_new_tokens` set to zero, to put its prefix in the cache, waits for it, and then sends the `n` sample requests. **a prefix request first** [measured] For two samples that is one warmup and two samples, which is three requests [derived]. The other engines you have read do it differently. vLLM wraps the request in a parent and sends a child for each sample, so two requests. **n child requests** [measured] Mini-SGLang accepts `n` and serves one sample. **n is accepted and not used** [measured] nano-vllm's sampling parameters have no `n` at all. **temperature, max_tokens, ignore_eos** [measured] Count the requests and you have a fact that no diagram of the shape shows.
+The answer for two samples is three. When a request asks for `n` greater than one, the tokenizer manager does not send it once. It first sends the shared prompt as a request of its own with `max_new_tokens` set to zero, to put its prefix in the cache, waits for it, and then sends the `n` sample requests. **a prefix request first** [measured] For two samples that is one warmup and two samples, which is three requests [derived]. The other engines you have read do it differently. vLLM wraps the request in a parent and sends a child for each sample, so two requests. **n child requests** [measured] Mini-SGLang accepts `n` and serves one sample. **n is accepted and not used** [measured] nano-vllm's sampling parameters have no `n` at all. **temperature, max_tokens, ignore_eos** [measured] Count the requests and you have a fact that no diagram of the shape shows.
+
+One question on the mechanism between two stages of SGLang's path.
+
+> **Practice.** Items from the generator family `tr1.which-mechanism`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## Two ranks
 
@@ -131,7 +152,7 @@ With more than one rank, each rank is a scheduler process. Rank zero's scheduler
 
 ## The same shape, told two ways
 
-You have now read both production engines. They are alike enough to confuse, and the confusion is what the graded map tests, because its tray holds real stages of the other engine. This is the table to have in your head.
+You have now read both production engines. They are alike enough to confuse, and the confusion is what the graded map tests, because its stage list holds real stages of the other engine. This is the table to have in your head.
 
 | The question | vLLM v0.33.0 | SGLang v0.5.23 |
 |---|---|---|
@@ -145,7 +166,7 @@ You have now read both production engines. They are alike enough to confuse, and
 
 The vLLM column is what the fifth lesson read. The API server has a process of its own, and the engine core is another. **a background process with a busy loop** [measured] The output processor in the API server turns the tokens into text. **the output processor detokenizes and performs the stop checks** [measured] Launched batches wait in `batch_queue`, **the batch queue first** [measured] the wait is `AsyncOutput.get_output` on the copy's event, **copy_event.synchronize()** [measured] and a second rank gets the request through a queue named `rpc_broadcast_mq`. **rpc_broadcast_mq** [measured]
 
-The first answer is the last row. A token leaves SGLang's scheduler process for the detokenizer's, leaves the detokenizer's for the main process, and leaves the main process for the client, which is three process boundaries [derived]. In vLLM the detokenizer is inside the API server, and the same trip is two.
+The last row is the count of process boundaries. A token leaves SGLang's scheduler process for the detokenizer's, leaves the detokenizer's for the main process, and leaves the main process for the client, which is three process boundaries [derived]. In vLLM the detokenizer is inside the API server, and the same trip is two.
 
 The last stages of the path are a mailbox in both. SGLang's tokenizer manager keeps a state for each request, and its `handle_loop` appends each reply of the detokenizer to the request's `out_list` and sets the request's event. **out_list, event and rid_to_state** [measured] The coroutine that waits for the event also wakes on a timeout, and then asks whether the client has gone. **the waiting coroutine polls for a disconnect** [measured] Mini-SGLang gives each request an ack list and an event, and its listener task files each reply under its request. **an event and a list for each request** [measured] It looks for a disconnect only between chunks. **checked when the next chunk is about to be sent** [measured]
 
@@ -157,15 +178,9 @@ The last stages of the path are a mailbox in both. SGLang's tokenizer manager ke
 
 > **Card.** The notional-machine card `lifecycle`.
 
-## What to carry
-
-- The overlap loop launches batch N plus one and then processes batch N. The queue between them is `result_queue`, and the wait is part of the result processor.
-- A decode batch's input ids are gathered from the FutureMap on the device, so the launch does not wait for the host's copy. That copy feeds the CPU's own work, one turn late.
-- vLLM and SGLang look alike and differ in the same few places: where the detokenizer runs, how many requests an `n` makes, and what holds the launched batch.
-
 ## Exit check
 
-This lesson tests one skill: tracing a request through SGLang at the pin, and saying where each stage runs (`tr1.sglang-lifecycle`). The exit ticket is three items on fresh seeds. Two ask in which process and on which thread or stream a stage of SGLang's path runs, and one asks which mechanism joins two of its stages. It is passed with at least two right (ASSESSMENT §4.2). The graded map at the end of the module tests the same skill on a whole path.
+Three questions on new numbers. Two ask in which process and on which thread or stream a stage of SGLang's path runs, and one asks which mechanism joins two of its stages. The graded map at the end of the module tests the same skill on a whole path.
 
 > **Practice.** Items from the generator family `tr1.where-does-it-run`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 

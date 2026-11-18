@@ -1,16 +1,12 @@
 /*
- * The ground and the browser's own surfaces, in The Pass's materials: the page is brushed stainless under the tubes,
- * reading text is Atkinson Hyperlegible, and the parts no component draws (selection, the caret, focus, scrollbars,
- * underlines, numerals) carry the world too. Every value is a token role from tokens.css.
+ * The ground and the browser's own surfaces, in Data Book: the page is a flat ground with no texture, reading text is
+ * Atkinson Hyperlegible, and the parts no component draws (selection, the caret, focus, scrollbars, underlines,
+ * numerals) carry the system too. Every value is a token role from tokens.css.
  */
 
 @layer base {
   html {
     background-color: var(--es-surface-0);
-    background-image: var(--es-texture-sheen), var(--es-texture-brushed);
-    background-repeat: no-repeat, repeat-y;
-    /* The grain spans the full width, so no tile edge ever shows; it repeats only down the page. */
-    background-size: 100% auto, 100% 720px;
     color: var(--es-text-1);
     font-family: var(--es-font-body);
     line-height: var(--es-font-body-leading);
@@ -29,29 +25,30 @@
     font-size: var(--es-font-body-size);
   }
 
-  /* The shell fills the window: the kick-plate sits at the foot of a short page. */
+  /* The shell fills the window: the footer sits at the foot of a short page. */
   #root {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
   }
 
-  /* Selection is the lamp's pool; the caret is its filament. */
+  /* Selection is ink: paper-white on the dark surface. Amber means now, so it never marks a selection. */
   ::selection {
-    background-color: var(--es-lamp);
-    color: var(--es-paper-ink);
+    background-color: var(--es-surface-3);
+    color: var(--es-paper);
   }
 
   :where(input, textarea, select, [contenteditable]) {
-    caret-color: var(--es-lamp-ring);
+    caret-color: var(--es-text-1);
   }
 
-  /* Focus: the heat lamp falls on the control the keyboard is on. A ring at 3:1 on every ground, and the lamp's glow
-     pooling from above. Components that draw their own ring override this. */
+  /* Focus (the Ink Focus Rule): 3 px of ink at a 2 px offset, with a paper halo under it so it reads on the dark footer
+     and against the amber button's own edge. Never amber, so focus is not mistaken for now. Components that draw
+     their own ring keep these values. */
   :focus-visible {
-    outline: 2px solid var(--es-focus);
+    outline: 3px solid var(--es-focus);
     outline-offset: 2px;
-    box-shadow: 0 -3px 14px 1px color-mix(in srgb, var(--es-lamp) 70%, transparent);
+    box-shadow: 0 0 0 7px var(--es-paper);
   }
 
   :focus:not(:focus-visible) {
@@ -89,6 +86,7 @@
     text-wrap: pretty;
   }
 
+  /* A page title in the display face, in sentence case; section heads in the reading face at 700 (REDESIGN 2.8, Type). */
   h1 {
     font-family: var(--es-font-display);
     font-size: var(--es-font-display-size);
@@ -99,12 +97,10 @@
   }
 
   h2 {
-    font-family: var(--es-font-heading);
-    font-size: var(--es-font-heading-size);
-    line-height: var(--es-font-heading-leading);
-    letter-spacing: var(--es-font-heading-tracking);
-    font-weight: var(--es-font-heading-weight);
-    text-transform: var(--es-font-heading-case);
+    font-family: var(--es-font-body);
+    font-size: var(--es-size-large);
+    line-height: 1.25;
+    font-weight: 700;
   }
 
   h3 {
@@ -129,7 +125,7 @@
     border-color: var(--es-paper-rule);
   }
 
-  /* Scrollbars in steel: a deep-steel thumb in a shaded track. Chrome and Firefox read scrollbar-color above. */
+  /* Scrollbars: a dark thumb in a well. Chrome and Firefox read scrollbar-color above. */
   ::-webkit-scrollbar {
     width: 12px;
     height: 12px;
@@ -227,12 +223,12 @@
   }
 
   .es-type-ticket {
-    font-family: var(--es-font-ticket);
-    font-size: var(--es-font-ticket-size);
-    line-height: var(--es-font-ticket-leading);
-    letter-spacing: var(--es-font-ticket-tracking);
-    font-weight: var(--es-font-ticket-weight);
-    text-transform: var(--es-font-ticket-case);
+    font-family: var(--es-font-readout);
+    font-size: var(--es-font-readout-size);
+    line-height: var(--es-font-readout-leading);
+    letter-spacing: var(--es-font-readout-tracking);
+    font-weight: var(--es-font-readout-weight);
+    text-transform: var(--es-font-readout-case);
   }
 
   .es-type-label {
@@ -246,14 +242,12 @@
 
   /* Reading measure for prose. */
   .es-prose {
-    max-width: 68ch;
+    max-width: 66ch;
   }
 
-  /* Steel and paper as surfaces for any element. */
+  /* The raised surface and paper, for any element. `.es-steel` keeps its name; it is the flat raised surface now. */
   .es-steel {
     background-color: var(--es-surface-1);
-    background-image: var(--es-texture-brushed);
-    background-size: 100% 720px;
   }
 
   .es-paper {

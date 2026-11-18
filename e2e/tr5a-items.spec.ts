@@ -35,13 +35,13 @@ interface Block {
   readonly count: number
 }
 
-/** The item blocks of TR5a's four lessons, as the lessons print them (content/modules/tr5a/lessons). */
+/** The Test's item blocks of TR5a's four lessons, as the lessons print them (content/modules/tr5a/lessons): `at` counts the checkpoints in Read before them. */
 const BLOCKS: readonly Block[] = [
-  { route: '/m/tr5a/l1-why-one-model-needs-several-kv-caches', at: 0, family: 'tr5a.blocks-held', level: 2, count: 3 },
-  { route: '/m/tr5a/l2-one-pool-one-page-size', at: 0, family: 'tr5a.blocks-held', level: 3, count: 3 },
-  { route: '/m/tr5a/l3-a-prefix-hit-must-hold-in-every-group', at: 0, family: 'tr5a.hit-length', level: 2, count: 3 },
-  { route: '/m/tr5a/l4-adapters-as-pages-and-upstreams-slots', at: 0, family: 'tr5a.pages-for-adapter', level: 2, count: 2 },
-  { route: '/m/tr5a/l4-adapters-as-pages-and-upstreams-slots', at: 1, family: 'tr5a.slots-vs-pages', level: 2, count: 1 },
+  { route: '/m/tr5a/l1-why-one-model-needs-several-kv-caches', at: 2, family: 'tr5a.blocks-held', level: 2, count: 3 },
+  { route: '/m/tr5a/l2-one-pool-one-page-size', at: 1, family: 'tr5a.blocks-held', level: 3, count: 3 },
+  { route: '/m/tr5a/l3-a-prefix-hit-must-hold-in-every-group', at: 1, family: 'tr5a.hit-length', level: 2, count: 3 },
+  { route: '/m/tr5a/l4-adapters-as-pages-and-upstreams-slots', at: 2, family: 'tr5a.pages-for-adapter', level: 2, count: 2 },
+  { route: '/m/tr5a/l4-adapters-as-pages-and-upstreams-slots', at: 3, family: 'tr5a.slots-vs-pages', level: 2, count: 1 },
 ]
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
@@ -186,20 +186,20 @@ for (const width of [360, 1280]) {
     test.use({ viewport: { width, height: 900 } })
 
     for (const block of BLOCKS) {
-      test(`${block.family} at level ${block.level}, in ${block.route.split('/').pop()}: every variant is on a ticket that the family makes, and answers are marked`, async ({ page }) => {
+      test(`${block.family} at level ${block.level}, in ${block.route.split('/').pop()} (item block ${block.at + 1}): every variant is on a ticket that the family makes, and answers are marked`, async ({ page }) => {
         test.setTimeout(240_000)
         const attempts = plan(block)
         await open(page, block.route)
         const container = blockOf(page, block)
-        await expect(container).toContainText(block.family)
-        // The block draws items: it is not the waiting ticket of a family that no task has built.
-        await expect(container).not.toContainText('Not built yet')
+        await expect(container).toHaveAttribute('data-family', block.family)
+        // The block draws questions: it is not the waiting sheet of a family that is not published.
+        await expect(container).not.toContainText('not published yet')
         await inPhase(container, 'idle')
 
         let first = true
         for (const attempt of attempts) {
           await page.evaluate((entropy) => void (window.__queue = entropy.slice()), attempt.entropy)
-          await control(container, first ? 'Start items' : 'New numbers').click()
+          await control(container, first ? 'Start questions' : 'New numbers').click()
           first = false
           await inPhase(container, 'asking')
           for (const [index, variant] of attempt.variants.entries()) {
@@ -210,13 +210,13 @@ for (const width of [360, 1280]) {
             // The first ticket of an attempt is answered right and the next wrong, so that both reveals are seen.
             const right = index % 2 === 0
             await fill(container, generator(block), item, right ? 'right' : 'wrong')
-            await control(container, /Check the ticket/).click()
+            await control(container, /Check answer/).click()
             await inPhase(container, 'revealed')
             await expectVerdict(container, item, right)
             // The solution is printed beneath the verdict, one line for each step, and ends with the key's own line.
             await expect(container.locator('.es-item__steps li')).not.toHaveCount(0)
             await audit(page, container, `${block.family}/${variant} revealed`, width === 360)
-            await control(container, index === attempt.variants.length - 1 ? /Tally the tickets/ : /Next ticket/).click()
+            await control(container, index === attempt.variants.length - 1 ? /See the result/ : /Next question/).click()
             if (index < attempt.variants.length - 1) await inPhase(container, 'asking')
           }
           await inPhase(container, 'done')

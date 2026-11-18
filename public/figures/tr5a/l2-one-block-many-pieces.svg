@@ -1,157 +1,148 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 171" width="360" height="171" fill="none" stroke="currentColor" stroke-width="0.75">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 235" width="360" height="235">
   <title>The memory layout of the design document's request: a page is a row of pieces, one in each of the ten buffers that the layers of a group share with the other groups</title>
-  <desc>A grid with a row for each of the request's eleven pages and a column for each of ten buffers. The first seven rows are the full group's pages, the next two are the first sliding group's and the last two are the second sliding group's, each set apart by a bracket and a lighter shade. A page is one piece in each buffer, so one page id names ten pieces. A buffer holds one layer of each of the three groups.</desc>
-  <g stroke="none" fill="currentColor" font-size="10">
-    <text x="112" y="11">ten buffers, each shared by one layer</text>
-    <text x="112" y="22">of every group</text>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="9" text-anchor="middle">
-    <text x="122" y="37">0</text>
-    <text x="144" y="37">1</text>
-    <text x="166" y="37">2</text>
-    <text x="188" y="37">3</text>
-    <text x="210" y="37">4</text>
-    <text x="232" y="37">5</text>
-    <text x="254" y="37">6</text>
-    <text x="276" y="37">7</text>
-    <text x="298" y="37">8</text>
-    <text x="320" y="37">9</text>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="9" text-anchor="end">
-    <text x="106" y="50">p0</text>
-    <text x="106" y="61">p1</text>
-    <text x="106" y="72">p2</text>
-    <text x="106" y="83">p3</text>
-    <text x="106" y="94">p4</text>
-    <text x="106" y="105">p5</text>
-    <text x="106" y="116">p6</text>
-    <text x="106" y="127">p7</text>
-    <text x="106" y="138">p8</text>
-    <text x="106" y="149">p9</text>
-    <text x="106" y="160">p10</text>
-  </g>
-  <g stroke="none" fill="currentColor" font-size="10" text-anchor="end">
-    <text x="66" y="83">full</text>
-    <text x="66" y="132.5">sliding</text>
-    <text x="66" y="154.5">sliding</text>
-  </g>
-  <g stroke-width="1">
-    <path d="M72 42V118M72 119V140M72 141V162"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.5">
-    <rect x="112" y="42" width="20" height="10"/>
-    <rect x="134" y="42" width="20" height="10"/>
-    <rect x="156" y="42" width="20" height="10"/>
-    <rect x="178" y="42" width="20" height="10"/>
-    <rect x="200" y="42" width="20" height="10"/>
-    <rect x="222" y="42" width="20" height="10"/>
-    <rect x="244" y="42" width="20" height="10"/>
-    <rect x="266" y="42" width="20" height="10"/>
-    <rect x="288" y="42" width="20" height="10"/>
-    <rect x="310" y="42" width="20" height="10"/>
-    <rect x="112" y="53" width="20" height="10"/>
-    <rect x="134" y="53" width="20" height="10"/>
-    <rect x="156" y="53" width="20" height="10"/>
-    <rect x="178" y="53" width="20" height="10"/>
-    <rect x="200" y="53" width="20" height="10"/>
-    <rect x="222" y="53" width="20" height="10"/>
-    <rect x="244" y="53" width="20" height="10"/>
-    <rect x="266" y="53" width="20" height="10"/>
-    <rect x="288" y="53" width="20" height="10"/>
-    <rect x="310" y="53" width="20" height="10"/>
-    <rect x="112" y="64" width="20" height="10"/>
-    <rect x="134" y="64" width="20" height="10"/>
-    <rect x="156" y="64" width="20" height="10"/>
-    <rect x="178" y="64" width="20" height="10"/>
-    <rect x="200" y="64" width="20" height="10"/>
-    <rect x="222" y="64" width="20" height="10"/>
-    <rect x="244" y="64" width="20" height="10"/>
-    <rect x="266" y="64" width="20" height="10"/>
-    <rect x="288" y="64" width="20" height="10"/>
-    <rect x="310" y="64" width="20" height="10"/>
-    <rect x="112" y="75" width="20" height="10"/>
-    <rect x="134" y="75" width="20" height="10"/>
-    <rect x="156" y="75" width="20" height="10"/>
-    <rect x="178" y="75" width="20" height="10"/>
-    <rect x="200" y="75" width="20" height="10"/>
-    <rect x="222" y="75" width="20" height="10"/>
-    <rect x="244" y="75" width="20" height="10"/>
-    <rect x="266" y="75" width="20" height="10"/>
-    <rect x="288" y="75" width="20" height="10"/>
-    <rect x="310" y="75" width="20" height="10"/>
-    <rect x="112" y="86" width="20" height="10"/>
-    <rect x="134" y="86" width="20" height="10"/>
-    <rect x="156" y="86" width="20" height="10"/>
-    <rect x="178" y="86" width="20" height="10"/>
-    <rect x="200" y="86" width="20" height="10"/>
-    <rect x="222" y="86" width="20" height="10"/>
-    <rect x="244" y="86" width="20" height="10"/>
-    <rect x="266" y="86" width="20" height="10"/>
-    <rect x="288" y="86" width="20" height="10"/>
-    <rect x="310" y="86" width="20" height="10"/>
-    <rect x="112" y="97" width="20" height="10"/>
-    <rect x="134" y="97" width="20" height="10"/>
-    <rect x="156" y="97" width="20" height="10"/>
-    <rect x="178" y="97" width="20" height="10"/>
-    <rect x="200" y="97" width="20" height="10"/>
-    <rect x="222" y="97" width="20" height="10"/>
-    <rect x="244" y="97" width="20" height="10"/>
-    <rect x="266" y="97" width="20" height="10"/>
-    <rect x="288" y="97" width="20" height="10"/>
-    <rect x="310" y="97" width="20" height="10"/>
-    <rect x="112" y="108" width="20" height="10"/>
-    <rect x="134" y="108" width="20" height="10"/>
-    <rect x="156" y="108" width="20" height="10"/>
-    <rect x="178" y="108" width="20" height="10"/>
-    <rect x="200" y="108" width="20" height="10"/>
-    <rect x="222" y="108" width="20" height="10"/>
-    <rect x="244" y="108" width="20" height="10"/>
-    <rect x="266" y="108" width="20" height="10"/>
-    <rect x="288" y="108" width="20" height="10"/>
-    <rect x="310" y="108" width="20" height="10"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.28">
-    <rect x="112" y="119" width="20" height="10"/>
-    <rect x="134" y="119" width="20" height="10"/>
-    <rect x="156" y="119" width="20" height="10"/>
-    <rect x="178" y="119" width="20" height="10"/>
-    <rect x="200" y="119" width="20" height="10"/>
-    <rect x="222" y="119" width="20" height="10"/>
-    <rect x="244" y="119" width="20" height="10"/>
-    <rect x="266" y="119" width="20" height="10"/>
-    <rect x="288" y="119" width="20" height="10"/>
-    <rect x="310" y="119" width="20" height="10"/>
-    <rect x="112" y="130" width="20" height="10"/>
-    <rect x="134" y="130" width="20" height="10"/>
-    <rect x="156" y="130" width="20" height="10"/>
-    <rect x="178" y="130" width="20" height="10"/>
-    <rect x="200" y="130" width="20" height="10"/>
-    <rect x="222" y="130" width="20" height="10"/>
-    <rect x="244" y="130" width="20" height="10"/>
-    <rect x="266" y="130" width="20" height="10"/>
-    <rect x="288" y="130" width="20" height="10"/>
-    <rect x="310" y="130" width="20" height="10"/>
-  </g>
-  <g fill="currentColor" fill-opacity="0.12">
-    <rect x="112" y="141" width="20" height="10"/>
-    <rect x="134" y="141" width="20" height="10"/>
-    <rect x="156" y="141" width="20" height="10"/>
-    <rect x="178" y="141" width="20" height="10"/>
-    <rect x="200" y="141" width="20" height="10"/>
-    <rect x="222" y="141" width="20" height="10"/>
-    <rect x="244" y="141" width="20" height="10"/>
-    <rect x="266" y="141" width="20" height="10"/>
-    <rect x="288" y="141" width="20" height="10"/>
-    <rect x="310" y="141" width="20" height="10"/>
-    <rect x="112" y="152" width="20" height="10"/>
-    <rect x="134" y="152" width="20" height="10"/>
-    <rect x="156" y="152" width="20" height="10"/>
-    <rect x="178" y="152" width="20" height="10"/>
-    <rect x="200" y="152" width="20" height="10"/>
-    <rect x="222" y="152" width="20" height="10"/>
-    <rect x="244" y="152" width="20" height="10"/>
-    <rect x="266" y="152" width="20" height="10"/>
-    <rect x="288" y="152" width="20" height="10"/>
-    <rect x="310" y="152" width="20" height="10"/>
-  </g>
+  <desc>A grid with a row for each of the request's eleven pages and a column for each of ten buffers. The first seven rows are the full group's pages, the next two are the first sliding group's and the last two are the second sliding group's, each set apart by a gap and a dimension line. A page is one piece in each buffer, so one page id names ten pieces. A buffer holds one layer of each of the three groups.</desc>
+  <rect width="360" height="235" fill="#fafaf6"/>
+  <text x="102" y="11" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">each buffer holds one layer of every group</text>
+  <g class="dim" data-value="10 buffers"><path d="M102 26v8M350 26v8M102 30H350" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="102" y="23" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">10 buffers</text>
+  <text x="113.5" y="45" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">0</text>
+  <text x="138.5" y="45" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">1</text>
+  <text x="163.5" y="45" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">2</text>
+  <text x="188.5" y="45" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">3</text>
+  <text x="213.5" y="45" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">4</text>
+  <text x="238.5" y="45" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">5</text>
+  <text x="263.5" y="45" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">6</text>
+  <text x="288.5" y="45" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">7</text>
+  <text x="313.5" y="45" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">8</text>
+  <text x="338.5" y="45" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="middle" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">9</text>
+  <text x="96" y="60" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">p0</text>
+  <g class="cell" data-slot="blue"><rect x="102" y="50" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="110" cy="56" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="127" y="50" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="135" cy="56" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="152" y="50" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="160" cy="56" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="177" y="50" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="185" cy="56" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="202" y="50" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="210" cy="56" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="227" y="50" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="235" cy="56" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="252" y="50" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="260" cy="56" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="277" y="50" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="285" cy="56" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="302" y="50" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="310" cy="56" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="327" y="50" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="335" cy="56" r="3.5" fill="#fafaf6"/></g></g>
+  <text x="96" y="73" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">p1</text>
+  <g class="cell" data-slot="blue"><rect x="102" y="63" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="110" cy="69" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="127" y="63" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="135" cy="69" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="152" y="63" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="160" cy="69" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="177" y="63" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="185" cy="69" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="202" y="63" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="210" cy="69" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="227" y="63" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="235" cy="69" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="252" y="63" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="260" cy="69" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="277" y="63" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="285" cy="69" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="302" y="63" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="310" cy="69" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="327" y="63" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="335" cy="69" r="3.5" fill="#fafaf6"/></g></g>
+  <text x="96" y="86" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">p2</text>
+  <g class="cell" data-slot="blue"><rect x="102" y="76" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="110" cy="82" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="127" y="76" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="135" cy="82" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="152" y="76" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="160" cy="82" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="177" y="76" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="185" cy="82" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="202" y="76" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="210" cy="82" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="227" y="76" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="235" cy="82" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="252" y="76" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="260" cy="82" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="277" y="76" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="285" cy="82" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="302" y="76" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="310" cy="82" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="327" y="76" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="335" cy="82" r="3.5" fill="#fafaf6"/></g></g>
+  <text x="96" y="99" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">p3</text>
+  <g class="cell" data-slot="blue"><rect x="102" y="89" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="110" cy="95" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="127" y="89" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="135" cy="95" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="152" y="89" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="160" cy="95" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="177" y="89" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="185" cy="95" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="202" y="89" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="210" cy="95" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="227" y="89" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="235" cy="95" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="252" y="89" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="260" cy="95" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="277" y="89" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="285" cy="95" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="302" y="89" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="310" cy="95" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="327" y="89" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="335" cy="95" r="3.5" fill="#fafaf6"/></g></g>
+  <text x="96" y="112" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">p4</text>
+  <g class="cell" data-slot="blue"><rect x="102" y="102" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="110" cy="108" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="127" y="102" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="135" cy="108" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="152" y="102" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="160" cy="108" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="177" y="102" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="185" cy="108" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="202" y="102" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="210" cy="108" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="227" y="102" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="235" cy="108" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="252" y="102" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="260" cy="108" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="277" y="102" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="285" cy="108" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="302" y="102" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="310" cy="108" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="327" y="102" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="335" cy="108" r="3.5" fill="#fafaf6"/></g></g>
+  <text x="96" y="125" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">p5</text>
+  <g class="cell" data-slot="blue"><rect x="102" y="115" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="110" cy="121" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="127" y="115" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="135" cy="121" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="152" y="115" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="160" cy="121" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="177" y="115" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="185" cy="121" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="202" y="115" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="210" cy="121" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="227" y="115" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="235" cy="121" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="252" y="115" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="260" cy="121" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="277" y="115" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="285" cy="121" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="302" y="115" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="310" cy="121" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="327" y="115" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="335" cy="121" r="3.5" fill="#fafaf6"/></g></g>
+  <text x="96" y="138" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">p6</text>
+  <g class="cell" data-slot="blue"><rect x="102" y="128" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="110" cy="134" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="127" y="128" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="135" cy="134" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="152" y="128" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="160" cy="134" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="177" y="128" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="185" cy="134" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="202" y="128" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="210" cy="134" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="227" y="128" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="235" cy="134" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="252" y="128" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="260" cy="134" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="277" y="128" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="285" cy="134" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="302" y="128" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="310" cy="134" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="327" y="128" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="335" cy="134" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="dim" data-value="full"><path d="M58 50h8M58 140h8M62 50V140" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="54" y="98.5" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">full</text>
+  <text x="96" y="158" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">p7</text>
+  <g class="cell" data-slot="blue"><rect x="102" y="148" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="110" cy="154" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="127" y="148" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="135" cy="154" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="152" y="148" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="160" cy="154" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="177" y="148" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="185" cy="154" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="202" y="148" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="210" cy="154" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="227" y="148" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="235" cy="154" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="252" y="148" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="260" cy="154" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="277" y="148" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="285" cy="154" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="302" y="148" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="310" cy="154" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="327" y="148" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="335" cy="154" r="3.5" fill="#fafaf6"/></g></g>
+  <text x="96" y="171" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">p8</text>
+  <g class="cell" data-slot="blue"><rect x="102" y="161" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="110" cy="167" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="127" y="161" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="135" cy="167" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="152" y="161" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="160" cy="167" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="177" y="161" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="185" cy="167" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="202" y="161" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="210" cy="167" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="227" y="161" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="235" cy="167" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="252" y="161" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="260" cy="167" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="277" y="161" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="285" cy="167" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="302" y="161" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="310" cy="167" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="327" y="161" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="335" cy="167" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="dim" data-value="sliding"><path d="M58 148h8M58 173h8M62 148V173" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="54" y="164" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">sliding</text>
+  <text x="96" y="191" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">p9</text>
+  <g class="cell" data-slot="blue"><rect x="102" y="181" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="110" cy="187" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="127" y="181" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="135" cy="187" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="152" y="181" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="160" cy="187" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="177" y="181" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="185" cy="187" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="202" y="181" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="210" cy="187" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="227" y="181" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="235" cy="187" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="252" y="181" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="260" cy="187" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="277" y="181" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="285" cy="187" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="302" y="181" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="310" cy="187" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="327" y="181" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="335" cy="187" r="3.5" fill="#fafaf6"/></g></g>
+  <text x="96" y="204" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">p10</text>
+  <g class="cell" data-slot="blue"><rect x="102" y="194" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="110" cy="200" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="127" y="194" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="135" cy="200" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="152" y="194" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="160" cy="200" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="177" y="194" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="185" cy="200" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="202" y="194" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="210" cy="200" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="227" y="194" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="235" cy="200" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="252" y="194" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="260" cy="200" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="277" y="194" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="285" cy="200" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="302" y="194" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="310" cy="200" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="cell" data-slot="blue"><rect x="327" y="194" width="23" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/><g class="glyph" data-slot="blue"><circle cx="335" cy="200" r="3.5" fill="#fafaf6"/></g></g>
+  <g class="dim" data-value="sliding"><path d="M58 181h8M58 206h8M62 181V206" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="54" y="197" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="end" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">sliding</text>
+  <g class="key" data-slot="blue"><rect x="4" y="215" width="16" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="glyph" data-slot="blue"><circle cx="12" cy="221" r="3.5" fill="#fafaf6"/></g>
+  <text x="24" y="225" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">one piece of a page</text>
 </svg>

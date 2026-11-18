@@ -27,7 +27,8 @@ import type { Seed } from '@es/sim/core'
 import { hostPreset } from '@es/sim/host'
 import { gpuLayers, sglangDecodeBuckets, vllmCaptureSizes } from '@es/sim/steploop'
 import type { BackendSupport, GraphModeId } from '@es/sim/steploop'
-import { closeDraft, CLOSE_COPY, darkPermille, HOUSE_DARK_PERMILLE, meetsThroughput, NAIVE_DARK_PERMILLE, withHouse } from './close'
+import { FULL_COPY } from './copy'
+import { closeDraft, darkPermille, HOUSE_DARK_PERMILLE, meetsThroughput, NAIVE_DARK_PERMILLE, withHouse } from './close'
 import { CARDS, nightOf, PRACTICE_PROMPTS, servingMode, tableOf } from './night'
 import type { Night } from './night'
 import { captureCost, histogramNight, optimalSizes } from './sizes'
@@ -63,11 +64,8 @@ export function defaultLevers(slots: number, budget: number): Levers {
 /** The modes a learner can ask for, in the order the panel lists them. */
 export const MODES: readonly GraphModeId[] = ['FULL_AND_PIECEWISE', 'FULL', 'FULL_DECODE_ONLY', 'PIECEWISE', 'NONE']
 
-/** The choices of the modes stage's prediction: the five modes, and none: the engine refuses, or its routines leave the night no room. */
-export const MODE_CHOICES: readonly string[] = ['FULL', 'FULL_AND_PIECEWISE', 'FULL_DECODE_ONLY', 'PIECEWISE', 'NONE', 'None serves: refused, or no room']
-
-/** The two answers of the mask: the allergy card fits inside the fire, or the line waits for it. */
-export const MASK_CHOICES: readonly string[] = ['It fits inside the fire: the line never waits for the card', 'It outlasts the fire: the line waits for the card']
+/** The modes stage's choices, in the order of its copy's options (`./copy.ts`): the five modes, and none: the engine refuses, or its routines leave the night no room. */
+export const MODE_CHOICES: readonly (GraphModeId | null)[] = ['FULL', 'FULL_AND_PIECEWISE', 'FULL_DECODE_ONLY', 'PIECEWISE', 'NONE', null]
 
 /** The grammar weights the mask level draws from, µs per bitmask row [estimated]: light ones fit a fire of 12 rows, heavy ones do not. */
 export const MASK_ROW_US = { fits: [40, 60, 80], late: [160, 200, 240] } as const
@@ -99,39 +97,9 @@ const MODES_DRAW: Readonly<Record<'FULL' | 'FULL_AND_PIECEWISE' | 'FULL_DECODE_O
   PIECEWISE: { support: ['UNIFORM_BATCH', 'UNIFORM_SINGLE_TOKEN_DECODE'], mib: [96, 120], mixed: true },
 }
 
-interface LevelDef {
-  readonly title: string
-  readonly prompt: string
-}
+const LEVELS: Readonly<Record<FullLevelId, true>> = { close: true, async: true, graphs: true, mrv2: true, mask: true }
 
-/*
- * The copy pairs the kitchen's word with the engine's term (GAMES.md §2.6, rule 2). It carries no digit, so no number goes untagged:
- * the cards and the tape print every figure as a Readout.
- */
-const DEFS: Readonly<Record<FullLevelId, LevelDef>> = {
-  close: { title: CLOSE_COPY.title, prompt: CLOSE_COPY.prompt },
-  async: {
-    title: 'Write during the fire',
-    prompt:
-      'Each fire the expo writes the next call and reads the last fire back. Write the next call during the fire (async scheduling) and the line need not wait. Serve the night on both cost cards.',
-  },
-  graphs: {
-    title: 'Drilled routines',
-    prompt:
-      'Calling each dish costs the expo one call per kernel; a drilled routine fires the whole fire with one word (a CUDA graph replay). Three stages: the comb, the mold rack and the modes.',
-  },
-  mrv2: {
-    title: 'The V2 runner',
-    prompt: 'The V2 runner sets up each fire from the rail itself (it prepares the inputs on the GPU), so the expo has less to write. Serve the night with each runner, on both cards.',
-  },
-  mask: {
-    title: 'The allergy card',
-    prompt:
-      'Every table tonight has an allergy: before a course is chosen, the expo strikes the dishes the table may not have (the structured-output mask). Does the card fit inside the fire?',
-  },
-}
-
-const isLevelId = (id: string): id is FullLevelId => Object.hasOwn(DEFS, id)
+const isLevelId = (id: string): id is FullLevelId => Object.hasOwn(LEVELS, id)
 
 /** Whether `id` is one of the full service's levels. */
 export const isFullLevel = (id: string): id is FullLevelId => isLevelId(id)
@@ -139,8 +107,6 @@ export const isFullLevel = (id: string): id is FullLevelId => isLevelId(id)
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The stages                                                                                                         */
 /* ------------------------------------------------------------------------------------------------------------------ */
-
-const TITLES: Readonly<Record<CardId, string>> = { '70b': '70B on H100', small: 'Small model' }
 
 function base(
   id: StageWorld['id'],
@@ -175,18 +141,13 @@ function asyncStage(card: CardId, seed: Seed): Draft {
   const off = { ...d, async: false }
   return {
     ...base(card, card, seed),
-    title: TITLES[card],
-    prompt:
-      card === '70b'
-        ? 'A 70B model on four H100s: long fires, and the expo\'s work per ticket is S5\'s host term. Serve the night with the next call written after the fire, then during it.'
-        : 'A small model: short fires, so the expo\'s writing is a large share of each. Serve the night with the next call written after the fire, then during it.',
     levers: ['async'],
     start: off,
     naive: off,
     house: d,
     metric: 'clock',
     slackPermille: CLOCK_SLACK,
-    prediction: { kind: 'number', question: 'With the next call written during the fire (async scheduling on), how long does each course take: the median TPOT, in µs?', unit: 'µs', tolerancePermille: 100 },
+    prediction: { kind: 'number', tolerancePermille: 100 },
   }
 }
 
@@ -195,15 +156,13 @@ function combStage(seed: Seed): Draft {
   const eager = { ...d, graphMode: 'NONE' as const }
   return {
     ...base('comb', 'small', seed),
-    title: 'The comb',
-    prompt: 'With no routine drilled, the expo calls every dish to the line one by one: the comb\'s teeth. Serve the night calling each dish, then with the routines drilled (graphs on).',
     levers: ['graphMode'],
     start: eager,
     naive: eager,
     house: d,
     metric: 'clock',
     slackPermille: CLOCK_SLACK,
-    prediction: { kind: 'number', question: 'Calling each dish, with no graph, how many calls does the expo make to launch one fire?', unit: 'calls', tolerancePermille: 0 },
+    prediction: { kind: 'number', tolerancePermille: 0 },
   }
 }
 
@@ -221,15 +180,13 @@ function sizesStage(seed: Seed): Draft {
   }
   const draft: Draft = {
     ...base('sizes', 'small', null),
-    title: 'The mold rack',
-    prompt: `The rack holds a few molds, the routines the line has time to drill. A fire drops into the smallest mold that holds it, its empty places padding; a bigger fire is called dish by dish. Choose tonight's molds.`,
     levers: ['capture'],
     start: { ...d, captureSizes: cut },
     naive: { ...d, captureSizes: cut },
     house: d,
     metric: 'capture',
     slackPermille: CAPTURE_SLACK,
-    prediction: { kind: 'number', question: "With vLLM's own sizes cut to the rack's molds, how many of tonight's fires are called dish by dish?", unit: 'fires', tolerancePermille: 0 },
+    prediction: { kind: 'number', tolerancePermille: 0 },
     sizes: world,
   }
   const table = tableOf({ ...draft, answer: 0, houseMetric: 0, houseTokens: 0 }, d)
@@ -256,15 +213,13 @@ function modesStage(seed: Seed): Draft {
   const { answer, support, graphBudget, mixed } = modesDraw(seed)
   return {
     ...base('modes', 'small', seed),
-    title: 'The modes',
-    prompt: `Tonight's attention backend replays graphs at support level ${support}, the reach-in spares the routines a little room, and ${mixed ? 'most fires mix a prompt with decodes' : 'most fires only decode'}. Ask for the mode that serves fastest.`,
     levers: ['graphMode'],
     start: levers,
     naive: { ...levers, graphMode: 'NONE' },
     house: { ...levers, graphMode: answer },
     metric: 'clock',
     slackPermille: CLOCK_SLACK,
-    prediction: { kind: 'choice', question: `Ask for FULL tonight: which mode serves the night?`, options: MODE_CHOICES },
+    prediction: { kind: 'choice' },
     support,
     graphBudget,
     outputs: mixed ? OUTPUTS.short : OUTPUTS.long,
@@ -276,18 +231,13 @@ function mrv2Stage(card: CardId, seed: Seed): Draft {
   const legacy = { ...d, runner: 'v1' as const }
   return {
     ...base(card, card, seed),
-    title: TITLES[card],
-    prompt:
-      card === 'small'
-        ? 'A small model, whose short fires leave the expo\'s work exposed. Serve the night on the legacy V1 runner, then on MRV2.'
-        : 'The 70B model, whose fires cook for long. Serve the night on the legacy V1 runner, then on MRV2.',
     levers: ['runner'],
     start: legacy,
     naive: legacy,
     house: d,
     metric: 'clock',
     slackPermille: CLOCK_SLACK,
-    prediction: { kind: 'number', question: 'How many µs of each course does the V2 runner save on this card (the median TPOT on V1, less on MRV2)?', unit: 'µs', tolerancePermille: 250 },
+    prediction: { kind: 'number', tolerancePermille: 250 },
     // On the 70B card the forward hides both runners' host work, so the runners tie: the stage is the prediction's.
     naiveFails: card === 'small',
   }
@@ -307,15 +257,13 @@ function maskStage(seed: Seed): Draft {
   const { rowUs } = maskDraw(seed)
   return {
     ...base('mask', 'small', seed),
-    title: 'The allergy card',
-    prompt: 'The engine\'s plain step (async scheduling off): the expo launches the fire, then writes the allergy card while the line cooks, or after. Serve it after the fire, then during it.',
     levers: ['maskOverlap'],
     start: { ...plain, maskOverlap: false },
     naive: { ...plain, maskOverlap: false },
     house: plain,
     metric: 'clock',
     slackPermille: CLOCK_SLACK,
-    prediction: { kind: 'choice', question: 'With the card written during the fire, does it fit inside the fire?', options: MASK_CHOICES },
+    prediction: { kind: 'choice' },
     structuredPermille: 1000,
     maskRowUs: rowUs,
   }
@@ -355,7 +303,7 @@ function answerOf(draft: Draft, house: Night, naive: Night): number {
     }
     case 'modes': {
       const mode = servingMode({ ...draft, answer: 0, houseMetric: 0, houseTokens: 0 }, { ...draft.house, graphMode: 'FULL' }).mode
-      return mode === null ? MODE_CHOICES.length - 1 : MODE_CHOICES.indexOf(mode)
+      return MODE_CHOICES.indexOf(mode)
     }
     case 'mask':
       return maskDraw(draft.workloadSeed ?? 0).late ? 1 : 0
@@ -370,15 +318,15 @@ function finish(draft: Draft): StageWorld {
   const probe = { ...draft, answer: 0, houseMetric: 0, houseTokens: 0 }
   const house = nightOf(probe, draft.house)
   const naive = nightOf(probe, draft.naive)
-  if (house === null || naive === null) throw new Error(`internal: the ${draft.id} stage's house or naive night is refused`)
+  if (house === null || naive === null) throw new Error(`internal: the ${draft.id} stage's reference or naive run is refused`)
   return { ...draft, answer: answerOf(draft, house, naive), houseMetric: house.metric, houseTokens: house.usefulTokens }
 }
 
 /** The level `id` on `seed`. Throws for a level the full service does not have. */
 export function buildFullLevel(id: string, seed: Seed): FullLevel {
-  if (!isLevelId(id)) throw new RangeError(`the full service has no level "${id}"`)
+  if (!isLevelId(id)) throw new RangeError(`the full step loop has no level "${id}"`)
   assertSeed(seed)
-  return { id, seed, title: DEFS[id].title, prompt: DEFS[id].prompt, stages: draftsOf(id, seed).map(finish) }
+  return { id, seed, stages: draftsOf(id, seed).map(finish) }
 }
 
 /** `a` is at least `b` times (1000 + permille) / 1000, in integers, and more than `b`: a night that costs nothing is beaten by none. */
@@ -457,4 +405,4 @@ export function inFullBand(id: string, seed: Seed): boolean {
 }
 
 /** The titles of the levels, for the registry's record and its test. */
-export const fullLevelTitle = (id: FullLevelId): string => DEFS[id].title
+export const fullLevelTitle = (id: FullLevelId): string => FULL_COPY[id].title

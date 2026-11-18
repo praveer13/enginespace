@@ -1,23 +1,30 @@
-import type { ReactNode } from 'react'
+import { useContext, useId, type ReactNode } from 'react'
+import { drawInBand } from '@es/play'
 import { CARD_COPY } from '@es/play/verifier/cards'
+import { VERIFIER_COPY } from '@es/play/verifier/copy'
 import { fracText } from '@es/play/verifier/ratio'
+import { verifierSession } from '@es/play/verifier/session'
 import type { SweepRowView, VerifierView } from '@es/play/verifier/types'
 import { Button } from '@/design/components/Button'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
 import { TextLink } from '@/design/components/TextLink'
-import { Ticket } from '@/design/components/Ticket'
 import { formatReadout } from '@/design/format'
-import { Fraction } from './Fraction'
+import { useBest } from '@/games/kit/best'
+import { Debrief as Result } from '@/games/kit/Debrief'
+import { LessonRunContext } from '@/games/kit/lessonRun'
+import { verdictOf } from '@/games/kit/verdict'
 import type { VerifierOutcome, VerifierRun } from './types'
 
 /*
- * The Tasting's debrief (GAMES.md §10, "Core loop" 5; §2.1): one sentence that says what the run did and what it names, the learner's
- * answer against the house's (the hidden reference, read only here), what the exact arithmetic says about the level, the one true thing,
- * and where the real engines stand. Every figure is a count of plates of a made-up world or a figure of its model, and carries its tag.
+ * The rejection sampler's result (GAMES.md §10, "Core loop" 5; §2.1; REDESIGN §2.6): the kit's debrief, filled. The verdict word from the
+ * grade, one sentence that says what the run did and what it names, the ways on (the next level first; in a lesson, the lesson's way on),
+ * your answer against the reference's (the hidden reference, read only here), what the exact arithmetic says about the level, the one true
+ * thing, and where the real engines stand. Every figure is a count out of 64 of a made-up world or a figure of its model, and carries its tag.
  *
- * The house is the ghost: its run plays the same seed by the book through the same reducer. The rules that look right and are not are the
- * wrong samplers of the bestiary (sim/spec), each one's exact distance from the chef's tasting on this very pair.
+ * The reference is the ghost: its run plays the same seed by the book through the same reducer. The rules that look right and are not are
+ * the wrong samplers of the bestiary (sim/spec), each one's exact distance from p on this very pair. This file prints fractions as text and
+ * imports nothing of the game's other files but types, so its chunk is loaded with the result and the route carries none of it.
  */
 
 export interface DebriefProps {
@@ -26,40 +33,39 @@ export interface DebriefProps {
   /** The level after this one, or null on the last. */
   next: { id: string; title: string } | null
   onNext: () => void
-  onPracticeAgain: () => void
-  /** A fresh in-band seed on the same level, still practice. */
-  onNewNumbers: () => void
-  /** A graded run on a fresh seed, for a level that can be graded. Null where it cannot. */
+  /** Inside a lesson: the ways on are the lesson's, and none of them leaves it. */
+  embedded?: boolean
+  /** A graded run on a fresh seed, for a level that can be graded in practice. Null where it cannot, or when this run is graded. */
   onGraded: (() => void) | null
 }
 
-/** The wrong rules, with the kitchen's word and the engine's term (GAMES.md §2.6, rule 2). */
+/** The wrong rules, in the engine's terms (GAMES.md §2.6, rule 2). */
 const RULE_NAME: Readonly<Record<string, ReactNode>> = {
-  'resample-from-p': 'Re-plate from p, the whole tasting',
-  'resample-from-q': 'Re-plate from q, the commis\'s plates',
-  'p-without-draft': 'Re-plate from p with the rejected dish taken out',
-  'residual-off-by-one': 'Re-plate from the residual, one dish along',
-  'accept-if-p-over-q': 'Keep a plate when p > q, with no coin',
-  'accept-everything': 'Keep every plate, with no verifier',
+  'resample-from-p': 'Resample from p, the whole target',
+  'resample-from-q': 'Resample from q, the draft',
+  'p-without-draft': 'Resample from p with the rejected token taken out',
+  'residual-off-by-one': 'Resample from the residual, one token along',
+  'accept-if-p-over-q': 'Accept when p > q, with no random draw',
+  'accept-everything': 'Accept every draft token, with no verifier',
 }
 
 /** The one true thing of each level, in a sentence (GAMES.md §10, "Module and concept"). */
 const TAKEAWAY: Readonly<Record<VerifierView['level'], string>> = {
-  overlap: 'The chef keeps the plates she and the commis agree on: the overlap of the two stacks, min(p, q), is the share of the commis\'s work she keeps, and it is α.',
+  overlap: 'The target accepts what it and the draft agree on: the overlap of the two distributions, min(p, q), is the share of the draft it accepts, and it is the acceptance rate α.',
   exact:
-    'Keep each draft with probability min(1, p ÷ q) and re-plate a rejection from the residual (p − q)⁺, and what goes out is the target\'s distribution exactly. Any other recipe, even a fair-looking one, leaves a bias, and the bias is a fact you can add up.',
+    'Accept each draft token with probability min(1, p ÷ q) and resample a rejection from the residual (p − q)⁺, and the output is the target\'s distribution exactly. Any other weights, even fair-looking ones, leave a bias, and the bias is a fact you can add up.',
   chain:
-    'A round serves the chef\'s own course plus every draft the walk reaches and keeps, so each position adds the product of the acceptances up to it. A longer run is worth only what the walk reaches.',
+    'A round yields the target\'s own token plus every draft token the walk reaches and accepts, so each position adds the product of the acceptances up to it. A longer draft is worth only what the walk reaches.',
   'greedy-ngram':
-    'At temperature zero speculation is a comparison: a draft is kept exactly when it is the target\'s arg max. A draft with no probabilities is a q with a single dish, and the same exact rule keeps it as often as p likes that dish and re-plates from p with it taken out.',
+    'At temperature zero speculation is a comparison: a draft token is accepted exactly when it is the target\'s arg max. A draft with no probabilities is a q with a single token, and the same exact rule accepts it as often as p likes that token and resamples from p with it taken out.',
   mutants:
-    'A rule is exact when its accept step keeps exactly min(p, q) of the q coins and its recovery is the residual. A sample cannot see a bias of one coin; counting the coins can, which is why the lab checks both.',
+    'A rule is exact when its accept step accepts exactly min(p, q) of the q draws and its resample is the residual. A sample cannot see a bias of one draw; checking every draw can, which is why the lab checks both.',
   gamma:
-    'A longer draft pays only while the chance the walk reaches its last plate, times the courses it adds, outweighs the cost every round pays for it. So the best draft length is not the longest.',
+    'A longer draft pays only while the chance the walk reaches its last token, times the tokens it adds, outweighs the cost every round pays for it. So the best draft length is not the longest.',
 }
 
 /** Where the real engines stand on the level's idea: facts of the claims, each with its source and the day it was read. */
-function Engines({ level }: { level: VerifierView['level'] }) {
+function Engines({ level, embedded }: { level: VerifierView['level']; embedded: boolean }) {
   const sampler = (
     <>
       vLLM&apos;s rejection sampler &quot;strictly follows&quot; the algorithm of{' '}
@@ -69,8 +75,8 @@ function Engines({ level }: { level: VerifierView['level'] }) {
   const body: ReactNode =
     level === 'mutants' ? (
       <>
-        A real exactness bug of this kind: SGLang pull request 35798, opened 2026-08-21, found a sampler that drew its coins from zero up to one but chose the bucket with{' '}
-        <code>coin &lt;= cumulative_probability</code>, which at a coin of exactly zero keeps a draft that the target rules out (claim sglang.spec.pr-35798, read 2026-11-04). {sampler}
+        A real exactness bug of this kind: SGLang pull request 35798, opened 2026-08-21, found a sampler that drew its random numbers from zero up to one but chose the bucket with{' '}
+        <code>coin &lt;= cumulative_probability</code>, which at a draw of exactly zero accepts a draft token that the target rules out (claim sglang.spec.pr-35798, read 2026-11-04). {sampler}
       </>
     ) : level === 'chain' || level === 'gamma' ? (
       <>
@@ -78,16 +84,19 @@ function Engines({ level }: { level: VerifierView['level'] }) {
       </>
     ) : (
       <>
-        {sampler} When every draft is kept, a bonus token is added, sampled from the target alone (claim vllm.spec.bonus-token, read 2026-11-04).
+        {sampler} When every draft token is accepted, a bonus token is added, sampled from the target alone (claim vllm.spec.bonus-token, read 2026-11-04).
       </>
     )
   return (
-    <Ticket as="section" width="full" hole={false} titleAs="h3" title="Where the engines stand" foot={['The real engines', 'not this world']}>
+    <section aria-label="In vLLM today" className="es-vf-engine">
+      <h4>In vLLM today</h4>
       <p>{body}</p>
-      <p className="text-text-2">
-        Next, build it: <TextLink to="/labs/rejection-sampler">the rejection-sampler lab</TextLink> drives your own sampler with seeded p, q and drafts and tests its output with the chi-square on twenty thousand rounds.
-      </p>
-    </Ticket>
+      {embedded ? null : (
+        <p className="text-text-2">
+          Next, build it: <TextLink to="/labs/rejection-sampler">the rejection-sampler lab</TextLink> drives your own sampler with seeded p, q and drafts and tests its output with the chi-square on twenty thousand rounds.
+        </p>
+      )}
+    </section>
   )
 }
 
@@ -113,25 +122,31 @@ function Table({ caption, columns, children }: { caption: string; columns: reado
 
 const cell = 'py-2 pr-4 border-b border-paper-rule'
 const num = (value: number, digits = 0) => <span className="font-numeric">{formatReadout(value, digits)}</span>
+const frac = (value: { num: number; den: number }, approx?: number) => (
+  <span className="font-numeric">
+    {fracText(value)}
+    {approx === undefined || value.num === 0 ? null : ` ≈ ${formatReadout(value.num / value.den, approx)}`}
+  </span>
+)
 
-/** The recipe against the house's, dish by dish. */
-function RecipeTable({ mine, house, dishes }: { mine: readonly number[]; house: readonly number[]; dishes: readonly string[] }) {
+/** The weights against the reference's, token by token. */
+function WeightsTable({ mine, reference, tokens }: { mine: readonly number[]; reference: readonly number[]; tokens: readonly string[] }) {
   return (
     <Table
-      caption="Your recipe against the house's"
+      caption="Your weights against the reference's"
       columns={[
-        { key: 'dish', head: 'Dish' },
+        { key: 'token', head: 'Token' },
         { key: 'yours', head: 'Yours (weights, synthetic)', numeric: true },
-        { key: 'house', head: 'The house (weights, synthetic)', numeric: true },
+        { key: 'reference', head: 'The reference (weights, synthetic)', numeric: true },
       ]}
     >
-      {dishes.map((name, x) => (
+      {tokens.map((name, x) => (
         <tr key={name}>
           <th scope="row" className={`${cell} text-left font-normal`}>
             {name}
           </th>
           <td className={`${cell} text-right`}>{num(mine[x])}</td>
-          <td className={`${cell} text-right`}>{num(house[x])}</td>
+          <td className={`${cell} text-right`}>{num(reference[x])}</td>
         </tr>
       ))}
     </Table>
@@ -141,11 +156,11 @@ function RecipeTable({ mine, house, dishes }: { mine: readonly number[]; house: 
 function SweepTable({ rows, pick }: { rows: readonly SweepRowView[]; pick: number }) {
   return (
     <Table
-      caption="Every draft length, in courses per tasting"
+      caption="Every draft length, in tokens per round"
       columns={[
-        { key: 'gamma', head: 'Plates ahead · γ' },
-        { key: 'courses', head: 'Courses a round (synthetic)', numeric: true },
-        { key: 'cost', head: 'A round costs (tastings, synthetic)', numeric: true },
+        { key: 'gamma', head: 'Draft length γ' },
+        { key: 'tokens', head: 'Tokens a round (synthetic)', numeric: true },
+        { key: 'cost', head: 'A round costs (target forwards, synthetic)', numeric: true },
         { key: 'speedup', head: 'Speedup (synthetic)', numeric: true },
         { key: 'note', head: 'Note' },
       ]}
@@ -169,13 +184,13 @@ function Facts({ run, outcome }: { run: VerifierRun; outcome: VerifierOutcome })
   const { view } = run
   const facts = view.final
   if (facts === null) return null
-  const house = outcome.ghostView
+  const reference = outcome.ghostView
   const first = view.rows[0]
   switch (view.level) {
     case 'overlap':
       return (
         <p>
-          You predicted <Readout value={view.prediction ?? 0} tag="synthetic" size="sm" /> plates. The chef keeps <Readout value={facts.alphaPlates ?? 0} tag="synthetic" size="sm" /> of the sixty-four
+          You predicted <Readout value={view.prediction ?? 0} tag="synthetic" size="sm" /> of 64. The target accepts <Readout value={facts.alphaPlates ?? 0} tag="synthetic" size="sm" /> of the 64
           {first?.alpha ? <> (α = {fracText(first.alpha)})</> : null}.
         </p>
       )
@@ -185,28 +200,34 @@ function Facts({ run, outcome }: { run: VerifierRun; outcome: VerifierOutcome })
         <>
           {view.level === 'greedy-ngram' && facts.favourite !== null ? (
             <p>
-              At temperature zero the chef sends the <strong>{view.dishes[facts.favourite]}</strong>, so the copier&apos;s plate is {facts.keptAtZero ? 'kept' : 'sent back'}. You said it was {view.judged ? 'kept' : 'sent back'}.
+              At temperature zero the target emits <strong>{view.dishes[facts.favourite]}</strong>, so the n-gram&apos;s token is {facts.keptAtZero ? 'accepted' : 'rejected'}. You said it was {view.judged ? 'accepted' : 'rejected'}.
             </p>
           ) : null}
           <dl className="es-vf-facts">
+            {facts.worst !== null ? (
+              <div data-vf-furthest="">
+                <dt>The token furthest out</dt>
+                <dd>
+                  <strong>{view.dishes[facts.worst]}</strong>
+                </dd>
+              </div>
+            ) : null}
             <div>
-              <dt>Your recipe&apos;s distance from her tasting</dt>
-              <dd>{view.meter !== null ? <Fraction value={view.meter.tv} size="sm" approx={3} /> : 'no recipe'}</dd>
+              <dt>Your weights&apos; distance from p</dt>
+              <dd>{view.meter !== null ? frac(view.meter.tv, 3) : 'no weights'}</dd>
             </div>
             <div>
-              <dt>The house&apos;s recipe</dt>
-              <dd>
-                <Fraction value={{ num: 0, den: 1 }} size="sm" />
-              </dd>
+              <dt>The reference&apos;s weights</dt>
+              <dd>{frac({ num: 0, den: 1 })}</dd>
             </div>
           </dl>
-          <RecipeTable mine={view.weights} house={house.weights} dishes={view.dishes} />
+          <WeightsTable mine={view.weights} reference={reference.weights} tokens={view.dishes} />
           {facts.rules !== null && facts.rules.length > 0 ? (
             <Table
               caption="Rules that look right and are not, on this very pair"
               columns={[
                 { key: 'rule', head: 'The rule' },
-                { key: 'tv', head: 'Distance from her tasting', numeric: true },
+                { key: 'tv', head: 'Distance from p', numeric: true },
               ]}
             >
               {facts.rules.map((rule) => (
@@ -214,9 +235,7 @@ function Facts({ run, outcome }: { run: VerifierRun; outcome: VerifierOutcome })
                   <th scope="row" className={`${cell} text-left font-normal`}>
                     {RULE_NAME[rule.id] ?? rule.id}
                   </th>
-                  <td className={`${cell} text-right`}>
-                    <Fraction value={rule.tv} size="sm" approx={3} />
-                  </td>
+                  <td className={`${cell} text-right`}>{frac(rule.tv, 3)}</td>
                 </tr>
               ))}
             </Table>
@@ -227,9 +246,9 @@ function Facts({ run, outcome }: { run: VerifierRun; outcome: VerifierOutcome })
       return (
         <>
           <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-            <span>A round serves</span>
+            <span>A round yields</span>
             {facts.tokens !== null ? <Readout value={facts.tokens.num / facts.tokens.den} digits={3} tag="derived" size="sm" /> : null}
-            <span>courses on average, exactly {facts.tokens === null ? '' : fracText(facts.tokens)}. You predicted</span>
+            <span>tokens on average, exactly {facts.tokens === null ? '' : fracText(facts.tokens)}. You predicted</span>
             <Readout value={(view.prediction ?? 0) / 1000} digits={3} tag="synthetic" size="sm" />
           </p>
           {facts.naive !== null ? (
@@ -250,7 +269,7 @@ function Facts({ run, outcome }: { run: VerifierRun; outcome: VerifierOutcome })
             { key: 'card', head: 'Card' },
             { key: 'yours', head: 'You named it' },
             { key: 'truth', head: 'The bug' },
-            { key: 'tv', head: 'Distance from her tasting', numeric: true },
+            { key: 'tv', head: 'Distance from p', numeric: true },
           ]}
         >
           {facts.truth.map((row, i) => {
@@ -262,9 +281,7 @@ function Facts({ run, outcome }: { run: VerifierRun; outcome: VerifierOutcome })
                 </th>
                 <td className={cell}>{named === null ? 'not named' : `${CARD_COPY[named].bug}${named === row.bug ? ' (right)' : ''}`}</td>
                 <td className={cell}>{CARD_COPY[row.bug].bug}</td>
-                <td className={`${cell} text-right`}>
-                  <Fraction value={row.tv} size="sm" approx={4} />
-                </td>
+                <td className={`${cell} text-right`}>{frac(row.tv, 4)}</td>
               </tr>
             )
           })}
@@ -273,43 +290,78 @@ function Facts({ run, outcome }: { run: VerifierRun; outcome: VerifierOutcome })
   }
 }
 
-export function Debrief({ run, outcome, next, onNext, onPracticeAgain, onNewNumbers, onGraded }: DebriefProps) {
+/** The learner's best on this level, from the ledger's runs of it. Rendered only on a page that has a ledger. */
+function Best({ level }: { level: string }) {
+  const best = useBest('verifier', level)
+  if (best === null) return null
+  return (
+    <>
+      {' '}
+      Your best on this level: <span className="font-numeric">{best.score.toFixed(2)}</span> ({num(best.runs)} {best.runs === 1 ? 'run' : 'runs'} kept).
+    </>
+  )
+}
+
+/** A fresh seed the level's band accepts, from the browser's entropy: unseen, not secret. */
+const drawFresh = (level: string): number => drawInBand(verifierSession, level, crypto.getRandomValues(new Uint32Array(1))[0])
+
+export function Debrief({ run, outcome, next, onNext, embedded = false, onGraded }: DebriefProps) {
+  const againId = useId()
   const { view } = run
   const { debrief, grade } = outcome
+  const verdict = verdictOf(grade, VERIFIER_COPY[view.level].passRule !== undefined)
+  const newNumbers = () => run.restart(drawFresh(view.level))
+  // In a lesson, the lesson's way on leads the result, and none of the ways on leaves the lesson.
+  const lesson = useContext(LessonRunContext)
+  const onward = lesson?.onward ?? null
+
+  const primary =
+    onward !== null ? (
+      <PrimaryButton onClick={() => onward.select()}>
+        {onward.label}
+      </PrimaryButton>
+    ) : next !== null ? (
+      <PrimaryButton onClick={onNext}>
+        {`Next level: ${next.title}`}
+      </PrimaryButton>
+    ) : embedded ? null : (
+      <TextLink to="/map">Open the course</TextLink>
+    )
+
   return (
-    <div className="flex max-w-3xl flex-col gap-6" data-verifier-debrief="">
-      <Ticket
-        as="section"
-        width="full"
-        hole={false}
-        titleAs="h3"
-        title={grade.ok ? 'Well tasted.' : 'Taste it again.'}
-        foot={['Debrief', view.title]}
-        stub={next === null ? <Stub to="/map">Open the course map</Stub> : <Stub onClick={onNext}>{`Next: ${next.title}`}</Stub>}
-      >
-        <p className="es-type-body">{debrief.sentence}</p>
-        <Facts run={run} outcome={outcome} />
-      </Ticket>
-
-      <section aria-label="What to take away" className="flex flex-col gap-2">
-        <p className="es-type-body max-w-prose">{TAKEAWAY[view.level]}</p>
-      </section>
-
-      <Engines level={view.level} />
-
-      <div className="flex flex-wrap items-center gap-4">
-        <Button variant="plate" onClick={onPracticeAgain}>
-          Play this level again
-        </Button>
-        <Button variant="plate" onClick={onNewNumbers}>
-          New numbers
-        </Button>
-        {onGraded === null ? null : (
-          <Button variant="ink" onClick={onGraded}>
-            Start a graded run
+    <Result
+      className="es-vf-debrief"
+      verdict={verdict}
+      sentence={debrief.sentence}
+      actions={
+        <>
+          {primary}
+          <Button variant="quiet" aria-describedby={againId} onClick={() => (run.mode === 'graded' ? newNumbers() : run.restart())}>
+            Run again
           </Button>
-        )}
+          <Button variant="quiet" onClick={newNumbers}>
+            New numbers
+          </Button>
+          {onGraded === null ? null : (
+            <Button variant="quiet" onClick={onGraded}>
+              Start a graded run
+            </Button>
+          )}
+        </>
+      }
+    >
+      <div className="es-vf-debrief__body" data-verifier-debrief="">
+        <p id={againId} data-run-again="">
+          <strong>Run again:</strong> the level asks the same question on {run.mode === 'graded' ? 'fresh numbers' : 'the same numbers'}; New numbers draws a fresh pair of distributions.
+          {run.ledger ? <Best level={view.level} /> : null}
+        </p>
+        <p className="es-vf-debrief__stamp">The figures below are of a made-up world.</p>
+        <Facts run={run} outcome={outcome} />
+        <p className="es-type-body max-w-prose" data-vf-takeaway="">
+          {TAKEAWAY[view.level]}
+        </p>
+        <Engines level={view.level} embedded={embedded} />
       </div>
-    </div>
+    </Result>
   )
 }

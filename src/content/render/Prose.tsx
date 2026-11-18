@@ -1,7 +1,6 @@
+import type { ReactNode } from 'react'
 import type { ProseFlow, ProseInline } from '@es/schema'
 import { TextLink } from '@/design/components/TextLink'
-import { ClaimChip } from './ClaimChip'
-import './content.css'
 import { kernelspaceLabel, kernelspaceUrl, plainText, type RenderEnv } from './model'
 import { TagChip } from './TagChip'
 
@@ -21,7 +20,79 @@ export function Prose({ body, env }: { body: readonly ProseFlow[]; env: RenderEn
 
 /** A line of prose: its text, emphasis, code, links, claims and tags. */
 export function Inline({ nodes, env }: { nodes: readonly ProseInline[]; env: RenderEnv }) {
+  if (env.marks !== undefined) return <Marked nodes={nodes} env={env} />
   return nodes.map((node, at) => <Span key={at} node={node} env={env} />)
+}
+
+/** The last number in a run of text, with what comes before and after it: what a tag that follows the text is about. */
+const LAST_NUMBER = /^([\s\S]*?)(\d(?:[\d,.]*\d)?%?)(\D*)$/
+/** Text that ends a sentence: a claim after it is the sentence's source. */
+const SENTENCE_END = /[.!?:;]['")]*\s*$/
+/** The last word of a run of text, which a claim's mark is kept on one line with. */
+const LAST_WORD = /^([\s\S]*?)(\S+)\s*$/
+
+/**
+ * A line on a lesson page (REDESIGN §2.5, P6): a claim is a numbered mark kept on one line with the word before it, and a tag is no chip:
+ * the number it follows carries a dotted underline and the tag as hidden text, and it is not a tab stop.
+ */
+function Marked({ nodes, env }: { nodes: readonly ProseInline[]; env: RenderEnv }) {
+  const out: ReactNode[] = []
+  nodes.forEach((node, at) => {
+    const next = nodes[at + 1]
+    const prev = nodes[at - 1]
+    if (node.type === 'text' && next?.type === 'tag') {
+      // "window [estimated]." keeps no space before its stop once the tag is hidden.
+      const tight = nodes[at + 2]?.type === 'text' && /^[.,;:)]/.test((nodes[at + 2] as { text: string }).text)
+      const match = LAST_NUMBER.exec(node.text)
+      if (match === null) out.push(tight ? node.text.trimEnd() : node.text, <span key={`t${at}`} className="sr-only">{` (${next.tag})`}</span>)
+      else
+        out.push(
+          match[1],
+          <span key={`n${at}`} className="es-num" data-tag={next.tag}>
+            {match[2]}
+            <span className="sr-only">{` (${next.tag})`}</span>
+          </span>,
+          tight ? match[3].trimEnd() : match[3],
+        )
+      return
+    }
+    // A claim after a full stop is the source of the sentence before it: its mark alone. Anywhere else it is a value in the sentence.
+    if (node.type === 'text' && next?.type === 'claim' && SENTENCE_END.test(node.text)) {
+      const match = LAST_WORD.exec(node.text)
+      if (match !== null) {
+        out.push(
+          match[1],
+          <span key={`w${at}`} className="es-claimed">
+            {match[2]}
+            {env.claim?.(next.id, false)}
+          </span>,
+        )
+        return
+      }
+    }
+    if (node.type === 'tag') {
+      if (prev?.type !== 'text') out.push(<span key={at} className="sr-only">{` (${node.tag})`}</span>)
+      return
+    }
+    if (node.type === 'claim') {
+      if (prev?.type === 'text' && SENTENCE_END.test(prev.text) && LAST_WORD.test(prev.text)) return
+      // A claim that follows another claim's mark, with only a space between, is a second source of the same sentence: a mark too, and never
+      // its value set loose after the stop (the walks' trip: "...once the data is there. 1 a copy between the CPU and the GPU synchronizes 2").
+      const before = prev?.type === 'text' && /^\s*$/.test(prev.text) ? nodes[at - 2] : prev
+      if (before?.type === 'claim') {
+        out.push(
+          <span key={at} className="es-claimchain">
+            {env.claim?.(node.id, false)}
+          </span>,
+        )
+        return
+      }
+      out.push(<span key={at}>{env.claim?.(node.id, true)}</span>)
+      return
+    }
+    out.push(<Span key={at} node={node} env={env} />)
+  })
+  return out
 }
 
 function Flow({ node, env }: { node: ProseFlow; env: RenderEnv }) {
@@ -126,7 +197,7 @@ function Span({ node, env }: { node: ProseInline; env: RenderEnv }) {
     case 'link':
       return <Href href={node.href} nodes={node.children} env={env} />
     case 'claim':
-      return <ClaimChip id={node.id} env={env} />
+      return env.claim === undefined ? <code data-claim={node.id}>{node.id}</code> : env.claim(node.id)
     case 'tag':
       return <TagChip tag={node.tag} />
     case 'ks': {

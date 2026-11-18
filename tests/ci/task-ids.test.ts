@@ -31,6 +31,11 @@ describe('TASK_ID', () => {
     expect(whole.test('W2b-T01')).toBe(true)
   })
 
+  test('reads the tasks of wave R, the redesign, whose wave is the letter R alone (D-068)', () => {
+    for (const id of ['R-T01', 'R-T20', 'R-T50']) expect([id, whole.test(id)]).toEqual([id, true])
+    for (const id of ['R-T1', 'R-T100', 'Rb-T01', 'R1-T01', 'r-T01', 'WR-T01']) expect([id, whole.test(id)]).toEqual([id, false])
+  })
+
   test('refuses what is not an id: a task number of one digit or of three, a wave with another letter, lower case, and a part alone', () => {
     for (const id of ['W1-T1', 'W1b-T8', 'W1b-T100', 'W1c-T01', 'W1bb-T01', 'w1b-T01', 'W1B-T01', 'W1b-t01', 'W-T01', 'W1b', 'T01', 'W1b-T01 · x'])
       expect([id, whole.test(id)]).toEqual([id, false])
@@ -52,6 +57,14 @@ describe('the headings of TRACKER.md', () => {
     const ids = headings.map(({ id }) => id)
     expect(new Set(ids).size).toBe(ids.length)
     expect([...trackerTasks().keys()]).toEqual(ids)
+  })
+
+  test('hold the fifty tasks of wave R in order, each with the size, model and deps of docs/waves/wr-tasks.json', () => {
+    const plan = JSON.parse(read('docs/waves/wr-tasks.json')) as { id: string; title: string; size: string; model: string; deps: string[] }[]
+    expect(plan.length).toBe(50)
+    expect(headings.map(({ id }) => id).filter((id) => id.startsWith('R-'))).toEqual(plan.map((task) => task.id))
+    const lines = [...tracker.matchAll(/^#### \[.\] (R-T\d\d · .*)$/gm)].map((match) => match[1])
+    expect(lines).toEqual(plan.map((task) => `${task.id} · ${task.title} · ${task.size} · ${task.model} · deps: ${task.deps.length > 0 ? task.deps.join(', ') : '—'}`))
   })
 
   test('hold the sixteen tasks of W1b, which the pattern of before did not read', () => {

@@ -26,7 +26,7 @@ describe('the games', () => {
   })
 
   test('are the ids of GAMES.md §0, in the same set', () => {
-    const rows = tableRows(between(read('docs/GAMES.md'), '## 0. The games on one screen', 'A learner sees the display name'))
+    const rows = tableRows(between(read('docs/GAMES.md'), '## 0. The games on one screen', 'A learner sees the title'))
     expect(rows.map(([id]) => backticked(id)[0]).sort()).toEqual([...GAME_IDS].sort())
   })
 })

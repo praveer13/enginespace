@@ -31,7 +31,7 @@ export const DEFAULT_HOST_TERM: S5HostTerm = D044.placement
 export function s5Card(key: PhysicsRowKey, tp: number, hostTerm: S5HostTerm = DEFAULT_HOST_TERM): S5GpuCard {
   if (!Number.isSafeInteger(tp) || tp < 1) throw new RangeError(`tp must be an integer of at least 1, got ${tp}`)
   const row = physicsRow(key)
-  const where = hostTerm === 'on-cpu' ? `host term on the CPU lane (${D044.id}, ${D044.status})` : 'host term inside the GPU step, as S5 fitted it'
+  const where = hostTerm === 'on-cpu' ? 'host term on the CPU lane, a placement not yet confirmed' : 'host term inside the GPU step, as S5 fitted it'
   return Object.freeze({ kind: 's5', label: `${row.label} · TP ${tp} · ${where}`, tag: 'derived', synthetic: false, spec: row.spec, tp, hostTerm })
 }
 

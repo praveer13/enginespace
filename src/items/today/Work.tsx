@@ -5,8 +5,8 @@ import { seenKey } from '@es/play/items/attempt'
 import type { Answered } from '@es/play/items/attempt'
 import { LEVEL_NAMES } from '@es/play/items/types'
 import type { Confidence, Gen, Response } from '@es/play/items/types'
-import { Stub } from '@/design/components/Stub'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
+import { Sheet } from '@/design/components/Sheet'
 import { useEvidence } from '@/evidence/useEvidence'
 import { Givens, Question, Reveal, SurePlates, Unsaved, Worked } from '../Attempt'
 import { parseNumber, seedLabel } from '../answer'
@@ -23,14 +23,14 @@ import { ratingOf, reviewDraft } from './review'
 import type { Line } from './session'
 
 /*
- * The ticket being prepped: one order ticket for one line of the list, on a seed drawn now. It is the item
- * block's ticket (src/items/Attempt.tsx): the question and its numbers, a slip or ticked lines for the answer, three plates for how
- * sure, a stub to check it, and the reveal below the perforation. Checking it is final, as it is in a lesson, and writes a `review:<kc>`
- * event with the FSRS grade (review.ts). The reveal then adds the one line the item block has no use for: the day the idea comes back.
+ * The question being asked: one question for one idea of the set, on a seed drawn now. It is the question frame of a lesson's Test
+ * (src/items/Attempt.tsx): "Question 3 of 6", the stem and its numbers, the answer field or radio choices, how sure, and Check answer,
+ * which is the sticky bar at the foot of a phone's screen. Checking is final, as it is in a lesson, and writes a `review:<kc>` event with
+ * the FSRS grade (review.ts). The reveal then adds the one line the lesson's has no use for: the day the idea comes back.
  *
- * The component is keyed by the line's place in the list, so each ticket starts clean, and it takes its entropy from outside: the page
- * reads `crypto.getRandomValues` when it starts the prep and when it moves to the next ticket (ARCHITECTURE §8.2). It takes the family's
- * code from outside too: the page loads it when the ticket comes up (src/items/families.ts, D-059).
+ * The component is keyed by the line's place in the set, so each question starts clean, and it takes its entropy from outside: the page
+ * reads `crypto.getRandomValues` when it starts the review and when it moves to the next question (ARCHITECTURE §8.2). It takes the
+ * family's code from outside too: the page loads it when the question comes up (src/items/families.ts, D-059).
  */
 
 export interface WorkProps {
@@ -51,6 +51,9 @@ export interface WorkProps {
   gen: Gen
 }
 
+/** "Comes back Fri 20 Nov." The day this idea is asked again, which the model sets from the answer. */
+const nextBack = (day: LocalDay): string => `This idea comes back ${formatDay(day)}.`
+
 export default function Work({ line, index, total, entropy, met, card, today, last, onChecked, onNext, gen }: WorkProps) {
   const evidence = useEvidence()
   if (gen.id !== line.family) throw new Error(`the line is served by the family "${line.family}", and the ticket was given "${gen.id}"`)
@@ -67,7 +70,7 @@ export default function Work({ line, index, total, entropy, met, card, today, la
   const count = useRef<HTMLHeadingElement>(null)
   const verdict = useRef<HTMLHeadingElement>(null)
 
-  // The ticket that has come up takes focus: the stub that was pulled has gone, and a keyboard would be left behind. After a check, the verdict does.
+  // The question that has come up takes focus: the button that was pressed has gone, and a keyboard would be left behind. After a check, the verdict does.
   useEffect(() => {
     count.current?.focus()
   }, [])
@@ -84,13 +87,13 @@ export default function Work({ line, index, total, entropy, met, card, today, la
     if (spec.kind === 'numeric') {
       const value = parseNumber(text, spec.unit)
       if (value === null) {
-        setProblem(`Write a number, in ${spec.unit}, and then check the ticket.`)
+        setProblem(`Write a number, in ${spec.unit}, then check it.`)
         return
       }
       response = { kind: 'numeric', value }
     } else {
       if (pick === null) {
-        setProblem('Tick one line, and then check the ticket.')
+        setProblem('Choose one answer, then check it.')
         return
       }
       response = { kind: 'choice', pick }
@@ -114,9 +117,9 @@ export default function Work({ line, index, total, entropy, met, card, today, la
 
   const revealed = answered !== null
   return (
-    <Ticket
+    <Sheet
       as="section"
-      className="es-c-block es-prep__ticket"
+      className="es-c-block es-prep__ticket es-prep__work"
       data-block="item"
       data-phase={revealed ? 'revealed' : 'asking'}
       data-kc={line.kc}
@@ -126,18 +129,14 @@ export default function Work({ line, index, total, entropy, met, card, today, la
       data-kind={item.answer.kind}
       data-rev={item.rev}
       data-ok={revealed ? String(answered.grade.ok) : undefined}
-      width="wide"
-      head={<span aria-hidden="true">Prep list</span>}
-      meta={line.kc}
-      title={gen.title}
-      titleAs="h2"
+      width="full"
       lamp={!revealed}
-      foot={[`seed ${seedLabel(item.seed)}`, 'unseen']}
-      stub={revealed ? <Stub onClick={onNext}>{last ? FINISH_PREP : NEXT_TICKET}</Stub> : <Stub onClick={check}>{CHECK_TICKET}</Stub>}
+      foot={[`Seed ${seedLabel(item.seed)}`, 'new numbers']}
+      stub={revealed ? <PrimaryButton onClick={onNext}>{last ? FINISH_PREP : NEXT_TICKET}</PrimaryButton> : <PrimaryButton onClick={check}>{CHECK_TICKET}</PrimaryButton>}
     >
-      <h3 className="es-item__count" tabIndex={-1} ref={revealed ? undefined : count}>
+      <h2 className="es-item__count" tabIndex={-1} ref={revealed ? undefined : count}>
         <span>{placeLine(index, total)}</span> <span className="es-item__level">{LEVEL_NAMES[item.level]}</span>
-      </h3>
+      </h2>
       <p className="es-item__stem">
         <RichText parts={item.stem} />
       </p>
@@ -168,14 +167,12 @@ export default function Work({ line, index, total, entropy, met, card, today, la
           headingRef={verdict}
           after={
             back === null ? null : (
-              <p className="es-prep__back">
-                <TicketLine note={formatDay(back)}>comes back</TicketLine>
-              </p>
+              <p className="es-prep__back">{nextBack(back)}</p>
             )
           }
         />
       ) : null}
       {unsaved === null ? null : <Unsaved detail={unsaved} />}
-    </Ticket>
+    </Sheet>
   )
 }

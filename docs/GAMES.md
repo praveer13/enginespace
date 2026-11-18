@@ -1,11 +1,11 @@
 # enginespace: the games
 
-**Status:** a design for the owner's review, dated 2026-11-03. Nothing here is built.
+**Status:** a design dated 2026-11-03, kept current with the build by wave R (R-T49, 2026-11-17). Five games are built: step loop, request path, KV page pool, rejection sampler and broken benchmark. The other four (tensor views, trace attribution, backend dispatch and KV offload) are still designs, and their sections say so. Where a section describes a built game, it describes the scene, the cameras and the materials as built; the rules, levels and scoring are the design's and did not change.
 
 **What this file owns.** It designs every game: the rule, the levels and seeds, scoring, the scenes, the 2D paths, the budgets and the pure session APIs. Three neighbours own the rest:
 - [ARCHITECTURE.md](ARCHITECTURE.md) §5-§6 owns the framework the games run on: `packages/sim`, `packages/play`, the scene kit, device tiers, input, accessibility mechanics and bundle budgets. This file uses its game ids and its kit, and §13 lists every place where it proposes a change.
 - ASSESSMENT.md (written in parallel) owns credit: provenance weights and final pass bars. The pass conditions below are the games' proposals to it.
-- The look is The Pass, a restaurant line kitchen and its expo pass (D-047). Its direction contract sits in the front page's surface brief, `.impeccable/surfaces/src-front-frontpage-tsx.md`; the design system applies it (W0-T05), and DESIGN.md documents it at the end of W0 (W0-T25). This file describes scenes, objects, cameras and interactions, and §2.6 names them in the kitchen. Where a state must stand out it says *emphasis*, and the design system decides what emphasis looks like.
+- The look is Data Book (D-062, which replaces The Pass, D-047, and is the owner's choice of 2026-11-16 at the look gate): the engine drawn as its engineers draw it. Its direction contract sits in the front page's surface brief, `.impeccable/surfaces/src-front-frontpage-tsx.md`, and the design system applies it. This file describes scenes, objects, cameras and interactions, and §2.6 gives the rules that name and draw them: the engine's term is the only name (D-063). Where a state must stand out it says *emphasis*, and the design system decides what emphasis looks like.
 
 **Sources.**
 - `PRODUCT.md` (owner-confirmed 2026-11-03), [DECISIONS.md](DECISIONS.md) D-001 to D-049.
@@ -27,26 +27,26 @@ A table whose numbers share one tag says so in its header or caption.
 
 ## 0. The games on one screen
 
-Nine games: six in 3D, three in 2D. The Loop is one game that the front page opens and TR2 continues, so a visitor's first minute and TR2's graded levels run the same model.
+Nine games: five in 3D, four in 2D. The step loop is one game that the front page opens and TR2 continues, so a visitor's first minute and TR2's graded levels run the same model.
 
-| Id | Display name (D-049) | Game | Module | The rule (= the concept) | View | Graded levels (fresh seeds) | Size |
-|---|---|---|---|---|---|---|---|
-| `loop` | **Service** · *the step loop* | **The Loop** | front page; TR2; TR6's mask lane | Adding a request to a decode step costs the GPU little, so the loop wins by keeping every slot live and never making the GPU wait for the CPU. CUDA graphs pad each step to a captured size or fall back to launches. | 3D, flagship | TR2: capture sizes, modes, "close the bubbles"; TR6: mask lane | L + L |
-| `shape-shifter` | **Sheet Pan** · *tensor views and copies* | **Shape Shifter** | TR0 | A tensor is a buffer plus shape and strides: views move nothing, a copy moves everything. | 3D | fewest copies; grid coverage | M |
-| `engine-floor` | **Back of House** · *a request's lifecycle* | **The Engine Floor** | TR1 | Data crosses a boundary only through the mechanism that crosses it: a queue between threads, IPC between processes, a copy between host and GPU, a sync before reading an async result. | 3D | the lifecycle map, span-checked | M |
-| `gap-hunt` | **The Tape** · *trace attribution* | **Gap Hunt** | TR3; capstone | A GPU gap is an empty launch queue, and every ns of a step belongs to exactly one category. | 2D | attribution of synthetic, then pinned, traces | M |
-| `dispatch` | **Line Check** · *attention backend selection* | **Dispatch** | TR4 | The engine takes the first backend in its order whose support covers the model and GPU. | 2D | backend picks on fresh feature cards | S |
-| `pool` | **The Reach-In** · *hybrid KV pages and adapters* | **The Pool** | TR5a | One page pool serves every KV group and every adapter. A prefix hit counts only where every group holds it. | 3D, flagship | eviction, adapters, the full manager | L |
-| `switchyard` | **The Dumbwaiter** · *KV offload, connector and events* | **The Switchyard** | TR5b | A block may be read only after its load lands, freed only after its save completes, and every move is published in an order a consumer can replay. | 3D | yard master; event conformance | M |
-| `verifier` | **The Tasting** · *speculative decoding's verifier* | **The Verifier** | TR6 | Accept a draft with probability min(1, p/q) and recover from (p − q)⁺, and the output is p exactly. | 3D, flagship | make it exact; the chain; how long a draft | M |
-| `broken-bench` | **The Inspection** · *benchmark methodology* | **Broken Bench** | TR8 | Latency counts from when a request was due, and a percentile is only as good as its sample. | 2D (optional 3D opener) | the court: five mixed cases | M (+S) |
+| Id | Title · subtitle (D-063) | Module | The rule (= the concept) | View | Graded levels (fresh seeds) | Size |
+|---|---|---|---|---|---|---|
+| `loop` | **Step loop** · *Keep every slot live, and never make the GPU wait for the CPU.* | front page; TR2; TR6's mask lane | Adding a request to a decode step costs the GPU little, so the loop wins by keeping every slot live and never making the GPU wait for the CPU. CUDA graphs pad each step to a captured size or fall back to launches. | 3D and 2D, built | TR2: capture sizes, modes, "close the bubbles"; TR6: mask lane | L + L |
+| `shape-shifter` | **Tensor views** · *A view relabels the buffer. A copy moves every element.* | TR0 | A tensor is a buffer plus shape and strides: views move nothing, a copy moves everything. | 3D and 2D, designed | fewest copies; grid coverage | M |
+| `engine-floor` | **Request path** · *Every queue, IPC hop, copy and sync between the API server and the GPU.* | TR1 | Data crosses a boundary only through the mechanism that crosses it: a queue between threads, IPC between processes, a copy between host and GPU, a sync before reading an async result. | 2D, built | the lifecycle map, span-checked | M |
+| `gap-hunt` | **Trace attribution** · *Every nanosecond of a step belongs to a kernel, a copy, a CPU gap or idle.* | TR3; capstone | A GPU gap is an empty launch queue, and every ns of a step belongs to exactly one category. | 2D, designed | attribution of synthetic, then pinned, traces | M |
+| `dispatch` | **Backend dispatch** · *The first attention backend that meets every requirement takes the call.* | TR4 | The engine takes the first backend in its order whose support covers the model and GPU. | 2D, designed | backend picks on fresh feature cards | S |
+| `pool` | **KV page pool** · *One page pool serves every KV group and every adapter.* | TR5a | One page pool serves every KV group and every adapter. A prefix hit counts only where every group holds it. | 3D and 2D, built | eviction, adapters, the full manager | L |
+| `switchyard` | **KV offload** · *A page in transit cannot be read, and every move is published as an event.* | TR5b | A block may be read only after its load lands, freed only after its save completes, and every move is published in an order a consumer can replay. | 3D and 2D, designed | yard master; event conformance | M |
+| `verifier` | **Rejection sampler** · *Accept with min(1, p/q), resample from (p - q)+, and the output is exactly p.* | TR6 | Accept a draft with probability min(1, p/q) and recover from (p − q)⁺, and the output is p exactly. | 3D and 2D, built | make it exact; the chain; how long a draft | M |
+| `broken-bench` | **Broken benchmark** · *Latency counts from when a request was due.* | TR8 | Latency counts from when a request was due, and a percentile is only as good as its sample. | 2D, built (the 3D opener is not built) | the court: five mixed cases | M (+S) |
 
-A learner sees the display name, over its subtitle (D-049; §2.6 puts each game in the kitchen). The Game column keeps the working names, which the design docs use as shorthand, and no id changes.
+A learner sees the title, over its subtitle, the rule in one line (D-063; §2.6 gives the naming rules, the role lines and the history of the kitchen's names). The design docs use the same titles, and no id changes.
 
-TR7 and the capstone have no game of their own (§12). Six course games across TR1-TR8 is the brief's floor; this roster has eight in that range, three of them flagship 3D. Each flagship has one moment that carries its idea and stops a scroll:
-- **The Loop:** the GPU lane's gaps close as the second tray appears.
-- **The Pool:** a page fans into the layers it serves while threads reach across the rack to it.
-- **The Verifier:** drafted tokens drop through skylines into depth, and the output skyline settles exactly onto p.
+TR7 and the capstone have no game of their own (§12). Six course games across TR1-TR8 is the brief's floor; this roster has eight in that range, three of them 3D games with a moment of their own. Each of the three has one moment that carries its idea and stops a scroll:
+- **Step loop:** the idle boxes on the GPU lane close when the second batch is in flight, and the 3D track lifts the same diagram into depth.
+- **KV page pool:** a selected page fans out into the layers it serves, while threads reach to it from each request that holds it.
+- **Rejection sampler:** one row of bars for each draft position runs into depth, and the output ring settles onto the target bar in one move.
 
 ---
 
@@ -82,7 +82,7 @@ These reuse kernelspace's shipped pattern (`src/lib/rng.ts`, `src/lib/world/play
 
 | Step | What the games supply |
 |---|---|
-| **Predict** | Each level's opening prediction is generated by the game's model on the session seed and committed before anything is revealed (kernelspace's `predict` block). Examples: "Async scheduling on: what TPOT now?"; "How many pages will this request hold?"; "What p99 should the benchmark have reported?" |
+| **Predict** | Each level's opening prediction is generated by the game's model on the session seed and committed before anything is revealed (kernelspace's `predict` block). A prediction has one of two reveal kinds (D-067), written in its block as `reveal:`. **After the run** (`after-game`) shows the answer once the learner has played the level it is about: the game's own run is the evidence. **At commit** (`at-commit`) shows it the moment the learner commits, worked from the question's own numbers or from the claim it is about, with the source beside it; no run is needed. The learner can always commit, and neither kind earns credit. Examples: "Async scheduling on: what TPOT now?"; "How many pages will this request hold?"; "What p99 should the benchmark have reported?" |
 | **Play** | Practice levels on pinned seeds; "New numbers" draws an unseen seed in band. |
 | **Build** | Each game names the lab whose behaviour it previews: `hybrid-kv`, `rejection-sampler`, `kv-publisher`, the TR0 forward lab, the TR1 fork. The game's model and the lab's reference share their invariant lists, so the game teaches the properties the lab tests. |
 | **Prove (browser)** | The module's Prove-it is a graded level on fresh seeds with the agent closed. |
@@ -91,7 +91,7 @@ These reuse kernelspace's shipped pattern (`src/lib/rng.ts`, `src/lib/world/play
 
 ### 2.3 The scene kit, as the games use it
 
-ARCHITECTURE §6.4 defines the kit's parts: `Stage`, `tiers`/`Governor`, `CameraRig`, `SpanInstances`, `BlockGrid`, `Skyline`, `Rails`, `Links`, `LabelLayer`, `TimeAxis`, `Selection`, `PostFX`. This section adds what the games need on top.
+ARCHITECTURE §6.4 defines the kit's parts. The three built 3D games draw with `SceneCanvas` (the `Stage`), `CameraRig`, `FlatTrack` with its pure model `flat-track.ts`, `FlatLights`, `LabelLayer` and the selection model; the designed games will add `SpanInstances`, `BlockGrid`, `Rails` and their kin as they are built. This section adds what the games need on top, and says how the built games draw each object.
 
 #### Shared objects
 
@@ -114,6 +114,12 @@ Rules for objects:
 - **All text is DOM** through `LabelLayer`; nothing is written in the canvas (D-021).
 - **One material per object kind**, instanced, no image textures. Per-instance data carries a role index that the design tokens resolve (W0-T05; ARCHITECTURE §6.4).
 
+**As built (Data Book).** The three built 3D games (step loop, KV page pool and rejection sampler) lay the 2D diagram flat on a pale plate engraved with the graticule and lift it into depth. They draw with one kit part, `FlatTrack`, from a pure `FlatModel` that each game's layout makes (`src/scene/flat-track.ts`; x is the diagram's x, z is its y, y is up, 100 px to a unit).
+- **Forms.** A mark has a form and a role colour: `solid` (in use, live), `hollow` (free, empty, padding), `marked` (hatched: cached, a ghost token, the draft), `dotted` (shared) and `groove` (adapter, residual). No state is colour alone.
+- **Materials.** Matte, flat-shaded surfaces on instanced contact shadows with baked occlusion; dashed lines for empty and idle; graticule lines; one unlit amber cursor or ring for the present. No environment map, fog, bloom, lamp, texture or shadow map, and no prop. Every colour is a token role resolved by `scene-tokens.ts`.
+- **Cameras.** The grammar below holds: each game's Establish is its default view (the step loop's **Lifted**, the pool's **Front**, the sampler's **Over the run**), its Focus is the narrower shot (**One KV group**, **One draft position**), and Compare is the step loop's three bands. Every camera is fitted to the measured canvas, cuts under reduced motion and has a button. Follow is not built.
+- **Draw calls.** 6 to 8 scene draw calls for each game, against the ceiling of 100 (§2.3, "Budgets"). Each game's scene block below gives its own count.
+
 #### Camera grammar
 
 Four shots, used the same way in every game, so a learner who has played one game can read the next.
@@ -121,7 +127,7 @@ Four shots, used the same way in every game, so a learner who has played one gam
 | Shot | Purpose | Rule |
 |---|---|---|
 | **Establish** | the whole machine and its history | the default; perspective, a narrow field of view (about 30°, kernelspace `Cube3D.tsx`) so sizes read nearly true |
-| **Focus** | one object fills about 60% of the frame: a tray, a page, a skyline row | opened by selecting the object; Escape returns to Establish |
+| **Focus** | one object fills about 60% of the frame: a page, a draft position's row of bars | opened by selecting the object; Escape returns to Establish |
 | **Follow** | keeps one moving object centred: the request capsule, the verifier's walk | always opt-in, off under reduced motion |
 | **Compare** | two or three runs side by side, to compare lengths and gaps | orthographic, because a length comparison must not depend on depth |
 
@@ -164,12 +170,12 @@ D-019 keeps kernelspace's tests 1, 3, 4, 6 and 7 required, restates 5, and makes
 
 | Game | 1 Intrinsic | 2 Axes | 3 Model-backed | 4 Recurs in ≥ 3 sessions | 5 Schematic | 6 Low load | 7 Debriefed |
 |---|---|---|---|---|---|---|---|
-| The Loop | refilling slots and overlapping is how you win | time × lane × slot | `steploop` | front page, TR2's levels, TR6's mask lane, TR3's synthetic traces, Keep | slabs and cells | turn-based, pausable | counterfactual lever |
-| Shape Shifter | the fewest copies is the concept of a view | the tensor's three dims | `tensor` | TR0 levels, Keep, TR4 reads | cells, one thread | turn-based | fewest-copies ghost |
-| The Engine Floor | a wrong mechanism cannot move the request | process × thread × rank | `lifecycle` | TR1 levels, TR3 span names, capstone | platforms, links | turn-based | first wrong stage |
-| The Pool | a hit or a page saved is the concept | page × group/layer × token | `kv` | TR5a levels, The Switchyard, Keep | rack, threads | turn-based | R(i) rule |
-| The Switchyard | an unsafe move corrupts output | tier × block × layer | `tiers`, `kv` | TR5b levels, Keep, capstone reads | decks, cars | turn-based | first violation or R(i) |
-| The Verifier | an exact residual is the only way to TV = 0 | token × probability × draft position | `spec` | TR6 levels, the forge lab, Keep | skylines | turn-based | worst token |
+| Step loop | refilling slots and overlapping is how you win | time × lane × slot | `steploop` | front page, TR2's levels, TR6's mask lane, TR3's synthetic traces, Keep | slabs and cells | turn-based, pausable | counterfactual lever |
+| Tensor views | the fewest copies is the concept of a view | the tensor's three dims | `tensor` | TR0 levels, Keep, TR4 reads | cells, one thread | turn-based | fewest-copies ghost |
+| Request path | a wrong mechanism cannot move the request | process × thread × rank | `lifecycle` | TR1 levels, TR3 span names, capstone | platforms, links | turn-based | first wrong stage |
+| KV page pool | a hit or a page saved is the concept | page × group/layer × token | `kv` | TR5a levels, KV offload, Keep | rack, threads | turn-based | R(i) rule |
+| KV offload | an unsafe move corrupts output | tier × block × layer | `tiers`, `kv` | TR5b levels, Keep, capstone reads | decks, cars | turn-based | first violation or R(i) |
+| Rejection sampler | an exact residual is the only way to TV = 0 | token × probability × draft position | `spec` | TR6 levels, the forge lab, Keep | skylines | turn-based | worst token |
 
 ### 2.5 The session contract and what CI checks
 
@@ -194,259 +200,209 @@ export interface Session<Level, State, Action, View, Score, Ask = unknown> {
 
 A run is `{seed, level, actions[], rev}`, and `replay` in `packages/play/replay.ts` grades it from the log alone. The shell around the views is `src/games/kit`.
 
-`verify:games` (ARCHITECTURE §6.2) fails a game without: a 2D view, a mirror, a debrief, a card, a keyboard map, KCs, claims that exist, a practice seed in band, band acceptance ≥ 20%, a keyboard-only e2e walk, a reduced-motion e2e walk, a determinism test (same seed and actions, same state hash in Bun and three browsers), and a display name with its subtitle (D-049).
+`verify:games` (ARCHITECTURE §6.2) fails a game without: a 2D view, a mirror, a debrief, a card, a keyboard map, KCs, claims that exist, a practice seed in band, band acceptance ≥ 20%, a keyboard-only e2e walk, a reduced-motion e2e walk, a determinism test (same seed and actions, same state hash in Bun and three browsers), and a display name with its subtitle (D-063).
 
-### 2.6 The Pass: every game in the kitchen
+### 2.6 Naming and drawing: the engine's term is the name
 
-D-047 set the course's visual world: **The Pass**, a restaurant line kitchen and its expo pass, chosen by the owner on 2026-11-03. Its direction contract sits in the front page's surface brief, `.impeccable/surfaces/src-front-frontpage-tsx.md`: continuous batching is a line kitchen, and the learner is the expediter who fires each step. This section carries that world into every game. Each game gets a display name in kitchen vocabulary over its engine concept (D-049), and one vocabulary maps every sim element to a kitchen object. Each game's block then gives its scene, cameras and materials, and what must stay legible.
+D-063 (wave R) replaces D-049's two vocabularies with one: **the engine's term is the only name** of anything a learner reads, chooses, presses or is graded on. [REDESIGN.md](REDESIGN.md) §2.7 is the policy and this section is its working copy for the games. D-062 replaces The Pass with Data Book as the look, chosen by the owner at the look gate on 2026-11-16: the engine drawn as its engineers draw it, on flat paper, with one amber mark for "now". Data Book is a look and names nothing on screen.
 
-**The rules do not change.** The rule is still the concept (§1). Every rule, count, level, band, score, pass bar, invariant, id, action and claim in §3-§11 stays as written. The kitchen names the marks those sections draw and adds none. Where a kitchen reading and a rule disagree, the rule wins and the reading is rewritten.
+**The rules do not change.** The rule is still the concept (§1). Every rule, count, level, band, score, pass bar, invariant, id, action and claim in §3-§11 stays as written. This section names the marks those sections draw and adds none. Where a name and a rule disagree, the rule wins and the name is rewritten.
 
-#### How the kitchen applies
+#### Naming rules
 
-1. **A name, never a prop.** Each kitchen object is the §2.3 mark it names, drawn from `layout.ts` by the same kit primitive. Nothing is added for atmosphere: no cooks, food, flames, steam or knives, and no photoreal equipment (D-019's test 5; §2.3, "no object is decoration"). A plate is a cell named and shaped as a plate, not a picture of food.
-2. **Two vocabularies, one meaning.** The kitchen word names the object, and the engine term names the concept. A label gives both the first time an object appears in a level ("fire · step"). The engine term leads wherever the learner will meet it again: the mirror's column heads, the debrief, the In-production and Build-this cards, items, Keep, claims and the Markdown export. The live line follows the labels.
-3. **Ids stay** (D-049). Game ids, level ids, actions, ledger refs, KCs, claims, routes and file names keep their engine names. The display name and its subtitle are copy in the game registry (W0-T14).
-4. **Materials come from roles.** Every surface and scene material is a token role from `src/design/tokens.ts`, resolved by `scene-tokens.ts` (W0-T05). The design system realises the contract's materials: brushed stainless, ticket paper with its two inks, the heat lamp, masking tape and the categorical code. This section only says which object takes which. No colour value, font name or image texture appears here or in a scene (§2.3).
-5. **One heat lamp.** The contract's active state falls only on *the present*: the place the learner's next decision acts on. Each block below names its present. History, ghosts and the debrief never take it.
-6. **The code is categorical, and never alone.** The contract's categorical code is the only colour code, and every category also has a glyph or a shape (§2.3; WCAG 1.4.1).
-7. **Numbers stay DOM.** Every count, tick, µs, ns, probability, id and percentage is DOM text in `LabelLayer`, the mirror, the tape or the controls, set in the numeral role. None is painted in a canvas or baked into a material (D-021). Tickets, tape labels and the printer tape are DOM elements anchored to their marks.
-8. **The clock says what it is.** Ticks are labelled synthetic wherever they appear (D-048). µs on the model's clock start with TR2's levels, and a trace's ns carry their trace's source (§6).
+1. **One name.** A term's source is, in order: the pinned engine's code and docs, the paper, kernelspace. Where the course's lessons define a term (page, bubble, ghost token), the games use the lessons' term. Where vLLM and SGLang differ, vLLM's term leads and SGLang's follows in brackets once per page.
+2. **Identifiers are code.** An identifier is set as code and spelled as the pinned source spells it (`scheduler.schedule()`, `max_num_seqs`).
+3. **A coined term says so.** Where the course coins a term, its first use on a page says so in one clause. `src/copy/terms.ts` marks each one (`coined`).
+4. **One term, one meaning.** A request is a request everywhere, and a module is a module. A term's definition comes from one table, `src/copy/terms.ts`, which also holds the product's own words and the words for state, verdicts and provenance.
+5. **No glossary of a mapping.** There is no second vocabulary to map. Each instrument has a parts list, read from its game's `copy.ts`.
+6. **Kitchen words survive** only in the history table at the end of this section and in decision records.
+7. **Ids do not change:** game ids, level ids, actions, enum values inside state (`plate`), ledger refs, KCs, claims, routes, file names, lab ids, a crate's file names, Rust identifiers, wire commands and wasm exports. Where an identifier is a kitchen-era word (`Rotation`, `src/rotation.rs`), the prose beside it says once what it is.
+8. **Two fields in the roster.** A game keeps a title and a subtitle, so `verify:games` still finds a display name and a different subtitle. The title is the engine's term, the subtitle the rule in one line, and the role line says who the learner is (REDESIGN §2.6).
+9. **The copy guard.** `src/copy/banned.ts` holds the words banned everywhere and the phrases banned in the kitchen sense, with their allowed contexts. `tests/copy/no-kitchen.test.ts` runs it over rendered and compiled text (the copy tables, the terms, the compiled lessons, the Markdown export, `llms.txt`, the item stems and the predictions' sentences), never raw source, and skips code spans. Every area is converted: `tests/copy/allow/` is gone.
 
-#### Vocabulary
+#### Drawing rules
 
-| Sim element | Kitchen object | How it reads |
-|---|---|---|
-| Request | a **ticket** | One table's order. Each output token is one course, and the expo cannot see how many courses a table will want. |
-| Admission (prefill) | **hanging a ticket** | The ticket's order lines, its prompt, are prepped in the fire it joins: on the front page, 1 more tick of cooking (synthetic). |
-| Batch slot | a **clip on the rail** | The rail has a fixed number of clips, 4 on the front page [estimated] (D-043). A clip without a ticket is paid for and empty. |
-| Waiting queue | **tickets curling out of the printer** | Orders not yet on the rail, fed in from the left. The expo hangs the next one. |
-| GPU lane | **the line's stations** | Cooking. A lit stretch is the GPU busy, and its length is the cook time. |
-| CPU lane | **the expediter's ticket work** | Writing the next call (schedule and prepare), then reading the plates back (sample, stop check, detokenize). |
-| Bubble | **stations dark while the expo writes** | The GPU waits on the CPU. |
-| Step | **one fire, rung by the bell** | Every live clip sends one course. A fire takes the line about as long for one ticket as for four, so an empty clip is a course the line paid for and nobody ate. |
-| Static batching | **firing the rail as a set** | No ticket hangs until every clip has cleared. |
-| Overlap (async scheduling) | **the next call, written during this fire**, on a second rail | The expo writes fire N+1 while fire N cooks, so the line need not go dark. |
-| Ghost token | a **binned plate** | Writing ahead, the expo fires one more course for a table that has just asked for the check, and it is binned. A set menu (a `max_tokens` stop) never gets one. |
-| Launch comb | **calling each dish** | With no drilled routine, the expo calls every dish to the line one by one, one tooth per call. |
-| Graph replay | **one word fires a drilled routine** | The line has drilled this fire's size, so one call starts it all, and the comb collapses into one short slab. |
-| Capture sizes and padding | the **mold rack** | One ring mold per drilled size, smallest first. A fire drops into the smallest mold that holds it, and the mold's empty places are padding. Above the largest mold, the expo calls each dish. |
-| Grammar mask (TR6) | the **allergy card** | Before a course is chosen, the expo strikes the dishes the table may not have. The card is written during the fire, and if it is not done when the fire ends, the line waits. |
-| Token out | **a plate down the pass** | One per live clip per fire. Useful tokens are plates that reached a table. |
-| KV page | a **hotel pan in the reach-in** | One block's prepped mise, for every layer of a group. A pan keeps its slot for life, and its masking-tape label carries its hash and its group. |
-| KV group | a **station's code** on a pan's tape | Each group is one of the line's stations, its layers grouped so that the group's block fills one pan. A full-attention station keeps all its pans; a sliding-window station keeps only those of its last W tokens, its **hold window**. |
-| Free queue | **the rotation** | The pans nobody holds, in eviction order, the next to be dumped on the left. A labelled pan still holds its mise; a bare pan holds none. |
-| Adapter | a **recipe kit** | A variant's own mise, in pans from the same reach-in, not side by side. A kit stays while any ticket using it is on the rail. |
-| Prefix hit | **shared mise** | A ticket whose order opens like an earlier one starts from that one's pans, in whole pans, and only as far as every station still holds them. |
-| Eviction | **dumping a pan** | Only a labelled pan nobody holds, from the head of the rotation. Its mise is gone, and the next ticket that needs it re-preps it (recomputed tokens). |
-| Preemption | **pulling a ticket** | Its pans go back, and it fires again later. |
-| Request lifecycle | the **host stand**, the **ticket window**, the **dumbwaiter** and **"Heard!"** | Where a ticket enters the house (the API server); the only way between floors (IPC); down to the line and back (host-to-GPU and GPU-to-host copies); and the call-back that must come before anyone reads what the line made (a sync). Between two pairs of hands on one floor, a ticket waits on a **spike** (a queue). |
-| KV tiers | the **reach-in**, the **cooler** and the **basement** | GPU, CPU and disk, a floor each. A peer is the **sister kitchen**. |
-| KV transfer | the **dumbwaiter's car** | A pan in the car cannot be cooked from until the car lands, and the floor it left keeps its copy until the trip is done. |
-| KV events | **pan calls** | Every pan in or out is called out to the front of house with its number, so the board at the host stand can be rebuilt from the calls alone. |
-| Draft | **the commis's plates** | A junior cook plates the next γ courses ahead of the chef. q is how often the commis plates each dish. |
-| Target p | **the chef's tasting** | How often the chef herself would send each dish: what the pass must serve, exactly. |
-| Accept | **keeping a commis plate** | A plate of dish x is kept with probability min(1, p(x)/q(x)). |
-| Residual | **re-plating** | At the first plate sent back, the chef re-plates from the dishes the commis under-plates, (p − q)⁺, and bins the rest of the run. If every plate is kept, she plates one more course herself (the bonus token). |
-| Open loop | **walk-ins** | Guests arrive when they arrive, whatever the kitchen is doing. |
-| Closed loop | **a fixed set of tables** | A table orders again only after its last plate lands, so when the kitchen stalls, nobody new orders. |
-| Coordinated omission | **the inspector's stopwatch that pauses when the kitchen is slammed** | The worst waits never reach the log. Latency counts from when the guest was due. |
-| Backend dispatch | **which station's equipment takes the dish** | The house checks its equipment in a fixed order, and the first piece that covers every requirement takes the dish. |
-| Tensor, view, copy | **a sheet pan, relabelled or re-plated** | The label (shape, strides, offset) says how to read the pan. A relabel moves nothing; a re-plate moves every portion. |
-| Trace | **the night's tape** | The printer's record of every call, cook and wait, with its time. |
-| Reference policy (the ghost) | **the house run** | The same night, worked by the house's standard. Only the debrief reads it; on the front page, its count is par. |
+1. **The picture is the engine's own diagram.** A timing diagram, a page map, a distribution's bars, a latency plot: the drawing an engineer would make of the mechanism, with each mark the §2.3 object it stands for, drawn from `layout.ts` by the same kit primitive. Nothing is added for atmosphere, and no equipment is photoreal (D-019's test 5).
+2. **Ids stay** (rule 7 above). The display name, its subtitle, the role line, level titles and every prompt are copy, in the roster, the registry and each game's `copy.ts`.
+3. **Materials come from roles.** Every surface and scene material is a token role from `src/design/tokens.ts`, resolved by `scene-tokens.ts`. No colour value, font name or image texture appears here or in a scene (§2.3).
+4. **Amber means now.** The marker falls only on *the present*: the place the learner's next decision acts on. Each game below names its present. History, the reference run and the debrief never take it.
+5. **The code is categorical, and never alone.** Every category also has a glyph or a shape (§2.3; WCAG 1.4.1).
+6. **Numbers stay DOM.** Every count, tick, µs, ns, probability, id and percentage is DOM text in `LabelLayer`, the mirror, the readout strip or the controls, set in the numeral role. None is painted in a canvas or baked into a material (D-021).
+7. **The clock says what it is.** Ticks are labelled synthetic wherever they appear (D-048). µs on the model's clock start with TR2's levels, and a trace's ns carry their trace's source (§6).
+8. **Every level states its goal.** A goal line in three parts (the aim, what the learner controls, the number to beat or the pass rule) and when the level ends; a graded level states its pass rule, tolerance included, before the run (REDESIGN §2.6). The words are in each game's `copy.ts`, and `tests/copy/game-copy.test.ts` holds each graded level's pass-rule sentence to the bar the level computes.
 
-#### Service (`loop`)
+#### The games
 
-*The step loop.* Working name The Loop (§3), on the front page, in TR2 and in TR6's mask lane. The front-page run, "First loop" (§3.1), is billed **First service**, TR2's levels are **the full service**, and the course map, where the run ends, is **the menu**.
+| Id | Title | Subtitle (the rule in one line) | Role line |
+|---|---|---|---|
+| `loop` | **Step loop** | Keep every slot live, and never make the GPU wait for the CPU. | You are the scheduler. |
+| `engine-floor` | **Request path** | Every queue, IPC hop, copy and sync between the API server and the GPU. | You trace one request. |
+| `pool` | **KV page pool** | One page pool serves every KV group and every adapter. | You are the KV allocator. |
+| `verifier` | **Rejection sampler** | Accept with min(1, p/q), resample from (p - q)+, and the output is exactly p. | You are the verifier. |
+| `broken-bench` | **Broken benchmark** | Latency counts from when a request was due. | You audit a benchmark. |
+| `shape-shifter` | **Tensor views** | A view relabels the buffer. A copy moves every element. | You lay out a tensor. |
+| `gap-hunt` | **Trace attribution** | Every nanosecond of a step belongs to a kernel, a copy, a CPU gap or idle. | You account for a step. |
+| `dispatch` | **Backend dispatch** | The first attention backend that meets every requirement takes the call. | You predict the backend. |
+| `switchyard` | **KV offload** | A page in transit cannot be read, and every move is published as an event. | You move KV between tiers. |
 
-- **The present:** the pass, meaning the rail, the fired rail and the fire being called.
-- **Scene** (§3, "3D scene"). On the front page, the contract's FIRST VIEWPORT places these objects.
-  - **The bay is the pass,** at the near end. The tray of slots is **the rail** above it, one clip per slot. The waiting requests are **tickets curling out of the printer** at the rail's left end. With overlap on, the second tray is **the fired rail**: it holds the fire on the line while the expo fills the rail for the next one. In TR2 the rack of molds is **the mold rack** beside the pass, and the dispatcher's pick is the mold the fire drops into.
-  - **The lanes run from the pass into the night.** The CPU lane, on the left, is **the expo's lane**: plan slabs are the expo writing the call, and read slabs are the expo reading the plates back. The GPU lane, on the right, is **the line**: each fire is a lit slab, as long as its cook time and as wide as the rail. TR2's copy lane is **the dumbwaiter's lane**, and TR6's mask lane is **the allergy card**, written on the expo's side during the fire.
-  - **Places.** Each fire carries one place per clip: a **plate** (a live slot), an **empty place** (an open groove, paid for and empty), a **binned plate** (hollow: the ghost token) and, in TR2, an **empty mold place** (marked as padding). A clip's places line up along the night.
-  - **Dark stretches** on the line are the bubbles.
-  - **Combs** are the expo calling each dish, one tooth per call. A graph replay is **one word** and one short slab. Piecewise mode is a comb with fewer teeth: the routine is drilled in pieces, and the expo calls the dishes between them.
-  - **The bell** is the step mark. Everything moves on it; between bells only the printer feeds, and only while the clock runs. While the loop waits for a decision, nothing moves (§3).
-  - **The printer tape** is the live readout (DOM): the fire's number, the ticks it took, labelled synthetic, and the stations busy (D-048). In TR2 it shows µs on the model's clock and the graph hit.
-  - **Compare** sets three services of the same night side by side: firing the rail as a set (static batching), refilling clips (continuous), and refilling while the next call is written during the fire (overlap).
-- **First service's copy** (§3.1's beats). Beat 1 reads "Tap a ticket to hang it on the rail" (put a request in the batch). Beat 2's counter reads "clip paid for, empty". Beat 3's switch reads "Write the next call during this fire", with "overlap (async scheduling)" beside it.
-- **TR2's levels in the kitchen** (§3.2):
-  - `async`: the expo writes during the fire, on both cost cards, which keep their names because they are claims;
-  - `graphs` · `comb`: calling each dish against one word;
-  - `graphs` · `sizes`: which routines the line drills before service, within the time it has to drill them, with vLLM's ladder beside SGLang's buckets;
-  - `graphs` · `modes`: how much of each fire is drilled;
-  - `keys`: routines drilled per count of recipe kits, whose space comes out of the reach-in before its pans are counted (graph memory is reserved before the KV cache is sized);
-  - `mrv2`: the V2 runner, where the line sets up its next fire from the rail itself (input preparation on the GPU);
-  - `close`: everything, on fresh seeds;
-  - `mask` (TR6): does the allergy card fit inside the fire?
-- **Cameras** (§3's presets):
-  - **Over the shoulder** (along time; Establish): from behind the expo, across the pass and down the night, about 25° up. The front page opens here.
-  - **Side of the pass** (side; Compare, orthographic): fires as lengths and dark stretches as gaps. `first-4-par` ends here, with the three services stacked.
-  - **Under the lamps** (top): straight down on the rail and the fires, where empty clips and empty places are easy to count.
-- **Materials.** The pass, the rail, the lanes and the mold rack are stainless. Tickets, the printer tape and every label are ticket paper with its inks (DOM). The line's lit fires take the `gpu` lane role, the expo's lane `cpu`, the dumbwaiter's lane `copy` and dark stretches `idle`. Places differ by shape first: solid, open groove, hollow, marked. The heat lamp falls on the pass alone.
-- **Moment** (§0's flagship moment): the dark stretches close as the fired rail appears, and the line lights end to end.
-- **Must stay legible at 390 px:** each place's shape; the dark stretches; ticket numbers, as DOM labels on the tickets; and the tape's counters, all DOM: plates, binned plates, empty mold places, busy and dark ticks (or µs), calls and eager fires.
+The first five role lines are REDESIGN §2.6's. The four games still to be built take theirs from their rule, and the task that builds each may reword its line.
 
-#### Sheet Pan (`shape-shifter`)
+#### Step loop (`loop`)
 
-*Tensor views and copies.* Working name Shape Shifter (§4), in TR0.
+*The step loop.* On the front page (four demo levels), in TR2 and in TR6's mask level.
 
-- **The present:** the pan the next operation acts on.
-- **Scene** (§4, "3D scene"):
-  - The tensor's block of cells is **a speed rack of sheet pans**, and each cell is **a portion**. A rank-2 tensor is one pan of rows and columns; a rank-3 tensor is a rack of pans.
-  - The buffer strip below is **the bench row**: every portion in one line along the bench, in the order it was portioned. A portion's place on the row is its address.
-  - The stride thread is **butcher's twine**, run through the portions in the order the label says to read them, touching the bench row at each portion's place.
-  - Shape, strides and offset are **the pan's tape label** (DOM).
-  - A view (`view`, `transpose`, `permute`, `expand`, slicing) is **a relabel**: new tape, the twine re-tied, and nothing on the bench moved. A copy (`contiguous()`, or a `reshape` the strides cannot express) is **a re-plate**: a new bench row is laid, and every portion travels to it.
-  - `expand` (stride 0) is **one portion read in several places**: the twine passes it more than once, so writing to it writes them all.
-  - In `grid`, the program tiles are **the cutter's stamps** over the pan. Each stamp is one program over a BLOCK of portions, and a stamp place that falls off the pan's edge is a masked lane, drawn hollow.
-- **Cameras:** **Three-quarter** (Establish: the rack above the bench), **One pan** (Focus: one slice) and **Before and after** (Compare: start against target).
-- **Materials.** Pans, rack and bench are stainless. Portions are cells, and the ones a re-plate moves take emphasis while they travel. The twine is a line mark (`Links`, `Rails`), and the label is masking tape (DOM). Masked places are hollow. The heat lamp falls on the pan under the next operation.
-- **Must stay legible:** the label's shape and strides (DOM), which portions move and which stay, the masked places, and the counts of copies, portions moved and operations (DOM).
+- **The present:** the running batch, the step in flight with async scheduling on, and the step being scheduled.
+- **The diagram** (§3, "3D scene"): a CPU lane and a GPU lane along time. The CPU lane is the engine core thread's work: `schedule`, `prepare` and `launch`, then `sync` and `sample`. The GPU lane holds each step's forward, as long as its cost and as wide as the batch. The running batch has a fixed number of batch slots, with the waiting queue beside it. With async scheduling on, a second batch is the step in flight. Each step carries one cell per slot: an output token (solid), an empty slot (open, a wasted slot-step), a ghost token (hollow) and, in TR2, padding (marked). Gaps on the GPU lane are bubbles. Eager kernel launches draw as a comb, one tooth per call, and a CUDA graph replay as one short slab; TR2's capture sizes are a ladder beside the batch. TR6's grammar mask is a row on the CPU side.
+- **Views:** **Along time** (Establish; the front page opens here), **Side** (Compare, orthographic: steps as lengths, bubbles as gaps; `first-4-par` ends here with three runs stacked) and **Top** (straight down on the batch, where empty slots are easy to count).
+- **Legible at 390 px:** each cell's shape; the bubbles; request numbers as DOM labels; and the readouts, all DOM: output tokens, ghost tokens, padding, busy and idle ticks (or µs), launches and eager steps.
 
-#### Back of House (`engine-floor`)
+#### Request path (`engine-floor`)
 
-*A request's lifecycle.* Working name The Engine Floor (§5), in TR1.
+*A request's path.* In TR1. The swimlane is the play surface (D-065), and the 3D scene left the tree at R-T43 (wave R, the owner's look gate chose Data Book); the game is 2D.
 
-- **The present:** the end of the laid path, where the next hand-off starts.
-- **Scene** (§5, "3D scene"):
-  - The process platforms, stacked in height, are **the floors of the house**: the dining room and **the host stand** at the top (the client and the API server), **the pass** in the middle (the engine core, where the expo works), **the cooks' floors** below (the workers, one cook per rank) and **the line** at the bottom (the GPU deck), whose burners are the streams.
-  - Threads are **pairs of hands**, each in its own spot on a floor.
-  - A queue between threads is **a spike**: one pair of hands spikes the ticket, and the next pulls it.
-  - IPC is **the ticket window** between floors, and shared memory is **the window shelf** both floors reach.
-  - A copy is **the dumbwaiter**, down to the line (host to device) or up from it (device to host). A kernel launch is **calling a dish** to the line, as in Service.
-  - A sync is **"Heard!"**: the hands that asked stop until the line calls back, and read nothing the line made before it.
-  - TP ranks are **twin cooks**, their floors one behind the other in depth, each cooking half of every dish; a collective is **passing halves across** between them.
-  - The capsule is **the ticket** itself. It travels the path the learner laid and waits, visibly, on spikes.
-  - The tray of stage tiles holds **hand-off cards**, each with its mechanism's glyph and its engine label, such as "spike · `input_queue` (engine core)".
-  - Tokenizing is **writing the order in kitchen shorthand** at the host stand, and detokenizing is **naming each plate** on its way out.
-  - The debrief lays **two houses' floor plans** side by side, the learner's engine against the other, with the differences given emphasis.
-- **Cameras:** **Cutaway** (Establish: the house at three-quarters, floor by floor), **One floor** (Focus, one per platform) and **Follow the ticket** (Follow: opt-in, and off under reduced motion).
-- **Materials.** Floors, the pass and the line are stainless. The ticket and every label are ticket paper (DOM). Each hand-off kind has its glyph: spike, window, shelf, dumbwaiter, call, "Heard!" and halves. Floors differ by height, never by colour alone. The heat lamp falls on the end of the laid path.
-- **Must stay legible:** floor and hands names (DOM), every hand-off's glyph, and where the ticket stands. The mirror's stage table keeps mechanism, from, to and source in engine terms.
+- **The present:** the end of the laid path, where the next stage starts.
+- **The diagram** (§5): processes as lanes or platforms (the client and the API server, the engine core, the workers) with the GPU below. Threads sit inside their process. A queue joins two threads, IPC joins two processes and shared memory is a buffer both map. A host-to-device copy goes down to the GPU and a device-to-host copy comes back. A sync is a blocking wait on the GPU. Tensor-parallel ranks are processes side by side, and a collective joins them. The stage list holds the stages, each with its mechanism's glyph and its engine label, such as "queue · `input_queue` (engine core)". The debrief lays two engines' paths side by side.
+- **Views:** **Cutaway** (Establish), **One process** (Focus) and **Follow the request** (Follow: opt-in, off under reduced motion).
+- **Legible:** process and thread names (DOM), every stage's glyph, and where the request stands. The mirror's stage table keeps mechanism, from, to and source in engine terms.
 
-#### The Tape (`gap-hunt`)
+#### KV page pool (`pool`)
 
-*Trace attribution.* Working name Gap Hunt (§6), in TR3 and the capstone; 2D. The Trace Room keeps its name: it is where the tapes are kept.
+*Hybrid KV pages and adapters.* In TR5a. The pool's unit is the page, the course's word for vLLM's block.
 
-- **The present:** the focused event.
-- **Board** (§6, "2D design"):
-  - A trace is **the night's tape**. A synthetic tape says so, and a pinned tape carries its GPU, engine pin, date and SHA-256.
-  - The tracks: the CPU main thread is **the expo's lane**, its Python frames stacked as nested calls; CUDA API calls are **the calls**; GPU streams are **the line**; and copies are **the dumbwaiter**.
-  - Step marks are **bells**, and a window runs from one bell to the next.
-  - The categories: kernel is **cooking**; copy-only is **the dumbwaiter running with nothing cooking**; CPU-gap is **dark while the expo writes**; and both-idle is **everyone waiting**, on I/O or another process. Overlap, reported beside the partition, is **the expo writing while the line cooks**.
-  - The unaccounted counter, **unaccounted ns on the tape**, sits at the top and must reach 0.
-  - A gap's cause is **what held the line**: the expo's work covering most of the time from the gap's start to the call that ended it, or a "Heard!" (a blocking sync) ending at or after the gap's start, which drained the line's calls.
-  - Correlation links join **a call to its dish**.
-  - On phones the tape becomes **a list** of the window's events, with category radios.
-- **Camera:** none (2D). Zoom and pan run the tape back and forth.
-- **Materials.** The tape is ticket paper. Each category takes the categorical code and its own fill pattern, and dark stretches take the `idle` role. The heat lamp falls on the focused event alone.
-- **Must stay legible:** every span's category (pattern and code), the unaccounted counter, the window's ns, the cause mark and the bells. The counter and the mirror carry every number as DOM, and the canvas writes none of its own. At 360 px, list mode carries everything.
+- **The present:** the candidates of the open decision: the pages or requests the learner can pick now.
+- **The diagram** (§8): the pool as a page map, one cell per physical page in rows of 16, each at its position for its whole life. A free page is an empty frame; a cached page keeps its hash glyph; a page in use is solid, with its KV group's glyph; an adapter's page carries the pin glyph. Requests sit below, each a ruler with one segment per block, and its block table is one line per KV group to that group's pages, drawn on Focus. A sliding window is a frame along the request; a segment that leaves it drops its line. The free queue runs along the pool's base in eviction order, the next page to be evicted first. A prefix hit reaches as far as every group still holds the pages. Admit, evict, preempt and load an adapter are the actions; the fixed-slot baseline of the engines at the pins (D-042) shows in the `adapters` debrief and the In-production card.
+- **Views:** **Front** (Establish), **One page** or **One block table** (Focus), **One KV group** (ARCHITECTURE §6.1's per-group filter) and **Top**.
+- **Motion.** Pages never move, because a moving page would misteach copying (§8). Lines draw, and a page changes state where it sits.
+- **Legible at 390 px:** each page's glyph, the free queue's order (DOM), and the readouts: recomputed tokens, hit tokens, completed requests, preemptions, adapter stall steps and evictions.
 
-#### Line Check (`dispatch`)
+#### Rejection sampler (`verifier`)
 
-*Attention backend selection.* Working name Dispatch (§7), in TR4; 2D.
+*Speculative decoding's verifier.* In TR6.
 
-- **The present:** the row the check has reached.
-- **Board** (§7, "2D design"):
-  - The feature card is **the dish's spec**: GPU architecture, head dim, KV dtype, MLA, sliding window, speculative decoding and page size. They stay in engine terms, because they are what the engine reads.
-  - The rule table is **the line-check sheet**: the house's attention equipment in priority order, one row per backend, each listing what it can take.
-  - The walk is **the line check**, row by row. The first piece of equipment whose row covers every line of the spec takes the dish. A wrong prediction stops the check at the first requirement that ruled the predicted piece out.
-  - The CUDA-graph consequence is **whether the line can drill a routine on that equipment**: always, only when every ticket sends the same number of courses in a fire, only when each sends exactly one, or never (`ALWAYS`, `UNIFORM_BATCH`, `UNIFORM_SINGLE_TOKEN_DECODE`, `NEVER`). It links to Service's `graphs` · `modes`.
-- **Camera:** none (2D).
-- **Materials.** The sheet and the spec are ticket paper (DOM tables). A row's verdict is a glyph, covers or excluded, beside its text. The heat lamp falls on the row under check.
-- **Must stay legible:** the whole sheet as a DOM table, read as stacked rows at 390 px, with the excluding requirement named in words.
+- **The present:** the draft position being verified.
+- **The diagram** (§10): one row per draft position (1 to γ), then the bonus row. Each row's bars span the six tokens of the vocabulary: an accepted base, min(p, q); where q exceeds p, a rejected cap, q − p; where p exceeds q, a residual well, p − q. A drafted token is a marker set on its token's bar at a seeded height in [0, q(x)): in the base it is accepted, in the cap rejected, and a rejection resamples from the residual. The walk stops at the first rejection. The output bars at the front settle exactly onto p, and the total variation distance is DOM, exact. In `greedy-ngram` temperature 0 emits the target's most likely token and the n-gram draft's q is one-hot; `mutants` is five broken accept rules; `gamma` is the draft length.
+- **Views:** **Over the rows** (Establish), **One position** (Focus) and **Follow the walk** (Follow: opt-in).
+- **Legible:** where each marker landed (accepted or rejected, by shape), the distance (DOM, an exact fraction), and each token's output against p (the mirror).
 
-#### The Reach-In (`pool`)
+#### Broken benchmark (`broken-bench`)
 
-*Hybrid KV pages and adapters.* Working name The Pool (§8), in TR5a.
-
-- **The present:** the candidates of the open ask, the pans or tickets the learner can pick now.
-- **Scene** (§8, "3D scene"):
-  - The rack is **the reach-in**: a hotel pan in every slot, in rows of 16, each in its slot for its whole life. A pan's state is its form plus its tape. Free is **a bare pan**, an empty frame with no tape. Cached is a frame whose tape is still on, with the hash glyph: the mise is still there, but nobody holds it. In use is **a full pan** (solid), its tape carrying its station's group glyph. Adapter is a full pan whose tape carries the pin glyph: **a recipe kit's pan**.
-  - Focus on a pan **fans it into its layers**, one slice per layer of its group, with padding layers hollow: one pan serves every layer of its group.
-  - Requests are **tickets laid along the pass** in front of the reach-in, each a ruler with one segment per block. Above each ticket runs **one twine per station** to that station's pans, drawn on Focus only.
-  - The sliding window is **the station's hold window**, a frame along the ticket. A segment that leaves it drops its twine, and its pan keeps its tape but is no longer held.
-  - The free line is **the rotation**, along the reach-in's base, in eviction order, with the next pan to be dumped on the left.
-  - An adapter's pages are **a recipe kit's pans**, joined by their own twine and never drawn side by side, because unified paging stores them apart.
-  - A prefix hit is **shared mise**: as far as every station still holds the pans, in whole pans, and nothing when the full-attention station's first pan is gone.
-  - The actions: admit is **hanging a ticket**, evict is **dumping a pan** from the head of the rotation, preempt is **pulling a ticket**, and prefetch is **bringing a recipe kit in** before its ticket hangs.
-  - The slot baseline is **the kit shelf**: at the pins, vLLM and SGLang keep kits on a shelf of fixed slots, apart from the reach-in (D-042). The `adapters` debrief and the In-production card show it.
-- **Cameras:** **Front of the reach-in** (Establish: the rack, with the tickets below), **One pan** or **One ticket's twine** (Focus), **One station** (ARCHITECTURE §6.1's per-group filter: only that station's tapes and twine) and **From above** (Top: the rack as a grid).
-- **Motion.** Pans never move, because a moving pan would misteach copying (§8). Twine draws, and a pan changes state where it sits.
-- **Materials.** The reach-in, its rack and its pans are stainless. Labels are masking tape and marker (DOM). Pan states take the memory roles (free, used, cached, shared, adapter, evicted) on top of their forms, and stations take the categorical code with their glyphs. The heat lamp falls on the open ask's candidates.
-- **Moment** (§0's flagship moment): a pan fans into the layers it serves while twine reaches across the reach-in to it.
-- **Must stay legible at 390 px:** each pan's glyph on its tape (16 columns, about 20 px each), the rotation's order (DOM), and the counts, all DOM: recomputed tokens (re-prepped), hit tokens (shared mise), completed tickets, preemptions, kit stall steps and evictions.
-
-#### The Dumbwaiter (`switchyard`)
-
-*KV offload, connector and events.* Working name The Switchyard (§9), in TR5b.
-
-- **The present:** the ticket whose controls are open.
-- **Scene** (§9, "3D scene"):
-  - The three decks are **three floors**: **the reach-in** on the line at the top (the GPU, with The Reach-In's rack), **the cooler** below (CPU) and **the basement** at the bottom (disk). A peer is **the sister kitchen**, whose pans arrive in the same car.
-  - Transfers are **the dumbwaiter's car**, running between floors; its fill shows the pans landed.
-  - The layer column is **the build**: the dish assembled layer by layer beside the line. It shows how far cooking has reached and which layers' mise has landed, and cooking stops at a layer whose mise is still in the car.
-  - Requests waiting for remote KV wait on **the waiting spike** (`WAITING_FOR_REMOTE_KVS`).
-  - A page being saved carries **a lock tag**, the lock glyph: its copy is still riding down, so it may not be dumped.
-  - Events are **pan calls**, each with its number, called out to the front of house along the call line: stored, removed and all cleared (`BlockStored`, `BlockRemoved`, `AllBlocksCleared`).
-  - The consumer's board is **the board at the host stand**: the front of house's picture of this kitchen's mise, rebuilt from the calls alone. After a gap in the calls, it replays from the buffer.
-  - A violation sends out **a wrong plate**: cooking from a pan still in the car, dumping a pan whose copy has not landed, or cooking from a spoiled pan. A spoiled pan from storage can spoil a later ticket too.
-  - A failed load is **a spoiled pan**: the ticket is cut back to its last good pan, and the spoiled pan and every later one are dumped and re-prepped.
-  - Each step is a bell, as in Service: the car advances once per step, and the build climbs until it reaches a layer whose mise is missing.
-- **Cameras:** **The shaft** (Establish: the floors and the car), **The build** and **The board** (Focus) and **The shaft from the side** (Side: the car's progress).
-- **Materials.** Floors and the car are stainless, and pans are as in The Reach-In. Calls and the board are ticket paper (DOM), with their numbers. Lock tags carry the lock glyph. A violation takes the `bad` status role with its glyph. The heat lamp falls on the open ticket.
-- **Must stay legible:** lock tags, the car's fill count (DOM), the layer the build has reached, and the board's mismatch count (DOM).
-
-#### The Tasting (`verifier`)
-
-*Speculative decoding's verifier.* Working name The Verifier (§10), in TR6.
-
-- **The present:** the row being tasted.
-- **Scene** (§10, "3D scene"):
-  - The rows into depth are **the commis's run**: one row per course the commis plated ahead (1 to γ), then **the chef's extra course**, the bonus row.
-  - Each row's skyline spans **the six dishes** of the vocabulary. Each dish's column stacks an **agreed** base, min(p, q). Where the commis plates the dish more often than the chef would, an **over-plated** cap, q − p, sits on top; where the chef would send it more often, an **under-plated** well, p − q, sits beside it.
-  - A drafted token is **a commis plate set down** on its dish's column at a seeded height in [0, q(x)). In the agreed base it is kept; in the over-plated cap it is sent back. On a send-back, a second plate drops into the row's under-plated wells: **the chef re-plates**.
-  - The verifier's walk is **the chef tasting down the run**. She stops at the first plate sent back, and the later rows are binned.
-  - The output skyline at the front is **what went out**, per dish, settling exactly onto the chef's tasting as plates accumulate.
-  - The TV meter is **the distance from the chef's tasting**, exact (DOM).
-  - In `greedy-ngram`, temperature 0 is **the chef always sending her favourite**, and the n-gram draft is **a commis copying the night's recent plates**, with no idea how often (q is one-hot). `mutants` is **five tasting rules to audit**, and `gamma` is **how many courses the commis should plate ahead**.
-- **Cameras:** **Over the run** (Establish: three-quarters over the rows), **One course** (Focus: one row, front-on) and **Walk with the chef** (Follow: opt-in).
-- **Materials.** The rows sit on the stainless pass. The agreed base, the over-plated cap and the under-plated well take the `overlap`, `draft` and `residual` probability roles, each with its own pattern. What went out takes `observed`, and the chef's tasting `target`. Commis plates are markers, told apart from the segments by shape. The heat lamp falls on the row being tasted.
-- **Moment** (§0's flagship moment): the commis's plates drop through the rows into depth, and what went out settles exactly onto the chef's tasting.
-- **Must stay legible:** which segment each plate landed in (kept or sent back, by shape), the distance meter (DOM, an exact fraction), and each dish's output against the chef's tasting (the mirror).
-
-#### The Inspection (`broken-bench`)
-
-*Benchmark methodology.* Working name Broken Bench (§11), in TR8; 2D, with an optional 3D opener. The court is **the hearing**.
+*Benchmark methodology.* In TR8; 2D, with an optional 3D opener.
 
 - **The present:** the selected row of the log.
-- **Board** (§11, "2D design"):
-  - A case is **an inspection report**: a claim about a kitchen's times, its setup and the stopwatch log.
-  - The log's rows are **each order's times**: due (when the guest was due to order), sent (when the order was taken), first plate and done.
-  - Per-client timelines are **each table's timeline**, and the histogram carries the percentile marker.
-  - The flaws, in the kitchen:
-    - closed loop past capacity: **a fixed set of tables**, so the rush never arrives;
-    - coordinated omission: **the inspector's stopwatch, paused while the kitchen is slammed**;
-    - client queue hidden: **a stopwatch started when a seat frees**, not when the guest joined the line;
-    - warm-up counted: **the first tables timed while the ovens heat**;
-    - warm cache: **every guest ordering what is already prepped**;
-    - capped output: **only the first few courses timed**;
-    - too few samples: **a "p99" from a handful of tables**;
-    - mean reported as a tail: **the average reported as the worst case**;
-    - client bottleneck: **the inspector's own runner, the slowest link**;
-    - "replay" that ignores timestamps: **last Friday re-run at a steady pace** instead of its rush;
-    - none: **a fair inspection**, the control.
-  - The reveal recomputes from the rows (from due times, the warm-up cut and the bootstrap) and shows the arithmetic.
-- **The 3D opener, `rain-and-relay`: walk-ins and tables.** In the open-loop arena, walk-ins reach the door at their due times. During a stall the door shuts and they queue outside, so the queue's height is the honest latency. In the closed-loop arena, one lane per table runs into depth, and a table orders again only after its last plate lands. During the stall every table freezes, and the orders never placed appear as ghost outlines at their due times, counted.
-- **Cameras** (the opener only): **The door** (Establish) and **Side** (Compare).
-- **Materials.** The report and the log are ticket paper (DOM tables). Due and sent ticks differ by glyph. In the opener, guests are markers and the ghost outlines are hollow. The heat lamp falls on the selected row.
-- **Must stay legible:** every row's due, sent, first-plate and done times (DOM), the percentile marker with its value, and the interval. On phones, everything is a list.
+- **The diagram** (§11): a case is a benchmark report: a claim, its setup and its log. The log's rows are each request's due, sent, first-token and done times; per-client timelines and a latency histogram carry the percentile marker. The flaws: a closed loop past capacity; coordinated omission (timing from the send); a hidden client queue; a counted warm-up; a warm cache; capped output; too few samples; the mean reported as a tail; a client bottleneck; a replay that ignores its timestamps; and none, the control. The reveal recomputes from the rows and shows the arithmetic.
+- **The 3D opener, `rain-and-relay`: open and closed loops.** Open loop: requests arrive at their due times, and during a stall they queue, so the queue's height is the honest latency. Closed loop: one lane per client, and a client sends again only after its last reply, so during the stall every client freezes, and the requests never sent appear as outlines at their due times, counted.
+- **Legible:** every row's times (DOM), the percentile marker with its value, and the interval. On phones, everything is a list.
+
+#### Tensor views (`shape-shifter`)
+
+*Tensor views and copies.* In TR0.
+
+- **The present:** the tensor the next operation acts on.
+- **The diagram** (§4): the tensor's elements as a block of cells above its buffer, a strip of every element in memory order. The stride order is a line through the cells in the order the strides read them. Shape, strides and offset are DOM labels. A view (`view`, `transpose`, `permute`, `expand`, slicing) relabels: new strides, the line re-drawn, nothing moved. A copy (`contiguous()`, or a `reshape` the strides cannot express) lays a new buffer and moves every element. `expand` (stride 0) reads one element in several places. In `grid`, program instances are tiles over the tensor, and a lane past its edge is masked, drawn hollow.
+- **Views:** **Three-quarter** (Establish), **One slice** (Focus) and **Before and after** (Compare).
+- **Legible:** shape and strides (DOM), which elements move, the masked lanes, and the counts of copies, elements moved and operations.
+
+#### Trace attribution (`gap-hunt`)
+
+*Trace attribution.* In TR3 and the capstone; 2D. The traces live on the course's Traces page.
+
+- **The present:** the focused event.
+- **The diagram** (§6): a trace, synthetic or pinned with its GPU, engine pin, date and SHA-256. Tracks: the CPU main thread with its Python frames nested, CUDA API calls, GPU streams and copies. Step marks bound each window. The categories: kernel, copy-only, CPU gap and both idle, with overlap reported beside them. The unaccounted counter must reach 0. A gap's cause is read off the launch queue: CPU work covering most of the gap, or a blocking sync ending at or after its start. Correlation links join a launch to its kernel. On phones the trace becomes a list of the window's events.
+- **Legible:** every span's category (pattern and code), the unaccounted counter, the window's ns, the cause mark and the step marks, all as DOM.
+
+#### Backend dispatch (`dispatch`)
+
+*Attention backend selection.* In TR4; 2D.
+
+- **The present:** the row the walk has reached.
+- **The diagram** (§7): the feature card (GPU architecture, head dim, KV dtype, MLA, sliding window, speculative decoding, page size); the rule table, the engine's attention backends in priority order with what each supports; the walk, row by row, until the first backend that meets every requirement takes the call. A wrong prediction stops at the first requirement that ruled it out. The CUDA graph consequence (`ALWAYS`, `UNIFORM_BATCH`, `UNIFORM_SINGLE_TOKEN_DECODE`, `NEVER`) links to the step loop's graph modes.
+- **Legible:** the whole table as DOM, stacked rows at 390 px, with the excluding requirement named in words.
+
+#### KV offload (`switchyard`)
+
+*KV offload, connector and events.* In TR5b.
+
+- **The present:** the request whose controls are open.
+- **The diagram** (§9): three tiers (GPU, CPU tier, disk tier) and a peer. A transfer is a page in transit between tiers, which cannot be read until it lands, and the tier it left keeps its copy until then. The layer column shows how far the forward has reached and which layers' KV has landed. Requests waiting for remote KV wait in `WAITING_FOR_REMOTE_KVS`. A page being saved carries the lock glyph. KV events (`BlockStored`, `BlockRemoved`, `AllBlocksCleared`) are published in order, and the consumer's view is rebuilt from them alone. A violation (reading a page in transit, freeing a page whose save has not completed, reading a failed load) takes the `bad` status role with its glyph.
+- **Views:** **Tiers** (Establish), **Layers** and **Consumer** (Focus) and **Side** (the transfer's progress).
+- **Legible:** lock glyphs, the transfer's landed count (DOM), the layer the forward has reached, and the consumer's mismatch count.
+
+#### History: the kitchen's words
+
+The Pass (D-047, superseded by D-062) named every object in a restaurant kitchen, and D-049 (superseded by D-063) paired those names with the engine's. They are kept here as history, so that a reader of an older record, an id or a file name can find what each meant. No word in this table's left column reaches a learner; the copy guard holds that. The "As built" notes in §3 to §11 were written before wave R in these words, and they are kept as the record of what each earlier task built: read them with this table. The rules, counts and levels they state have not changed, and the scene blocks of the built games (§3, §5, §8 and §10) are rewritten.
+
+| Kitchen name | The engine's term |
+|---|---|
+| Service; First service; the full service | Step loop; the demo; TR2's levels |
+| Back of House | Request path |
+| The Reach-In | KV page pool |
+| The Tasting | Rejection sampler |
+| The Inspection | Broken benchmark |
+| Sheet Pan | Tensor views |
+| The Tape | Trace attribution |
+| Line Check | Backend dispatch |
+| The Dumbwaiter | KV offload |
+| The Rotation; Keep or Re-plate; The Reach-In Manager (labs) | Build an LRU free queue; Build the rejection sampler; Build a hybrid KV cache manager |
+| ticket; order; guest | request |
+| hanging a ticket | admit |
+| tickets curling out of the printer | waiting queue |
+| the rail; a clip; an empty clip | running batch; batch slot; empty slot |
+| the fired rail | the step in flight, with async scheduling on |
+| a fire; the bell | a step; Step |
+| the line; the stations; lit | GPU lane; forward; busy |
+| the expo; the expediter; the pass | CPU lane (the engine core thread) |
+| stations dark; dark stretch | bubble |
+| firing the rail as a set | static batching |
+| the next call, written during this fire | async scheduling |
+| plate; course; dish | output token |
+| binned plate | ghost token |
+| calling each dish; the comb | eager kernel launches |
+| a drilled routine; one word | CUDA graph replay |
+| the mold rack; a mold; an empty mold place | capture sizes; a captured size; padding |
+| the allergy card | grammar mask |
+| a set menu | a `max_tokens` stop |
+| hotel pan; the reach-in | KV page; KV page pool |
+| a station (a KV group) | KV group |
+| table ("table A · 1/3") | conversation ("conversation A · turn 1 of 3") |
+| standing order | shared system prompt |
+| price | cost |
+| hold window | sliding window |
+| the rotation | free queue |
+| a labelled pan; a bare pan | cached page; free page |
+| recipe kit | LoRA adapter |
+| shared mise; mise | prefix hit; cached KV |
+| dumping a pan | evict |
+| pulling a ticket | preempt |
+| re-prep | recompute |
+| the house; the house run; par | reference run; the reference |
+| the night | run |
+| the host stand; the dining room | API server; client |
+| floors of the house; pairs of hands | processes; threads |
+| a spike; the ticket window; the window shelf | queue; IPC; shared memory |
+| the dumbwaiter, down and up | host-to-device copy; device-to-host copy |
+| "Heard!" | sync |
+| twin cooks; passing halves across | tensor-parallel ranks; a collective |
+| hand-off cards; the tray | stages; stage list |
+| writing the order in shorthand; naming each plate | tokenize; detokenize |
+| the cooler; the basement; the sister kitchen | CPU tier; disk tier; peer |
+| the dumbwaiter's car; pan calls | a page in transit; KV events |
+| the commis; the chef; the chef's tasting | draft model; target model; target distribution p |
+| keeping a commis plate; re-plating | accept; resample from the residual |
+| a run of plates; the favourite and the copier | γ draft tokens; greedy target and n-gram draft |
+| walk-ins; a fixed set of tables | open loop; closed loop |
+| the inspector's stopwatch | coordinated omission |
+| the clipboard; the ruling; the court | report form; verdict; graded set |
+| sheet pan; portion; bench row; twine; relabel; re-plate | tensor; element; buffer; stride order; view; copy |
+| the night's tape | trace |
+| the menu; the specials; the prep list; the Mirror | Course; Games; review set; Progress |
+| Well fired; The ruling falls | Passed; Not yet |
+| Over the shoulder; Side of the pass; Under the lamps | Along time; Side; Top |
+
+REDESIGN §2.7 has the full table, with every level's old and new title.
 
 ---
 
-## 3. The Loop (`loop`): front page, TR2, TR6's mask lane
+## 3. Step loop (`loop`): front page, TR2, TR6's mask lane
 
 **Module and concept.** The engine's step loop. The front-page run teaches one true thing: *a decode step costs the GPU about the same with one request or four, so the loop earns tokens by keeping every slot live (continuous batching) and by planning the next step while this one runs (overlap, which vLLM calls async scheduling).* TR2's levels add what the real loop does on top: CUDA-graph capture sizes and modes; dispatch keys, with MRV2's `BatchExecutionDescriptor` as the pinned default and MRV1's `BatchDescriptor` with `has_lora` as the legacy example (D-041); the V2 model runner; and the host work they hide. TR6 adds the grammar mask's lane.
 
@@ -538,7 +494,7 @@ The ids follow TRACKER.md's W1-T13 (`async`, `graphs`, `keys`, `mrv2`, `mask`), 
 - **Band for `first-4-par`.** Static batching takes ≥ 1.25 × the ticks of continuous batching without overlap, which takes ≥ 1.4 × par. Overlap alone (static batching with overlap) takes ≥ 1.15 × par, and there are ≥ 3 ghost tokens. Both levers are then needed to reach par. In a scratch prototype of the tick world, 80% of 400 candidates were in band; on in-band seeds refill alone took a median 1.55 × par (minimum 1.40) and overlap alone 1.42 × (minimum 1.16) [estimated: a scratch prototype run outside the repo on 2026-11-03 and not kept; the shipped tests re-measure it].
 - **Difficulty.** TR2 starts with one lever on a small workload. The capture budget then tightens and histograms turn bimodal (`graphs` · `sizes`). Mixed prefill (`graphs` · `modes`) and adapters (`keys`) follow. `close` draws a burst whose prompts need chunking, on a seeded host card and attention backend, in the band; adapters wait for `keys`.
 
-**As built (W1-T13), "the full service".** `async`, `graphs` (stages `comb`, `sizes`, `modes`), `mrv2` and `mask` are practice levels of `packages/play/loop/full`, on Service's page beside the first service; `keys` waits and `close` is W1-T14's (below). The registry's session is one session over both services (`packages/play/loop/game.ts`); the front page imports the first service's alone.
+**As built (W1-T13), "the full service".** `async`, `graphs` (stages `comb`, `sizes`, `modes`), `mrv2` and `mask` are practice levels of `packages/play/loop/full`, on the step loop's page beside the first service (the demo levels); `keys` waits and `close` is W1-T14's (below). The registry's session is one session over both services (`packages/play/loop/game.ts`); the front page imports the first service's alone.
 - **The world.** Each stage is a night of 24 tickets due at once on a rail of 12 clips [estimated], prompts of 8 to 32 tokens and 12 to 28 courses [estimated], served by `runStepLoop` v1 (asked for each step's rows, so every ticket keeps its clip) on a cost card: "70B on H100" (S5 at TP 4, its host term on the CPU lane, D-044 proposed) or the small-model napkin (`SMALL_CARD`, synthetic). The token budget is each card's `vllm serve` default (8,192 and 2,048, claims `vllm.batch-defaults.*`), and every other lever starts at the pinned engine's default: async on, FULL_AND_PIECEWISE, vLLM's own capture sizes, MRV2.
 - **A stage** opens on its naive configuration, asks its prediction first, and closes on a night within the house's (the intended configuration's) metric plus 3%, the sizes stage's capture cost within 5% (GAMES.md's pass bar), or on its third night [estimated], so the debrief can name the lever. The level is over when every stage is closed; its score is its weakest stage's best night, house over mine.
 - **`modes`, answer first over the four modes that use graphs.** Without a cost for capturing, FULL_DECODE_ONLY never beats FULL_AND_PIECEWISE and no backend draw makes four answers, so the stage gives the routines a room in the reach-in [estimated, MiB], against the graphs' memory of the sim's `memory.ts` (32 MiB for FULL_DECODE_ONLY's four decode graphs at this rail, 93 for FULL's or PIECEWISE's eleven, 125 for FULL_AND_PIECEWISE's fifteen), and a mode whose graphs need more does not serve. Over 200 seeds the answers are FULL 26%, FULL_AND_PIECEWISE 19%, FULL_DECODE_ONLY 29% and PIECEWISE 26% of the in-band seeds; asking always for FULL passes on 45% of them, because on a backend that replays only uniform batches FULL runs as FULL_AND_PIECEWISE [measured 2026-11-05 over wave-1 at 905b782 with this task's tree, tests/play/loop-full-levels.test.ts]. The stage's naive configuration is NONE; it opens on the engine's default.
@@ -600,72 +556,46 @@ Proposed pass bars (ASSESSMENT.md decides):
 
 #### 3D scene
 
-- **Objects.**
-  - Two lanes run away from the camera along time: the CPU lane on the left and the GPU lane on the right. A copy lane appears in TR2.
-  - Each step is a slab on the GPU lane. Its length is the step's GPU time, and its width is the slot count. Each slot is a lengthwise row of cells: a live slot is a solid cell, an empty slot an open groove, a ghost token a hollow cell, and a padded token (TR2) a cell marked "padding".
-  - The CPU lane carries plan and read slabs. In TR2, eager launches form a comb (one tooth per kernel launch), a graph replay is one short slab, and piecewise mode is a comb with fewer teeth.
-  - Gaps on the GPU lane are bubbles.
-- **The bay.** At the near end of the lanes is the present. The tray of slots holds the step being planned, the waiting requests stand in a line beside it, and, with overlap on, a second tray holds the step in flight. In TR2 a rack of molds stands at the bay, one per captured size in ascending order, and the dispatcher's pick takes emphasis.
-- **Axes.**
-  - Time runs into the screen.
-  - Lane runs across the scene.
-  - Slot runs across each slab's width.
-- **Camera presets** (ARCHITECTURE §6.1's "along time, side and top"):
-  - **Along time** (Establish) looks from behind the bay down the lanes at about 25° elevation.
-  - **Side** (Compare) is an orthographic Gantt view for lengths and gaps.
-  - **Top** shows slot occupancy, where empty grooves are easy to count.
-  - The end of `first-4-par` cuts to Side with the three runs stacked.
-- **Motion.** A slab extrudes over 150-300 ms per step [estimated]. Trays hop between the bay's positions, and the history recedes by whole steps. Nothing moves while the loop waits for a decision.
-- **Must stay legible at 390 px:**
-  - the state of each slot (solid, groove, hollow);
-  - the gaps on the GPU lane;
-  - request ids, through DOM labels;
-  - the counters.
+The 3D view is the timing diagram laid flat on a plate and lifted into depth (R-T18; R-T19 gave it the step loop's `Scene3D.tsx`). It is drawn from the same pure lane layouts as the 2D view (`packages/play/loop/lanes.ts`, and `full/lanes.ts` in µs), so every mark is the 2D view's mark. A kit part, `FlatTrack`, draws it, and no prop is involved.
 
-  History beyond about 48 steps [estimated] aggregates into one slab per step, without cells.
+- **Objects.** x is the diagram's x (time) and z is its y (the rows); y is up, and one world unit is 100 px.
+  - The plate is pale paper engraved with the graticule: minor lines per tick, major lines per axis tick, and a rule between rows.
+  - The waiting queue is a row of paper chips. The CPU row holds the engine core thread's calls as blue slabs, and a sync is a yellow one.
+  - Each batch slot is a row. A live slot's output token is a green slab, and a ghost token is hatched green. An empty slot is a dashed wire.
+  - Idle is a dashed box with a dimension line and its value. On the full levels a graph replay is one slab, eager launches are a comb of thin ticks on a spine, padding is hatched and stands proud, and the mask is a row.
+  - The "now" cursor is a thin amber sheet. It is the only amber in the scene (§2.6, drawing rule 4).
+- **Materials.** Matte Lambert slabs in the lane colours, each on an instanced contact shadow with occlusion baked into the shader. Wires are dashed lines, and the cursor is unlit. There is no environment map, fog, bloom, lamp or glow, and no shadow map. Every colour is a token role resolved by `scene-tokens.ts`.
+- **Cameras** (`track-presets.ts`; `C` cycles them in this order):
+  - **Lifted** (the default when 3D is on) is Side turned 36° about the time axis, 24° on a canvas under 560 px, so slots recede.
+  - **Side** is orthographic and face-on, `canvas.height / 100` units high: the 2D diagram, pixel for pixel.
+  - **Along time** looks from past now back down the axis.
+  - **Top** looks from high above, a little to the right, so the slabs' sides show and empty slots are easy to count.
+  - **Compare** is lifted 26° over three bands, static batching, continuous batching and async scheduling. **Scale** is lifted 30° over 64 slots and 160 steps. Both draw the model's own run on a synthetic night, labelled so, and neither is played.
+- **Motion.** A step is a cut. The one authored move is Compare's, the bands settling into place in 640 ms on the kit's ease, and under reduced motion it is drawn at its end.
+- **Must stay legible at 390 px:** each slot's token shape, the idle boxes with their values, request numbers and the readouts, all DOM. On a canvas under 560 px the slab and idle words hide and the state table carries them.
 
 #### 2D path and reduced motion
 
-- **2D.** An SVG Gantt with the same two lanes and the same cells, plus the tray and the queue as boxes, and the same controls and counters. It is the front page's first paint (D-023). The poster is its first frame, rendered by `scripts/posters.ts` from the same `layout.ts`.
-- **Reduced motion.** Slabs appear whole, trays jump, cameras cut, Auto is off by default, and history steps without scrolling.
+- **2D.** The timing diagram as SVG (R-T17): queue chips, a CPU row, a row for each batch slot holding its request, dashed idle boxes with dimension lines and the now cursor, in the instrument frame with the same controls and readouts. It is the front page's first paint (D-023), and its first frame is the poster, rendered by `scripts/posters.ts` from the same `lanes.ts`. The 2D view is the default; 3D is the switch beside it, and on a phone (a coarse pointer under 48rem) the front page stays in 2D until asked.
+- **Reduced motion.** Nothing moves without input: cameras cut, Compare is drawn in place, Auto is off by default, and history steps without scrolling.
 
 #### Budget
 
-All [estimated].
+All [estimated] unless tagged.
 
 | | T2 (laptop) | T1 (phone) |
 |---|---|---|
 | Draw calls | ≤ 24 | ≤ 16 |
-| Triangles | ≤ 60k | ≤ 25k |
-| Instances | ≤ 6k | ≤ 2.5k |
+| Instances | ≤ 6k, except Scale | ≤ 2.5k, except Scale |
 | Frame | p95 ≤ 16.7 ms, scene render ≤ 6 ms | p95 ≤ 33.3 ms |
 
 - **Aggregated first:** history cells, then comb teeth beyond 64 per step (shown as a count).
-- **Chunks:** `scene-loop` ≤ 35 KB gz. The front page's 2D game and sim fit ARCHITECTURE's 150 KB gz first-paint closure.
-- **Measured** [measured 2026-11-05 over wave-1 at cc1d29d with the finish review's round-2 fixes; the bundle by `verify:bundle`, the draws by `renderer.info` through the scene's test hook]:
-  - `scene-loop` (its chunk, its CSS and the chunks only 3D reaches, the scene kit's props among them) is 38,971 B gz. That is 1,029 B under A§11.1's frozen 40 KB gate (D-023) and 3,971 B over this table's 35 KB target, which scene kit v1's props passed before the round-1 fixes. Round 2 added 605 B to it [derived from 38,366 B at cc1d29d before them]: the lamps' light taken off the counter and given back as the steel's sheen, the plates' contact and the room's light.
-  - A whole night of `first-4-par` on `/play/loop` (e2e/loop-scene.spec.ts) draws at most 14 scene draw calls at T1 (14 in the frame) and 39 at T2 (53 in the frame with bloom and the final pass), against A§11.1's 100. It draws at most 48 instances at T1 and 80 at T2, and at most 105,460 and 402,836 triangles: a plate's contact shadow is two soft quads in the one draw of every contact shadow, so round 2 added instances and no draw.
-  - The front page's pass at 1440 by 900, at T2 with half a rail fired, draws 30 scene draw calls (44 in the frame), in a test build.
-  - T1's draw calls are within this table's target. T2's draw calls, and both tiers' triangles, are over it: the heat lamps' shadow passes and the props' turned and swept parts. The draws stay under the frozen gate.
-- **Measured with the full service (W1-T13)** [measured 2026-11-05 over wave-1 at 905b782 with this task's tree, against wave-1 at 905b782 alone; the bundle by `verify:bundle`, the draws by `renderer.info` through the scene's test hook, e2e/loop-full.spec.ts]:
-  - `scene-loop` is 39,865 B gz, 135 B under the frozen 40 KB gate, from 39,037 B: the full service's tools (one instanced draw of ring molds and one of the comb, each on contact shadows, built the kit's way in Service's own chunk, `src/games/loop/Scene3D.tsx`, so no other scene carries them), the plates scaled to a longer rail, and the tapes that name the tools; the labels' styles load with the full service. The scene kit's own row is 22,973 B, 51 B more for the plates' scale, which the scenes that count it carry: The Tasting's is 39,775 B and Back of House's 39,155 B.
-  - A night of `graphs` with the rack and the comb draws at most 16 scene draw calls at T1 and 47 at T2 (61 in the frame with bloom and the final pass), 125 and 157 instances, 142,732 and 551,756 triangles.
-  - The full service loads on demand when one of its levels opens, and no gate rows it: its page chunk is 14,027 B gz and 714 B of CSS, its rules (the step loop v1, the cost cards and the levels) 17,013 B, the `keys` card 954 B and the session over both services 398 B. `/play/loop`'s own closure is 196,584 B against 200 KB (from 195,063 B), and the front page's first-paint JavaScript 152,239 B against the gate that D-055 had raised (from 151,805 B: the first service's four levels as a list of their own, the plates' radius on a longer rail, the hook through which the full service draws into the 2D frame, and the list of the keys the first service leaves out); its CSS 18,270 B (from 18,170 B, the page's new layout utilities). D-059 put the front page's gate back to 150 KB.
-- **Measured with D-023's budgets restored (D-059)** [measured 2026-11-08 over wave-1 at cb7bc29 with D-059's tree; the bundle by `verify:bundle`]:
-  - The front page's first-paint JavaScript is 147,337 B, 2,663 B under the 150 KB gate, from 153,795 B at cb7bc29: the burst of `first-4-par` is drawn without the exponential table (`genFixedWorkload`), the tick card no longer brings S5's fitted rows (`packages/sim/steploop/s5.ts`), the content loader no longer holds every lesson's table (`src/content/load-lessons.ts`), and the entry no longer lists the other pages' chunks (the route table, A§6.10). Its CSS is 18,469 B.
-  - `/play/loop` is 180,457 B, 19,543 B under 200 KB, from 196,969 B: the same, and the keys dialog loads when the learner reaches for it.
-  - The full service still has no gated row. `verify:bundle` prints it, as `route /play/loop with FullService`: 231,129 B, which would be 31,129 B over the 200 KB that every route has. Fitting it, or a record for it, is the owner's to schedule (D-059).
-- **Measured with the lesson blocks' finish fixes, round 1** [measured 2026-11-09 over wave-1b at 017eb46 with this round's tree; the bundle by `verify:bundle`, the draws by `renderer.info` through the scene's test hook, e2e/loop-full.spec.ts]:
-  - `scene-loop` is 37,503 B gz, 2,497 B under the frozen 40 KB gate, from 38,231 B at 017eb46: the tapes are the design system's tape in the DOM, so Service draws no tape strips and no longer counts the `SheetInstances` chunk, and the bell's chrome mirrors the room brighter, which the scene kit's row carries (20,914 B, from 20,794 B). With Service no longer drawing sheets, Rollup splits `SceneCanvas` from `SheetInstances`, so each scene that draws sheets counts one chunk more: The Reach-In's row is 39,522 B (from 39,005 B), Back of House's 39,231 B (from 38,717 B), The Tasting's 38,327 B (from 37,806 B) and the /design kitchen's 36,484 B (from 35,973 B), each under the gate. `three-vendor` is unchanged, at 238,647 B.
-  - A night of `async`, its first stage with twelve tickets hung and twelve on the fired rail, twelve plates, the rack, the comb and every tape, draws at most 17 scene draw calls at T1 (17 in the frame) and 17 at T2 (31 in the frame with bloom and the final pass), with 127 and 162 instances and 149,516 and 150,420 triangles, against A§11.1's 100. A night of `graphs` measures the same.
-- **Measured with the lesson blocks' finish fixes, round 2** [measured 2026-11-09 over wave-1b at d7ea594 with this round's tree; the bundle by `verify:bundle`, the draws by `renderer.info` through the scene's test hook, e2e/loop-scene.spec.ts and e2e/loop-full.spec.ts]:
-  - `scene-loop` is 37,548 B gz, 2,452 B under the frozen 40 KB gate, from 37,503 B: the bell's dome and plunger in the palette's polished finish, even and with no roughness map, and its base in a turned tone of deep steel, all in the scene kit's row (20,961 B, from 20,914 B), which the other scenes count too: The Reach-In's row is 39,560 B (from 39,522 B), Back of House's 39,272 B (from 39,231 B), The Tasting's 38,365 B (from 38,327 B) and the /design kitchen's 36,517 B (from 36,484 B), each under the gate. `three-vendor` is unchanged, at 238,647 B.
-  - The 2D view's names are the design system's tape in the DOM, so the posters are 35,171 and 26,806 B of SVG (from 35,740 and 27,374 B). The front page's first-paint JavaScript is 148,155 B, 1,845 B under its 150 KB gate (from 147,933 B), its CSS 18,656 B (from 18,473 B), and `/play/loop` 185,399 B (from 184,986 B).
-  - A whole night of `first-4-par` on `/play/loop` draws at most 15 scene draw calls at T1 (15 in the frame) and 15 at T2 (29 in the frame), with 52 and 87 instances and 108,920 and 109,824 triangles. A night of `async` or of `graphs` draws at most 17 at T1 (17 in the frame) and 17 at T2 (31 in the frame), with 127 and 162 instances, as round 1 measured: the bell's finish adds no draw.
-- **Measured with the close-out round's 2D labels** [measured 2026-11-09 over wave-1b at 7f704f9 with this round's tree; the bundle by `verify:bundle`, the draws by `renderer.info` through the scene's test hook, e2e/loop-scene.spec.ts]:
-  - The 2D drawing prints no word and no number: the tickets' numbers, the empty clips' stubs, the printer's count and the molds' sizes are print in the DOM over it, as the tapes are, so the posters are 34,495 and 26,130 B of SVG (from 35,171 and 26,806 B) and the front page's document 21,755 B gz (from 21,802 B). The front page's first-paint JavaScript is 148,129 B, 1,871 B under its 150 KB gate (from 148,140 B), and its CSS 18,843 B (from 18,656 B): the print's styles are the design system's, which every route loads, so `/play/loop` is 185,562 B (from 185,383 B) and the tightest route, `/play/engine-floor`, 191,902 B, 8,098 B under (from 191,708 B).
-  - The 3D scene is unchanged. Its rows moved by at most 4 B with the names of the chunks they import (`scene-loop` 37,555 B, `scene-pool` 39,741 B, 259 B under the gate), and a whole night of `first-4-par` draws at most 15 scene draw calls at T1 (15 in the frame) and 15 at T2 (29 in the frame), with 52 and 87 instances, as round 2 measured.
-- **Timing:** interactive in 2D before LCP, and 3D visible about 2 s after LCP on the reference phone in ARCHITECTURE's mobile lab profile (a chunk of about 280 KB gz at 1.6 Mbit/s is about 1.4 s of transfer [derived], plus parse).
+- **Chunks:** `scene-loop` ≤ 40 KB gz, the frozen gate; the target here is 30 KB.
+- **Measured.**
+  - `scene-loop` (its chunk, its CSS and the chunks only 3D reaches) is 19,988 B gz [measured 2026-11-17 at `a564916`, `verify:bundle`], 20,012 B under the gate. It was 22,244 B when R-T18 built it [measured 2026-11-16 at `66db745`].
+  - The scene draws eight scene draw calls: plates, graticule, contact shadows, solids, wires, inks, the cursor's edge and the cursor [measured 2026-11-16 at `66db745`, e2e/loop-scene.spec.ts]. Scale's 64 slots and 160 steps are 10,563 instances in 7 scene draw calls at T1 and 8 at T2 [measured 2026-11-16 at `66db745`], both within the kit's ten draw calls. Scale is a view-only camera.
+  - `Side` projects every axis tick and slab edge to the 2D diagram's x within 1 px (`tests/play/loop-track.test.ts`).
+  - The front page's first-paint JS is 149,855 B against the 150 KB gate [measured 2026-11-17 at `a564916`]: the 2D diagram and the sim carry it, and the 3D chunks load after the largest paint.
 
 #### Simulation API
 
@@ -725,7 +655,7 @@ export function optimalCaptureSizes(hist: readonly number[], budgetUs: Us, gpu: 
   - In MRV1, FULL requires a FULL key and PIECEWISE uses the relaxed key with `num_reqs` null and uniform false.
 - **The default list.** `defaultCaptureSizes(512)` has 51 sizes [derived], matching the pinned source.
 - **The DP ghost** is optimal against brute force on every histogram of ≤ 12 candidate sizes.
-- **Traces.** `traceFromRun` on any run, attributed by Gap Hunt's reference, recovers the run's own per-µs truth. Gap Hunt shares this test.
+- **Traces.** `traceFromRun` on any run, attributed by the trace attribution game's reference, recovers the run's own per-µs truth. The trace attribution game shares this test.
 - **Determinism.** Integer-only arithmetic in the tick world, and the cross-browser hash.
 
 #### Claims shown
@@ -756,7 +686,7 @@ export function optimalCaptureSizes(hist: readonly number[], budgetUs: Us, gpu: 
 
 ---
 
-## 4. Shape Shifter (`shape-shifter`): TR0
+## 4. Tensor views (`shape-shifter`): TR0
 
 **Module and concept.** PyTorch for the Rust-first, and reading Triton. A tensor is a buffer plus a shape, strides and an offset. `view`, `transpose`, `permute`, `expand` (stride 0) and slicing change only metadata. `reshape` copies only when strides cannot express the result, and `contiguous()` copies. A Triton program grid with BLOCK sizes covers a tensor, with masks at the edges.
 
@@ -849,7 +779,7 @@ export function gridCoverage(shape: readonly number[], block: readonly number[])
 
 ---
 
-## 5. The Engine Floor (`engine-floor`): TR1
+## 5. Request path (`engine-floor`): TR1
 
 **Module and concept.** Read nano-vllm, Mini-SGLang and "Inside vLLM" (pre-MRV2, commit 42172ad). Outcome 1 is to trace a request from the API server to the model runner, naming every queue, copy and sync.
 
@@ -909,43 +839,22 @@ These rules hold in every engine. What differs is the engine's architecture, whi
 - GPU lane (F, W2 per D-039): the learner adds span markers to a nano-vllm fork, and the grader checks that their trace's stage order equals their own map.
 - Keep: "Where does detokenization run in engine X?" and "Name the queue between A and B."
 
-**3D scene.**
-- **Objects.**
-  - Processes are platforms stacked in height: client and API server at the top, the engine core in the middle, workers below. The GPU is a lower deck with streams as lanes.
-  - Threads are zones on a platform.
-  - Queues are buffers between zones, IPC is a bridge between platforms, copies are lifts down to the GPU deck, and syncs are gates.
-  - TP ranks are parallel worker platforms in depth.
-  - One capsule, the request, travels the laid path.
-- **Axes.** Process (height), thread (across), rank (depth).
-- **Camera.** Establish (a 3/4 cutaway), a Focus per platform, and Follow on the capsule (opt-in). Camera stops follow the request (ARCHITECTURE §6.1).
-- **Motion.** The capsule moves one stage per 300 ms [estimated] and waits visibly in queues. Under reduced motion it jumps from stage to stage.
-- **Legible:** platform and zone names (DOM), each stage's mechanism glyph, and the capsule's position.
+**The diagram: a swimlane (R-T29).** Request path is 2D. The swimlane is the play surface (D-065), and the 3D scene was cut at R-T43 (wave R, 2026-11-16): the cut is the default D-065 gives, and the owner has not answered it.
 
-**As built (W1-T18, rebuilt by the finish review's round 1 and finished in its round 2, W1b's finish round 1, and W1b's close-out).** The house in cutaway, `src/games/engine-floor/Scene3D.tsx`, drawn from scene kit v1's props and the game's own made the kit's way (`scene-props.ts`), in the house the page lays out of the 2D house's plan (`scene-layout.ts`, so the floors stand in the 2D order and a sealed graded run builds only the floors its route has reached), along the route its laid stages make (`scene-route.ts`).
-- **The kitchen it stands in.** The line stands at the house's foot whatever the prediction, because the GPU says nothing of how many floors a token crosses: the kit's burners, griddle and fryer (a station for each stream, and the kitchen's own after them) under a canopy, sloped out from the tile to a lip, its baffle filters inclined inside and its white tubes lit along the lip; a bench of pans and plates and a speed rack stand beside the house. The room's light is baked into the tile and the floor, full over the line and up to its canopy, and dimming toward the far corners and up the tile over the hood, so the lit lamp and its white ticket stand out against the tile behind them; past the house the room falls into a haze of deep steel.
-- **Objects.** A storey for each process over the line, a room on a brushed-stainless deck with a rolled front edge, furnished by its floor's kind (§2.6) so that each reads as its place at the cutaway's scale: the dining room's tables under white cloths with their chairs and plates, at the host stand a podium of its own for each pair of hands (bevelled, panelled and narrowing to its foot, on its own footprint) and the night's book open on a lectern past the last, the order desk with its printer and the printer's tape over its front edge, the pass with warm plates along its heated shelf, a stack every half metre, the cooks' bench with its pan, and the whole kitchen's pass and printer. A thread is a pair of hands: a ticket rail on the tile over its furniture, high enough that its ticket hangs clear of the surface, and a heat lamp hung over it. The ticket is a dot-matrix slip 130 by 260 mm in a stock 8 mm thick, the print's own shape [estimated]. Its top rolls forward off the rail's clip, leaving it a quarter turn forward and hanging straight below, and its foot curls away from the tile and up through about 150° [estimated], so it hangs 200 mm [derived], the curl's back stands to the room in the paper's shade, and its cut end, turned up to the tubes, is a lit strip of the stock's thickness, about a pixel and a half across at a low house's cutaway, at 1440 and at 390 px [derived from the framings]. IPC and shared memory go through a ticket window at the furniture's height in a steel partition at the house's left, the chute between floors hidden behind it (a house of one storey has a post there, and no window); a copy rides the dumbwaiter's car in an open shaft at its right, from landing to landing at each storey's work surface; a queue is a spike laid on the furniture, where the ticket waits, on a pedestal of its own between two host stands; a sync is the gate; a launch burns its station while the ticket hangs on the line's rail. Each laid hand-off carries a paper chit of its stage numbers, DOM over the canvas, pinned where the hand-off is (over the spike's point and the gate's arm, on a window's sill, on the shaft's landing, beside the ticket of the hands that work in place) and cut as ticket paper: square, perforated along its top, set askew. The names and the numbers keep to their own bands, a storey's tape on its deck's edge, a pair of hands' on the front of their furniture and every chit at or over the surface its hand-off stands on, and the tapes are drawn over the chits, so no chit covers a name: e2e/engine-floor-scene.spec.ts holds every tape's words clear of every other label at the cutaway of the widest and the tallest houses. On a phone a pair of hands' tape shows only where the camera is close on hands (a low house's cutaway, and the followed hands' in the follow), and the line's strip of tape is cut to its words wherever the camera stands.
-- **The one lamp.** Only the present's lamp is lit: its bulb's glow round its shade's lip, and its light at every tier, a cone of warm haze from the shade's mouth straight down to the surface the hands work at and an edgeless warm pool where it lands, wider along the counter than across it, in the kit's soft additive light. It is drawn three times over at T2 and up, where it adds to the scene's light before the tone curve, and once at T1, which draws straight to the screen and adds it to colours already encoded [estimated, on the two tiers' renders]. It falls in front of the ticket, which hangs on the tile behind it, so the paper stays white bond, warmed only at its top by the haze. The round-1 lamp warmed the steel's own sheen and streak through a spot light, Service's way; that pool reads only from a camera that faces the lamp across the counter, and this house's cameras look down from three quarters, so it never showed, while the spot blew the ticket under it out to a peach card (the finish review's round 2). The scene has no spot light now, so T2 draws no shadow pass.
-- **Departures.** TP ranks stand as their own storeys and streams, as the 2D house plans them, and not as twins in depth, so the third axis is not drawn (test 2 is advisory under D-019). Bridges between platforms are the ticket windows of GAMES.md §2.6. A hop takes a beat of the bell and 220 ms more for each metre the ticket travels, at most three beats [estimated], rather than 300 ms flat; under reduced motion a run cuts to where the ticket stops, rather than stepping, because every change cuts (A§6.9). The 3D house shows the line before the prediction, and the 2D house does not.
-- **The moment.** A run plays only the stages it adds beyond where the ticket stood, one to the bell, and at the first stage that does not hold the ticket balks toward it and stands, and that stage's chit is struck in red. The play starts on its first drawn frame, so a run sent while the house is scrolled away plays when it comes back into view; on a wide screen the 3D view and its switches stay in sight beside the controls (GameShell's sticky stage), so the stub, far down the column, sends a run that is seen.
-- **Cameras.** Cutaway (Establish), one stop for each storey (Focus; the line's is low enough to see up under the canopy), and Follow the ticket, close on the hands the ticket is at, which moves with it from hands to hands and cuts under reduced motion. A run sent from the cutaway takes the follow. A low house's cutaway (before the prediction, and nano-vllm's whole kitchen) is framed on its hands, on a laptop with the canopy's lip and its tubes at the foot and on a phone the hands alone, so the ticket under the lit lamp is the first thing found, tens of pixels tall in both; the cutaway of a taller house frames the line from its cooktops up. tests/play/engine-floor-scene.test.ts projects the ticket through each framing.
+- **Objects** (`packages/play/engine-floor/lanes.ts`, pure, drawn by `View2D.tsx`).
+  - A column for each process the path visits (the client, the API server, the engine core, the workers), with threads as sub-columns and the GPU's streams last. A column appears only once the path reaches it in a sealed run, so the path's length is never drawn.
+  - A row for each laid stage, with an elbow arrow from the stage before. The arrow carries its mechanism as a mark and a word: call, launch, collective, queue, IPC, shared memory, copy or sync. Nine marks, all distinct, none categorical by colour.
+  - The node holds the stage's engine label, such as `input_queue`.
+  - The now cursor runs across the row under the present, with its pennant and word in the gutter, and the marker's shape as a ring behind the node.
+- **Axes.** Process and thread across, the path down.
+- **Views.** One view, the swimlane. A row's popover names its mechanism, its process (from, to) and its source, and moves the stage up or down or takes the path back. The row height is fitted to the box (26 to 36 px), so fourteen rows fit at 1440 by 900; on a phone each thread has 72 px and the lane scrolls sideways.
+- **Materials.** Ink strokes on paper. State is carried by a dash, a shape or a word, and the one amber is the cursor.
+- **Motion.** None beyond the live region's sentence for each change. A laid stage appears; there is no capsule.
+- **Legible:** column and row names (DOM), each mechanism's mark and word, and where the request stands. The mirror keeps the stage table.
 
-**2D path.** A swimlane sequence diagram: lanes for processes and threads, numbered arrows, and the same tray. The mirror is the ordered stage table: mechanism, from, to and source.
+**History.** Until R-T43 the game also had a 3D cutaway scene of the engine's processes as platforms in height, with a capsule that travelled the laid path. It left the tree with its layout, presets, stops and CSS; `git log` before R-T43 holds it, and no code describes it now. Its row in the bundle gate, `scene-engine-floor`, is gone with it.
 
-**Budget** [estimated].
-- Draw calls ≤ 30 at T2 and ≤ 20 at T1. Triangles ≤ 50k and ≤ 20k. Instances ≤ 500.
-- Frame: p95 ≤ 16.7 ms at T2, scene render ≤ 5 ms; p95 ≤ 33.3 ms at T1. Platforms merge into one mesh per platform kind at T1.
-- `scene-engine-floor` ≤ 30 KB gz.
-- **Measured** [measured 2026-11-08 with the finish review's round-2 files, over wave-1 at 72f163e and again, the same, at ba2797e; the bundle by `verify:bundle`, the draws by `renderer.info` through the scene's test hook in e2e/engine-floor-scene.spec.ts]:
-  - `scene-engine-floor` (its chunk, its CSS and the chunks only 3D reaches, scene kit v1's props among them) is 39,972 B gz: 28 B under A§11.1's frozen 40 KB gate (D-023) and 9,972 B over this table's 30 KB target, from 39,845 B at 72f163e before the round. The round's lamp light, the host stand's lectern and book and the printer's tape cost about 400 B [measured on the round's builds], found in the scene's own code: no spot light, so no shadow pass and no light props; the ticket's sheet and the lamp's light made once for the page; tuples without rounding; and the canopy's and the decks' smallest parts. It added no export to scene kit v1's chunk, which stays at 23,006 B. The house's layout travels with the game's page, and `/play/engine-floor` is 199,938 B, 62 B under 200 KB, from 199,951 B. Content hashes move every 3D game's row by up to about 10 B when any chunk changes [measured on the round's builds]: `scene-verifier` measured 39,991 B, `scene-pool` 39,953 B and `scene-loop` 39,894 B in the same build.
-  - A whole level of the tallest practice house (Mini-SGLang, six storeys), from the first frame to the ticket home, draws at most 11 scene draw calls at T1 (11 in the frame) and 11 at T2 (25 in the frame, with bloom and the final pass), against A§11.1's 100: within this table's targets, the furniture merged into the house's draws and the lamp's light one instanced draw. It draws at most 37 instances, and at most 174,058 triangles at T1 and 174,378 at T2, over this table's triangle targets: the kit's turned and swept parts, the line's three stations in every house, the pass's plates and a room wide enough that no framing sees past its ends. Round 1 drew 16 scene calls at T2 (30 in the frame) and 327,852 triangles there, with the lit lamp's shadow pass.
-  - The scene draws the line's name on a strip of masking tape through the kit's sheets, as Service and The Tasting draw theirs, so every scene reaches the same 3D core and the bundle keeps it in one chunk: a scene that reached only part of it split the core in two, which cost every other scene about 320 B. Scene kit v1 gained 79 B in round 1 for its custom prop kind and a lamp's own glow channel. Moving the /design specimen's styles out of the Stage's stylesheet took about 1 KB off every 3D game's page: `/play/loop` was 195,063 B then.
-- **Measured, W1b's finish round 1** [measured 2026-11-09 with the round's files over wave-1b at 6376174; the same tools]:
-  - `scene-engine-floor` is 38,727 B gz, 1,273 B under the frozen 40 KB gate, from 37,568 B before the round: the podiums, the lectern, the pedestal, the rolled sheet and the line's tape cut to its words, in the scene's own code. Scene kit v1's chunk gained 1 B (a sheet's rows, which this scene's ticket raises), and every other scene row moved by no more than about 10 B. `/play/engine-floor` is 190,866 B, from 190,746 B.
-  - The line's tape stays a sheet of the kit's, so the 3D core stays in one chunk: drawn as DOM tape it would have split the core and cost every other scene about 390 B [measured on a trial build of the round].
-  - A whole level of Mini-SGLang draws at most 11 scene draw calls at T1 (11 in the frame) and 11 at T2 (25 in the frame), at most 40 instances, and at most 177,924 triangles at T1 and 178,244 at T2.
-- **Measured, W1b's close-out (the ticket)** [measured 2026-11-09 with the close-out's files over wave-1b at 34c8d17; the same tools]:
-  - `scene-engine-floor` is 39,368 B gz, 632 B under the frozen 40 KB gate, from 39,276 B: the ticket's two curls and its lit cut end, in the scene's own code. Scene kit v1's chunk did not change (20,966 B), every other scene row moved by no more than 3 B, and `/play/engine-floor` is 191,708 B, as it was.
-  - A whole level of Mini-SGLang draws at most 11 scene draw calls at T1 (11 in the frame) and 11 at T2 (25 in the frame), at most 38 instances at T1 and 40 at T2, and at most 177,924 triangles at T1 and 178,244 at T2: the sheet keeps its rows.
+**Budget.** The route `/play/engine-floor`, the game's page and its game, is 192,655 B gz against the 200 KB gate [measured 2026-11-17 at `a564916`]. The Debrief loads on demand.
 
 **Simulation API.**
 
@@ -990,7 +899,7 @@ export function spanCheck(laid: readonly string[], t: EsTrace): { matched: numbe
 
 ---
 
-## 6. Gap Hunt (`gap-hunt`): TR3 and the capstone (2D)
+## 6. Trace attribution (`gap-hunt`): TR3 and the capstone (2D)
 
 **Module and concept.** Profile a real engine with `--profile`, Perfetto and nsys graph traces. Outcome 2 is to split a TPOT into kernels, CPU gaps and overlap. The catalog's line: "find the 300 µs gap, name the sync".
 
@@ -1074,7 +983,7 @@ export function checkHunt(c: HuntCase, marks: readonly Mark[], cause: number | n
 
 **Invariants.**
 - The reference marks partition the window with no overlap and full cover.
-- On synthetic traces the reference equals the step-loop run's truth (shared with The Loop).
+- On synthetic traces the reference equals the step-loop run's truth (shared with the step loop).
 - Every kernel has a launch before it on its correlation id (`traceChecks`).
 - `checkHunt` never reads wall time.
 - Determinism.
@@ -1091,13 +1000,13 @@ export function checkHunt(c: HuntCase, marks: readonly Mark[], cause: number | n
 
 ---
 
-## 7. Dispatch (`dispatch`): TR4 (2D)
+## 7. Backend dispatch (`dispatch`): TR4 (2D)
 
-**Module and concept.** Backends as a consumer: FA2/3/4, FlashInfer and FlashMLA. The engine picks an attention backend by walking its priority order and taking the first whose support covers the model and GPU features. That choice also fixes the CUDA-graph support level (`AttentionCGSupport`: ALWAYS, UNIFORM_BATCH, UNIFORM_SINGLE_TOKEN_DECODE or NEVER) and so the graph modes available to The Loop.
+**Module and concept.** Backends as a consumer: FA2/3/4, FlashInfer and FlashMLA. The engine picks an attention backend by walking its priority order and taking the first whose support covers the model and GPU features. That choice also fixes the CUDA-graph support level (`AttentionCGSupport`: ALWAYS, UNIFORM_BATCH, UNIFORM_SINGLE_TOKEN_DECODE or NEVER) and so the graph modes available to step loop.
 
 **Why the rule is the concept.** The board is the engine's ordered rule table from the pinned data. Given a feature card (GPU architecture, head dim, KV dtype, MLA, sliding window, speculative decoding, page size), the learner predicts the pick and the fallback chain, then walks the table to the reveal. A wrong pick shows the first feature that excluded the predicted backend.
 
-**Core loop.** Predict the pick → reveal by walking the rules → the graph-mode consequence, linked to The Loop's `graphs` · `modes` stage.
+**Core loop.** Predict the pick → reveal by walking the rules → the graph-mode consequence, linked to the step loop's `graphs` · `modes` stage.
 
 **Controls.** A radio group of backends for the prediction (tap or arrow keys); a Reveal button or `Enter` walks to the next rule; the rule table is a DOM table, readable at 390 px as stacked rows.
 
@@ -1134,7 +1043,7 @@ export function pick(rules: BackendRules, f: Features): { backend: string; tried
 
 ---
 
-## 8. The Pool (`pool`): TR5a
+## 8. KV page pool (`pool`): TR5a
 
 **Module and concept.** Hybrid KV groups, and adapter pages in the same pool (S-LoRA). Outcome 3 includes "implement a hybrid KV manager with adapter pages".
 
@@ -1201,74 +1110,28 @@ You cannot save recomputed tokens without using the intersection rule, which is 
 - GPU lane: none; TR5a is a B-lane module.
 - Keep: "blocks held at L tokens", "hit length given these cached blocks", "pages for a rank-r adapter".
 
-**3D scene.**
+**3D scene (R-T41).** The pool as a rack of page cells in a well on a base plate, drawn from `scene-layout.ts` by the kit's `FlatTrack`, as the step loop's track is. It imports nothing from the old props, and the 2D view and the mirror are unchanged.
 - **Objects.**
-  - **The rack.** Every physical page sits at a fixed position for its whole life, in rows of 16. Its state is a form plus a glyph: free (empty frame), cached (frame plus hash glyph), in use (solid plus the group's glyph), adapter (solid plus pin glyph).
-  - **Focus on a page** fans it into its layer slices: 10 per group, with padding layers hollow, so "one block id serves every layer of its group" is visible.
-  - **Requests** stand on a shelf in front as token rulers, one block per segment. Above each ruler is one thread per group to its pages in the rack, drawn on Focus only.
-  - **The sliding window** is a frame along the ruler. A block that leaves it drops its thread, and its page becomes cached.
-  - **The free line** runs along the rack's base: cached pages in eviction order, the next to go on the left.
-  - **An adapter's pages** are linked by their own thread and are not drawn contiguous, because unified paging stores them non-contiguously (S-LoRA).
-- **Axes.**
-  - Physical page (the rack).
-  - Group and layer (the fan, and the threads).
-  - Token position (the ruler).
-- **Camera.** Establish (the rack with the shelf below), Focus (a page fan, or one request's threads), Top (the rack as a grid).
-- **Motion.** Threads draw in 200 ms [estimated], and a page changes state in place. Pages never move, because a moving page would misteach copying.
-- **Legible at 390 px:** each page's state glyph (the rack is 16 columns, about 20 px each), the free line's order (DOM), and the counts.
-- **As built** (W1-T24): the requests are the kit's tickets, waiting along the pass under its two heat lamps and hung on the line's rail over the reach-in's back, without the ruler's segments or the window's frame, which the 2D view draws. The threads are the focus's, the ticket hung last: one twine per station from its ticket to its pans in the order of its blocks, and the fan over the pan at the head of its order; both grow over the settle duration (640 ms), and appear whole under reduced motion. A landed kit's pans are pinned and strung. The cameras are Front of the reach-in, One station and From above: the Focus shots, and picks on the scene, are not built.
-- **As built, after the finish review's first round** (disposition rebuild):
-  - A pan's mise is food, one ingredient per memory role, drawn into one atlas and tinted by its role: blueberries for a held pan, corn kernels for a cached one, scallion rings for shared mise, a kit's sauce. It heaps over the pan's middle and climbs its walls at the edge, a meniscus. A dumped pan's well is a hollow tray in its role's red.
-  - Each pan's tape is the kit's masking tape, with the marker glyph drawn over it. The reach-in's own strip along its front edge is torn at both ends and carries a marker scrawl, not words.
-  - The scene prints no word but the tickets' numbers. The free line's order is the eviction ask's list. What the fan shows is a line on the page beside the scene (`src/games/pool/focus.ts`, held equal to the scene's focus by tests/play/pool-scene.test.ts).
-  - The fan is the head pan's mise rising out of it in a splayed stack, a tray for each layer of its station. The padding layers come last, on top, as hollow trays.
-  - The two heat lamps hang on rods low over the pass's back half and light it straight down, under the waiting tickets. A ticket that can be pulled from the line rings in the lamp's amber where it hangs.
-  - The slots a short last row leaves take bevelled lids. The line stands under its hood at the reach-in's left. The room's light falls away to the sides and up the wall into the haze.
-  - The tickets and their clips are 1.6 times the kit's [estimated] (its `Tickets` and `RailClips` take a scale).
-  - So that the shades stand between the reach-in and the pass, Front of the reach-in looks down 53° at 1440 px, stood 0.3 to 0.6 m to the left so the line and its hood come in, and 52° on a phone [estimated]. tests/play/pool-scene.test.ts projects every pan, rail clip and waiting ticket past the shades at every pool size.
-  - The front row's pans are 33.1 px across at 1440 px up to 64 pans, 27.7 px at 112, 23.9 px at 160, 20.9 px at 208 and 17.4 px at 288. On a phone they are 18.4 to 18.6 px up to 160 pans, 16.6 px at 208 and 14.0 px at 288, and 18.9 to 19.0 px From above up to 208 [derived: the presets projected into the 870 by 557 and 356 by 464 px canvases].
-  - At this steeper shot the kit's environment map, which carries the lamps' glow for Service's lower camera, warms the horizontal steel a little, lit or not.
-- **As built, after the finish review's second round** (disposition fix):
-  - A pan's mise is its role's ingredient in natural values: drawn from the role's colour toward paper at a piece's lit top and toward ink in its body and in the gaps between the pieces, with no role colour laid over the drawing. Dark blueberries with their bloom for a held pan, pale corn kernels for a cached one, green scallion rings over the pale of their whites for shared mise, a kit's sauce with a few bubbles. It lies 20 mm below the pan's rim [estimated], so the pan's wall and rolled rim stand round it as a line of steel, and it darkens where it climbs the wall.
-  - Tape lies only on a kit's pans, with the kit's pin, and in the head pan's fan, with its station's glyph; One station leaves the kits' off. The 3D rack draws no tape on the other pans and no hash: a pan's state is its food, and the 2D view and the mirror carry each pan's state and station.
-  - The fan is thin steel trays, one for each layer of the head pan's station, rising out of it and splaying round its back edge toward the expo, each a little higher and its front a little more lifted than the one under it. Each holds its layer's mise, the padding layers' trays are empty, and the top one carries the head pan's tape with its station's glyph.
-  - The two heat lamps hang over the pass's back half, their mouths 0.26 m over it and under the line's rail, and aim forward at the waiting tickets, which lie along the pass's front half [estimated]. The scene's steel reflects the kitchen's tubes without the lamps' glow (the kit's `SceneCanvas` takes `environment="tubes"`), so the pass is brushed steel while the lamps are off and the amber pools only under a lit lamp. The front shot holds the pass's rolled front lip.
-  - One cover with a rolled lip closes the slots a short last row leaves.
-  - The room's light falls away to the right of the rack, up the wall over the overshelf and back, into the haze's deep steel: the kit's room light takes a `veil`, the share of the light it no longer gives that falls to the haze's colour.
-  - The scene carries no number: the open ask's list and the mirror name the tickets. The tickets are 1.85 times the kit's [estimated]. The rail runs along the overshelf's front edge, so no shelf hides a hung ticket, and a hung ticket tips forward 0.32 rad; every ticket curls 0.24 of its length toward its face and cups across [both estimated] (the kit's `Tickets` takes a `curl`). A hung ticket stands 50.7 px tall at 1440 px on `two-kinds` and `evict` and 41.9 px on `adapters` [derived: the presets projected into the 870 by 557 px canvas; tests/play/pool-scene.test.ts holds it between 40 and 60 px].
-  - The scene kit's ticket print is the impact printer's dots for every game: lines of words a few dots long and dotted rules, drawn at once, with no face to wait for and no letter or number in it.
-  - Front of the reach-in still looks down 53° at 1440 px and 52° on a phone [estimated], its distances and targets fitted again for the deeper pass and the rail's new place. The front row's pans are 28.4 px across at 1440 px up to 64 pans, 27.3 px at 96, 25.9 px at 104 and 112, 22.4 px at 160, 19.7 px at 208 and 16.5 px at 288; on a phone 18.4 px up to 160 pans, 16.7 px at 208 and 14.4 px at 288 [derived: the presets projected into the 870 by 557 and 356 by 464 px canvases].
-- **As built, after W1b's finish reviews** (W1b-T10's lamp light, haze and paper, then two rounds of fixes):
-  - The two heat lamps hang over the pass's back half on short stems from a lamp bar across it, a steel rod on two posts that stand on the pass's top (the scene's own prop, `lampBar` in `src/games/pool/cabinet.ts`), their mouths 0.23 m over the pass [estimated]. Nothing over the pass stands higher than the bar, so in the front shot no rod runs up across the rack, as the lamps' rods from a ceiling did (W1b's finish review, round 2). tests/play/pool-scene.test.ts projects the bar and its posts, with the shades, through every preset at every pool size, and no pan lies behind them.
-  - Front of the reach-in looks down 35.5° at 1440 px [estimated], across the rack rather than down on it, so the pans show their rims, their walls and their heaped mise where the 53° shot drew a grid of tiles. It goes no lower: the lamp bar must stay under the front row's rims in the picture, and the shades over the pass. The front row's pans are 27.3 px across at 1440 px up to 112 pans, 26.3 px at 160, 24.4 px at 208 and 21.8 px at 288; a hung ticket stands 48 px tall at 1440 px on `two-kinds` and `evict` and 43 px on `adapters` [derived: the presets projected into the 870 by 557 px canvas].
-  - On a phone it looks down 48° through a 28° lens from 5.6 m, and stands back further only for a rack deeper than 2.4 m [estimated]. The same 35.5° shot through a 44° lens had shrunk the rack to a strip and given the frame's lower half to the pass, its shelf and its lamps (W1b's close-out verdict). Now the pass's front lip lies 10 px over the frame's foot, with its shelf and legs out of the picture. The rack's top is 1.20 times the pass's top in the picture at 44 pans, 2.05 times at 104 and 2.58 times at 160, against 0.75, 1.18 and 1.41 times before. Its back row's pans are 17.8 by 21.3 px at 44 pans, 16.4 by 18.1 px at 104 and 15.4 by 16.1 px at 160, against 16.9 by 15.3, 14.5 by 11.3 and 13.2 by 9.3 px before. Its front row's are 18.6 px across up to 160 pans, 17.8 px at 208 and 14.9 px at 288, where the closer, wider shot held 18.3 px at every size. The lamp bar stands 52 px under the rack's front edge, where it stood 9 px [all derived: the presets projected into the 356 by 464 px canvas].
-  - A pan's mise is heaped in a dome 16 mm high [estimated], a little higher or lower from pan to pan (0.75 to 1.15 of it; a kit's pan as drawn, its tape on its crown), so its slope toward the tubes is lit and its far slope shaded, and its foot, where it meets the wall, is 0.4 as bright as its crown [estimated]. The corn is cooked toward the kit's brown, each kernel its own share of up to 0.9 of the way [estimated]: an uneven gold rather than the board's yellow, while the berries stay navy.
-  - A ticket on the line is a thick slip, 10 mm at the scene's scale, turned 0.37 to 0.53 rad on its clip, so its cut edge stands to the room as a lit strip, the edges 1.6 times as bright as the face [estimated]. No outline is drawn round the paper, and its tooth is two mottles, coarse and strong enough to show on a hung ticket at the front shot's size. A ticket lying on the pass keeps the kit's thickness.
+  - **The rack.** Every physical page sits at a fixed position for its whole life, in rows of 16. A page's state is its form and its colour: free is hollow, in use is solid, cached is hatched, shared by a prefix hit is dotted (a form the kit gained for this game), and an adapter's page is a groove. Each state also carries its glyph, as in the 2D view.
+  - **The fan.** Selecting a page raises its layer slices above it, one for each layer of its group, with padding layers last and hollow, so "one block id serves every layer of its group" is visible. The page itself never moves.
+  - **Requests.** The running batch stands behind the rack as slot tiles, and the waiting queue in front as paper tiles. With a request selected, an arched thread runs from its slot tile to each of its pages; with a page selected, a thread runs to it from each holder, so a shared page shows two. With nothing selected the request admitted last shows its threads.
+  - **Pointed things.** The dock's pointed rows and the eviction candidates are ringed in amber on the marker's edge.
+  - **Selection** lives in the page, not the scene: by a pick, by the request buttons or by a page-number field under the camera buttons (`Select3D.tsx`, a lazy chunk), so the scene is never the only way to choose.
+- **Axes.** Physical page (the rack); group and layer (the fan and the threads); token position (the slot tile's blocks).
+- **Materials.** The marks material only: matte, flat-shaded forms on contact shadows with baked occlusion, dashed wires for empty slots, and token-role colours. No texture, environment map, lamp, haze or bloom.
+- **Cameras** (`scene-presets.ts`, `C` cycles): **Front** of the page pool (Establish), **One KV group** and **From above** (the rack as a grid). The scene is fitted to the measured canvas, and a phone gets its own framing.
+- **Motion.** The fan opens in the kit's 640 ms move, and under reduced motion it is drawn at its end. Nothing else moves: a page changes state where it sits, and lines draw.
+- **Legible at 390 px:** each page's form and glyph, the free queue's order (DOM) and the counts. The scene prints only the request numbers; the words are on the page beside it (`select-words.ts`).
 
 **2D path.** The rack as a grid of glyph cells; rulers as rows with one sub-row per group; the free line as a list; the same controls. The mirror is a page table (id, state, group, hash, refs) and a request table (tokens, blocks per group, hit).
 
-**Budget** [estimated].
-- Draw calls ≤ 20 at T2 and ≤ 14 at T1. Triangles ≤ 40k and ≤ 15k. Instances ≤ 3k and ≤ 1.5k: pages ≤ 512, fan slices ≤ 64, threads on Focus only.
-- Frame: p95 ≤ 16.7 ms at T2, scene render ≤ 5 ms; p95 ≤ 33.3 ms at T1. Threads aggregate first: at T1 only the focused request's threads draw.
-- `scene-pool` ≤ 35 KB gz.
-- **Measured** [measured 2026-11-08 over wave-1 at ba2797e with the finish review's round-2 fixes; the bundle by `verify:bundle`, the draws by `renderer.info` through the scene's test hook, e2e/pool-scene.spec.ts]:
-  - `scene-pool` (its chunk and the chunks only 3D reaches, the scene kit's props among them; the scene has no stylesheet of its own) is 39,921 B gz: 79 B under A§11.1's frozen 40 KB gate (D-023), and 4,921 B over this list's 35 KB target [derived]. The scene's own chunk is 6,118 B of it, the scene kit's props 22,651 B and the scenes' shared chunk 11,152 B, both counted again for every scene that reaches them. The kit's ticket print is dots drawn at once, with no list of words and no face to load, which took 394 B gz off the kit's props for every scene [measured 2026-11-08: 23,006 B at 72f163e, 22,612 B with the print alone changed]. The pool imports the kit's `SheetInstances` for its kits' tapes, so that the scenes' shared chunk stays one file; without it the chunk splits, and Service's and The Tasting's scenes go over their own gates. `three-vendor` is three's and R3F's code unchanged; Rollup renames one of its exports between this round and the last, which leaves it 238,647 B.
-  - The house's whole night on `adapters` draws at most 20 scene draw calls at T1 (20 in the frame) and 34 at T2 (48 in the frame with bloom and the final pass). On `same-size`, which has the most stations and so the most twine, it draws 21 at T1 (21 in the frame) and 35 at T2 (49). That is against A§11.1's 100. It draws at most 422 instances on `adapters` and 468 on `same-size`. It draws at most 236,274 and 292,678 triangles at T1, and 346,882 and 403,086 at T2.
-  - The instances are within this list's targets. The draw calls and the triangles are over them at both tiers: the room, the pass, its lamps and the rail are scene kit v1's props, built of turned and swept parts, the fan's trays are the hotel pan's own, and at T2 the heat lamps cast shadow maps. The draws stay under the frozen gate.
-  - Under reduced motion each of the first ten decisions on `two-kinds` redraws the scene in at most 3 frames, nine of them move the twine, and the scene's box does not move. After them no animation frame is asked for. One station draws 28 calls where every station's twine draws 30, on the sixth decision of `two-kinds`.
-- **Measured at the end of W1b** [measured 2026-11-09 over wave-1b at 1ed97ac by the W1b exit review (docs/waves/W1b-report.md §3); the bundle by `verify:bundle`, the draws by `renderer.info` through the scene's test hook, e2e/lesson-games-scene.spec.ts; the chunks read again over d7ea594, which has the same app code]:
-  - `scene-pool` is 39,522 B gz: 478 B under A§11.1's frozen 40 KB gate (D-023) and 4,522 B over this list's 35 KB target [derived], from the 39,921 B above, and from 39,837 B at wave-1's tip (c985c4c) [measured 2026-11-09]. Its chunks are the scene's own, 7,163 B, the scene kit's props, 20,914 B, and the 3D core in two parts, `SceneCanvas`, 10,335 B, and `SheetInstances`, 1,110 B; the last three are counted again for every scene that reaches them. Against the 6,118, 22,651 and 11,152 B above, the kit is 1,737 B smaller, net of the haze, the pool and the paper that W1b-T10 gave it, which merged the kit's geometry itself in place of three's `BufferGeometryUtils` and moved the /design kitchen's spot lamps out of the kit's chunk; the scene's own chunk is 1,045 B larger, about 1 KB of it The Reach-In's own round of haze patches, mise and paper; and the core is 293 B larger for its split [all derived]. Service caused the split, in the lesson blocks' finish round 1: it draws no tape strips now, so `SheetInstances` no longer sits in one chunk with `SceneCanvas`, and the reason given above for the pool's import of `SheetInstances`, to keep the core in one chunk, no longer holds. Each scene that draws sheets counts both chunks. `three-vendor` is unchanged, at 238,647 B.
-  - The Reach-In's `one-group` level in TR5a's first lesson draws 11 scene draw calls at T1 (11 in the frame) and 11 at T2 (25 in the frame with bloom and the final pass), against A§11.1's 100, with 57 and 61 instances and 84,738 and 85,378 triangles. T2 draws what T1 draws now, because the kit's lamp light draws no shadow pass (W1b-T10), so the T2 counts above, which have the heat lamps' shadow maps in them, are W1's. The game's own page after W1b's finish round 1 has no figure of draws in the exit review (docs/waves/W1b-report.md §3.2).
-- **Measured, W1b's close-out round** [measured 2026-11-09 with the round's files over wave-1b at f014069; the bundle by `verify:bundle`; the draws by `renderer.info` through the scene's test hook, e2e/pool-scene.spec.ts on the game's page and e2e/lesson-games-scene.spec.ts in the lesson, read with the round's files over d7ea594, whose code for the game and the lesson f014069 does not change]:
-  - `scene-pool` is 39,686 B gz: 314 B under A§11.1's frozen 40 KB gate (D-023), from 39,522 B. The scene's own chunk is 7,329 B of it, from 7,163 B: the lamp bar, the framings, the dome, the cooked corn, and the hung slips' thickness and lit edges, less the paper's drawn outline [derived]. Scene kit v1's props are unchanged at 20,914 B, and no other scene row moved by more than 9 B. `three-vendor` is unchanged, at 238,647 B.
-  - The house's whole night on `adapters` draws at most 20 scene draw calls at T1 (20 in the frame) and 20 at T2 (34 in the frame with bloom and the final pass), with at most 301 and 305 instances and 217,526 and 218,166 triangles; on `same-size` it draws 21 at T1 (21 in the frame) and 21 at T2 (35), with 279 and 283 instances and 258,584 and 259,224 triangles. That is against A§11.1's 100. The lamp bar is merged into the set's steel and adds no draw; its posts' contact shadows are two instances.
-  - In TR5a's first lesson, `one-group` draws 11 scene draw calls at T1 (11 in the frame) and 11 at T2 (25), with 59 and 63 instances and 85,722 and 86,362 triangles.
-  - Under reduced motion each of the first ten decisions on `two-kinds` redraws the scene in at most 4 frames, nine of them move the twine, and the scene's box does not move; after them no animation frame is asked for. One station draws 15 calls where every station's twine draws 17, on the sixth decision of `two-kinds`.
-  - At 390 px on tier 1 the lamps warm 2,123 pixels of the pass with red over blue by more than 20, and at 1440 px the floor left of the line lifts from a luma of 78 at the front of the shot to 142 at the wall's foot.
-- **Measured, the close-out's phone framing** [measured 2026-11-09 with its files over wave-1b at 7f704f9; the bundle by `verify:bundle`; the draws by `renderer.info` through the scene's test hook, e2e/pool-scene.spec.ts at 1440 px and the same hook at 390 by 844 px on tier 1]:
-  - `scene-pool` is 39,762 B gz, 238 B under A§11.1's frozen 40 KB gate (D-023), from 39,740 B at 7f704f9. The scene's own chunk carries the phone's new framing. The other scene rows moved by 4 B at most, because the hashed names of the chunks they import changed, and `three-vendor` is unchanged, at 238,647 B.
-  - On a phone, on tier 1, the front shot draws 11 scene draw calls on `one-group` and on `same-size` at the start of the night, 17 on `two-kinds` twelve decisions in, and at most 20 over the house's whole night on `adapters`. The 35.5° shot drew the same counts on the same states, against A§11.1's 100. At 1440 px the house's whole night on `adapters` draws at most 20 scene draw calls at T1 (20 in the frame) and 20 at T2 (34), and on `same-size` 21 (21) and 21 (35), as before.
-  - At 390 px on tier 1 the lamps warm 1,605 pixels of the pass with red over blue by more than 20, where the pass now takes less of the frame, and at 1440 px the floor left of the line lifts from a luma of 78 at the front of the shot to 142 at the wall's foot.
+**Budget** [estimated] unless tagged.
+- Draw calls ≤ 20 at T2 and ≤ 14 at T1. Instances ≤ 3k and ≤ 1.5k: pages ≤ 512, fan slices ≤ 64. Frame: p95 ≤ 16.7 ms at T2, scene render ≤ 5 ms; p95 ≤ 33.3 ms at T1.
+- `scene-pool` ≤ 40 KB gz, the frozen gate; the target is 30 KB.
+- **Measured.**
+  - `scene-pool` (its chunk, its CSS and the chunks only 3D reaches) is 15,904 B gz [measured 2026-11-17 at `a564916`, `verify:bundle`], 24,096 B under the gate. It was 39,748 B with the kitchen's props [measured 2026-11-16, before R-T41, from its report].
+  - The scene draws 6 scene draw calls at T1 and at T2 over whole nights of `adapters` and `same-size`, and 323 to 419 instances [measured 2026-11-16 at `1b54af0`, e2e/pool-scene.spec.ts].
+  - `/play/pool` is 193,131 B gz against the 200 KB gate [measured 2026-11-17 at `a564916`].
 
 **Simulation API.**
 
@@ -1321,7 +1184,7 @@ export function slotBaseline(l: PoolLevel): PoolCounts   // the same seed with a
 
 ---
 
-## 9. The Switchyard (`switchyard`): TR5b
+## 9. KV offload (`switchyard`): TR5b
 
 **Module and concept.** Native offload; the engine side of the KV connector contract; the event publisher. The rules come from vLLM's `KVConnectorBase_V1` and its scheduler at v0.33.0 (research vllm K6-K8; first read on `main` on 2026-11-03, where the method set only grows):
 - `get_num_new_matched_tokens` returns the external hit and whether it loads asynchronously. An async load parks the request in `WAITING_FOR_REMOTE_KVS` until `get_finished` reports it.
@@ -1375,7 +1238,7 @@ export function slotBaseline(l: PoolLevel): PoolCounts   // the same seed with a
 
 **3D scene.**
 - **Objects.**
-  - Three decks stacked by tier: GPU at the top, CPU, then disk (ARCHITECTURE §6.1). The GPU deck is The Pool's rack.
+  - Three decks stacked by tier: GPU at the top, CPU, then disk (ARCHITECTURE §6.1). The GPU deck is the KV page pool's rack.
   - Transfers are cars on rails between decks; a car's fill shows pages landed.
   - Beside the GPU deck stands the **layer column**, the model's layers stacked. It shows how far compute has reached and which layers' KV has landed.
   - Requests waiting for remote KV wait at a platform.
@@ -1391,7 +1254,7 @@ export function slotBaseline(l: PoolLevel): PoolCounts   // the same seed with a
 **Budget** [estimated].
 - Draw calls ≤ 28 at T2 and ≤ 18 at T1. Triangles ≤ 50k and ≤ 20k. Instances ≤ 3k and ≤ 1.5k.
 - Frame: p95 ≤ 16.7 ms at T2, scene render ≤ 6 ms; p95 ≤ 33.3 ms at T1. The disk deck aggregates first, into one slab per transfer.
-- `scene-switchyard` ≤ 30 KB gz; it reuses The Pool's primitives.
+- `scene-switchyard` ≤ 30 KB gz; it reuses the KV page pool's primitives.
 
 **Simulation API.**
 
@@ -1417,7 +1280,7 @@ export function replayFrom(buffer: readonly KvEventBatch[], fromSeq: number): re
 - A failed receive still finishes, leaving `WAITING_FOR_REMOTE_KVS`. Computed tokens truncate at the first failed block, which is evicted with every later block.
 - Sequence numbers rise by exactly 1.
 - `consumerView` over all batches equals the engine's cached hashes after every step, and a replay from any gap restores equality.
-- The Pool's invariants hold.
+- The KV page pool's invariants hold.
 - Determinism.
 
 **Claims.**
@@ -1436,7 +1299,7 @@ export function replayFrom(buffer: readonly KvEventBatch[], fromSeq: number): re
 
 ---
 
-## 10. The Verifier (`verifier`): TR6
+## 10. Rejection sampler (`verifier`): TR6
 
 **Module and concept.** In-engine speculation and its exact rejection sampler. In Leviathan's notation, with target p and draft q:
 - accept a drafted token x with probability min(1, p(x)/q(x));
@@ -1487,30 +1350,27 @@ The output is distributed exactly as p, "without changing the distribution" (Lev
 - GPU lane: TR6's proposer (F). The grader checks that speculative and plain greedy outputs match under tie-aware identity (D-046) and that acceptance counts are consistent with the engine's per-step metrics (ASSESSMENT §5.9). Chi-square stays in the browser, on the `rejection-sampler` forge lab.
 - Keep: α, expected tokens per round, the residual for a pair.
 
-**3D scene.**
-- **Objects.** One row per draft position, 1 to γ, running into depth, then a bonus row. Each row is a skyline over the 6-token vocabulary. Each token's column stacks:
-  - a solid base of height min(p, q);
-  - above it, a reject cap of height q − p where q > p;
-  - beside it, a recovery well of height p − q where p > q.
-- **A drafted token** is a marker dropped on column x at a seeded height u in [0, q(x)): it lands in the base (accepted) or in the cap (rejected). On rejection, a second marker drops on the row's recovery wells to pick the replacement.
-- **The verifier's walk** moves into depth and stops at the first rejection, and later rows are marked unused. At the front, the **output skyline** of emitted tokens per position converges on p as draws accumulate.
-- This refines ARCHITECTURE §6.1's "three skylines in depth": depth carries the chain, and q, p and the output share each row.
+**3D scene (R-T42).** The 2D bars lifted into depth, on the kit's flat track (`FlatTrack`), drawn from `scene-layout.ts` and `scene-plan.ts`. It imports nothing from the old props and has no light of its own beyond the kit's `FlatLights`.
+- **Objects.** One row for each draft position, the first nearest, then the bonus row, running into depth. For each token of the vocabulary a row holds two bars, the draft's q and the target's p:
+  - target p is a solid blue bar, and the draft's q is a yellow hatched one;
+  - where a level prints the decomposition, the accepted base min(p, q) is green and solid, and the residual (p − q)+ is a red groove;
+  - a drafted token is a dot on its bar, and the walk stops at the first rejection, with later rows drawn as outlines.
+- **The output** is a thin dark ring on the target bar at the output's height. As draws accumulate it settles onto p in one 640 ms move, the scene's one authored move, drawn at its end under reduced motion. A hundred rounds move it once.
+- **With γ** one bar for each position is cut at alpha, and the ring marks how far the walk reaches.
 - **Axes.** Token (across), probability (height), draft position (depth).
-- **Camera.** Establish (3/4 over the rows), Focus (one row, front-on), Follow (the walk, opt-in).
-- **Motion.** Markers drop in ≤ 300 ms [estimated]. Under reduced motion they appear at their heights, and nothing animates during batch draws, which only update counts.
-- **Legible:** which segment a marker hit, the TV meter (DOM), and per-token output against p in the mirror.
+- **Materials.** The marks material: matte, flat-shaded forms on contact shadows, token-role colours, no texture, no glow. The numbers, the token numbers and the row names are DOM labels; on a phone the row names become 1, 2, 3 and +, and the counts of several rows wait for room.
+- **Cameras** (`scene-shots.ts`, `C` cycles): **Over the run** (Establish), **One draft position** (Focus) and **From the side**. Each is fitted to the plate and the measured canvas.
+- **Legible:** which bar a drop hit, the total variation distance (DOM, exact) and each token's output against p in the mirror.
 
-**2D path.** Small multiples: per-position bar charts with base, cap and well segments, markers as dots, and the output histogram. Same controls. The mirror is a per-token table of p, q, min, excess, output and error.
+**2D path.** Rows of paired bars with the same segments, the draft's dots and the output ring, in the instrument frame. Same controls. The mirror is a per-token table of p, q, min, excess, output and error.
 
-**Budget** [estimated].
-- Draw calls ≤ 16 at T2 and ≤ 12 at T1. Triangles ≤ 30k and ≤ 12k. Instances ≤ 2.5k and ≤ 1k; markers beyond 200 aggregate into the output skyline.
-- Frame: p95 ≤ 16.7 ms at T2, scene render ≤ 4 ms; p95 ≤ 33.3 ms at T1. Batch draws update counts without animating, so a 20,000-draw run costs no frames.
-- `scene-verifier` ≤ 25 KB gz.
-- **Measured** [measured 2026-11-09 over wave-1b at d7ea594 with the files of W1b's finish fixes for The Tasting, round 2; the bundle by `verify:bundle`, the draws by `renderer.info` through the scene's test hook]:
-  - `scene-verifier` (its chunk and the chunks only 3D reaches, the scene kit's props among them) is 38,642 B gz: 1,358 B under A§11.1's frozen 40 KB gate (D-023) and 13,642 B over this list's 25 KB target, which predates scene kit v1. The chunks it shares with every dressed scene are 32,360 B of it, and its own chunk is 6,282 B [derived from 10,332 + 20,918 + 1,110]; the print over it is styled by the game's own stylesheet. The round's stacks of what went out, steel shades and haze cost 315 B, from 38,327 B at d7ea594.
-  - Every level played with its draws on `/play/verifier` (e2e/verifier-scene.spec.ts) draws at most 15 scene draw calls at T1 (15 in the frame) and 15 at T2 (29 in the frame with bloom and the final pass), against A§11.1's 100: the pulled plates take a draw for each part their edge band can be, what went out one, and the lamps' light one. It draws at most 402 instances at T1 and 408 at T2, and at most 338,830 triangles at T1 and 339,790 at T2, all in `chain`'s run of four courses, where what went out stands on side plates beside each of her stacks, an instance a plate.
-  - T1's draw calls and both tiers' triangles are over this list's targets, which predate scene kit v1: every plate of every stack is turned with its own edge band and the gap under it. The kit's lamp light draws no shadow pass (W1b-T10), so T2's draws are within this list's 16. The draws stay under the frozen gate.
-  - A draw moves the scene once, on the bell, whatever its size: the new rounds' plates drop and what went out settles, in about a second [derived from the drop's 300 ms, its stagger of 70 ms a course and 16 ms a round, and the settle's 640 ms after a 160 ms wait, all estimated], and a hundred rounds took one move of 10 frames at T1, on a machine other runs shared. Under reduced motion a draw cuts to its end. A 20,000-round run is one move a draw, never one a round.
+**Budget** [estimated] unless tagged.
+- Draw calls ≤ 16 at T2 and ≤ 12 at T1. Instances ≤ 2.5k and ≤ 1k. Frame: p95 ≤ 16.7 ms at T2, scene render ≤ 4 ms; p95 ≤ 33.3 ms at T1.
+- `scene-verifier` ≤ 40 KB gz, the frozen gate; the target is 25 KB.
+- **Measured.**
+  - `scene-verifier` (its chunk, its CSS and the chunks only 3D reaches) is 14,356 B gz [measured 2026-11-17 at `a564916`, `verify:bundle`], 25,644 B under the gate. It was 17,735 B when R-T42 built it, and 38,681 B before it [measured 2026-11-16 at `3701c72`, from its report].
+  - The scene draws 6 scene draw calls at T1 and at T2 on every level [measured 2026-11-16 at `3701c72`, e2e/verifier-scene.spec.ts].
+  - `/play/verifier` is 192,099 B gz against the 200 KB gate [measured 2026-11-17 at `a564916`].
 
 **Simulation API.**
 
@@ -1555,7 +1415,7 @@ export function greedyAccept(p: Dist, x: number): boolean                       
 
 ---
 
-## 11. Broken Bench (`broken-bench`): TR8 (2D, with an optional 3D opener)
+## 11. Broken benchmark (`broken-bench`): TR8 (2D, with an optional 3D opener)
 
 **Module and concept.** Benchmark like you mean it: open against closed loop, coordinated omission, warmup, and bootstrap intervals on p99. Each case is a published claim with its harness and raw log, and the claim is wrong because of one flaw. The learner names the flaw and predicts the corrected p99 with an interval. This extends kernelspace's broken-bench (closed loop, capped output, warm cache, counted warm-up; `fleet-ex/broken-bench.ts`).
 
@@ -1616,7 +1476,7 @@ The only way to rule correctly is to apply the rule to the log.
 - GPU lane: the BurstGPT replay (F). The learner's own log goes before the same rules of evidence. The receipt's raw rows are recomputed by the browser (D-028) and its correctness by the grader.
 - Keep: "corrected p99 for this 20-row log" and "n needed for a p99 interval this tight".
 
-**The 3D opener, `rain-and-relay`** (a stretch, built after `court` ships). The scene has two arenas along one time axis.
+**The 3D opener, `rain-and-relay`** (a stretch, not built; wave R did not plan it). The scene has two arenas along one time axis.
 - **Open loop:** requests fall as drops at their due times onto the server's intake. During a stall the gate closes and the drops pile up, so queue height is the honest latency.
 - **Closed loop:** one runner lane per client in depth. A runner waits for its reply before sending again, so during the stall every runner freezes and the requests never sent appear as ghost outlines at their due times. The ghosts are the omitted requests, counted on screen.
 - **Axes.** Time, client, queue height.
@@ -1672,7 +1532,7 @@ export function judge(c: BenchCase, flaw: Flaw, a: { p99Us: Us; loUs: Us; hiUs: 
 ## 12. Modules without a game of their own
 
 - **TR7, Contribute honestly** (DCO, RFCs, "Do not submit 'pure agent' PRs"). A game would trivialize judgment about people and process. Its evidence is a filed issue and a reproduced number (F).
-- **Capstone.** It reuses Gap Hunt (attribution of the commit pairs' traces) and Broken Bench's rules (goodput at SLO measured by TR8's rules) as instruments, with no new game. The Loop's 70B card gives the roofline context.
+- **Capstone.** It reuses trace attribution (attribution of the commit pairs' traces) and the broken benchmark's rules (goodput at SLO measured by TR8's rules) as instruments, with no new game. Step loop's 70B card gives the roofline context.
 
 TR0 and TR4 have the small games of §4 and §7.
 
@@ -1684,8 +1544,8 @@ TR0 and TR4 have the small games of §4 and §7.
 
 1. **3D is a default, not an opt-in.** kernelspace allows 3D only in `GATE_3D = ['tiling-cube', 'device-mesh']`, behind a button, with 2D the default (OD9). The owner's D-005 makes six games 3D on capable devices. The 2D view stays first-class: it paints first, it is the poster, and it is the T0 path.
 2. **A clock with lanes.** kernelspace's Fleet is a flat 50 ms tick. The step-loop games run integer µs with separate CPU and GPU lanes, like S5's EngineV2, because overlap is invisible at tick granularity. The front page keeps ticks, labelled synthetic.
-3. **Unsafe moves in one game.** kernelspace UIs offer only legal moves ("a decision outside the rules throws", `eplb.ts`). The Switchyard lets the learner break the connector contract and see the corruption, because the contract is the lesson.
-4. **Exact rationals.** The Verifier's main check is an exact output distribution, not a statistical test, so the check needs no critical values and cannot flake. Chi-square stays for the forge lab and the visual convergence.
+3. **Unsafe moves in one game.** kernelspace UIs offer only legal moves ("a decision outside the rules throws", `eplb.ts`). The KV offload game lets the learner break the connector contract and see the corruption, because the contract is the lesson.
+4. **Exact rationals.** The rejection sampler's main check is an exact output distribution, not a statistical test, so the check needs no critical values and cannot flake. Chi-square stays for the forge lab and the visual convergence.
 5. **Watch segments animate.** kernelspace applies non-decision ops instantly. Here they animate cosmetically, are never timed, and become instant under reduced motion.
 6. **GPU-lane predictions.** kernelspace's field evidence carries weight 0. Here each game's model makes a prediction that the GPU lab tests, while the local grader owns that credit (D-001).
 7. **The front page records nothing.** kernelspace's Boot writes ledger events. This front page is a demo for visitors who have not started the course (D-038).
@@ -1694,12 +1554,12 @@ TR0 and TR4 have the small games of §4 and §7.
 
 1. **§6.11, the front-page levers.** Its levers are async scheduling, CUDA graphs and a batch cap, with a win at a GPU-busy bar. This file's brief asks the visitor to *schedule a batch* and learn *continuous batching and overlap*. So the front page has the visitor place requests in slots by hand, its levers are refill and overlap, and the win is par in ticks, which needs both levers (the `first-4-par` band in §3). CUDA graphs move to TR2's levels of the same game. One true thing in 60-120 s is easier than three.
 2. **§5.3, double-counted host work.** "The GPU step time is the S5 card's `us`" includes S5's `seqs × t_seq` term, which S5's `types.ts` defines as "host work per running sequence per step". The host card then adds per-sequence CPU work again. The proposal: the GPU lane takes S5's `us` minus `seqs × t_seq`, and t_seq goes on the CPU lane, where async scheduling can hide it, labelled as an extrapolation.
-3. **§6.1, The Pool's shelves.** "One shelf per group" draws a partitioned pool, which is what unified paging removes. Pages should keep fixed physical positions with the group as a glyph (§8). "Adapters are multi-page slabs" implies contiguity, but S-LoRA stores adapter pages non-contiguously, so they are drawn as linked pages.
-4. **§5.4, `pageUnits`.** Pages holding blocks of different sizes is S-LoRA's idea at a finer grain. vLLM's hybrid manager instead makes every group's page the same size by grouping layers, padding layers, or inflating the attention block size (the doc's "core challenge"). The Pool follows vLLM for KV groups and S-LoRA only for adapters, which take ⌈adapter bytes ÷ page bytes⌉ pages.
-5. **§6.1, Gap Hunt's formula.** "TPOT = kernels + CPU gaps − overlap" is better stated as a partition: TPOT = GPU-busy + CPU-gap + both-idle, with overlap reported beside it as hidden CPU work (§6).
+3. **§6.1, the KV page pool's shelves.** "One shelf per group" draws a partitioned pool, which is what unified paging removes. Pages should keep fixed physical positions with the group as a glyph (§8). "Adapters are multi-page slabs" implies contiguity, but S-LoRA stores adapter pages non-contiguously, so they are drawn as linked pages.
+4. **§5.4, `pageUnits`.** Pages holding blocks of different sizes is S-LoRA's idea at a finer grain. vLLM's hybrid manager instead makes every group's page the same size by grouping layers, padding layers, or inflating the attention block size (the doc's "core challenge"). KV page pool follows vLLM for KV groups and S-LoRA only for adapters, which take ⌈adapter bytes ÷ page bytes⌉ pages.
+5. **§6.1, trace attribution's formula.** "TPOT = kernels + CPU gaps − overlap" is better stated as a partition: TPOT = GPU-busy + CPU-gap + both-idle, with overlap reported beside it as hidden CPU work (§6).
 6. **§6.8, `Space` on focused buttons.** `Space` is play or pause on the game container, and a focused button also uses it. The proposal: shortcuts never fire when the event's target uses the key natively (§2.3).
-7. **§6.1, The Verifier's skylines.** "Three skylines in depth" (draft, target, output) is refined so that depth carries the draft chain and each row holds q, p and their overlap (§10).
-8. **§6.1, Broken Bench's flaws.** Two flaws grounded in the engines' own tools are added: the client queue hidden by `bench_serving`'s timer, and a "replay" that ignores timestamps (§11).
+7. **§6.1, the rejection sampler's skylines.** "Three skylines in depth" (draft, target, output) is refined so that depth carries the draft chain and each row holds q, p and their overlap (§10).
+8. **§6.1, the broken benchmark's flaws.** Two flaws grounded in the engines' own tools are added: the client queue hidden by `bench_serving`'s timer, and a "replay" that ignores timestamps (§11).
 
 ---
 
@@ -1709,17 +1569,17 @@ The front-page run comes first. Then the no-GPU modules, TR1, TR2, TR5a, TR6 and
 
 | # | Build | TRACKER tasks | Wave | Size here | Why here |
 |---|---|---|---|---|---|
-| 1 | Scene kit v0; The Loop's session, 2D view, mirror and poster; its 3D scene; the front page | W0-T15, W0-T16, W0-T17, W0-T18 | W0 | L | D-004. It builds `Stage`, the camera rig, labels, selection, tiers, the 2D-first swap, the poster, the mirror and `verify:games`, which every later game reuses. The TR2 spike is W0-T13's acceptance (D-040). |
-| 2 | The Loop: TR2's levels and TR6's `mask` level | W1-T13, after W1-T12 | W1 | L | The cheapest next game: the same session and scene. The dispatcher golden tables come first. |
-| 3 | The Engine Floor | W1-T17, W1-T18, after W1-T16 | W1 | M | TR1, no-GPU. A new scene, with rules carried by data. |
-| 4 | The Verifier | W1-T28, W1-T29, after W1-T26 | W1 | M | TR6, no-GPU. Exact math, a small scene. Pairs with the `rejection-sampler` lab. |
-| 5 | The Pool | W1-T23, W1-T24, after W1-T21 | W1 | L | TR5a, no-GPU. The largest new scene. Its invariants are the `hybrid-kv` lab's property tests. |
-| 6 | Broken Bench | W1-T33, after W1-T32 | W1 | M | TR8, no-GPU. 2D, extends kernelspace's corpus. |
-| 7 | The Trace Room and Gap Hunt, on synthetic traces first | W2-T20 | W2 | M | TR3's tool before real traces. Shares its attribution test with The Loop. |
-| 8 | The Switchyard | W2-T30, W2-T31, after W2-T28 | W2 | M | TR5b. Reuses The Pool's rack. |
-| 9 | Shape Shifter | W2-T14, W2-T15, after W2-T13 | W2 | M | TR0, beside the L-lane forward lab. |
-| 10 | Dispatch | W2-T25 | W2 | S | TR4. |
-| 11 | Gap Hunt on pinned traces | after W2-T21 | W2 or later | S | Real cases once the owner's traces exist (O-5). |
+| 1 | Scene kit v0; step loop's session, 2D view, mirror and poster; its 3D scene; the front page | W0-T15, W0-T16, W0-T17, W0-T18 | W0 | L | D-004. It builds `Stage`, the camera rig, labels, selection, tiers, the 2D-first swap, the poster, the mirror and `verify:games`, which every later game reuses. The TR2 spike is W0-T13's acceptance (D-040). |
+| 2 | Step loop: TR2's levels and TR6's `mask` level | W1-T13, after W1-T12 | W1 | L | The cheapest next game: the same session and scene. The dispatcher golden tables come first. |
+| 3 | Request path | W1-T17, W1-T18, after W1-T16 | W1 | M | TR1, no-GPU. A new scene, with rules carried by data. |
+| 4 | Rejection sampler | W1-T28, W1-T29, after W1-T26 | W1 | M | TR6, no-GPU. Exact math, a small scene. Pairs with the `rejection-sampler` lab. |
+| 5 | KV page pool | W1-T23, W1-T24, after W1-T21 | W1 | L | TR5a, no-GPU. The largest new scene. Its invariants are the `hybrid-kv` lab's property tests. |
+| 6 | Broken benchmark | W1-T33, after W1-T32 | W1 | M | TR8, no-GPU. 2D, extends kernelspace's corpus. |
+| 7 | The Trace Room and Trace attribution, on synthetic traces first | W2-T20 | W2 | M | TR3's tool before real traces. Shares its attribution test with the step loop. |
+| 8 | KV offload | W2-T30, W2-T31, after W2-T28 | W2 | M | TR5b. Reuses the KV page pool's rack. |
+| 9 | Tensor views | W2-T14, W2-T15, after W2-T13 | W2 | M | TR0, beside the L-lane forward lab. |
+| 10 | Backend dispatch | W2-T25 | W2 | S | TR4. |
+| 11 | Trace attribution on pinned traces | after W2-T21 | W2 or later | S | Real cases once the owner's traces exist (O-5). |
 | 12 | `rain-and-relay`; a pre-registered 3D-against-2D comparison (D-005's revisit) | not in TRACKER yet | W3, stretch | S + S | Attention, then evidence. |
 
 **Review cost.** The catalog's code-QA rates (catalog §9, from PLAN-100X §8) price artifacts, not task sizes: 20 h per world or capstone harness, 8 h per browser-graded artifact and 4 h per local or field lane [estimated rates]. By that method the course's review estimate is PLAN.md §12's 160-180 h [derived], and the games sit inside it as the world and its browser-graded artifacts. Applying the same rates to task sizes instead is not the catalog's method, but it flags a real risk: this file's sizes would come to 3 L + 6 M + 4 S ≈ 124 h, and TRACKER's game tasks (9 L and 9 M, W0-T15 to W2-T31) to about 252 h [derived, under that misuse of the rates], mostly because each 3D scene is its own L task. The owner should weigh that when answering O-8.
@@ -1731,10 +1591,10 @@ The front-page run comes first. Then the no-GPU modules, TR1, TR2, TR5a, TR6 and
 1. **Front-page levers.** Settled: this file's version (place requests by hand; refill and overlap) is proposed decision D-043, and ARCHITECTURE §6.11 and TRACKER W0-T16 follow it. The owner confirms it with O-11.
 2. **The host term.** Settled: moving S5's `seqs × t_seq` from the GPU lane to the CPU lane is proposed decision D-044, which the owner confirms before W1-T12.
 3. **The dispatcher golden table.** It needs an owner run of vLLM's dispatchers at the pinned tag (CPU-only Python is enough [unverified]). W1-T12's acceptance now includes the script and the run; who runs it, and on what host, is Q-10 in DECISIONS.md.
-4. **Gap Hunt on phones.** Answered: ASSESSMENT §4.3 counts graded marking by list on phones the same, and ARCHITECTURE §3.1 now keeps only the timeline viewer laptop-first.
+4. **Trace attribution on phones.** Answered: ASSESSMENT §4.3 counts graded marking by list on phones the same, and ARCHITECTURE §3.1 now keeps only the timeline viewer laptop-first.
 5. **Unsafe moves.** Answered yes: ASSESSMENT §4.3 lets a violation happen in a graded level and scores that attempt 0.
 6. **The 3D evaluation.** Should W3 run kernelspace's dormant pre-registration pattern (`docs/prereg/tiling-cube-3d.md`) on one flagship, opt-in and on-device, to answer D-005's "revisit when"? Open as Q-12; TRACKER has no task for it yet.
-7. **Dispatch's place.** Keep it as a game, or fold TR4 into plain items (§7)? Open as Q-11.
+7. **Backend dispatch's place.** Keep it as a game, or fold TR4 into plain items (§7)? Open as Q-11.
 
 ---
 

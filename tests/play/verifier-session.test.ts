@@ -19,21 +19,21 @@ import { equals, fracText, ratio } from '@es/play/verifier/ratio'
 import { MARKER_ROUNDS } from '@es/play/verifier/view'
 import { verifierAsk, verifierDebrief, verifierDone, verifierGhost, verifierGrade, verifierInit, verifierReduce, verifierScore, verifierSession } from '@es/play/verifier/session'
 import { excessPlates, keptPlates, modelOf, recipeTv, sweepOfLevel, thousandths, tokensOf } from '@es/play/verifier/state'
-import { DISHES, DRAW_CAP, GAMMA_MAX, MUTANT_IDS, PLATES } from '@es/play/verifier/types'
+import { DRAW_CAP, GAMMA_MAX, MUTANT_IDS, PLATES } from '@es/play/verifier/types'
 import type { VerifierAction, VerifierLevelId } from '@es/play/verifier/types'
 import { houseActions, PRACTICE, sculpt, sculptActions, stateAfter, textOf } from './verifier-support'
 import { SEED_COUNT, seeds } from '../seeds'
 
 const S = verifierSession
 
-/** The hashes of the house's runs on the practice seeds [measured 2026-11-04 on this task's branch; the same in a browser: e2e/verifier.spec.ts]. */
+/** The hashes of the house's runs on the practice seeds [measured 2026-11-04 on this task's branch; the same in a browser: e2e/verifier.spec.ts]. Re-measured 2026-11-15 on R-T02's branch: a level no longer holds its display words (`copy.ts`), so each hash is that of the old state without them; scripts/state-copy-equivalence.ts proves it. */
 const GOLDEN: Readonly<Record<VerifierLevelId, string>> = {
-  overlap: 'e3432eee',
-  exact: '40467720',
-  chain: '6d869552',
-  'greedy-ngram': '1cfeeea2',
-  mutants: '56454d4d',
-  gamma: '83e1662c',
+  overlap: '59b05898',
+  exact: '46e77d9c',
+  chain: 'e0d9a77c',
+  'greedy-ngram': '1eb06cea',
+  mutants: '3c0451fb',
+  gamma: 'e21abfe8',
 }
 
 describe('the contract every game keeps (GAMES.md §2.5)', () => {
@@ -95,12 +95,12 @@ describe('the reducer refuses what a level does not allow', () => {
   }
 
   test('a recipe is sculpted only where there is one, within 0 to 64 plates, on a dish that exists', () => {
-    refuses('overlap', 0, [{ t: 'sculpt', token: 0, delta: 1 }], 'no recipe to sculpt')
+    refuses('overlap', 0, [{ t: 'sculpt', token: 0, delta: 1 }], 'no residual weights to set')
     refuses('exact', 0, [{ t: 'sculpt', token: 0, delta: -1 }], 'stays within 0 to 64')
     refuses('exact', 0, [{ t: 'sculpt', token: 0, delta: 65 }], 'stays within 0 to 64')
-    refuses('exact', 0, [{ t: 'sculpt', token: 6, delta: 1 }], 'there is no dish 6')
+    refuses('exact', 0, [{ t: 'sculpt', token: 6, delta: 1 }], 'there is no token 6')
     refuses('exact', 0, [{ t: 'sculpt', token: 0, delta: 1.5 }], 'whole number')
-    refuses('greedy-ngram', 0, [{ t: 'sculpt', token: 0, delta: 1 }], 'no recipe to sculpt')
+    refuses('greedy-ngram', 0, [{ t: 'sculpt', token: 0, delta: 1 }], 'no residual weights to set')
     refuses('exact', 0, [{ t: 'preset', from: 'z' as 'p' }], 'p or from q')
   })
 
@@ -359,7 +359,7 @@ describe('the debrief says what the run did, and names what mattered', () => {
     const debrief = verifierDebrief(wrong)
     // On the practice seed the recipe of p puts out 5.34 plates of soup against the chef's 10: the soup is the furthest out.
     expect(debrief.names).toEqual({ lever: 'dish:0' })
-    expect(debrief.sentence).toContain(`The dish furthest out is the ${DISHES[0]}`)
+    expect(debrief.sentence).toContain('The token furthest out is named under the sentence.')
     expect(verifierDebrief(verifierGhost(level)).names).toBeNull()
     expect(debrief.sentence).not.toMatch(/\d/)
   })

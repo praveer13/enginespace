@@ -5,12 +5,11 @@ import { verdictWords } from './tags'
 import type { FullRun } from './types'
 
 /*
- * The state behind the full service's controls (FullControls.tsx): Auto, the bell, serving the rest of a night, and the line the live
- * region says for each change. A night needs no decision between its fires, so Auto rings it to its end, a fire at a time, and the bell
- * rings one.
+ * The state behind the full levels' controls (FullControls.tsx): Auto, Step, running the rest of a run, and the line the live region says
+ * for each change. A run needs no decision between its steps, so Auto runs it to its end, a step at a time, and Step runs one.
  */
 
-/** The time between two rings in Auto, in ms [estimated]: long enough to read a fire go by, short enough that a night of fifty is a minute. */
+/** The time between two steps in Auto, in ms [estimated]: long enough to read a step go by, short enough that a run of fifty is a minute. */
 const AUTO_MS = 650
 
 const RING: FullAction = { t: 'run', until: 'step' }
@@ -25,20 +24,20 @@ export function fullChangeLine(before: FullView, after: FullView): string {
   if (before.level !== after.level) return ''
   if (before.at !== after.at) return `${after.stage.title}.`
   const said: string[] = []
-  if (before.stage.predicted === null && after.stage.predicted !== null) said.push('Prediction called.')
+  if (before.stage.predicted === null && after.stage.predicted !== null) said.push('Prediction committed.')
   if (after.step !== before.step && after.step > 0) {
     const fire = after.fires[after.fires.length - 1]
     if (fire !== undefined) {
-      const plates = fire.places.filter((place) => place.state === 'plate').length
-      said.push(`Fire ${after.step}: ${plural(plates, 'plate', 'plates')}${fire.padded > 0 ? `, ${plural(fire.padded, 'padded place', 'padded places')}` : ''}, ${plural(fire.calls, 'call', 'calls')}${fire.bubbleUs > 0 ? ', the line waited first' : ''}.`)
+      const tokens = fire.places.filter((place) => place.state === 'plate').length
+      said.push(`Step ${after.step}: ${plural(tokens, 'token', 'tokens')}${fire.padded > 0 ? `, ${plural(fire.padded, 'padded place', 'padded places')}` : ''}, ${plural(fire.calls, 'launch', 'launches')}${fire.bubbleUs > 0 ? ', the GPU waited first' : ''}.`)
     }
   }
   if (after.stage.served.length > before.stage.served.length) {
     const night = after.stage.served[after.stage.served.length - 1]
-    if (after.stage.verdict !== null) said.push(`The night is served. ${verdictWords(after.stage.verdict)}`)
-    else said.push(`The night is served in ${formatReadout(night.metric)} µs against the house's ${formatReadout(after.stage.houseMetric)}: ${night.ok ? 'it meets the bar' : 'it misses the bar'}.`)
+    if (after.stage.verdict !== null) said.push(`The run is served. ${verdictWords(after.stage.verdict)}`)
+    else said.push(`The run is served in ${formatReadout(night.metric)} µs against the reference run’s ${formatReadout(after.stage.houseMetric)}: ${night.ok ? 'it meets the bar' : 'it misses the bar'}.`)
   }
-  if (!before.done && after.done) said.push('Every stage is closed: the debrief is ready.')
+  if (!before.done && after.done) said.push('Every stage is closed: the result is ready.')
   return said.join(' ')
 }
 
@@ -73,7 +72,7 @@ export function useFullControls(run: FullRun, toggleAutoRef?: AutoToggleRef): Fu
     window.requestAnimationFrame(() => {
       const active = document.activeElement
       if (active !== null && active !== document.body && !(active as HTMLButtonElement).disabled) return
-      const target = nextOpen === null ? document.querySelector<HTMLElement>('[data-end] button') : document.querySelector<HTMLElement>(`[data-stage-tab="${nextOpen}"]`)
+      const target = nextOpen === null ? document.querySelector<HTMLElement>('[data-result-heading]') : document.querySelector<HTMLElement>(`[data-stage-tab="${nextOpen}"]`)
       ;(target ?? document.querySelector<HTMLElement>('[data-game="loop"]'))?.focus({ preventScroll: true })
     })
   }, [closed, nextOpen])

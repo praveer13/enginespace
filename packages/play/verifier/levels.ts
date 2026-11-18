@@ -7,15 +7,13 @@
  * seed gives a different world in each, because each draws from its own sub-stream (A§5.1). The band is a list of clauses about the
  * draw, checked in integers and rationals, and the draw itself never loops on them: a seed that fails the band is simply not offered
  * (`drawInBand` moves to the next), so `buildLevel` is a plain function of its seed.
- *
- * Copy. The kitchen's word names the object and the engine's term rides beside it (GAMES.md §2.6, rule 2), and no prompt holds a digit:
- * the figures are in the mirror, the tape and the drawing, each tagged synthetic.
  */
 import { assertSeed, below, rngFor, shuffle } from '@es/sim/core'
 import type { Seed } from '@es/sim/core'
 import { SPEC_BAND, drawPair } from '@es/sim/spec'
 import type { Dist } from '@es/sim/spec'
 import { alphaExact, caseTv, expectedTokensExact, topOf, wrongRules } from './exact'
+import { VERIFIER_COPY } from './copy'
 import { gammaCase } from './gamma'
 import { absolute, compare, div, ratio, sub, sum } from './ratio'
 import type { Ratio } from './ratio'
@@ -31,54 +29,12 @@ export const toDist = (plates: readonly number[]): Dist => ({ weights: plates.ma
 /** A sim distribution on the grid as counts of plates. */
 export function toPlates(d: Dist): Plates {
   return d.weights.map((w) => {
-    if (w % GRID !== 0) throw new RangeError(`weight ${w} is not a whole number of plates (a plate is ${GRID})`)
+    if (w % GRID !== 0) throw new RangeError(`weight ${w} is not a whole number of units of ${GRID}`)
     return w / GRID
   })
 }
 
-/* ------------------------------------------------------------------------------------------------------------------ */
-/* Copy                                                                                                               */
-/* ------------------------------------------------------------------------------------------------------------------ */
-
-interface LevelCopy {
-  readonly title: string
-  readonly prompt: string
-}
-
-const COPY: Readonly<Record<VerifierLevelId, LevelCopy>> = {
-  overlap: {
-    title: 'What the chef keeps',
-    prompt:
-      'The commis has plated a stack for each dish ahead of the chef. The plates both stacks share are the ones she keeps (the overlap, min(p, q), which is α). Predict how many of the sixty-four plates she keeps, then watch rounds go down the pass.',
-  },
-  exact: {
-    title: 'Make it exact',
-    prompt:
-      'The chef keeps a commis plate with probability min(1, p ÷ q), the accept rule. When she sends one back she re-plates from a recipe of yours: how heavily she draws from each dish. Sculpt the recipe until what goes out is her tasting exactly (the output is p, total variation distance zero), then submit.',
-  },
-  chain: {
-    title: 'A run of plates',
-    prompt:
-      'The commis plates a run of courses ahead, and the chef tastes them in order. She stops at the first plate she sends back, and plates one extra course herself when she keeps them all (the bonus token). Predict how many courses a round serves on average.',
-  },
-  'greedy-ngram': {
-    title: 'The favourite and the copier',
-    prompt:
-      'A copier plates whatever the night served lately and knows nothing of how often, so its q is a single dish (an n-gram draft). First, at temperature zero the chef always sends her favourite: is the copier\'s plate kept? Then, at full temperature, sculpt the re-plating that still sends out her tasting exactly.',
-  },
-  mutants: {
-    title: 'Five rules to audit',
-    prompt:
-      'Five tasting rules, each a little wrong in a different way. Taste a rule, or check every coin of its accept step, and name the bug in each one.',
-  },
-  gamma: {
-    title: 'How far ahead',
-    prompt:
-      'The chef tastes a whole run in one go, and each plate the commis sets down costs a fraction of a tasting. The further along the run, the less likely she gets that far. Choose how many plates ahead the commis should plate for the most courses a tasting buys (the draft length γ).',
-  },
-}
-
-export const levelTitle = (id: VerifierLevelId): string => COPY[id].title
+export const levelTitle = (id: VerifierLevelId): string => VERIFIER_COPY[id].title
 
 const isLevelId = (id: string): id is VerifierLevelId => (LEVEL_IDS as readonly string[]).includes(id)
 
@@ -128,10 +84,9 @@ const dealt = (seed: Seed): MutantId[] => shuffle(rngFor(seed, 'verifier/mutants
 
 /** The level `id` on `seed`. Throws for a level the game does not have. */
 export function buildLevel(id: string, seed: Seed): VerifierLevel {
-  if (!isLevelId(id)) throw new RangeError(`The Tasting has no level "${id}"`)
+  if (!isLevelId(id)) throw new RangeError(`The rejection sampler has no level "${id}"`)
   assertSeed(seed)
-  const { title, prompt } = COPY[id]
-  const base = { seed, title, prompt }
+  const base = { seed }
   switch (id) {
     case 'overlap':
     case 'exact': {
@@ -234,7 +189,7 @@ export function mutantsBand(p: Dist, q: Dist): boolean {
 
 /** Whether a seed makes level `id` a fair question (GAMES.md §2.1). Throws for a level the game does not have. */
 export function inLevelBand(id: string, seed: Seed): boolean {
-  if (!isLevelId(id)) throw new RangeError(`The Tasting has no level "${id}"`)
+  if (!isLevelId(id)) throw new RangeError(`The rejection sampler has no level "${id}"`)
   assertSeed(seed)
   switch (id) {
     case 'overlap':

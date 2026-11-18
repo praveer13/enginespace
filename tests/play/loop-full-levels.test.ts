@@ -10,7 +10,7 @@ import { describe, expect, test } from 'bun:test'
 import { buildFullLevel, defaultLevers, FULL_LEVEL_IDS, inFullBand, MODES, stageInBand } from '@es/play/loop/full/levels'
 import { graphBytes, nightOf, resolvedMode, servingMode } from '@es/play/loop/full/night'
 import { FULL_SERVICE } from '@es/play/loop/entry'
-import { nightMeetsBar } from '@es/play/loop/full/session'
+import { nightMeetsBar, wordsOf } from '@es/play/loop/full/session'
 import type { FullLevelId, Levers, StageWorld } from '@es/play/loop/full/types'
 import { seeds } from '../seeds'
 
@@ -106,7 +106,8 @@ describe('the answer-first stages (GAMES.md §2.1, the D39 rule)', () => {
       const serving = servingMode(stage, { ...stage.house, graphMode: 'FULL' })
       const room = asked.mode !== null && graphBytes(stage, stage.house, asked.mode) <= (stage.graphBudget ?? Infinity)
       expect(serving.mode).toBe(room ? asked.mode : null)
-      expect(stage.prediction.kind === 'choice' && stage.prediction.options[stage.answer]).toBe(serving.mode ?? 'None serves: refused, or no room')
+      const words = wordsOf('graphs', stage).prediction
+      expect(words.kind === 'choice' && words.options[stage.answer]).toBe(serving.mode ?? 'None serves: refused, or no room')
     }
   })
 
@@ -137,7 +138,7 @@ describe('the worlds', () => {
   })
 
   test('a level that the full service does not have is refused', () => {
-    expect(() => buildFullLevel('keys', 0)).toThrow('the full service has no level "keys"')
-    expect(() => buildFullLevel('no-such-level', 0)).toThrow('the full service has no level "no-such-level"')
+    expect(() => buildFullLevel('keys', 0)).toThrow('the full step loop has no level "keys"')
+    expect(() => buildFullLevel('no-such-level', 0)).toThrow('the full step loop has no level "no-such-level"')
   })
 })

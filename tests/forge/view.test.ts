@@ -49,13 +49,13 @@ const green = () => lab.checks.map((_, index) => result(index, 'pass', `check ${
 describe('before a file', () => {
   const html = render({ step: 'idle' })
 
-  test('names the lab, says what it is in the kitchen\'s words and the engine\'s, and offers a file', () => {
-    expect(text(html)).toContain('The Rotation')
+  test('names the lab in the engine\'s words, says what it is, and offers a file', () => {
+    expect(text(html)).toContain('Build an LRU free queue')
     expect(html).toContain('<h1')
-    expect(text(html)).toContain('In the engine: an LRU free queue.')
-    expect(text(html)).toContain('Drop a .wasm')
+    expect(text(html)).toContain(lab.lead)
+    expect(text(html)).toContain('Drop the .wasm here')
     expect(text(html)).toContain('Choose a file')
-    expect(text(html)).toContain('cargo build --release --target wasm32-unknown-unknown')
+    expect(text(html)).toContain(lab.build)
     expect(text(html)).toContain('target/wasm32-unknown-unknown/release/toy.wasm')
   })
 
@@ -68,7 +68,7 @@ describe('before a file', () => {
   })
 
   test('puts the lamp on the slip and on no check, and has an empty tape', () => {
-    expect(html).toMatch(/class="es-ticket"[^>]*data-lamp="true"/)
+    expect(html).toMatch(/class="es-sheet"[^>]*data-lamp="true"/)
     expect(html).not.toMatch(/es-forge-check[^>]*data-lamp/)
     expect(text(html)).toContain('Nothing printed yet. Drop a module.')
   })
@@ -89,7 +89,7 @@ describe('reading, and a file that is refused', () => {
 
   test('a refusal puts the lamp back on the slip, because choosing another file is the next decision', () => {
     const html = render({ step: 'refused', file, message: 'no.' })
-    expect(html).toMatch(/class="es-ticket"[^>]*data-lamp="true"/)
+    expect(html).toMatch(/class="es-sheet"[^>]*data-lamp="true"/)
   })
 
   test('a refusal says why in the ribbon\'s red, offers another file, and runs nothing', () => {
@@ -125,11 +125,11 @@ describe('a run in progress', () => {
 })
 
 describe('a run that is over', () => {
-  test('all green: five passes, the module\'s hash on masking tape, the seed of the seeded check, and a new run to pull', () => {
+  test('all green: five passes, the module\'s hash, the seed of the seeded check, and a new run to pull', () => {
     const html = render(done(green()))
     expect((html.match(/data-status="pass"/g) ?? []).length).toBeGreaterThanOrEqual(5)
     expect(text(html)).toContain(SHA)
-    expect(text(html)).toContain('sha-256')
+    expect(text(html)).toContain('SHA-256')
     expect(text(html)).toContain('seed 3141592653 drawn when the run began')
     expect(text(html)).toContain('Run on new seeds')
     expect(text(html)).toContain('Tell these seeds again')
@@ -138,13 +138,12 @@ describe('a run that is over', () => {
     expect(html).not.toMatch(/es-forge-check[^>]*data-lamp="true"/)
   })
 
-  test('the slip is the module\'s heading: the page has one h1, the slip\'s title is its h2, and the checks have an h2 of their own', () => {
+  test('the page has one h1 and one h2 for each of the five steps, in order, and a module that is accepted is an h3 inside step 4', () => {
     for (const state of [{ step: 'idle' }, done(green())] as ForgeState[]) {
       const html = render(state)
       expect((html.match(/<h1[ >]/g) ?? []).length).toBe(1)
-      expect((html.match(/<h2[ >]/g) ?? []).length).toBe(2)
-      expect(html).not.toMatch(/<h3[ >]/)
-      expect(html).toContain('aria-label="Your module"')
+      expect([...html.matchAll(/<h2[^>]*>(.*?)<\/h2>/g)].map((m) => m[1])).toEqual(['Download the crate', 'Edit one file', 'Build', 'Drop the .wasm here', 'The checks'])
+      expect(/<h3[ >]/.test(html)).toBe(state.step === 'done')
     }
   })
 
@@ -157,8 +156,8 @@ describe('a run that is over', () => {
     expect(lamps).toHaveLength(1)
     expect(html.indexOf('data-lamp="true"', html.indexOf('es-forge-checks'))).toBeLessThan(html.indexOf(lab.checks[2].label))
     expect(text(html)).toContain('order should answer "2,3,1"')
-    expect(text(html)).toContain(`Catches: ${lab.checks[1].catches}`)
-    expect(text(html)).toContain('3 of 5 checks passed. First to fix: a held key is a hit and goes to the back, fail.')
+    expect(text(html)).toContain(`Catches ${lab.checks[1].catches}`)
+    expect(text(html)).toContain('3 of 5 checks passed. First to fix: a held key is a hit and moves to the back, fail.')
   })
 
   test('a trap says "not implemented yet" with the panic\'s place, and a timeout says what stopped it', () => {
@@ -177,7 +176,7 @@ describe('a run that is over', () => {
     expect(text(html)).toContain('toy@reference: no credit')
     expect(text(html)).toContain('ledger no credit')
     // The slip is the voided ticket, and the sentence is printed there once, with the tape's own line beside it.
-    expect(html).toMatch(/<section class="es-ticket"[^>]*data-state="error"/)
+    expect(html).toMatch(/<section class="es-sheet"[^>]*data-state="error"/)
     expect(html.match(/A reference build is shown and never recorded/g)).toHaveLength(2)
     expect(text(html)).not.toContain('Written to your ledger')
   })
@@ -197,8 +196,8 @@ describe('a run that is over', () => {
     const html = render(done(lab.checks.map((_, index) => result(index, 'trap', trap))))
     expect(text(html).split(trap)).toHaveLength(2)
     expect((text(html).match(/the same trap as the check above/g) ?? []).length).toBe(4)
-    // What a check catches is about wrong replies, so a trap or a timeout does not print it.
-    expect(text(html)).not.toContain('Catches:')
+    // Every check says what it catches, whatever came of it.
+    for (const check of lab.checks) expect(text(html)).toContain(`Catches ${check.catches}`)
   })
 
   test('a replay is not recorded, and says so', () => {

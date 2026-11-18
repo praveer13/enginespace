@@ -26,6 +26,7 @@ import type { Page } from '@playwright/test'
 import { build } from 'vite'
 import { TRACE_KEYS } from '../src/trace/keys'
 import type { TraceProbe } from '../src/trace/test-hook'
+import { bannedOn } from './support/copy-scan'
 
 const root = path.resolve(import.meta.dirname, '..')
 const ORIGIN = 'http://localhost:4177'
@@ -618,15 +619,26 @@ test.describe('the paper (DESIGN.md, "The One Lamp Rule")', () => {
   test('the lamp’s filament is drawn round the cursor, and moves with it', async ({ page }) => {
     await open(page)
     await settled(page)
-    const before = await inkBox(page, '--es-lamp-ring')
+    const before = await inkBox(page, '--es-marker-edge')
     expect(before, 'filament pixels on the paper').not.toBeNull()
     expect(before?.n ?? 0).toBeGreaterThan(40)
     await tabTo(page, 'zoom-out')
     for (let i = 0; i < 6; i++) await press(page, 'KeyK')
     await settled(page)
-    const after = await inkBox(page, '--es-lamp-ring')
+    const after = await inkBox(page, '--es-marker-edge')
     expect(after).not.toBeNull()
     expect(Math.abs((after?.x0 ?? 0) - (before?.x0 ?? 0)), 'the filament moved along the paper').toBeGreaterThan(5)
+  })
+
+  test('draws every kind of span with its colour and its glyph, and the cursor in amber with its edge (R-T27)', async ({ page }) => {
+    await open(page)
+    await settled(page)
+    const marker = await inkBox(page, '--es-marker')
+    expect(marker, 'amber pixels on the paper').not.toBeNull()
+    for (const role of ['--es-cat-blue', '--es-cat-green', '--es-cat-brown']) {
+      expect(await inkBox(page, role), `${role} on the paper`).not.toBeNull()
+    }
+    await expect(viewer(page).locator('ul.es-trace__legend li')).toHaveCount(6)
   })
 
   for (const width of [360, 1280]) {
@@ -676,6 +688,8 @@ test.describe('the specimen page', () => {
     await viewer(page).locator('[data-command="category-cpu-gap"]').click()
     await viewer(page).locator('[data-command="edge-next"]').click()
     await viewer(page).locator('[data-command="mark"]').click()
+    // The viewer hands its notes to the page in an effect, so the export is written a render after the click: wait for it.
+    await expect.poll(async () => (await exported(page)).length).toBe(1)
     const marks = (await exported(page)) as { kind: string; category: string }[]
     expect(marks).toHaveLength(1)
     expect(marks[0]).toMatchObject({ kind: 'range', category: 'cpu-gap' })
@@ -686,14 +700,31 @@ test.describe('the specimen page', () => {
 
   test('says what the tape is, in the head, the printer and the table: synthetic, and every figure carries it', async ({ page }) => {
     await open(page)
-    await expect(viewer(page).getByText('A synthetic tape', { exact: false })).toBeVisible()
+    await expect(viewer(page).getByText('A synthetic trace', { exact: false }).first()).toBeVisible()
     await expect(viewer(page).locator('.es-readout__tag[data-tag="synthetic"]').first()).toBeVisible()
     await expect(viewer(page).locator('[data-trace-mirror] thead')).toContainText('ns, synthetic')
   })
 
+  test('is titled and headed Traces, labels its shortcut list Keyboard, and reads in the engine’s words (R-T27)', async ({ page }) => {
+    await open(page)
+    await expect(page).toHaveTitle(/^Traces/)
+    await expect(page.getByRole('heading', { level: 1, name: 'Traces' })).toBeVisible()
+    // The cursor, a mark and a cause on the page, so that every label is there to read.
+    await viewer(page).locator('[data-command="mark"]').click()
+    await viewer(page).locator('[data-command="category-cpu-gap"]').click()
+    await viewer(page).locator('[data-command="edge-next"]').click()
+    await viewer(page).locator('[data-command="mark"]').click()
+    await press(page, 'KeyX')
+    await expect(viewer(page).locator('.es-trace__now')).toHaveText('now')
+    expect(await bannedOn(page), 'banned words on the page').toEqual([])
+    await viewer(page).getByRole('button', { name: 'Keyboard' }).click()
+    await expect(page.getByRole('dialog', { name: 'Keyboard' })).toBeVisible()
+    expect(await bannedOn(page), 'banned words with the keyboard sheet open').toEqual([])
+  })
+
   test('a trace id that is not a specimen shows the stub it always did', async ({ page }) => {
     await page.goto(`${ORIGIN}/trace-room/sample`)
-    await expect(page.getByRole('heading', { level: 1, name: 'The Trace Room' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Traces' })).toBeVisible()
     await expect(page.getByText('Trace id: sample')).toBeVisible()
     await expect(page.locator('[data-trace-view]')).toHaveCount(0)
   })

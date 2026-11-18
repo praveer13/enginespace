@@ -15,15 +15,15 @@ import { floorAsk, floorDebrief, floorDone, floorGhost, floorGrade, floorInit, f
 import type { FloorAction, Mistake } from '@es/play/engine-floor/types'
 import { houseActions, laidTo, levelOf, played, ranTo, truthOf, walk } from './engine-floor-support'
 
-/** The state hash of each level's house run on its practice seed, and of its first state [measured 2026-11-04 at 5ffa2f9, with this task's files]. */
+/** The state hash of each level's house run on its practice seed, and of its first state [measured 2026-11-04 at 5ffa2f9, with this task's files]. Re-measured 2026-11-15 on R-T02's branch: a level no longer holds its display words (`copy.ts`), so each hash is that of the old state without them; scripts/state-copy-equivalence.ts proves it. */
 const GOLDENS: Readonly<Record<string, readonly [string, string]>> = {
-  nano: ['884637cc', 'b9c916f1'],
-  'nano-tp': ['7640f365', '04c263c6'],
-  mini: ['cd7b4680', '0f447547'],
-  inside: ['c03091bf', 'd2501a43'],
-  vllm: ['749e7616', 'ba7e4f27'],
-  sglang: ['02e69841', '39310107'],
-  abort: ['85db6e4f', 'dca1a4e4'],
+  nano: ['1836957e', '26aa9cd7'],
+  'nano-tp': ['e2d0a432', '74bd6859'],
+  mini: ['92055e94', '7a061913'],
+  inside: ['02300563', '762e064b'],
+  vllm: ['d57df583', 'a00fd93a'],
+  sglang: ['e56a872d', '867d5e13'],
+  abort: ['869efa46', '8e7bc9bf'],
 }
 
 const vllm = levelOf('vllm')
@@ -110,7 +110,7 @@ describe('the actions', () => {
     expect(state.laidAt).toEqual([1, 2])
     expect(state.turns).toBe(3)
     expect(() => walk(level, { t: 'commit', prediction: 0 }, { t: 'lay', stage: first }, { t: 'lay', stage: first })).toThrow(/already on the path/)
-    expect(() => walk(level, { t: 'commit', prediction: 0 }, { t: 'lay', stage: 'vllm.http-request' })).toThrow(/not in the tray/)
+    expect(() => walk(level, { t: 'commit', prediction: 0 }, { t: 'lay', stage: 'vllm.http-request' })).toThrow(/not among the stages/)
   })
 
   test('unlay takes the last stage off, or takes the path back to a number of stages, and takes the verdict with it', () => {

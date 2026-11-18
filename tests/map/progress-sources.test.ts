@@ -15,14 +15,13 @@ import { CATALOG } from '@es/play/items/catalog'
 import type { ContentIndex, CourseMap } from '@es/schema'
 import { LAB_CHECK_KCS } from '@es/sim/forge/kcs'
 import { CourseMapView } from '@/map/CourseMap'
-import { KCS, MAP as COPY } from '@/map/copy'
-import { ModuleView } from '@/pages/Module'
+import { OUTCOME_KCS, outcomesPassed } from '@/map/outcomes'
 import { deriveProgress } from '@/progress/derive'
 import { appSources, homeModule } from '@/progress/sources'
 import { compileContent } from '../../scripts/content/build.ts'
 import { output, repo } from '../content/support.ts'
 import { made } from '../progress/support'
-import { render, stopOf, textOf, TODAY } from './support'
+import { render, textOf } from './support'
 
 const compiled = compileContent({ root: repo })
 const INDEX = JSON.parse(output(compiled, 'src/content/generated/index.json')) as ContentIndex
@@ -31,7 +30,6 @@ const MAP = JSON.parse(output(compiled, 'src/content/generated/map.json')) as Co
 const progressOf = (events: readonly LedgerEvent[]) => deriveProgress(events, MAP, appSources(MAP), homeModule)
 const graph = new Set(MAP.kcs.map((kc) => kc.id))
 const kcsOf = (module: string) => MAP.kcs.filter((kc) => kc.module === module)
-const entry = (id: string) => INDEX.modules.find((module) => module.id === id)
 const labKcs = (lab: string): string[] => [...new Set(Object.values(LAB_CHECK_KCS[lab].kcs).flat())]
 const owner = (lab: string): string | undefined => MAP.modules.find((module) => module.labs.includes(lab))?.id
 const item = (family: string, variant: string, options?: Parameters<typeof made>[2]) => made('item', `item:gen/${family}/${variant}`, options)
@@ -138,42 +136,31 @@ describe('the map and the module pages show it', () => {
   const events = [item('tr2.bubble-width', 'async-off'), labCheck('hybrid-kv')]
   const map = (ledger: readonly LedgerEvent[]) =>
     render(h(CourseMapView, { modules: INDEX.modules, totalHours: INDEX.totalHours, map: MAP, progress: progressOf(ledger), ready: true }), '/map')
+  const rowOf = (html: string, module: string) => {
+    const start = html.indexOf(`<li class="es-course__row" data-module="${module}"`)
+    return html.slice(start, html.indexOf('</li>', html.indexOf('es-course__standing', start)))
+  }
 
-  test("the map's ticket for the item's module counts it, with one pip solid where the KC is in the graph's order", () => {
-    const stop = stopOf(map(events), 'tr2')
-    expect(textOf(stop)).toContain(`1 ${COPY.holding.of} ${kcsOf('tr2').length} ${COPY.holding.earned}`)
-    const pips = [...stop.matchAll(/class="es-pip" data-state="(\w+)"/g)].map((match) => match[1])
-    expect(pips.filter((state) => state === 'earned')).toHaveLength(1)
-    expect(pips.indexOf('earned')).toBe(kcsOf('tr2').findIndex((kc) => kc.id === 'tr2.bubble'))
+  test("the course's row for the item's module counts it as a skill passed", () => {
+    expect(textOf(rowOf(map(events), 'tr2'))).toContain(`1 of ${kcsOf('tr2').length} skills passed`)
   })
 
-  test("the map's ticket for the lab's module counts the lab's KCs, and the tape counts both", () => {
-    const html = map(events)
-    const stop = stopOf(html, 'tr5a')
-    expect(textOf(stop)).toContain(`${labKcs('hybrid-kv').length} ${COPY.holding.of} ${kcsOf('tr5a').length} ${COPY.holding.earned}`)
-    expect(stop.match(/class="es-pip" data-state="earned"/g)).toHaveLength(labKcs('hybrid-kv').length)
-    expect(textOf(/<figure[\s\S]*?<\/figure>/.exec(html)?.[0] ?? '')).toContain(`earned ${1 + labKcs('hybrid-kv').length} measured of ${MAP.kcs.length}`)
+  test("the course's row for the lab's module counts the lab's KCs", () => {
+    expect(textOf(rowOf(map(events), 'tr5a'))).toContain(`${labKcs('hybrid-kv').length} of ${kcsOf('tr5a').length} skills passed`)
   })
 
-  test('without the events, the same tickets count none: the numbers come from the item and the lab', () => {
+  test('without the events, the same rows count none: the numbers come from the item and the lab', () => {
     const html = map([])
-    expect(textOf(stopOf(html, 'tr2'))).toContain(`0 ${COPY.holding.of} ${kcsOf('tr2').length} ${COPY.holding.earned}`)
-    expect(textOf(stopOf(html, 'tr5a'))).toContain(`0 ${COPY.holding.of} ${kcsOf('tr5a').length} ${COPY.holding.earned}`)
+    expect(textOf(rowOf(html, 'tr2'))).toContain(`0 of ${kcsOf('tr2').length} skills passed`)
+    expect(textOf(rowOf(html, 'tr5a'))).toContain(`0 of ${kcsOf('tr5a').length} skills passed`)
   })
 
-  test('a module page lists its KCs with the state that the item and the lab gave them, in words', () => {
-    const rowOf = (id: string) => {
-      const page = render(
-        h(ModuleView, { id, module: null, entry: entry(id), claims: null, today: TODAY, kcs: kcsOf(id), progress: progressOf(events).modules.get(id), ready: true }),
-        `/m/${id}`,
-      )
-      const section = /<section[^>]*data-block="kcs"[\s\S]*?<\/section>/.exec(page)?.[0] ?? ''
-      return (kc: string) => textOf(new RegExp(`<li[^>]*data-kc="${kc}"[\\s\\S]*?</li>`).exec(section)?.[0] ?? '')
-    }
-    const tr2 = rowOf('tr2')
-    expect(tr2('tr2.bubble')).toContain(KCS.states.earned)
-    expect(tr2('tr2.async-overlap')).toContain(KCS.states.none)
-    const tr5a = rowOf('tr5a')
-    for (const kc of kcsOf('tr5a')) expect(tr5a(kc.id), kc.id).toContain(labKcs('hybrid-kv').includes(kc.id) ? KCS.states.earned : KCS.states.none)
+  test('a module page ticks the outcomes whose KCs the item and the lab passed', () => {
+    const states = new Map([...progressOf(events).kcs].map(([kc, row]) => [kc, row.state]))
+    const passedOf = (id: string) => outcomesPassed(id, OUTCOME_KCS[id].length, states, true)
+    // The one item passes tr2.bubble, which is one of five KCs under TR2's first outcome: no outcome is whole yet.
+    expect(passedOf('tr2')).toEqual([false, false, false, false])
+    // The lab passes five of TR5a's eight KCs, which complete the third outcome (one KC) and no other.
+    expect(passedOf('tr5a')).toEqual([false, false, true, false])
   })
 })

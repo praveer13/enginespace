@@ -9,7 +9,7 @@
  *   3. A reused token fails binding. A second receipt for a token that a first one spent is kept, labelled, with the reason, and the token stays the
  *      first receipt's.
  *   4. An unknown grader build gives `gpu-unverified`. W2-T10 published grader 0.1.0, and the honest sample is 0.1.0 with another source hash, so it is the case: rules 1 to 4 and 6
- *      pass, rule 5 fails and says why, and the receipt is kept as not credited. The same files with a published grader are held under Bun
+ *      pass, rule 5 fails and says why, and the receipt is kept as not counted. The same files with a published grader are held under Bun
  *      (tests/receipts/importer.test.ts).
  *
  * And the review's finding that a file inside the caps could still crash the tab (W2's grader track, review fixes): rule 1 bounds the bytes of a bundle, and a
@@ -58,13 +58,13 @@ test.beforeEach(async ({ context }) => {
 /* The page's pieces                                                                                                  */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-const panel = (page: Page) => page.getByRole('region', { name: 'Bring a receipt back' })
+const panel = (page: Page) => page.getByRole('region', { name: 'Bring a result back' })
 const choose = (page: Page) => panel(page).getByRole('button', { name: /^Choose (a|another) file$/ })
 const slip = (page: Page) => panel(page).locator('.es-import__slip')
 const rules = (page: Page) => panel(page).locator('.es-rule')
 const statuses = (page: Page) => rules(page).evaluateAll((items) => items.map((item) => `${item.getAttribute('data-rule')}:${item.getAttribute('data-status')}`))
 const status = (page: Page) => panel(page).locator('p.sr-only[role="status"]')
-const receiptRows = (page: Page) => page.getByRole('list', { name: 'Receipts held by this browser' }).getByRole('listitem')
+const receiptRows = (page: Page) => page.getByRole('list', { name: 'Results held by this browser' }).getByRole('listitem')
 const challengeRows = (page: Page) => page.getByRole('list', { name: 'Challenges issued by this browser' }).getByRole('listitem')
 
 interface Stored {
@@ -220,14 +220,14 @@ async function chooseTextMadeInPage(page: Page, name: string, segments: Segment[
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 test.describe('an honest receipt', () => {
-  test('chosen with the keys, is checked in the worker, kept with its report, and listed; a grader build that is not the published one makes it not credited', async ({ page, watch }) => {
+  test('chosen with the keys, is checked in the worker, kept with its report, and listed; a grader build that is not the published one makes it not counted', async ({ page, watch }) => {
     await visit(page)
     const before = watch.requests.length
-    await expect(slip(page)).toContainText('Drop a receipt')
+    await expect(slip(page)).toContainText('Drop a receipt file')
     await expect(status(page)).toBeEmpty()
 
     await chooseWithKeys(page, fileOf(bundle()))
-    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
 
     // Rule by rule: the file is whole, answers the challenge, and the engine is the pin; the grader is not the build this site published under that version. Rules 7 to 9 are W2-T08's:
     // the sample's toy trace has no capture time, the site declares no step count for its stage and its GPU is not in the atlas, so recomputation and the floors fail.
@@ -240,9 +240,9 @@ test.describe('an honest receipt', () => {
     await expect(rules(page).nth(5)).toContainText('vllm 0.33.0 is the pin.')
 
     // What it is worth now: nothing yet, and why.
-    await expect(slip(page)).toContainText('not credited')
+    await expect(slip(page)).toContainText('not counted')
     await expect(slip(page)).toContainText('T6: This site declares no step count for tr3.profile.s2.')
-    await expect(status(page)).toContainText('Kept in your ledger. Not credited.')
+    await expect(status(page)).toContainText('Kept in your record. Not counted.')
 
     // The ledger has the receipt and the event that spent its token, written together, and the report beside the receipt.
     const found = await stored(page)
@@ -266,10 +266,10 @@ test.describe('an honest receipt', () => {
 
     // The page reads what was kept: the receipt is in the list, the challenge is used by it, and the tape counts both.
     await expect(receiptRows(page)).toHaveCount(1)
-    await expect(receiptRows(page).first()).toContainText('not credited')
+    await expect(receiptRows(page).first()).toContainText('not counted')
     await expect(challengeRows(page).first()).toHaveAttribute('data-state', 'used')
-    await expect(challengeRows(page).first()).toContainText(`receipt ${found.receipts[0].sha256.slice(0, 8)}`)
-    await expect(page.getByRole('figure', { name: 'Challenges and receipts, counted' }).locator('.es-printer__line')).toHaveText([/open\s*0/i, /used\s*1/i, /expired\s*0/i, /receipts\s*1/i])
+    await expect(challengeRows(page).first()).toContainText(`result ${found.receipts[0].sha256.slice(0, 8)}`)
+    await expect(page.getByRole('figure', { name: 'Challenges and results, counted' }).locator('.es-readout-strip__line')).toHaveText([/open\s*(0|—none)/i, /used\s*1/i, /expired\s*(0|—none)/i, /results\s*1/i])
 
     // The check made no request: the worker reads the file it was handed, and the files of the site it was made of.
     await quiet(page)
@@ -280,19 +280,19 @@ test.describe('an honest receipt', () => {
   test('dropped on the slip, is the same receipt: the same hash, and the slip shows the filament while the file is over it', async ({ page }) => {
     await visit(page)
     await dropOnSlip(page, fileOf(bundle()))
-    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
     const first = (await stored(page)).receipts[0].sha256
     expect(first).toMatch(/^[0-9a-f]{64}$/)
-    await expect(slip(page).getByRole('link', { name: 'Open the receipt' })).toHaveAttribute('href', `/receipts#${first}`)
+    await expect(slip(page).getByRole('link', { name: 'Open the result' })).toHaveAttribute('href', `/receipts#${first}`)
   })
 
   test('takes focus to its result when the check ends, and leads to the receipt\'s page, which lists the rules that were run', async ({ page }) => {
     await visit(page)
     await chooseWithKeys(page, fileOf(bundle()))
-    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
     await expect(slip(page)).toBeFocused()
 
-    await slip(page).getByRole('link', { name: 'Open the receipt' }).click()
+    await slip(page).getByRole('link', { name: 'Open the result' }).click()
     const article = page.getByRole('article', { name: 'Receipt for tr3.profile.s2' })
     await expect(article).toBeVisible()
     const checked = article.locator('.es-receipt__part', { hasText: 'How this browser checked it' })
@@ -300,17 +300,17 @@ test.describe('an honest receipt', () => {
     await expect(checked.locator('.es-import__verdict[data-rule="verdict"]')).toBeVisible()
     await expect(checked).toContainText('re-checked here')
     await expect(checked).toContainText('attested by grader 0.1.0')
-    await expect(checked).toContainText('not credited')
+    await expect(checked).toContainText('not counted')
     await expect(article).toContainText('Used by this receipt.')
   })
 
   test('imported again, adds the report of the new check and writes no second event: it is the receipt that spent the token, and it is bound again', async ({ page }) => {
     await visit(page)
     await chooseWithKeys(page, fileOf(bundle()))
-    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
     await chooseWithKeys(page, fileOf(bundle()))
     await expect(slip(page).getByRole('heading', { level: 3, name: 'Checked again' })).toBeVisible()
-    await expect(slip(page)).toContainText('This receipt was in your ledger already.')
+    await expect(slip(page)).toContainText('This result was in your record already.')
     expect((await statuses(page))[3]).toBe('binding:pass')
     const found = await stored(page)
     expect(found.receipts).toHaveLength(1)
@@ -322,7 +322,7 @@ test.describe('an honest receipt', () => {
   test('survives a reload: the receipt and its report are read back from the ledger, and the page lists the rules it was checked by', async ({ page }) => {
     await visit(page)
     await chooseWithKeys(page, fileOf(bundle()))
-    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
     const { sha256 } = (await stored(page)).receipts[0]
     await page.goto(`${ROUTE}#${sha256}`)
     const article = page.getByRole('article', { name: 'Receipt for tr3.profile.s2' })
@@ -441,7 +441,7 @@ test.describe('a file inside the caps that is built to run the parser out of mem
       await expect(challengeRows(page).first()).toHaveAttribute('data-state', 'open')
       // The page is still the learner's: the slip takes the honest file next.
       await chooseWithKeys(page, fileOf(bundle()))
-      await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+      await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
     })
   }
 
@@ -584,7 +584,7 @@ test.describe('a tampered hash', () => {
     await chooseWithKeys(page, fileOf(tampered))
     await expect(rules(page).nth(2)).toContainText('Artifact "log": its data in the bundle is 21 bytes, and the receipt lists 22.')
     await chooseWithKeys(page, fileOf(bundle()))
-    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
     expect((await stored(page)).receipts).toHaveLength(1)
   })
 })
@@ -597,29 +597,29 @@ test.describe('a reused token', () => {
   test('fails binding for a second receipt: it is kept with the reason, and the token stays the first receipt\'s', async ({ page }) => {
     await visit(page)
     await chooseWithKeys(page, fileOf(bundle()))
-    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
     const first = (await stored(page)).receipts[0].sha256
 
     // The same stage and token, another run: its notes differ, so it is another receipt.
     const second = bundle()
     second.receipt.notes = 'A second run on the same challenge.'
     await chooseWithKeys(page, fileOf(second, 'second.es.json.gz'))
-    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
     expect((await statuses(page))[3]).toBe('binding:fail')
     await expect(rules(page).nth(3)).toContainText(`spent by receipt ${first.slice(0, 8)} already`)
     await expect(rules(page).nth(3)).toContainText('single-use')
-    await expect(slip(page)).toContainText('not credited')
+    await expect(slip(page)).toContainText('not counted')
 
     const found = await stored(page)
     expect(found.receipts).toHaveLength(2)
     await expect(receiptRows(page)).toHaveCount(2)
-    await expect(challengeRows(page).first()).toContainText(`receipt ${first.slice(0, 8)}`)
+    await expect(challengeRows(page).first()).toContainText(`result ${first.slice(0, 8)}`)
   })
 
   test('fails binding for a token this browser never issued, a friend\'s receipt, and says where such a receipt is imported', async ({ page }) => {
     await open(page, ROUTE)
     await chooseWithKeys(page, fileOf(bundle()))
-    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
     expect((await statuses(page))[3]).toBe('binding:fail')
     await expect(rules(page).nth(3)).toContainText("This browser's ledger holds no challenge with this token.")
     await expect(rules(page).nth(3)).toContainText('imported there')
@@ -634,7 +634,7 @@ test.describe('a reused token', () => {
     await page.reload()
     await expect(challengeRows(page).first()).toHaveAttribute('data-state', 'expired')
     await chooseWithKeys(page, fileOf(bundle()))
-    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
     expect((await statuses(page))[3]).toBe('binding:fail')
     await expect(rules(page).nth(3)).toContainText('The token expired at')
   })
@@ -648,12 +648,12 @@ test.describe('an unknown grader build', () => {
   test('gives gpu-unverified: the receipt is kept with the reason shown, and credits nothing', async ({ page }) => {
     await visit(page)
     await chooseWithKeys(page, fileOf(bundle()))
-    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
     await expect(rules(page).locator('xpath=self::*[@data-rule="grader"]')).toHaveAttribute('data-status', 'fail')
     const event = (await stored(page)).events.find((candidate) => candidate.kind === 'receipt')
     expect(event).toMatchObject({ provenance: 'gpu-unverified', ok: false, score: 0 })
     // The progress the learner sees does not move: the ledger has a receipt that earned nothing.
-    await expect(slip(page).locator('.es-import__worth')).toHaveText('not credited')
+    await expect(slip(page).locator('.es-import__worth')).toHaveText('not counted')
   })
 
   test('has the same standing when the engine is off the pin: the receipt is kept, and rule 6 fails with what the course pins', async ({ page }) => {
@@ -661,7 +661,7 @@ test.describe('an unknown grader build', () => {
     const offPin = bundle()
     if (offPin.receipt.environment.engine !== undefined) offPin.receipt.environment.engine.version = '0.32.0'
     await chooseWithKeys(page, fileOf(offPin))
-    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
     expect((await statuses(page))[5]).toBe('pins:fail')
     await expect(rules(page).nth(5)).toContainText('vllm 0.32.0 is off the pin: the course pins vllm 0.33.0.')
   })
@@ -717,7 +717,7 @@ for (const width of [360, 1280]) {
       await audit(page, `/receipts, the slip waiting, at ${width} px`)
 
       await chooseWithKeys(page, fileOf(bundle()))
-      await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+      await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
       await quiet(page)
       await audit(page, `/receipts, a receipt kept, at ${width} px`)
       const kept = await clipped(page)
@@ -750,7 +750,7 @@ test.describe('at 320 px', () => {
   test('no text is cut off at the right edge when a long file name and a long hash are on the slip', async ({ page }) => {
     await visit(page)
     await chooseWithKeys(page, fileOf(bundle(), `${'a-very-long-file-name-'.repeat(8)}.es.json.gz`))
-    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your ledger' })).toBeVisible()
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
     await quiet(page)
     const state = await clipped(page)
     expect(state.scrolls, 'pixels the page scrolls sideways').toBeLessThanOrEqual(0)

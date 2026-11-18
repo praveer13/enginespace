@@ -1,34 +1,53 @@
 import type { FullView, Verdict } from '@es/play/loop/full/types'
 import { Readout } from '@/design/components/Readout'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
 import { tagOf, verdictWords } from './tags'
 
 /*
- * What a graded night came to against ASSESSMENT §4.3's bar (`close`): the tokens it served for each ms of the line's clock against the
- * house's, as a share, and the dependency that the model checks. A night the engine would not start says why; a night that read a token
- * before it was sampled scores nothing, however fast. It is printed once the night is served, and not before: the stage is closed-book.
+ * What a graded run came to against the bar (ASSESSMENT §4.3, `close`): the tokens it served for each ms of GPU time against the
+ * reference run's, as a share, and the dependency the model checks. A run the engine would not start says why; a run that read a token
+ * before it was sampled scores nothing, however fast. It is printed once the run is served, and not before: the stage is closed-book.
  */
 
 export function VerdictLines({ verdict, view }: { verdict: Verdict; view: Pick<FullView, 'synthetic'> }) {
   const derived = tagOf(view, 'line') === 'synthetic' ? 'synthetic' : 'derived'
+  const ok = verdict.kind === 'pass'
   return (
-    <>
-      <p data-verdict={verdict.kind}>{verdictWords(verdict)}</p>
+    <dl className="es-fd__verdict-list">
+      <div className="es-fd__verdict-word">
+        <dt className="sr-only">Verdict</dt>
+        <dd data-verdict={verdict.kind}>{verdictWords(verdict)}</dd>
+      </div>
       {verdict.throughputPermille === null ? null : (
         <>
-          <TicketLine note={<Readout value={verdict.throughputPermille / 10} digits={1} unit="%" tag={derived} size="sm" tone={verdict.kind === 'pass' ? 'ink' : 'ink-2'} />} tone={verdict.kind === 'pass' ? 'ink' : 'ink-2'}>
-            tokens for each ms, as a share of the house's
-          </TicketLine>
-          <TicketLine note={<Readout value={verdict.barPermille / 10} digits={1} unit="%" tag="estimated" size="sm" />}>the bar</TicketLine>
+          <div>
+            <dt>tokens for each ms, as a share of the reference run’s</dt>
+            <dd>
+              <Readout value={verdict.throughputPermille / 10} digits={1} unit="%" tag={derived} size="sm" tone={ok ? 'ink' : 'ink-2'} />
+            </dd>
+          </div>
+          <div>
+            <dt>the bar</dt>
+            <dd>
+              <Readout value={verdict.barPermille / 10} digits={1} unit="%" tag="estimated" size="sm" />
+            </dd>
+          </div>
         </>
       )}
       {verdict.kind === 'violation' ? (
-        <TicketLine note={<Readout value={verdict.violations} unit="steps" tag={derived} size="sm" tone="ink-2" />} tone="ink-2">
-          fires that read a token before it was sampled
-        </TicketLine>
+        <div>
+          <dt>steps that read a token before it was sampled</dt>
+          <dd>
+            <Readout value={verdict.violations} unit="steps" tag={derived} size="sm" tone="ink-2" />
+          </dd>
+        </div>
       ) : null}
-      {verdict.kind === 'refused' && verdict.reason !== null ? <p data-verdict-reason="">{verdict.reason}.</p> : null}
-    </>
+      {verdict.kind === 'refused' && verdict.reason !== null ? (
+        <div>
+          <dt className="sr-only">Why</dt>
+          <dd data-verdict-reason="">{verdict.reason}.</dd>
+        </div>
+      ) : null}
+    </dl>
   )
 }
 
@@ -36,8 +55,8 @@ export function NightVerdict({ view }: { view: FullView }) {
   const verdict = view.stage.verdict
   if (verdict === null) return null
   return (
-    <Ticket as="section" width="full" hole={false} compact head="Verdict" meta="one night" data-full-verdict={verdict.kind}>
+    <section className="es-fd__verdict" aria-label="Verdict on the run" data-full-verdict={verdict.kind}>
       <VerdictLines verdict={verdict} view={view} />
-    </Ticket>
+    </section>
   )
 }

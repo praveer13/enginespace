@@ -11,19 +11,12 @@ games: [pool]
 labs: [hybrid-kv]
 ---
 
-In {{ks:T5.L6}} a prefix hit was the longest run of blocks from the start of a prompt that the cache still held, and with one table it is a loop that stops at the first miss. With several groups the hit has a second question to answer. The request's first new token will read every layer, and each kind of layer reads the cache differently.
+A prefix hit is the longest start of a prompt that the cache still holds, and with several groups each one holds different blocks. The request's first new token reads every layer, so the pool can serve a hit only as far as every group still holds what its layers read. Guess one hit, then run the `evict` level, where you choose which cached pages to give up when a request needs room.
 
-## What each group needs at the edge
-
-Say that a prompt shares its first `m` blocks with a cached sequence. The request starts computing at the token after them, which is the **edge** of the hit. Every layer then reads the cache as it will for that token, and each kind of group needs different blocks to be there.
-
-- A **full** group reads every earlier token, so it needs blocks `0` to `m - 1`, every one of them.
-- A **sliding** group reads only the last window before the edge, so it needs the `ceil((W - 1) / B)` blocks just before the edge. When fewer than that come before the edge, it needs them all, from the first. {{claim:vllm.hybrid-kv.sliding-hit-blocks}} {{claim:vllm.hybrid-kv.sliding-hit-prefix}}
-- A **state** group reads the state at the edge, so it needs the one block that holds it. {{claim:vllm.hybrid-kv.mamba-hit}}
-
-So each group accepts some edges and rejects the rest, and the request's hit is an edge that every group accepts. It is the **intersection** of what the groups hold. {{claim:vllm.hybrid-kv.intersection}} The cache is keyed by a block's hash and its group, so the same tokens in two groups are cached, and evicted, independently of each other. {{claim:vllm.hybrid-kv.cache-key}}
-
-A full group's accepted edges are downward-closed: if it accepts an edge it accepts every edge before it. A window's are not. It accepts an edge only if the blocks just before that edge are cached, so its accepted edges can have gaps, once a block in the middle of its run has been evicted. That is why a hit cannot be found by asking each group for its longest hit and taking the shortest. A state group is the other extreme: it needs one block and no run, so its accepted edges are scattered, wherever a state was saved. Commit to two predictions before you play.
+- The edge of a hit is the token after the blocks that the prompt shares with the cache, where the request starts computing.
+- A full group accepts an edge when it holds every block before it. A sliding group accepts it when it holds the blocks of the last window before it. A state group accepts it when it holds the one block just before it.
+- The hit is the largest edge that every group accepts, and it is zero when there is none.
+- A hit ends on a block edge, and it never covers the prompt's last token.
 
 :::predict
 id: tr5a.l3.p1
@@ -33,20 +26,32 @@ reveal: after-game
 kcs: [tr5a.hit-intersection]
 :::
 
-:::predict
-id: tr5a.l3.p2
-prompt: The model is the `state` level's, one full group and three state groups, with 32 tokens in a block [estimated]. A returning request has a prompt of 330 tokens [estimated]. The full group holds the blocks numbered 0 to 7 [estimated]. Each state group holds only the blocks 2 and 5 [estimated], which are the states at two edges. How many tokens does the prefix hit cover?
-answer: { kind: numeric, unit: tokens, rel_tol: 0 }
-reveal: after-game
-kcs: [tr5a.hit-intersection]
-:::
-
-In The Reach-In the free queue is **the rotation**, evicting a page is **dumping a pan**, and a prefix hit is **shared mise**. A ticket's hit counts only as far as every station still holds its pans, and `evict` is the level where you choose which pans to dump.
-
 :::game
 id: pool
 level: evict
 mode: practice
+:::
+
+## What each group needs at the edge
+
+In {{ks:T5.L6}} a prefix hit was the longest run of blocks from the start of a prompt that the cache still held, and with one table it is a loop that stops at the first miss. With several groups the hit has a second question to answer, and each kind of group needs different blocks to be there.
+
+Say that a prompt shares its first `m` blocks with a cached sequence. The request starts computing at the token after them, which is the **edge** of the hit. Every layer then reads the cache as it will for that token.
+
+- A **full** group reads every earlier token, so it needs blocks `0` to `m - 1`, every one of them.
+- A **sliding** group reads only the last window before the edge, so it needs the `ceil((W - 1) / B)` blocks just before the edge. When fewer than that come before the edge, it needs them all, from the first. {{claim:vllm.hybrid-kv.sliding-hit-blocks}} {{claim:vllm.hybrid-kv.sliding-hit-prefix}}
+- A **state** group reads the state at the edge, so it needs the one block that holds it. {{claim:vllm.hybrid-kv.mamba-hit}}
+
+So each group accepts some edges and rejects the rest, and the request's hit is an edge that every group accepts. It is the **intersection** of what the groups hold. {{claim:vllm.hybrid-kv.intersection}} The cache is keyed by a block's hash and its group, so the same tokens in two groups are cached, and evicted, independently of each other. {{claim:vllm.hybrid-kv.cache-key}}
+
+A full group's accepted edges are downward-closed: if it accepts an edge it accepts every edge before it. A window's are not. It accepts an edge only if the blocks just before that edge are cached, so its accepted edges can have gaps, once a block in the middle of its run has been evicted. That is why a hit cannot be found by asking each group for its longest hit and taking the shortest. A state group is the other extreme: it needs one block and no run, so its accepted edges are scattered, wherever a state was saved. Commit to a second number before you read on.
+
+:::predict
+id: tr5a.l3.p2
+prompt: The model is the `state` level's, one full group and three state groups, with 32 tokens in a block [estimated]. A returning request has a prompt of 330 tokens [estimated]. The full group holds the blocks numbered 0 to 7 [estimated]. Each state group holds only the blocks 2 and 5 [estimated], which are the states at two edges. How many tokens does the prefix hit cover?
+answer: { kind: numeric, unit: tokens, rel_tol: 0 }
+reveal: at-commit
+kcs: [tr5a.hit-intersection]
 :::
 
 ## How the engine finds the hit
@@ -70,7 +75,7 @@ Two more rules bound the answer.
 - A hit is a multiple of the least common multiple of the groups' block sizes, which is why a bigger block makes a coarser hit. {{claim:vllm.hybrid-kv.hit-alignment}}
 - A hit never covers the last token of the prompt, because the request computes it to get its logits, even if that recomputes a whole block. {{claim:vllm.kv-pool.max-hit-length}}
 
-Here are two caches for the prompt of the prediction. Each row is a group, each square one of the prompt's eleven blocks, and a filled square is a block that the group has cached. A mark under a row is an edge that the group accepts.
+Here are two caches for the prompt of the first guess. Each row is a group, each square one of the prompt's eleven blocks, and a filled square is a block that the group has cached. A mark under a row is an edge that the group accepts.
 
 :::figure
 src: figures/tr5a/l3-intersection.svg
@@ -81,7 +86,15 @@ origin: generated
 
 In the first cache the full group accepts the edges 1 to 10, the first sliding group 8 and 9, and the second 9 and 10, so the hit is the edge 9, which is 144 tokens [derived]. In the second the first sliding group has lost a block in the middle of its run, and holds blocks 6, 7 and 9 [estimated]. It accepts only the edge 8, the second accepts 9 and 10, and no edge is common to all three, so the hit is 0 tokens [derived], though the full group holds 160 tokens and each sliding group holds blocks. Both tempting answers are wrong there. The union of the groups' longest hits is 160 tokens, which the first sliding group cannot serve, and the shortest of the groups' longest hits is 128 tokens, which the second cannot serve [derived]. A hit that a group cannot serve makes that group read blocks that are not there.
 
-In the second prediction a state group accepts an edge when the one block before it is cached, so the three state groups accept the edges 3 and 6 [derived]. The full group accepts every edge up to 8, so the hit is the edge 6, which is 192 tokens [derived]. The same loop finds it, and a state group needs no run of blocks to accept an edge, only the one that holds its state.
+In the second guess a state group accepts an edge when the one block before it is cached, so the three state groups accept the edges 3 and 6 [derived]. The full group accepts every edge up to 8, so the hit is the edge 6, which is 192 tokens [derived]. The same loop finds it, and a state group needs no run of blocks to accept an edge, only the one that holds its state.
+
+Check a hit on a new cache before you read on.
+
+:::item
+family: tr5a.hit-length
+level: 2
+count: 1
+:::
 
 SGLang gets to the same rule from the other side. Its unified radix cache holds the full, sliding-window and Mamba components in one tree, and the deepest node counts as a match only if every component's validator accepts it. {{claim:sglang.radix.unified-cache}} {{claim:sglang.radix.all-validators}} A tree of tokens and a pool of hashed blocks are different structures that answer one question the same way.
 
@@ -107,7 +120,7 @@ One free queue serves every group, and four rules say who leaves it first. {{cla
 - A new block takes the front of the queue, and loses its hash if it had one. {{claim:vllm.kv-pool.allocate-from-front}}
 - A hit takes the pages it uses out of the queue, so a block that a request holds cannot be evicted. {{claim:vllm.kv-pool.touch}}
 
-Put the hit rule on top of that order and each cached block has a price. Evicting the first block of a full group's prefix kills every hit that would have started from it, and evicting its tail only shortens them. A block deep inside a sliding group's long prefix is needed only by a request that shares just that part of the prefix, and a later turn of the same session resumes from the end. The blocks of the last window before that edge are vital, and evicting one of them, as in the second cache, can cost the whole hit. When a ticket needs room, `evict` asks you which cached pans to dump, and the rule above is what makes some of them dear.
+Put the hit rule on top of that order and each cached block has a price. Evicting the first block of a full group's prefix kills every hit that would have started from it, and evicting its tail only shortens them. A block deep inside a sliding group's long prefix is needed only by a request that shares just that part of the prefix, and a later turn of the same session resumes from the end. The blocks of the last window before that edge are vital, and evicting one of them, as in the second cache, can cost the whole hit. When a request needs room, the `evict` level asks you which cached pages to give up, and the rule above is what makes some of them dear.
 
 :::card
 kind: notional-machine
@@ -128,16 +141,9 @@ lane: B
 stages: [s4]
 :::
 
-## What to carry
-
-- A hit is an edge that every group accepts: blocks `0` to `m - 1` for full attention, the window's blocks before the edge for a sliding group, the one state block for a state group.
-- A window's accepted edges can have gaps, so the longest hit of the shortest group is not the answer. Loop until a pass changes nothing.
-- A hit is a multiple of the least common multiple of the groups' block sizes, and it stops short of the last token.
-- Evicting the head of a full group's prefix, or a window's blocks before the next edge, costs the most.
-
 ## Exit check
 
-This lesson tests one skill: working out the longest prefix hit when every group must hold it, and saying why the answer is an intersection and not a union (`tr5a.hit-intersection`). The exit ticket is three items on fresh seeds, each a prompt with the blocks that every group holds, asking for the tokens the hit covers. It is passed with at least two right, one of them numeric (ASSESSMENT §4.2). The graded `evict` level then asks you to use the rule under pressure: a score of at least 0.95 [estimated] of the house's, on 3 fresh seeds [estimated] (ASSESSMENT §4.3). The lab's stage `hit_all_groups` grades the skill again on seeds drawn when you run it.
+Three questions on new numbers test one skill: working out the longest prefix hit when every group must hold it, and saying why the answer is an intersection and not a union. Each is a prompt with the blocks that every group holds, and asks for the tokens the hit covers. The graded `evict` level then asks you to use the rule under pressure. It passes when the reference run's cost divided by yours is at least 0.95 [estimated], on 3 fresh seeds [estimated]. The lab's stage `hit_all_groups` grades the skill again on seeds drawn when you run it.
 
 :::item
 family: tr5a.hit-length

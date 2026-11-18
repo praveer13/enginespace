@@ -58,7 +58,7 @@ export const PRACTICE: readonly (readonly [VerifierLevelId, Seed])[] = [
   ['gamma', 0],
 ]
 
-/** A run as the pieces of The Tasting's page receive it (GameShell's `RunApi`), for a state, with every action a no-op: for server-rendering the page. */
+/** A run as the pieces of the rejection sampler's page receive it (the frame's `FrameRun`), for a state, with every action a no-op: for server-rendering the page. */
 export function fakeRun(state: VerifierState, over: Partial<VerifierRun> = {}): VerifierRun {
   const view = verifierSession.view(state)
   return {
@@ -77,14 +77,16 @@ export function fakeRun(state: VerifierState, over: Partial<VerifierRun> = {}): 
     announce: () => undefined,
     setAutoplay: () => undefined,
     mirrorId: 'mirror',
-    phase: 'play',
     restart: () => undefined,
-    goTo: () => undefined,
+    ledger: false,
+    intro: { askShown: true, ring: null },
+    guessSkipped: false,
+    skipGuess: () => undefined,
     ...over,
   }
 }
 
-/** A finished run as the shell hands it to the debrief: the grade, the debrief and the reference's view. */
+/** A finished run as the frame hands it to the result: the grade, the debrief and the reference's view. */
 export function outcomeOf(state: VerifierState): VerifierOutcome {
   const level = state.level
   const start = startRun(verifierSession, { game: 'verifier', level: level.id, seed: level.seed })

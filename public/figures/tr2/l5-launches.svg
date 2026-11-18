@@ -1,0 +1,104 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 226" width="360" height="226">
+  <title>The CPU's launch work for one step of the small model, launched kernel by kernel, in pieces, and as one graph, to one scale</title>
+  <desc>Three rows on one time scale. The first has 28 teeth, one for each layer, each the 12 launches of that layer, 336 calls and 2,016 microseconds in all. The second is 29 short boxes for the replays of the pieces with a thin launch between them for each layer's attention, 57 calls and 1,038 microseconds. The third is one box, a single replay, 30 microseconds.</desc>
+  <rect width="360" height="226" fill="#fafaf6"/>
+  <g class="graticule" fill="none" stroke="#c2c8bd"><path d="M8 4v184M16 4v184M24 4v184M32 4v184M40 4v184M48 4v184M56 4v184M64 4v184M72 4v184M80 4v184M88 4v184M96 4v184M104 4v184M112 4v184M120 4v184M128 4v184M136 4v184M144 4v184M152 4v184M160 4v184M168 4v184M176 4v184M184 4v184M192 4v184M200 4v184M208 4v184M216 4v184M224 4v184M232 4v184M240 4v184M248 4v184M256 4v184M264 4v184M272 4v184M280 4v184M288 4v184M296 4v184M304 4v184M312 4v184M320 4v184M328 4v184M336 4v184M344 4v184M352 4v184M8 4h344M8 12h344M8 20h344M8 28h344M8 36h344M8 44h344M8 52h344M8 60h344M8 68h344M8 76h344M8 84h344M8 92h344M8 100h344M8 108h344M8 116h344M8 124h344M8 132h344M8 140h344M8 148h344M8 156h344M8 164h344M8 172h344M8 180h344M8 188h344" stroke-width="0.5" stroke-opacity="0.55"/><path d="M8 4v184M48 4v184M88 4v184M128 4v184M168 4v184M208 4v184M248 4v184M288 4v184M328 4v184M8 4h344M8 44h344M8 84h344M8 124h344M8 164h344" stroke-width="0.75"/></g>
+  <text x="10" y="17" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">eager: 336 calls</text>
+  <g class="span" data-slot="blue"><rect x="8" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="20.29" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="32.57" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="44.86" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="57.14" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="69.43" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="81.71" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="94" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="106.29" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="118.57" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="130.86" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="143.14" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="155.43" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="167.71" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="180" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="192.29" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="204.57" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="216.86" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="229.14" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="241.43" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="253.71" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="266" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="278.29" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="290.57" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="302.86" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="315.14" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="327.43" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="339.71" y="22" width="11.29" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="dim" data-value="2,016 µs of launches"><path d="M8 45v8M352 45v8M8 49H352" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="8" y="64" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">2,016 µs of launches</text>
+  <text x="10" y="81" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">in pieces: 57 calls</text>
+  <g class="span" data-slot="blue"><rect x="8" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="13.12" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="14.14" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="19.26" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="20.29" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="25.4" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="26.43" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="31.55" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="32.57" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="37.69" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="38.71" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="43.83" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="44.86" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="49.98" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="51" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="56.12" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="57.14" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="62.26" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="63.29" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="68.4" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="69.43" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="74.55" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="75.57" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="80.69" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="81.71" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="86.83" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="87.86" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="92.98" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="94" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="99.12" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="100.14" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="105.26" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="106.29" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="111.4" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="112.43" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="117.55" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="118.57" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="123.69" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="124.71" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="129.83" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="130.86" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="135.98" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="137" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="142.12" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="143.14" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="148.26" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="149.29" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="154.4" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="155.43" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="160.55" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="161.57" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="166.69" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="167.71" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="172.83" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="173.86" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="178.98" y="86" width="1" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="span" data-slot="blue"><rect x="180" y="86" width="4.62" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="dim" data-value="1,038 µs of launches"><path d="M8 109v8M185.12 109v8M8 113H185.12" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="8" y="128" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">1,038 µs of launches</text>
+  <text x="10" y="145" font-family="'Atkinson Hyperlegible', system-ui, 'Segoe UI', Arial, sans-serif" font-size="10" font-weight="700" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">one graph: 1 call</text>
+  <g class="span" data-slot="blue"><rect x="8" y="150" width="5.12" height="16" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="dim" data-value="30 µs of launches"><path d="M8 173v8M13.12 173v8M8 177H13.12" fill="none" stroke="#5f666d" stroke-width="1"/></g>
+  <text x="8" y="192" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">30 µs of launches</text>
+  <g class="key" data-slot="blue"><rect x="4" y="206" width="16" height="12" fill="#1b5faa" stroke="#18509a" stroke-width="1"/></g>
+  <g class="glyph" data-slot="blue"><circle cx="12" cy="212" r="3.5" fill="#fafaf6"/></g>
+  <text x="24" y="216" font-family="'Atkinson Hyperlegible Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace" font-size="10" fill="#17191d" text-anchor="start" stroke="#fafaf6" stroke-width="3" stroke-linejoin="round" paint-order="stroke">CPU launch work</text>
+</svg>

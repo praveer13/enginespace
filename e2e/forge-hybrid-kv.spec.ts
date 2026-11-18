@@ -64,7 +64,7 @@ const ledger = (page: Page): Promise<Stored[]> =>
 test.describe('the page before a file', () => {
   test('names the lab and lists the six checks of the lab, one for each stage, that have not run', async ({ page }) => {
     await open(page, '/labs/hybrid-kv')
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText('The Reach-In Manager')
+    await expect(page.getByRole('heading', { level: 1 })).toHaveText('Build a hybrid KV cache manager')
     await expect(rows(page)).toHaveCount(6)
     expect(await statusOf(page)).toEqual(Array(6).fill('not run'))
     await expect(rows(page).first()).toContainText('one group: pages, prefix hashes and shared blocks')
@@ -121,7 +121,7 @@ test.describe('a wrong module', () => {
     const lamp = page.locator('.es-forge-check[data-lamp]')
     await expect(lamp).toHaveCount(1)
     await expect(lamp).toContainText('the one-group script, operation 13 of 23: admit 6 (37 tokens): events: admit published BlockRemoved')
-    await expect(lamp).toContainText('Catches:')
+    await expect(lamp).toContainText('Catches')
     await wrote(page)
     const events = (await ledger(page)).filter((event) => event.kind === 'lab-check')
     expect(events[0]).toMatchObject({ ok: false, score: 0, provenance: 'unseen' })

@@ -5,7 +5,7 @@
  *   2. A forced `webglcontextlost` swaps to 2D and keeps the session state.
  *   3. Under `reducedMotion: 'reduce'`, no animation frame is requested after the first settled frame.
  *   4. 10k instances draw in at most 10 draw calls.
- *   5. The `postfx` chunk is absent from the network log at T1 and present at T2 (forced tiers).
+ *   5. Nothing is post-processed: no `postfx` chunk in the network log at T1 or T2 (forced tiers), and the frame is the scene pass alone.
  *   (6. `verify:boundaries` passes: a bun gate, `bun scripts/verify.ts boundaries`.)
  *
  * And the selection: a pick in the 3D scene selects the fire and moves focus to its option in the list.
@@ -175,16 +175,16 @@ test.describe('a lost context (A§6.7)', () => {
     await openDesign(page, '?es-tier=1')
     await settle(page)
 
-    // A session to keep: overlap on, two more fires, a fire selected.
-    await kit(page).getByRole('switch', { name: /Write the next call during this fire/ }).click()
-    const bell = kit(page).getByRole('button', { name: /Ring the bell/ })
+    // A session to keep: overlap on, two more steps, a step selected.
+    await kit(page).getByRole('switch', { name: /Plan the next step during this one/ }).click()
+    const bell = kit(page).getByRole('button', { name: /Run the next step/ })
     await bell.click()
     await bell.click()
     await kit(page).getByRole('option').nth(2).click()
     const before = {
-      fire: await kit(page).locator('.es-printer').first().textContent(),
+      fire: await kit(page).locator('.es-readout-strip').first().textContent(),
       selected: await kit(page).getByRole('option', { selected: true }).textContent(),
-      overlap: await kit(page).getByRole('switch', { name: /Write the next call/ }).getAttribute('aria-checked'),
+      overlap: await kit(page).getByRole('switch', { name: /Plan the next step/ }).getAttribute('aria-checked'),
     }
     await settle(page)
 
@@ -196,9 +196,9 @@ test.describe('a lost context (A§6.7)', () => {
     await expect(stage(page).locator('[data-live="stage"]')).toHaveText(UNAVAILABLE)
     // The session lives outside the views: the swap lost none of it.
     expect({
-      fire: await kit(page).locator('.es-printer').first().textContent(),
+      fire: await kit(page).locator('.es-readout-strip').first().textContent(),
       selected: await kit(page).getByRole('option', { selected: true }).textContent(),
-      overlap: await kit(page).getByRole('switch', { name: /Write the next call/ }).getAttribute('aria-checked'),
+      overlap: await kit(page).getByRole('switch', { name: /Plan the next step/ }).getAttribute('aria-checked'),
     }).toEqual(before)
     // The 2D view in the box draws the same selection.
     await expect(stage(page).locator('.es-twin__selected')).toHaveCount(1)
@@ -237,7 +237,7 @@ test.describe('reduced motion (A§6.9, A§11.2)', () => {
     expect(await page.evaluate(() => window.__raf ?? 0)).toBe(settled)
 
     // A bell under reduced motion draws the change in place: a few frames, no animation, then nothing.
-    await kit(page).getByRole('button', { name: /Ring the bell/ }).click()
+    await kit(page).getByRole('button', { name: /Run the next step/ }).click()
     await settle(page)
     const after = await page.evaluate(() => window.__raf ?? 0)
     await page.waitForTimeout(2000)
@@ -251,7 +251,7 @@ test.describe('the draw-call budget (A§11.1)', () => {
     test(`10k instances draw in at most 10 draw calls, at T${tier}`, async ({ page }) => {
       await openDesign(page, `?es-tier=${tier}`)
       await settle(page)
-      await kit(page).getByRole('button', { name: /64 clips/ }).click()
+      await kit(page).getByRole('button', { name: /64 slots/ }).click()
       await settle(page)
       const stats = await frame(page)
       expect(stats.instances).toBeGreaterThanOrEqual(10_000)
@@ -262,27 +262,23 @@ test.describe('the draw-call budget (A§11.1)', () => {
   }
 })
 
-test.describe('post-processing loads only at T2 and up (A§6.5, A§6.10)', () => {
-  test('the postfx chunk is absent at T1', async ({ page, requests }) => {
-    await openDesign(page, '?es-tier=1')
-    await settle(page)
-    // Exercise the scene: a bell, every camera preset, the long night.
-    await kit(page).getByRole('button', { name: /Ring the bell/ }).click()
-    for (const name of ['Side of the pass', 'Under the lamps', 'Over the shoulder']) {
-      await kit(page).getByRole('button', { name }).click()
+test.describe('nothing is post-processed (A§6.5, until R-T44 removed it)', () => {
+  for (const tier of [1, 2]) {
+    test(`no postfx chunk is asked for at T${tier}, and the frame is the scene pass alone`, async ({ page, requests }) => {
+      await openDesign(page, `?es-tier=${tier}`)
       await settle(page)
-    }
-    expect(chunk(requests, 'SpecimenScene3D')).toBe(true)
-    expect(chunk(requests, 'postfx')).toBe(false)
-    expect((await probe(page))?.passes).toEqual(['scene'])
-  })
-
-  test('the postfx chunk is present at T2, and the frame runs bloom and the final pass', async ({ page, requests }) => {
-    await openDesign(page, '?es-tier=2')
-    await settle(page)
-    expect(chunk(requests, 'postfx')).toBe(true)
-    expect((await frame(page)).passes).toEqual(['scene', 'bloom', 'final'])
-  })
+      // Exercise the scene: a step, every camera preset, the long run.
+      await kit(page).getByRole('button', { name: /Run the next step/ }).click()
+      for (const name of ['Side', 'Top', 'Lifted']) {
+        await kit(page).getByRole('button', { name, exact: true }).click()
+        await settle(page)
+      }
+      expect(chunk(requests, 'SpecimenScene3D')).toBe(true)
+      expect(chunk(requests, 'postfx')).toBe(false)
+      expect((await probe(page))?.passes).toEqual(['scene'])
+      expect((await frame(page)).passes).toEqual(['scene'])
+    })
+  }
 })
 
 test.describe('selection (A§6.4, A§6.8)', () => {

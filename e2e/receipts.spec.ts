@@ -155,7 +155,7 @@ test.describe('issuing a challenge', () => {
     await expect(rows(page)).toHaveCount(1)
     await expect(rows(page).first()).toHaveAttribute('data-state', 'open')
     await expect(rows(page).first()).toContainText(STAGE)
-    await expect(page.getByRole('figure', { name: 'Challenges and receipts, counted' })).toContainText(/open\s*1/i)
+    await expect(page.getByRole('figure', { name: 'Challenges and results, counted' })).toContainText(/open\s*1/i)
 
     // I1: nothing was asked of the network. The origin's own typefaces load when a page first sets text in them (the command is set in the
     // mono), and that is all that may have been asked.
@@ -344,7 +344,7 @@ test.describe('a ledger with a challenge in each state', () => {
     await expect(rows(page).nth(0)).toContainText('good until')
     await expect(rows(page).nth(2)).toContainText('expired')
     await expect(rows(page).nth(1).getByRole('link')).toHaveAttribute('href', `/receipts#${ledger.record.sha256}`)
-    await expect(page.getByRole('figure', { name: 'Challenges and receipts, counted' }).locator('.es-printer__line')).toHaveText([/open\s*1/i, /used\s*1/i, /expired\s*1/i, /receipts\s*1/i])
+    await expect(page.getByRole('figure', { name: 'Challenges and results, counted' }).locator('.es-readout-strip__line')).toHaveText([/open\s*1/i, /used\s*1/i, /expired\s*1/i, /results\s*1/i])
   })
 
   test('leads from the used challenge to the receipt that used it, and says in the receipt that its challenge was used by it', async ({ page }) => {
@@ -392,7 +392,7 @@ test.describe('a ledger with a challenge in each state', () => {
 test.describe('a receipt', () => {
   test('is listed with what the grader reported, opens at #<sha256> and takes focus, and the way back returns to the lists', async ({ page }) => {
     const ledger = await visitSeeded(page)
-    const list = page.getByRole('list', { name: 'Receipts held by this browser' })
+    const list = page.getByRole('list', { name: 'Results held by this browser' })
     await expect(list.getByRole('listitem')).toHaveCount(1)
     await expect(list).toContainText('The grader reports that every check passed.')
     await expect(list).toContainText('Not checked in this browser yet')
@@ -419,9 +419,9 @@ test.describe('a receipt', () => {
     await expect(article).toContainText('Example GPU 24GB')
     await expect(page.getByRole('heading', { name: 'Get a challenge' })).toHaveCount(0)
 
-    await page.getByRole('link', { name: 'All receipts' }).click()
+    await page.getByRole('link', { name: 'All results' }).click()
     await expect(page).toHaveURL(/\/receipts$/)
-    await expect(page.getByRole('heading', { name: 'Your receipts' })).toBeFocused()
+    await expect(page.getByRole('heading', { name: 'Your results' })).toBeFocused()
     await expect(page.getByRole('heading', { name: 'Get a challenge' })).toBeVisible()
 
     // The browser's own Back and Forward walk the same two views.
@@ -429,13 +429,13 @@ test.describe('a receipt', () => {
     await expect(page).toHaveURL(new RegExp(`#${ledger.record.sha256}$`))
     await expect(article).toBeVisible()
     await page.goForward()
-    await expect(page.getByRole('heading', { name: 'Your receipts' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Your results' })).toBeVisible()
   })
 
   test('opens straight from an address, and says so when this browser holds no receipt with that hash', async ({ page }) => {
     const ledger = await visitSeeded(page)
     await page.goto(`${ROUTE}#${'0'.repeat(64)}`)
-    await expect(page.getByRole('heading', { level: 2, name: 'This browser holds no receipt with that hash' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'This browser holds no result with that hash' })).toBeVisible()
     await expect(page.getByText(RECEIPTS.notFoundNote)).toBeVisible()
     await page.goto(`${ROUTE}#${ledger.record.sha256}`)
     await expect(page.getByRole('article', { name: 'Receipt for tr3.profile.s2' })).toBeVisible()
@@ -525,19 +525,19 @@ test.describe('the keyboard, at 360 px', () => {
     await walk.tabTo('Lab')
     await walk.tabTo(/^Copy token for tr8\.replay\.s2$/)
     await walk.press('Tab')
-    expect((await walk.see()).name).toMatch(/receipt [0-9a-f]{8}$/)
+    expect((await walk.see()).name).toMatch(/result [0-9a-f]{8}$/)
     expect((await walk.press('Tab')).name).toBe('tr3.profile.s2')
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(new RegExp(`#${ledger.record.sha256}$`))
     await expect(page.getByRole('article', { name: 'Receipt for tr3.profile.s2' })).toBeFocused()
     // The receipt took focus below the way back, so Shift+Tab is one press from it.
     const back = await walk.press('Shift+Tab')
-    expect(back.name).toBe('All receipts')
+    expect(back.name).toBe('All results')
     expect(back.tag).toBe('a')
     await page.keyboard.press('Enter')
-    await expect(page.getByRole('heading', { name: 'Your receipts' })).toBeFocused()
+    await expect(page.getByRole('heading', { name: 'Your results' })).toBeFocused()
     // A programmatic move to a heading or a ticket is not a control, and draws no ring (src/receipts/receipts.css): those stops are not read.
-    expect(walk.problems().filter((problem) => !/^(Your receipts|Receipt for)/.test(problem))).toEqual([])
+    expect(walk.problems().filter((problem) => !/^(Your results|Receipt for)/.test(problem))).toEqual([])
   })
 })
 
@@ -597,7 +597,7 @@ for (const width of [360, 1280]) {
       await expect(page.getByRole('article', { name: /not a receipt this build can read/ })).toBeVisible()
       await audit(page, `/receipts, a record that is not a receipt, at ${width} px`)
       await page.goto(`${ROUTE}#${'0'.repeat(64)}`)
-      await expect(page.getByRole('heading', { level: 2, name: 'This browser holds no receipt with that hash' })).toBeVisible()
+      await expect(page.getByRole('heading', { level: 2, name: 'This browser holds no result with that hash' })).toBeVisible()
       await audit(page, `/receipts, no such receipt, at ${width} px`)
     })
   })

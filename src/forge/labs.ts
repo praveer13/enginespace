@@ -1,15 +1,15 @@
 /*
  * The forge labs that the site grades (ARCHITECTURE §8.3): for each, the checks with their plans (from packages/sim, where the oracle
- * is) and the words the lab's page prints. W1-T22, W1-T27 and W2-T29 add `hybrid-kv`, `rejection-sampler` and `kv-publisher` here, and
- * to ids.ts.
+ * is), the words the lab's page prints, the one file to edit and the command that builds it.
  */
 
 import { HYBRID_KV_CHECKS, REJECTION_SAMPLER_CHECKS, TOY_CHECKS } from '@es/sim'
 import type { HostLab } from './invoke'
+import { LAB_TITLES } from './titles'
 
 /**
  * A readout that follows a lab's checks (readout.ts): printed on the lab's page, never graded, never recorded. `slots` is the `hybrid-kv`
- * lab's, TR5a §5: one night of adapter churn on the learner's module and on a model with fixed adapter slots.
+ * lab's, TR5a §5: one stream of adapter churn on the learner's module and on a model with fixed adapter slots.
  */
 export interface LabReadout {
   kind: 'slots'
@@ -18,44 +18,66 @@ export interface LabReadout {
 }
 
 export interface ForgeLab extends HostLab {
-  /** The lab's name on its page. */
+  /** The lab's name on its page (titles.ts). */
   title: string
-  /** The engine's word for the lab's subject, beside the kitchen's (GAMES.md §2.6, rule 2). */
+  /** The engine's own name for what the lab builds, as the crate's README gives it. */
   engineTerm: string
-  /** What the lab is, in two sentences. */
+  /** What the lab is, in two sentences, in the engine's words. */
   lead: string
   /** The crate that builds the module, and the file it writes. */
   crate: string
   wasm: string
+  /** The one file of the crate that the learner edits, as the crate's header says (its "YOU EDIT" line). tests/forge/labs.test.ts holds the two together. */
+  edit: string
+  /** The command that builds the module, as `verify:labs` runs it for this crate. */
+  build: string
+  /** One sentence beside the file to edit, where the crate's own name for the thing is not the engine's (the toy's `rotation`). */
+  editNote?: string
   readout?: LabReadout
 }
+
+/** The compiler that builds every forge lab, as labs/forge/rust-toolchain.toml pins it (tests/forge/labs.test.ts holds the two together). */
+export const TOOLCHAIN = { rust: '1.96.0', target: 'wasm32-unknown-unknown' } as const
+
+/** The file of a crate that is the grading harness: it is read, and never edited. Each crate's header says so. */
+export const HARNESS = 'src/lib.rs'
+
+/** The build command of a crate: what `verify:labs` runs (scripts/verify-labs.ts), without the gate's own bookkeeping flags. */
+const buildOf = (crate: string): string => `cargo build --release --locked --target ${TOOLCHAIN.target} --package ${crate}`
 
 export const FORGE_LABS: Readonly<Record<string, ForgeLab>> = {
   toy: {
     id: 'toy',
-    title: 'The Rotation',
+    title: LAB_TITLES.toy,
     engineTerm: 'an LRU free queue',
-    lead: "The forge's practice lab. Keep a rotation of pans: touch a pan to keep it, and when the reach-in is full the next new pan dumps the one that nobody has touched for the longest.",
+    lead: 'The practice lab: keep the order in which cached blocks would be evicted. Touching a key you hold moves it to the back, and when the queue is full a new key evicts the one that nobody has touched for the longest.',
     crate: 'toy',
     wasm: 'toy.wasm',
+    edit: 'src/rotation.rs',
+    editNote: 'The crate calls the free queue the rotation, so the file is rotation.rs and the type you fill in is Rotation.',
+    build: buildOf('toy'),
     checks: TOY_CHECKS,
   },
   'rejection-sampler': {
     id: 'rejection-sampler',
-    title: 'Keep or Re-plate',
+    title: LAB_TITLES['rejection-sampler'],
     engineTerm: "speculative decoding's exact verifier, a rejection sampler",
-    lead: "The commis plates a run of courses ahead of you, and you are the chef at the pass: keep a plate with probability min(1, p/q), and at the first one you send back, re-plate from the dishes the commis under-plates, (p − q)⁺. If every plate is kept you plate one more course yourself, and what goes out must be exactly what you would have plated alone.",
+    lead: 'A small draft model proposes a run of tokens and the target model checks them: accept a draft token with probability min(1, p/q), at the first rejection resample from the residual (p − q)⁺ and stop, and if every token is accepted pick one more from p. What comes out must follow the target model exactly.',
     crate: 'rejection-sampler',
     wasm: 'rejection_sampler.wasm',
+    edit: 'src/verify.rs',
+    build: buildOf('rejection-sampler'),
     checks: REJECTION_SAMPLER_CHECKS,
   },
   'hybrid-kv': {
     id: 'hybrid-kv',
-    title: 'The Reach-In Manager',
+    title: LAB_TITLES['hybrid-kv'],
     engineTerm: "a hybrid KV cache manager over one page pool, with LoRA adapters in the same pool (vLLM's hybrid manager, and S-LoRA's unified paging)",
-    lead: "Run the reach-in for a line of several stations: one set of hotel pans serves every station's code and every recipe kit, and a ticket fires only when its pans and its kit are all in. Hang and pull tickets, dump the oldest pan, find the shared mise that every station still holds, and call every pan in and out.",
+    lead: "Manage one page pool for a model with several KV cache groups: every group's blocks and every LoRA adapter come from it, and a request is admitted only when its pages and its adapter all fit. Admit and finish requests, evict the least recently used cached block, find the longest prefix that every group still holds, and announce every block stored or removed.",
     crate: 'hybrid-kv',
     wasm: 'hybrid_kv.wasm',
+    edit: 'src/manager.rs',
+    build: buildOf('hybrid-kv'),
     checks: HYBRID_KV_CHECKS,
     readout: { kind: 'slots', after: 'adapter_pages' },
   },

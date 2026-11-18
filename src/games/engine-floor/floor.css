@@ -1,157 +1,671 @@
 /*
- * Back of House's page layer: the hand-off cards of the tray, the rows of the laid path, and the red line a stopped ticket prints. Every
- * colour, face, size, radius and space is a token role (src/design/tokens.css); this file names none of its own.
+ * Request path's page layer (REDESIGN §3.5, §3.6): the swimlane, its legend, the dock (the scenario card, the prediction, the stage list and
+ * the path's actions) and the result's two paths side by side. Every colour, face, size, radius and space is a token role
+ * (src/design/tokens.css). Amber is drawn only by the design system's marker parts (the cursor, its pennant and the ring of an intro).
  */
 
-/* The tray is a size container: its cards sit in two columns where the tray is wide enough for two, and in one where it is not. */
-.es-floor-tray {
-  container-type: inline-size;
+/* ------------------------------------------------------------------------------------------------ the swimlane */
+
+/* The heads, then the box that scrolls both ways; on a phone and in a lesson it has a height of its own, on the game's page at desk width it fills the frame's. */
+.es-lanes[data-floor-lanes] {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: clamp(13rem, 32svh, 22rem);
+  color: var(--es-paper-ink);
 }
 
-.es-floor-tiles {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--es-space-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.es-lanes__headbox {
+  position: relative;
+  z-index: 3;
+  flex: none;
+  overflow: hidden;
+  background: var(--es-paper);
+  border-bottom: 1px solid var(--es-paper-rule);
 }
 
-@container (min-width: 38rem) {
-  .es-floor-tiles {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+.es-lanes__scroll {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-color: var(--es-edge) var(--es-paper);
+  scrollbar-width: thin;
+}
+
+.es-frame[data-placement='embed'] .es-lanes[data-floor-lanes] {
+  height: clamp(16rem, 60svh, 34rem);
+}
+
+/* On a phone tall enough to pin the dock, the box is the frame's diagram box, so only the swimlane scrolls. */
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame[data-placement='page'] .es-lanes[data-floor-lanes] {
+    height: max(9rem, calc(67svh - 21rem));
   }
 }
 
-/* A hand-off card is a small ticket you pick up. It is tighter than the order's, so a tray of two dozen stays within reach. */
-.es-floor-tile .es-ticket__paper {
-  padding: var(--es-space-2) var(--es-space-3);
+@media (min-width: 64rem) {
+  .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__surface,
+  .es-frame[data-placement='page'][data-game='engine-floor'] [data-surface='2d'] > .es-lanes {
+    height: 100%;
+  }
 }
 
-.es-floor-tile .es-ticket__head {
-  margin-bottom: var(--es-space-1);
-  padding-bottom: 2px;
+.es-lanes__scroll:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: -3px;
 }
 
-.es-floor-tile .es-ticket__body {
-  font-size: var(--es-size-note);
+.es-lanes[data-floor-lanes][data-size='dock'] .es-lanes__scroll {
+  height: auto;
+  max-height: 15rem;
+}
+
+.es-lanes__sheet-box {
+  position: relative;
+}
+
+.es-lanes__head {
+  position: relative;
+}
+
+.es-lanes__proc {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 1px;
+  padding-bottom: var(--es-space-1);
+}
+
+.es-lanes__proc-name {
+  overflow: hidden;
+  padding-inline: var(--es-space-2);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-caption);
+  font-weight: 700;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.es-lanes__proc-id {
+  font-family: var(--es-font-mono);
+  font-weight: 400;
+}
+
+/* In a phone's 72 px column the process's name is read whole, on two lines if it needs them; its thread, under it, names the id. */
+.es-lanes[data-floor-lanes][data-size='phone'] .es-lanes__proc-name {
+  padding-inline: var(--es-space-1);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.1;
+}
+
+.es-lanes[data-floor-lanes][data-size='phone'] .es-lanes__proc-id {
+  display: none;
+}
+
+.es-lanes__threads {
+  display: flex;
+}
+
+.es-lanes__thread {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 0;
+  padding-inline: 2px;
+  color: var(--es-text-2);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-micro);
   line-height: 1.3;
 }
 
-.es-floor-tile .es-ticket__foot {
-  gap: 0 var(--es-space-2);
-  margin-top: var(--es-space-1);
-  padding-top: 2px;
-  font-size: var(--es-size-caption);
-  line-height: 1.25;
+.es-lanes__thread-mark {
+  flex: none;
+  width: 0.625rem;
+  height: 0.625rem;
 }
 
-/* A run's new stops are inked in one after another, in the printer's line steps. Each takes its place in the delay it is given, and
-   every duration is 0 under reduced motion, so the stops are simply there. */
-@keyframes es-floor-ink {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-.es-floor-ink {
-  animation: es-floor-ink var(--es-dur-feed) var(--es-ease-feed) both;
-}
-
-/* The laid path: an ordered list, one row for each stage, printed with a dotted rule between. */
-.es-floor-rows {
-  display: flex;
-  flex-direction: column;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.es-floor-row {
-  border-bottom: 1px dotted var(--es-paper-rule);
-}
-
-.es-floor-row__main {
-  display: grid;
-  grid-template-columns: 2rem 1.25rem minmax(0, 1fr) 1.25rem;
-  align-items: start;
-  column-gap: var(--es-space-2);
-  width: 100%;
-  min-height: 2.75rem;
-  padding: var(--es-space-2) 0;
-  border: 0;
-  background: none;
-  color: inherit;
+/* A thread's name keeps to two lines, broken at its hyphens: "output-handler-" over "task". */
+.es-lanes__thread-name {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
   text-align: left;
-  cursor: pointer;
-  touch-action: manipulation;
 }
 
-.es-floor-row__main:focus-visible {
-  outline: 2px solid var(--es-focus);
-  outline-offset: 2px;
+.es-lanes__thread {
+  align-items: flex-end;
 }
 
-.es-floor-row__no {
-  font-size: var(--es-size-plate);
+.es-lanes__thread-mark {
+  margin-bottom: 0.2em;
+}
+
+.es-lanes__moment {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+}
+
+.es-lanes[data-floor-lanes][data-size='dock'] .es-lanes__proc-name {
+  padding-inline: var(--es-space-1);
+  font-size: var(--es-size-micro);
+}
+
+.es-lanes__ink {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.es-lanes__gpu {
+  fill: var(--es-surface-2);
+  fill-opacity: 0.35;
+}
+
+.es-lanes__sep {
+  stroke: var(--es-paper-rule);
+  stroke-width: 1;
+}
+
+.es-lanes__life {
+  stroke: var(--es-paper-rule);
+  stroke-width: 1;
+  stroke-dasharray: 2 4;
+}
+
+.es-lanes__start {
+  fill: var(--es-paper);
+  stroke: var(--es-paper-ink);
+  stroke-width: 2;
+}
+
+.es-lanes__node {
+  fill: var(--es-paper-ink);
+}
+
+.es-lanes__node--pending {
+  fill: var(--es-paper);
+  stroke: var(--es-text-2);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 2;
+}
+
+.es-lanes__struck {
+  fill: var(--es-cat-red);
+  stroke: var(--es-cat-red-edge);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+/* "now": the design system's cursor, turned to run across the rows under the present one, with its pennant and word in the gutter. */
+.es-lanes__nowline {
+  position: absolute;
+  width: 0;
+  rotate: -90deg;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+.es-lanes__nowline .es-marker__shape,
+.es-lanes__nowline .es-marker__word {
+  display: none;
+}
+
+.es-lanes__nowring {
+  position: absolute;
+  width: 1.375rem;
+  height: 1.375rem;
+  translate: -50% -50%;
+  pointer-events: none;
+}
+
+/* While the first run names the parts, Next carries the one ring in view (the One Marker Rule): the request's node keeps the now line. */
+.es-frame[data-intro] .es-lanes__nowring {
+  display: none;
+}
+
+.es-lanes__now-word {
+  position: absolute;
+  z-index: 2;
+  left: 2px;
+  translate: 0 -50%;
+  padding-right: 2px;
+  background: var(--es-paper);
+  font-size: var(--es-size-micro);
+}
+
+.es-lanes__start-label {
+  position: absolute;
+  translate: 0 -50%;
+  padding-inline: var(--es-space-1);
+  background: var(--es-paper);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-caption);
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.es-lanes__start-note {
+  color: var(--es-text-2);
+  font-weight: 400;
+}
+
+/* On a phone the label is on one line and the box is narrow: the dock's first step says the columns wait for the prediction, so the note goes. */
+@media (max-width: 40rem) {
+  .es-lanes__start-note {
+    display: none;
+  }
+}
+
+/*
+ * The first run's example: two dashed process columns and one hop between them, under the request, while the parts are named and before the
+ * guess opens the real columns. It goes with the intro.
+ */
+.es-lanes__specimen {
+  position: absolute;
+  display: none;
+  flex-direction: column;
+  gap: var(--es-space-1);
+  width: min(18rem, calc(100% - 2rem));
+  color: var(--es-text-2);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-caption);
+}
+
+.es-frame:is([data-intro='parts'], [data-intro='look']) .es-lanes__specimen {
+  display: flex;
+}
+
+.es-lanes__spec-title {
+  font-weight: 400;
+}
+
+.es-lanes__spec-cols {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--es-space-12);
+  height: 6.5rem;
+}
+
+.es-lanes__spec-col {
+  padding: var(--es-space-1);
+  border: 1px dashed var(--es-edge);
+  color: var(--es-paper-ink);
+  font-weight: 700;
   line-height: 1.2;
 }
 
-.es-floor-row__glyph {
-  width: 1.25rem;
-  height: 1.25rem;
-  margin-top: 0.1rem;
+/* The hop: an arrow from one column to the other, its mechanism as a mark and a word over it. */
+/* In a phone's box the example is short, so it stands over the pinned dock with the request. */
+.es-lanes[data-size='phone'] .es-lanes__spec-cols {
+  height: 3.5rem;
 }
 
-.es-floor-row__text {
-  display: flex;
-  flex-direction: column;
-  gap: 0.125rem;
-  min-width: 0;
-}
-
-.es-floor-row__mark {
+.es-lanes__spec-hop {
+  position: absolute;
+  top: 60%;
+  left: 25%;
+  right: 25%;
   display: flex;
   justify-content: center;
-}
-
-/* The selected row is printed bold and underlined, the ribbon's own emphasis, and never a stripe down its side. */
-.es-floor-row[data-selected] .es-floor-row__text > :nth-child(2) {
+  align-items: center;
+  gap: 3px;
+  padding-bottom: 2px;
+  border-bottom: 2px solid var(--es-paper-ink);
+  color: var(--es-paper-ink);
   font-weight: 700;
-  text-decoration: underline;
-  text-decoration-thickness: 2px;
-  text-underline-offset: 0.25em;
+  translate: 0 -100%;
 }
 
-/* A stage laid and not run is pencilled: its words stay at the quiet text role, which holds 4.5:1 on paper. */
-.es-floor-row[data-state='pending'] .es-floor-row__text {
+.es-lanes__spec-hop::after {
+  content: '';
+  position: absolute;
+  right: -2px;
+  bottom: -6px;
+  width: 8px;
+  height: 10px;
+  background: var(--es-paper-ink);
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+}
+
+.es-lanes__rows {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  pointer-events: none;
+}
+
+.es-lanes__row {
+  position: absolute;
+  right: 0;
+  left: 0;
+}
+
+.es-lanes__row[data-open] {
+  z-index: 4;
+}
+
+.es-lanes__no {
+  position: absolute;
+  top: 50%;
+  left: var(--es-space-2);
+  translate: 0 -50%;
+  color: var(--es-text-3);
+  font-size: var(--es-size-stamp);
+}
+
+.es-lanes__tag {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  translate: 0 -50%;
+  padding-inline: 2px;
+  background: var(--es-paper);
+  color: var(--es-text-2);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-stamp);
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: nowrap;
+}
+
+.es-lanes__tag[data-side='left'] {
+  translate: -100% -50%;
+}
+
+.es-lanes__tag[data-mark-only] .es-lanes__tag-word {
+  display: none;
+}
+
+.es-lanes__tag-glyph {
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--es-paper-ink);
+}
+
+[data-floor-lanes] .es-lanes__name {
+  position: absolute;
+  top: 50%;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--es-space-1);
+  min-height: 1.5rem;
+  overflow: hidden;
+  translate: 0 -50%;
+  padding-inline: var(--es-space-1);
+  border: 0;
+  border-radius: var(--es-radius-trim);
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-caption);
+  text-align: left;
+  text-decoration: underline dotted var(--es-edge);
+  text-underline-offset: 0.25em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+[data-floor-lanes] .es-lanes__name code {
+  overflow: hidden;
+  font-family: var(--es-font-body);
+  font-size: inherit;
+  text-overflow: ellipsis;
+}
+
+[data-floor-lanes] .es-lanes__name:hover {
+  background: var(--es-surface-2);
+}
+
+[data-floor-lanes] .es-lanes__name:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--es-paper);
+}
+
+[data-floor-lanes] .es-lanes__row[data-state='pending'] .es-lanes__name {
   color: var(--es-text-2);
 }
 
-/* The stage that stopped the ticket prints in the ribbon's red, with its drawn mark. */
-.es-floor-row[data-state='struck'] .es-floor-row__main {
+[data-floor-lanes] .es-lanes__row[data-state='struck'] .es-lanes__name {
   color: var(--es-paper-ink-2);
 }
 
-.es-floor-row__tools {
+.es-lanes__stopped {
+  font-family: var(--es-font-label);
+  font-weight: 700;
+}
+
+/* A row's popover opens under its row, or over it in the lower half of a long path, at the name's side. */
+.es-lanes__sheet {
+  pointer-events: auto;
+}
+
+.es-lanes__row > .es-lanes__sheet {
+  top: 100%;
+  left: max(var(--es-space-2), min(var(--sheet-left, 3rem), calc(100% - 21rem)));
+}
+
+.es-lanes__row > .es-lanes__sheet[data-up] {
+  top: auto;
+  bottom: 100%;
+}
+
+.es-lanes__tools {
   display: flex;
   flex-wrap: wrap;
   gap: var(--es-space-2);
-  padding: 0 0 var(--es-space-3) 3.5rem;
+  margin-top: var(--es-space-3);
 }
 
-/* What a run found when it stopped: a red line under a dotted red rule, as a voided ticket prints, then the sources. */
+.es-floor-act {
+  min-height: 2.75rem;
+  padding: 0 var(--es-space-3);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-control);
+  background: var(--es-paper);
+  color: var(--es-text-1);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-note);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.es-floor-act:hover:not(:disabled) {
+  background: var(--es-surface-2);
+}
+
+.es-floor-act:disabled {
+  border-style: dashed;
+  color: var(--es-text-3);
+  cursor: not-allowed;
+}
+
+.es-floor-act:focus-visible,
+.es-floor-chip:focus-visible,
+.es-floor-tile:focus-visible,
+.es-floor-filter:focus-visible,
+.es-floor-link:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: 2px;
+}
+
+.es-floor-facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+}
+
+.es-floor-facts p {
+  margin: 0;
+}
+
+.es-floor-facts__mech {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--es-space-2);
+}
+
+.es-floor-facts__glyph,
+.es-floor-inline-glyph {
+  display: inline-block;
+  flex: none;
+  width: 1.125rem;
+  height: 1.125rem;
+  vertical-align: -0.2em;
+}
+
+.es-floor-facts__source {
+  overflow-wrap: anywhere;
+}
+
+/* ------------------------------------------------------------------------------------------------ the legend */
+
+.es-floor-legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-1) var(--es-space-4);
+}
+
+.es-floor-key {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  border: 1.5px dashed var(--es-text-2);
+  border-radius: var(--es-radius-round);
+}
+
+/* ------------------------------------------------------------------------------------------------ the dock */
+
+/*
+ * The dock fills the room the frame gives it, and the stage list takes what is left, so the list scrolls inside it and Run the path stays
+ * under it, in view (P5). While the intro's strip stands above, the list gives up room down to three tiles, and then the dock scrolls.
+ */
+.es-frame[data-game='engine-floor'] .es-frame__dock-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.es-floor-dock {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--es-space-3);
+}
+
+.es-floor-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: var(--es-space-2);
+  border-bottom: 1px solid var(--es-paper-rule);
+}
+
+.es-floor-card p {
+  margin: 0;
+}
+
+.es-floor-card__engine {
+  font-size: var(--es-size-base);
+}
+
+.es-floor-card__pin,
+.es-floor-card__asks {
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+}
+
+.es-floor-card__pin code {
+  font-size: inherit;
+}
+
+.es-floor-card__note summary {
+  min-height: 1.5rem;
+  display: flex;
+  align-items: center;
+  font-size: var(--es-size-caption);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.es-floor-card__note p {
+  font-size: var(--es-size-note);
+  line-height: 1.5;
+}
+
+.es-floor-said {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-floor-predict {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+}
+
+.es-floor-predict__ask {
+  margin: 0;
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-base);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.es-floor-predict__hint,
+.es-floor-predict__why {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-floor-predict__choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+}
+
+.es-floor-predict__commit .es-primary-button__label {
+  white-space: normal;
+}
+
 .es-floor-stop {
   display: flex;
   flex-direction: column;
-  gap: var(--es-space-3);
-  margin-top: var(--es-space-4);
-  padding-top: var(--es-space-3);
-  border-top: 2px dotted var(--es-paper-ink-2);
+  align-items: flex-start;
+  gap: var(--es-space-2);
+  padding: var(--es-space-2) 0;
+  border-block: 1px solid var(--es-paper-ink-2);
+}
+
+.es-floor-stop p {
+  margin: 0;
+  font-size: var(--es-size-note);
+  line-height: 1.45;
 }
 
 .es-floor-stop__head {
@@ -159,42 +673,680 @@
   align-items: flex-start;
   gap: var(--es-space-2);
   color: var(--es-paper-ink-2);
+  font-weight: 700;
 }
 
-@media (max-width: 29.99rem) {
-  .es-floor-row__tools {
-    padding-left: 0;
-  }
+.es-floor-stop .es-floor-stop__head {
+  font-size: var(--es-size-base);
 }
 
-/* The graded bar: what mode the level is in, and the way into the other. It sits above the order on the level that can be graded. */
-.es-floor-mode {
+.es-floor-stop__icon {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.es-floor-stop__more summary {
+  min-height: 2.75rem;
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--es-space-2) var(--es-space-4);
+  font-size: var(--es-size-note);
+  font-weight: 700;
+  cursor: pointer;
 }
 
-/* The levels: a row of plates that wraps, under the path. */
-.es-floor-rail {
-  padding-top: var(--es-space-4);
-  border-top: 1px dashed var(--es-edge);
-}
-
-.es-floor-levels {
+.es-floor-stop__more[open] {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: var(--es-space-3);
+}
+
+.es-floor-stages {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
   gap: var(--es-space-2);
+}
+
+.es-floor-stages__top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--es-space-2);
+}
+
+.es-floor-stages__head {
   margin: 0;
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-base);
+  font-weight: 700;
+}
+
+.es-floor-stages__count,
+.es-floor-stages__closed,
+.es-floor-stages__none {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+/* The field and the chips share one row; the chips scroll sideways inside it. */
+.es-floor-filters {
+  display: flex;
+  align-items: center;
+  gap: var(--es-space-2);
+  min-width: 0;
+}
+
+.es-floor-filter {
+  flex: none;
+  width: 10rem;
+  min-height: 2.5rem;
+  padding: 0 var(--es-space-3);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-control);
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-body);
+  font-size: inherit;
+  font-size: var(--es-size-note);
+}
+
+.es-floor-filter::placeholder {
+  color: var(--es-text-3);
+}
+
+/* The field and the chips share one row; the chips scroll sideways inside it (in a lesson at a desk they wrap: below). */
+.es-floor-chips {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--es-space-1);
+  min-width: 0;
+  overflow-x: auto;
+  padding: 4px 2px;
+  scrollbar-width: thin;
+}
+
+.es-floor-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 2.25rem;
+  padding: 0 var(--es-space-2);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-control);
+  background: var(--es-paper);
+  color: var(--es-text-1);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-caption);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.es-floor-chip[aria-pressed='true'] {
+  background: var(--es-surface-3);
+  border-color: var(--es-surface-3);
+  color: var(--es-paper);
+}
+
+.es-floor-chip:hover:not([aria-pressed='true']) {
+  background: var(--es-surface-2);
+}
+
+.es-floor-chip__here {
+  font-family: var(--es-font-label);
+  font-weight: 700;
+}
+
+.es-floor-chip__count {
+  margin-left: var(--es-space-1);
+  opacity: 0.8;
+}
+
+.es-floor-link {
   padding: 0;
+  border: 0;
+  background: none;
+  color: var(--es-text-1);
+  font-family: var(--es-font-body);
+  font-size: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+/* The list scrolls inside the dock: six or seven tiles at desk width, three on a phone. */
+.es-floor-tiles {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: calc(2.75rem * 3 + var(--es-space-1) * 2 + 16px);
+  max-height: calc(2.75rem * 7 + var(--es-space-1) * 6 + 16px);
+  margin: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 8px 8px 8px 2px;
   list-style: none;
+  scrollbar-color: var(--es-edge) var(--es-paper);
+  scrollbar-width: thin;
+}
+
+.es-floor-tiles__item + .es-floor-tiles__item {
+  margin-top: var(--es-space-1);
+}
+
+.es-floor-tile {
+  /* Focus brought into view stays clear of the intro's actions, which stand at the dock's foot while it shows. */
+  scroll-margin-block: 0.5rem 4.5rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 3px var(--es-space-2);
+  border: 1px solid var(--es-paper-rule);
+  border-radius: var(--es-radius-trim);
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  text-align: left;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.es-floor-tile:hover {
+  border-color: var(--es-edge);
+  background: var(--es-surface-1);
+}
+
+.es-floor-tile:active {
+  background: var(--es-surface-2);
+}
+
+.es-floor-tile__line {
+  display: flex;
+  align-items: center;
+  gap: var(--es-space-2);
+  min-width: 0;
+  font-size: var(--es-size-note);
+  line-height: 1.3;
+}
+
+.es-floor-tile__glyph {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+}
+
+.es-floor-tile__mech {
+  flex: none;
+  font-family: var(--es-font-label);
+  font-weight: 700;
+}
+
+.es-floor-tile__name {
+  min-width: 0;
+  overflow: hidden;
+  font-size: var(--es-size-caption);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.es-floor-tile__where {
+  overflow: hidden;
+  padding-left: calc(1rem + var(--es-space-2));
+  color: var(--es-text-2);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-micro);
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /*
- * A stub's label stays on one line in the design system, and "Commit the prediction" is longer than the stub's line at 320 px
- * (WCAG 1.4.10): the nightly sweep found it ending past the viewport. Here the label wraps beside its arrow, as the debriefs of the
- * Inspection and the Tasting do for the title of the next level.
+ * At a desk the dock itself is the one box that scrolls: the stage list is laid out whole in it, rather than through a slit of its own
+ * inside it, and the path's actions (Run the path, Remove last) stay pinned at the dock's foot while the list moves under them.
  */
-[data-game='engine-floor'] .es-stub__label {
-  white-space: normal;
+@media (min-width: 64rem) {
+  .es-frame[data-placement='embed'][data-game='engine-floor'] .es-floor-tiles {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .es-frame[data-placement='embed'][data-game='engine-floor'] .es-floor-actions {
+    position: sticky;
+    z-index: 1;
+    margin-inline: calc(var(--es-space-4) * -1);
+    padding: var(--es-space-2) var(--es-space-4) var(--es-space-3);
+    border-top: 1px solid var(--es-paper-rule);
+    background: var(--es-paper);
+  }
+
+  /* Every place to filter by is in view, and a stage's name and places read whole. */
+  .es-frame[data-placement='embed'][data-game='engine-floor'] :is(.es-floor-filters, .es-floor-chips) {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  .es-frame[data-placement='embed'][data-game='engine-floor'] :is(.es-floor-tile__name, .es-floor-tile__where) {
+    overflow: visible;
+    overflow-wrap: anywhere;
+    white-space: normal;
+  }
+}
+
+.es-floor-ring {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--es-space-1);
+}
+
+.es-floor-ring .es-marker__ring {
+  display: block;
+}
+
+.es-floor-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+}
+
+.es-floor-actions__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-3);
+}
+
+/* The primary button measures its own width (a size container), so in a row it is given its share. */
+.es-floor-actions__row .es-primary-button {
+  flex: 1 1 11rem;
+}
+
+.es-floor-actions__once,
+.es-floor-graded,
+.es-floor-noreadout {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-floor-graded strong {
+  color: var(--es-text-1);
+}
+
+/* The readout strip: four counts of the laid path in one row, under one stamp, each change standing over its number for a second. */
+.es-floor-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--es-space-3);
+}
+
+.es-floor-strip__list {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(4, minmax(0, auto));
+  justify-content: space-between;
+  gap: 0 var(--es-space-2);
+  margin: 0;
+  padding-top: 1.125rem;
+}
+
+.es-floor-strip__item {
+  display: flex;
+  flex-direction: column-reverse;
+  min-width: 0;
+}
+
+.es-floor-strip__label {
+  color: var(--es-text-2);
+  font-size: var(--es-size-micro);
+  line-height: 1.2;
+}
+
+.es-floor-strip__value {
+  position: relative;
+  margin: 0;
+  font-size: var(--es-size-control);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.es-floor-strip__delta {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  font-size: var(--es-size-caption);
+}
+
+.es-floor-strip__stamp {
+  flex: none;
+}
+
+.es-floor-mode {
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+/*
+ * On a phone the dock is pinned to the foot and holds the decision over one readout line (REDESIGN §3.6): the filter chips in one row that
+ * scrolls sideways beside the field, three tiles, and the row with Run the path and Remove last. The card says its engine in one line.
+ */
+@media (max-width: 63.999rem) {
+  .es-floor-dock {
+    gap: var(--es-space-2);
+  }
+
+  /* The goal line carries the pass rule, the foot strip the mode and the readout line says it has no live readout: the dock keeps to the decision. */
+  .es-floor-card__pin,
+  .es-floor-card__asks,
+  .es-floor-card__note,
+  .es-floor-said,
+  .es-floor-stages__top,
+  .es-floor-graded,
+  .es-floor-actions__once {
+    display: none;
+  }
+
+  .es-floor-card {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  .es-floor-card__engine {
+    font-size: var(--es-size-note);
+  }
+
+  .es-floor-stages {
+    gap: var(--es-space-1);
+  }
+
+  .es-floor-filter {
+    width: 8.5rem;
+  }
+
+  .es-floor-tiles {
+    min-height: calc(2.75rem * 3 + 6px);
+    max-height: calc(2.75rem * 3 + 6px);
+    padding: 2px 4px 2px 2px;
+  }
+
+  .es-floor-tiles__item + .es-floor-tiles__item {
+    margin-top: 0;
+  }
+
+  .es-floor-tile {
+    border-width: 0 0 1px;
+    border-radius: 0;
+  }
+
+  .es-floor-stop .es-floor-stop__head {
+    font-size: var(--es-size-note);
+  }
+
+  .es-floor-stop__more {
+    display: none;
+  }
+
+  /* One readout line: each count with its word beside it. */
+  .es-floor-strip__list {
+    padding-top: 0;
+  }
+
+  .es-floor-strip__item {
+    flex-direction: row-reverse;
+    justify-content: flex-end;
+    align-items: baseline;
+    gap: var(--es-space-1);
+  }
+
+  .es-floor-strip__value {
+    font-size: var(--es-size-base);
+  }
+
+  /* The delta stands after its number, never over it. */
+  .es-floor-strip__delta {
+    position: static;
+    margin-inline-start: 2px;
+  }
+}
+
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__dock-main {
+    padding-block: var(--es-space-1);
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__readout {
+    padding-block: var(--es-space-1);
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ a lesson's dock */
+
+.es-floordock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+}
+
+/* ------------------------------------------------------------------------------------------------ the result */
+
+.es-floor-debrief__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-4);
+}
+
+.es-floor-debrief__body p {
+  margin: 0;
+}
+
+.es-floor-debrief__wrong {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+}
+
+.es-floor-debrief__counts,
+.es-floor-debrief__truth {
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-floor-pair {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+}
+
+.es-floor-pair__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2);
+  margin: 0;
+  font-size: var(--es-size-base);
+}
+
+.es-floor-pair__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--es-space-3);
+}
+
+.es-floor-pair__one {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-1);
+  min-width: 0;
+  margin: 0;
+}
+
+.es-floor-pair__name {
+  font-weight: 700;
+}
+
+.es-floor-mini {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  background: var(--es-paper);
+  border: 1px solid var(--es-paper-rule);
+}
+
+.es-floor-pair__procs {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--es-size-caption);
+}
+
+.es-floor-pair__procs [data-only] {
+  font-weight: 700;
+}
+
+.es-floor-pair__only,
+.es-floor-pair__word {
+  color: var(--es-text-2);
+  font-weight: 700;
+}
+
+.es-floor-pair__differs {
+  font-weight: 700;
+}
+
+/* "Guess 2 of 2, in the level": which of a run's guesses this is, in the guess label's small caps line. */
+.es-floor-predict__label {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+/*
+ * On a phone in a lesson the swimlane is not boxed into the frame's short diagram slot: it takes the height of a screen's worth of rows, the
+ * page scrolls past it by thumb, and its own box only scrolls sideways (the phone walk: a drag on the diagram moved neither it nor the page,
+ * and rows 6 to 10, the stop and the finish were never seen).
+ */
+@media (max-width: 63.999rem) {
+  .es-frame[data-placement='embed'][data-game='engine-floor'] .es-frame__view {
+    max-height: none;
+  }
+
+  .es-frame[data-placement='embed'] .es-lanes[data-floor-lanes] {
+    height: clamp(16rem, 55svh, 30rem);
+  }
+
+  [data-floor-lanes] .es-lanes__scroll {
+    overscroll-behavior: auto;
+  }
+}
+
+
+/*
+ * In a lesson's Run at a desk the stage list is read with the page, as the first run's parts list is: the dock grows to hold every stage,
+ * the readout stands at the screen's foot, and Run the path stands just over it, so the list, the move and the counts are in view together
+ * (the final walk: fourteen stages through a slit of four, with Run the path under it).
+ */
+@container es-frame (min-width: 56rem) {
+  .es-frame[data-game='engine-floor'][data-phase='play'] > .es-frame__body > .es-frame__dock {
+    max-height: none;
+  }
+
+  .es-frame[data-game='engine-floor'][data-phase='play'] > .es-frame__body > .es-frame__dock > .es-frame__dock-main {
+    overflow: visible;
+  }
+
+  .es-frame[data-game='engine-floor'][data-phase='play'] > .es-frame__body > .es-frame__dock > .es-frame__readout {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background: var(--es-paper);
+  }
+
+  .es-frame[data-placement='embed'][data-game='engine-floor'] .es-floor-actions {
+    bottom: 4.5rem;
+  }
+}
+
+/*
+ * On the game's page at a desk, once the parts are named, the stage list is read with the page as it is in a lesson: the dock takes its
+ * content's height beside the swimlane, which keeps its own box and stands at the screen's top, the filter field and every process to
+ * filter by stand whole over the list, and Run the path and the readout stand at the screen's foot (P5). No row and no tab is cut by an
+ * inner box's edge.
+ */
+@media (min-width: 64rem) {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-frame__body {
+    height: auto;
+    align-items: start;
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-frame__diagram {
+    position: sticky;
+    top: var(--es-space-2);
+    height: clamp(26rem, 100svh - 23.5rem, 44rem);
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-frame__dock-main {
+    overflow: visible;
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-frame__readout {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background: var(--es-paper);
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-tiles {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-actions {
+    position: sticky;
+    bottom: 4.5rem;
+    z-index: 1;
+    margin-inline: calc(var(--es-space-4) * -1);
+    padding: var(--es-space-2) var(--es-space-4) var(--es-space-3);
+    border-top: 1px solid var(--es-paper-rule);
+    background: var(--es-paper);
+  }
+
+  /* A stage the keyboard reaches is scrolled clear of Run the path and the readout standing at the screen's foot (WCAG 2.4.11). */
+  html:has(.es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro])),
+  html:has(.es-frame[data-placement='embed'][data-game='engine-floor'][data-phase='play']) {
+    scroll-padding-bottom: 10.5rem;
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'] :is(.es-floor-filters, .es-floor-chips) {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+}
+
+/* On a phone the readout's four counts are cells, each parted from the next by a rule, so no count runs into the next one's word. */
+@media (max-width: 63.999rem) {
+  .es-floor-strip__list {
+    gap: 0;
+  }
+
+  .es-floor-strip__item + .es-floor-strip__item {
+    padding-inline-start: var(--es-space-2);
+    border-inline-start: 1px solid var(--es-paper-rule);
+  }
+}
+
+/* The swimlane's legend runs to three rows on a phone, a row more than the frame's room under the pinned dock allows for: the box gives
+   that row back, so the legend is whole over the dock. */
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__view {
+    max-height: calc(67svh - 22.5rem);
+  }
 }

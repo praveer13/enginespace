@@ -1,0 +1,620 @@
+/*
+ * The instrument frame (REDESIGN §2.6, §3.5): the title strip, the goal line, the diagram with the dock beside it, the foot strip, the title
+ * block and the state as a table. Token roles only, so it draws under the current values and under Data Book's.
+ *
+ *   wide (64rem and up)   the diagram and the dock side by side, one height, sized to the first screen, so the diagram, the current control
+ *                         and the readout are in view together; a long list scrolls inside the dock.
+ *   narrow                one column. On a screen at least 700 px tall the dock is pinned to the foot, and holds the decision over one
+ *                         readout line; under 700 px it follows the diagram and nothing is pinned (the Short Viewport Rule).
+ */
+
+.es-frame {
+  --es-frame-gap: var(--es-space-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+  min-width: 0;
+  outline: none;
+}
+
+/* On the game's own page the frame is the page: it starts close under the header. */
+.es-shell__main:has(.es-frame[data-placement='page']) {
+  padding-top: var(--es-space-2);
+}
+
+@media (min-width: 64rem) {
+  .es-shell__main:has(.es-frame[data-placement='page']) {
+    padding-top: var(--es-space-4);
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ the title strip */
+
+.es-frame__strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-2);
+  align-items: end;
+}
+
+.es-frame__crumb {
+  display: none;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  line-height: 1.4;
+}
+
+.es-frame__crumb a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.es-frame__crumb a:hover {
+  color: var(--es-text-1);
+}
+
+.es-frame__title {
+  margin: 0;
+  font-family: var(--es-font-heading);
+  font-size: clamp(1.75rem, 1.4rem + 1.2vw, 2.5rem);
+  font-weight: var(--es-font-heading-weight);
+  line-height: 1;
+  letter-spacing: var(--es-font-heading-tracking);
+  text-transform: none;
+}
+
+/* Inside a lesson the instrument's title is a heading under the lesson's own title, a step down from it, so two display titles never
+   compete on one screen. */
+.es-frame[data-placement='embed'] .es-frame__title {
+  font-size: clamp(1.375rem, 1.2rem + 0.6vw, 1.75rem);
+}
+
+.es-frame__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: var(--es-space-3);
+}
+
+.es-frame__crumb {
+  flex-basis: 100%;
+}
+
+.es-frame__role {
+  margin: var(--es-space-1) 0 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  line-height: 1.35;
+}
+
+.es-frame__menu {
+  min-width: 0;
+}
+
+.es-frame__menu .es-level,
+.es-frame__menu .es-level__select {
+  width: 100%;
+}
+
+.es-frame__level {
+  margin: 0;
+  font-weight: 700;
+}
+
+.es-frame__tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-1) var(--es-space-2);
+}
+
+/* On a phone the reason 3D is not on offer is said to a reader only (the disabled 3D button points at it), so the tools keep one row. */
+@media (max-width: 63.999rem) {
+  .es-frame__tools [role='group'] > span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* The Parts and How to play sheets open under their buttons, over the page, and never wider than the screen. */
+.es-frame__tool .es-pop__panel {
+  z-index: 30;
+}
+
+/* The Keyboard list's button stands in the strip on a wide screen, and inside How to play on a phone. */
+.es-frame__keyboard[data-place='strip'] {
+  display: none;
+}
+
+.es-frame__howto-keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2);
+  margin: var(--es-space-3) 0 0;
+}
+
+@media (min-width: 64rem) {
+  /* The title keeps its one line: its column is as wide as the title, the level menu takes what it can, and the tools stand at the right. */
+  .es-frame__strip {
+    grid-template-columns: auto minmax(16rem, 26rem) minmax(0, 1fr);
+    column-gap: var(--es-space-6);
+  }
+
+  .es-frame__title {
+    white-space: nowrap;
+  }
+
+  .es-frame__crumb {
+    display: block;
+  }
+
+  .es-frame__name {
+    display: block;
+  }
+
+  .es-frame__tools {
+    justify-content: flex-end;
+  }
+
+  .es-frame__keyboard[data-place='strip'] {
+    display: inline-block;
+  }
+
+  .es-frame__howto-keys {
+    display: none;
+  }
+
+  /*
+   * Inside a lesson the strip is one row: the title and its role line, the level's words beside them, and the tools at the right, so the
+   * instrument spends no second line on its name and starts its drawing high on the first screen (P3, REDESIGN §3.4). Where the column is
+   * too narrow for one row, the tools wrap under the name.
+   */
+  .es-frame[data-placement='embed'] .es-frame__strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--es-space-1) var(--es-space-4);
+  }
+
+  .es-frame[data-placement='embed'] .es-frame__name {
+    display: flex;
+  }
+
+  .es-frame[data-placement='embed'] .es-frame__role {
+    margin: 0;
+  }
+
+  .es-frame[data-placement='embed'] .es-frame__tools {
+    align-self: center;
+    margin-inline-start: auto;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ the goal line */
+
+.es-frame__goal-box {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--es-space-2);
+  padding-block: var(--es-space-1);
+  border-block: 1px solid var(--es-edge);
+}
+
+.es-frame__goal.es-goal {
+  max-width: 75ch;
+}
+
+.es-frame__goal-more {
+  flex: none;
+  min-height: 2.75rem;
+  padding-inline: var(--es-space-2);
+  color: var(--es-text-1);
+  font-size: var(--es-size-note);
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  cursor: pointer;
+}
+
+.es-frame__goal-more:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: 2px;
+}
+
+/* On a phone the goal line leads with the number to beat and the end, in two lines, until "more" opens the aim and what the learner
+   controls: the title and the role line over it name the task, and the number to beat is never the part cut off (P4). */
+@media (max-width: 63.999rem) {
+  .es-frame__goal-box:not([data-open]) .es-goal {
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .es-frame__goal-box:not([data-open]) :is([data-part='aim'], [data-part='control']) {
+    display: none;
+  }
+
+  .es-frame__goal-box .es-goal {
+    font-size: var(--es-size-note);
+  }
+}
+
+@media (min-width: 64rem) {
+  .es-frame__goal-more {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ the diagram and the dock */
+
+.es-frame__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-frame-gap);
+  min-width: 0;
+}
+
+.es-frame__diagram {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-frame__view {
+  min-height: 0;
+  outline: none;
+}
+
+.es-frame__view:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: -3px;
+}
+
+.es-frame__legend {
+  min-width: 0;
+  padding: var(--es-space-1) var(--es-space-2);
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+.es-frame__dock {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-frame__dock-main {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: var(--es-space-3) var(--es-space-4);
+}
+
+.es-frame__readout {
+  flex: none;
+  padding: var(--es-space-2) var(--es-space-4);
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+/* A readout with nothing to read (Broken benchmark's once the log has left the desk) is not drawn as an empty box. */
+.es-frame__readout:empty {
+  display: none;
+}
+
+.es-frame__result {
+  outline: none;
+}
+
+.es-frame__result:focus-visible,
+.es-debrief__verdict:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: 2px;
+}
+
+/*
+ * Wide: one row, the diagram and the dock at one height that fits the first screen under the title strip and the goal line [estimated
+ * from the 1440 x 900 layout of REDESIGN §3.5], never less than 26rem and never more than 44rem.
+ */
+@media (min-width: 64rem) {
+  .es-frame {
+    gap: var(--es-space-3);
+  }
+
+  .es-frame[data-placement='page'] .es-frame__body {
+    grid-template-columns: minmax(0, 1fr) minmax(20rem, 26rem);
+    height: clamp(26rem, 100svh - 23.5rem, 44rem);
+  }
+
+  /* During the first run the parts list is read whole: the row takes the room down to the readout's foot, and the foot strip waits under
+     the fold until the intro ends (P5 holds the diagram, the control and the readout, which stay in view). In the diagram only: a 3D
+     stage keeps the box it was mounted in, so its box never changes under it. */
+  .es-frame[data-placement='page'][data-intro][data-view='2d'] .es-frame__body {
+    height: clamp(26rem, 100svh - 17.5rem, 46rem);
+  }
+
+  .es-frame[data-placement='page'] .es-frame__diagram {
+    overflow: hidden;
+  }
+
+  /* The diagram's gutter, at its left: the first run's callout discs stand in it, level with the parts they name, as on the front page, so
+     a disc never covers a word or a mark of the drawing, and nothing moves when they go. */
+  .es-frame__surface {
+    padding-inline-start: 2rem;
+  }
+
+  .es-frame[data-placement='page'] .es-frame__view {
+    flex: 1 1 auto;
+    overflow: auto;
+  }
+
+  /* At the result the dock takes its content's height, so no line and no button of the result is cut by a box's edge; the drawing keeps
+     its own height beside it, and the readout stands at the foot of the screen while the result runs on past it (P5). */
+  .es-frame[data-placement='page'][data-phase='result'] .es-frame__body {
+    height: auto;
+    align-items: start;
+  }
+
+  .es-frame[data-placement='page'][data-phase='result'] .es-frame__diagram {
+    height: clamp(26rem, 100svh - 23.5rem, 44rem);
+  }
+
+  .es-frame[data-placement='page'][data-phase='result'] .es-frame__dock-main {
+    overflow: visible;
+  }
+}
+
+/* The readout of a result that runs past the screen stands at its foot, and on the game's page at a desk the drawing stands at the screen's
+   top beside the result as it is read, so a control deep in the result and the drawing it changes share the screen (P5). Under 600 px of
+   height nothing is sticky. */
+@media (min-width: 64rem) and (min-height: 600px) {
+  .es-frame[data-placement='page'][data-phase='result'] .es-frame__diagram {
+    position: sticky;
+    top: var(--es-space-2);
+  }
+}
+
+@media (min-height: 600px) {
+  .es-frame[data-phase='result'] .es-frame__readout {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background: var(--es-paper);
+  }
+}
+
+/*
+ * Inside a lesson the column, not the screen, sets the room. Where the column is wide enough (the Run, which spans the content), the dock
+ * stands beside the diagram while the run is played, so an Admit and what it did to the pool are in view together (P5); the result, which
+ * is long, goes under the diagram at the column's width (REDESIGN §3.4). In a narrower column (Read beside the lesson's dock) the diagram
+ * and the dock stand one under the other. On a phone the dock is pinned to the foot, as on the game's page (below).
+ */
+.es-frame[data-placement='embed'] {
+  container: es-frame / inline-size;
+}
+
+.es-frame[data-placement='embed'] .es-frame__dock-main {
+  overflow: visible;
+}
+
+/* Inside a lesson the instrument already stands on the lesson's paper: its diagram and its dock are ruled sheets on it, with no shadow of
+   their own (the Flat Paper Rule: one shadow for a sheet). A phone's pinned dock keeps its lift. */
+@media (min-width: 64rem) {
+  .es-frame[data-placement='embed'] :is(.es-frame__diagram, .es-frame__dock) {
+    box-shadow: none;
+    outline: 1px solid var(--es-paper-rule);
+  }
+}
+
+@container es-frame (min-width: 56rem) {
+  .es-frame[data-phase='play'] > .es-frame__body {
+    grid-template-columns: minmax(0, 1fr) minmax(19rem, 22rem);
+    align-items: start;
+  }
+
+  /* A long list of options scrolls inside the dock, so the readout under it stays on the screen with the diagram (P5). */
+  .es-frame[data-phase='play'] > .es-frame__body > .es-frame__dock {
+    max-height: max(26rem, min(34rem, 100svh - 8rem));
+  }
+
+  .es-frame[data-phase='play'] > .es-frame__body > .es-frame__dock > .es-frame__dock-main {
+    overflow-y: auto;
+  }
+
+  /*
+   * The first run's parts list is read with the page, not inside a box: the dock grows to hold it whole, and while it runs past the foot of
+   * the screen its readout stands at the screen's foot, and the intro's Next row stands under its title (intro.css). So on arrival the
+   * intro's first control and the readout are on the first screen beside the drawing (P3, P5), and nothing hides in an inner scroll.
+   */
+  .es-frame[data-phase='play'][data-intro] > .es-frame__body > .es-frame__dock {
+    max-height: none;
+  }
+
+  .es-frame[data-phase='play'][data-intro] > .es-frame__body > .es-frame__dock > .es-frame__dock-main {
+    overflow: visible;
+  }
+
+  .es-frame[data-phase='play'][data-intro] > .es-frame__body > .es-frame__dock > .es-frame__readout {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    background: var(--es-paper);
+  }
+
+}
+
+/* Narrow and at least 700 px tall: the dock is pinned to the foot and holds the decision over one readout line, on the game's page and in a
+   lesson alike, so the drawing, the control and the readout share the screen (P5). */
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  /* Room for the whole page grid at 390 x 844, three rows of pages under the batch and the free queue [estimated]: the strip, the goal
+     line and the pinned dock take the rest. */
+  .es-frame:is([data-placement='page'], [data-placement='embed']) .es-frame__view {
+    max-height: calc(67svh - 19.5rem);
+    min-height: 9rem;
+    overflow: auto;
+  }
+
+  /* The dock takes its content's height, up to a third of the screen, where the diagram's box ends; only a long list of options scrolls
+     inside it, and each game keeps its decision whole in that room (the sampler's draws in two rows, the pool's options under its heading). */
+  .es-frame:is([data-placement='page'], [data-placement='embed']) .es-frame__dock {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    max-height: 33svh;
+    box-shadow: var(--es-shadow-lift);
+  }
+
+  .es-frame:is([data-placement='page'], [data-placement='embed']) .es-frame__dock-main {
+    overflow-y: auto;
+    padding-block: var(--es-space-2);
+  }
+
+  /* In a lesson the page scrolls under the pinned dock: a control the keyboard reaches is scrolled clear of it, never left under it (WCAG
+     2.4.11). */
+  html:has(.es-frame[data-placement='embed']) {
+    scroll-padding-bottom: calc(33svh + var(--es-space-4));
+  }
+
+  /*
+   * Once the run has ended, on the game's page and in a lesson, the result is read with the page and not through the pinned dock's window
+   * (the phone walk: the two engines' paths and the measured numbers sat at the bottom of 1,600 to 2,600 px inside a 140 to 230 px box). The
+   * dock lets go of the foot and takes its whole height, the diagram over it keeps its own, the ways on come straight under the verdict,
+   * and the readout stands at the foot of the screen.
+   */
+  .es-frame[data-phase='result'] .es-frame__dock {
+    position: static;
+    max-height: none;
+    box-shadow: var(--es-shadow-paper);
+  }
+
+  .es-frame[data-phase='result'] .es-frame__dock-main {
+    overflow: visible;
+  }
+
+  /* At the result the page keeps clear of the readout standing at its foot, so a way on that is brought into view is never under it. */
+  html:has(.es-frame[data-phase='result']):not(:has(.es-frame[data-phase='play'])) {
+    scroll-padding-bottom: 6rem;
+  }
+}
+
+/* The same in a lesson's Run at a desk while the readout, and a game's own row of actions over it, stand at the foot of the screen
+   [estimated: the two rows' height, about 9.5rem at 1440 x 900, and a margin]. */
+@media (min-width: 64rem) {
+  html:has(.es-frame[data-placement='embed'][data-intro]) {
+    scroll-padding-bottom: 10.5rem;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ the foot strip, the title block, the table */
+
+.es-frame__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--es-space-2) var(--es-space-4);
+}
+
+.es-frame__foot-actions,
+.es-frame__mode {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2);
+}
+
+.es-frame__table {
+  min-width: 0;
+}
+
+.es-frame__table-summary {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: var(--es-space-2);
+  cursor: pointer;
+  font-weight: 700;
+  text-decoration: underline;
+  text-underline-offset: 0.25em;
+}
+
+.es-frame__table-summary:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: 2px;
+}
+
+.es-frame__table-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-6);
+  padding-top: var(--es-space-3);
+}
+
+/* ------------------------------------------------------------------------------------------------ the first run and the named moments */
+
+/* The intro's callouts and a named moment are laid over the frame, placed against it. */
+.es-frame {
+  position: relative;
+}
+
+.es-frame__replay {
+  margin: 0 0 var(--es-space-3);
+}
+
+/*
+ * A named moment (REDESIGN §2.6): the rule just felt, named once at the head of the dock, beside the drawing and never over it. A slip of
+ * paper with an ink edge; it takes no press and goes with the next action. It comes in on the quick duration, and under reduced motion it
+ * is drawn at once.
+ */
+.es-frame__moment {
+  max-width: 75ch;
+  margin: 0 0 var(--es-space-3);
+  padding: var(--es-space-2) var(--es-space-3);
+  border: 1px solid var(--es-paper-ink);
+  border-radius: var(--es-radius-paper);
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  font-size: var(--es-size-note);
+  font-weight: 700;
+  line-height: 1.4;
+  animation: es-moment-in var(--es-dur-quick) var(--es-ease-settle) both;
+}
+
+/* A phone's pinned dock is short: the moment is its coach line, one tight slip over the decision. */
+@media (max-width: 63.999rem) {
+  .es-frame__moment {
+    margin-bottom: var(--es-space-2);
+    padding: var(--es-space-1) var(--es-space-2);
+    font-size: var(--es-size-caption);
+  }
+}
+
+@keyframes es-moment-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) .es-frame__moment {
+    animation: none;
+  }
+}
+
+:root[data-motion='reduce'] .es-frame__moment {
+  animation: none;
+}

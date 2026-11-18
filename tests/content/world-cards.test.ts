@@ -163,7 +163,7 @@ describe('each card is drawn', () => {
   test.each(Object.keys(WORLDS))('%s: a ticket with its three parts in order, a chip for each claim it cites, and no claim the page does not know', (id) => {
     const json = card(id)
     const html = renderToString(h(StaticRouter, { location: '/' }, h(NotionalMachineView, { card: json, env, scope: 'tr2.l1' }))).replaceAll('<!-- -->', '')
-    const printed = [...html.matchAll(/data-part="\w+"><span class="es-tape"[^>]*><span class="es-tape__text">([^<]+)</g)].map((match) => match[1])
+    const printed = [...html.matchAll(/data-part="\w+"><span class="es-plain-label"[^>]*><span class="es-plain-label__text">([^<]+)</g)].map((match) => match[1])
     expect(printed).toEqual([...CARD_PARTS])
     expect(html).toContain(`<p class="es-c-card__name">${json.title.replaceAll("'", '&#x27;')}</p>`)
     expect(html).not.toContain('no such claim')
@@ -178,13 +178,12 @@ describe('the words of the cards', () => {
     for (const id of CARD_IDS) expect(read(`content/cards/${id}.md`)).toContain('The real engine is authoritative: when it disagrees with this card, the card is wrong.')
   })
 
-  test('name the task that builds each model, and say whether the model is built or this card is its specification', () => {
-    for (const [id, { builtBy, built }] of Object.entries(WORLDS)) {
+  test('name no build-log id, wave or task of the project, and say whether the model is built or this card is its specification', () => {
+    for (const [id, { built }] of Object.entries(WORLDS)) {
       const text = read(`content/cards/${id}.md`)
-      expect(text).toContain(builtBy)
+      expect([id, text.match(/\b(?:W\d-T\d+|R-T\d+|Q-\d+|TR\d[ab]?)\b/g)]).toEqual([id, null])
       const specification = text.includes('this card is the specification that model is built to and checked against')
       expect([id, specification]).toEqual([id, !built])
-      if (built && id !== 'trace-room-steploop') expect([id, text.includes(`built by ${builtBy}`)]).toEqual([id, true])
     }
   })
 })

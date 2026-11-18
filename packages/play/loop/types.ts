@@ -40,10 +40,6 @@ export type LeverAccess = 'locked' | 'free'
 export interface LoopLevel {
   readonly id: LoopLevelId
   readonly seed: Seed
-  /** The level's name on screen. */
-  readonly title: string
-  /** The line the level opens on, in the kitchen's words with the engine's term beside it (GAMES.md §2.6, "First service's copy"). */
-  readonly prompt: string
   /** Clips on the rail: the batch slots (D-043: 4 [estimated]). */
   readonly slots: number
   /**
@@ -202,8 +198,8 @@ export interface LoopCounters {
 }
 
 /**
- * What the kitchen draws, in the 2D view, the poster and the 3D scene: the rail and the fired rail, the waiting tickets, the fires and
- * the lanes. The front page's view is one (`LoopView`), and the full service's is another (full/types.ts), so one kitchen draws both.
+ * What the lanes draw, in the 2D view, the poster and the 3D scene: the batch slots, the waiting requests, the steps and the CPU's calls.
+ * The front page's view is one (`LoopView`), and the full service's is another (full/types.ts), so one layout draws both.
  */
 export interface KitchenView {
   readonly level: string

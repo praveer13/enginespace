@@ -120,21 +120,19 @@
 .es-chit__label {
   margin: 0;
   color: var(--es-text-2);
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-caption);
-  font-weight: var(--es-font-ticket-weight);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: var(--es-font-readout-weight);
 }
 
 /* The token is the thing on the ticket: the printer's dots at the readout's size, selected whole by one click, and broken at its colons. */
 .es-chit__token {
   margin: 0;
-  font-family: var(--es-font-ticket);
-  font-size: var(--es-size-plate);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-size: var(--es-size-control);
+  font-weight: var(--es-font-readout-weight);
   line-height: 1.4;
-  letter-spacing: var(--es-font-ticket-tracking);
+  letter-spacing: var(--es-font-readout-tracking);
   overflow-wrap: anywhere;
   user-select: all;
 }
@@ -168,9 +166,9 @@
   gap: var(--es-space-2);
   min-height: 1.5em;
   margin: 0;
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-print);
-  font-weight: var(--es-font-ticket-weight);
+  font-weight: var(--es-font-readout-weight);
   line-height: 1.4;
 }
 
@@ -180,12 +178,12 @@
 
 /* ---------------------------------------------------------------------------------------------- the lists */
 
-.es-held-ticket .es-ticket__paper {
+.es-held-ticket .es-sheet__paper {
   padding-inline: var(--es-space-4);
 }
 
 @media (min-width: 40rem) {
-  .es-held-ticket .es-ticket__paper {
+  .es-held-ticket .es-sheet__paper {
     padding-inline: var(--es-space-6);
   }
 }
@@ -228,10 +226,10 @@
 
 /* A stage's id in the printer's dots, and under it the stage's name and what tells one challenge from another. */
 .es-held__id {
-  font-family: var(--es-font-ticket);
-  font-size: var(--es-size-plate);
-  font-weight: var(--es-font-ticket-weight);
-  letter-spacing: var(--es-font-ticket-tracking);
+  font-family: var(--es-font-readout);
+  font-size: var(--es-size-control);
+  font-weight: var(--es-font-readout-weight);
+  letter-spacing: var(--es-font-readout-tracking);
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
@@ -280,9 +278,9 @@
 
 .es-held__token {
   flex: 1 0 100%;
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-print);
-  font-weight: var(--es-font-ticket-weight);
+  font-weight: var(--es-font-readout-weight);
   line-height: 1.4;
   overflow-wrap: anywhere;
   user-select: all;
@@ -290,9 +288,9 @@
 
 .es-held__copied {
   min-width: 4ch;
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-print);
-  font-weight: var(--es-font-ticket-weight);
+  font-weight: var(--es-font-readout-weight);
 }
 
 /* ---------------------------------------------------------------------------------------------- one receipt opened */
@@ -306,12 +304,12 @@
   margin: 0;
 }
 
-.es-receipt .es-ticket__paper {
+.es-receipt .es-sheet__paper {
   padding-inline: var(--es-space-4);
 }
 
 @media (min-width: 40rem) {
-  .es-receipt .es-ticket__paper {
+  .es-receipt .es-sheet__paper {
     padding-inline: var(--es-space-6);
   }
 }
@@ -328,8 +326,6 @@
   font-size: var(--es-size-stamp);
   line-height: 1.4;
   font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
 }
 
 .es-receipt .es-readout__tag {
@@ -393,11 +389,9 @@
 
 .es-facts dt {
   color: var(--es-text-2);
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-caption);
-  font-weight: var(--es-font-ticket-weight);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: var(--es-font-readout-weight);
 }
 
 .es-facts dd {
@@ -434,9 +428,9 @@
 }
 
 .es-receipt__token {
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-print);
-  font-weight: var(--es-font-ticket-weight);
+  font-weight: var(--es-font-readout-weight);
   overflow-wrap: anywhere;
 }
 
@@ -445,7 +439,7 @@
  * row's header first and then each cell after its column's name, so that nothing is cut off at the edge of the paper (the mirror's table
  * does the same, src/design/components.css). The column heads stay in the document for a screen reader.
  */
-.es-receipt .es-ticket__body {
+.es-receipt .es-sheet__body {
   container-type: inline-size;
 }
 
@@ -472,11 +466,9 @@
 
 .es-receipt__table thead th {
   border-bottom: 2px dotted var(--es-paper-rule);
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-caption);
-  font-weight: var(--es-font-ticket-weight);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-weight: var(--es-font-readout-weight);
 }
 
 .es-receipt__table tbody th {
@@ -560,8 +552,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--es-space-1);
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
 }
 
 .es-receipt__result[data-fail] {
@@ -594,9 +586,9 @@
   align-items: flex-start;
   gap: var(--es-space-2);
   color: var(--es-paper-ink-2);
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: var(--es-size-print);
-  font-weight: var(--es-font-ticket-weight);
+  font-weight: var(--es-font-readout-weight);
   overflow-wrap: anywhere;
 }
 
@@ -621,12 +613,7 @@
   position: absolute;
   inset: -2.5rem -2.25rem 0;
   z-index: -1;
-  background: radial-gradient(
-    48% 38% at 50% 40%,
-    color-mix(in srgb, var(--es-lamp) 82%, transparent) 0%,
-    color-mix(in srgb, var(--es-lamp) 42%, transparent) 50%,
-    transparent 100%
-  );
+  background: color-mix(in srgb, var(--es-surface-2) 60%, transparent);
   pointer-events: none;
 }
 
@@ -634,16 +621,16 @@
   content: '';
   position: absolute;
   inset: -0.5rem;
-  border: 2px dashed var(--es-lamp-ring);
+  border: 2px dashed var(--es-marker-edge);
   pointer-events: none;
 }
 
-.es-import__slip .es-ticket__paper {
+.es-import__slip .es-sheet__paper {
   padding-inline: var(--es-space-4);
 }
 
 @media (min-width: 40rem) {
-  .es-import__slip .es-ticket__paper {
+  .es-import__slip .es-sheet__paper {
     padding-inline: var(--es-space-6);
   }
 }
@@ -730,10 +717,10 @@
 }
 
 .es-rule__n {
-  font-family: var(--es-font-ticket);
-  font-size: var(--es-size-plate);
-  font-weight: var(--es-font-ticket-weight);
-  letter-spacing: var(--es-font-ticket-tracking);
+  font-family: var(--es-font-readout);
+  font-size: var(--es-size-control);
+  font-weight: var(--es-font-readout-weight);
+  letter-spacing: var(--es-font-readout-tracking);
 }
 
 .es-rule__name {
@@ -745,8 +732,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--es-space-1);
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
 }
 
 .es-rule[data-status='fail'] .es-rule__result,
@@ -819,8 +806,8 @@
 }
 
 .es-check__id {
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
   overflow-wrap: anywhere;
 }
 
@@ -828,8 +815,8 @@
   display: inline-flex;
   align-items: center;
   gap: var(--es-space-1);
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
 }
 
 .es-check__bound,
@@ -861,8 +848,8 @@
 
 .es-verdict-checks__heading {
   margin: 0;
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
 }
 
 /* ---------------------------------------------------------------------------------------------- what it is worth now */

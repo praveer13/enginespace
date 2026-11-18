@@ -1,0 +1,1019 @@
+/*
+ * The lesson template's layout (REDESIGN §2.5 and §3.4): the head, the rail beside one reading column on a sheet of paper, the strip and the
+ * foot bar below 64rem, and how a run, a guess, a note, the record and the sources sit in the column. The components draw themselves; this
+ * file places them. Every colour, face, size and duration is a token role, so the page follows the design system's values when they change.
+ *
+ * Plain CSS outside Tailwind's layers: it loads with the lesson route, never with the entry.
+ */
+
+/* ---------------------------------------------------------------------------------------------- the frame */
+
+.es-shell__main:has(.es-lesson) {
+  max-width: 90rem;
+}
+
+/* The strip at the top and the bar at the foot are sticky below 64rem; the reader's focus and anchors land clear of both (WCAG 2.4.11). */
+@media (max-width: 63.99rem) and (min-height: 600px) {
+  html:has(.es-lesson) {
+    scroll-padding-top: calc(2.75rem + var(--es-space-4));
+    scroll-padding-bottom: calc(3.5rem + var(--es-space-4));
+  }
+}
+
+@media (min-width: 64rem) {
+  html:has(.es-lesson) {
+    scroll-padding-top: var(--es-space-6);
+  }
+
+  .es-shell__main:has(.es-lesson) {
+    padding-inline: var(--es-space-12);
+  }
+}
+
+.es-lesson {
+  --lesson-measure: 66ch;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-8);
+  color: var(--es-text-1);
+}
+
+.es-lesson :is(h1, h2, h3) {
+  text-transform: none;
+}
+
+/* ---------------------------------------------------------------------------------------------- the head */
+
+.es-lesson__head {
+  display: grid;
+  gap: var(--es-space-3);
+  max-width: 52rem;
+}
+
+.es-lesson__crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-1) var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+}
+
+.es-lesson__crumbs li + li::before {
+  content: '/';
+  content: '/' / '';
+  margin-inline-end: var(--es-space-2);
+  color: var(--es-text-3);
+}
+
+.es-lesson__crumbs [aria-current='page'] {
+  color: var(--es-text-1);
+  font-weight: 700;
+}
+
+.es-lesson__title {
+  margin: 0;
+  font-family: var(--es-font-heading);
+  font-size: clamp(2rem, 1.4rem + 2.2vw, 2.75rem);
+  font-weight: var(--es-font-heading-weight);
+  line-height: 1.02;
+  letter-spacing: 0.005em;
+  text-wrap: balance;
+}
+
+.es-lesson__promise {
+  max-width: var(--lesson-measure);
+  margin: 0;
+  font-size: var(--es-size-control);
+  line-height: 1.45;
+  text-wrap: pretty;
+}
+
+.es-lesson__size {
+  color: var(--es-text-2);
+}
+
+.es-lesson__builds {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-lesson__model {
+  min-height: 2.75rem;
+  margin: 0;
+}
+
+/*
+ * At a desk the head spends no line of its own on "Builds on": it stands at the right of the breadcrumb's row, so the Run's instrument
+ * starts high enough that its first control is on the first screen (REDESIGN §3.4, P3).
+ */
+@media (min-width: 64rem) {
+  .es-lesson {
+    gap: var(--es-space-6);
+  }
+
+  .es-lesson__head {
+    grid-template-columns: minmax(0, 52rem) minmax(0, 1fr);
+    column-gap: var(--es-space-8);
+    max-width: none;
+  }
+
+  .es-lesson__head > * {
+    grid-column: 1;
+  }
+
+  .es-lesson__head > .es-lesson__builds {
+    grid-row: 1;
+    grid-column: 2;
+    align-self: center;
+    justify-self: end;
+    text-align: end;
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- rail and column */
+
+.es-lesson__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-6);
+  align-items: start;
+}
+
+@media (min-width: 64rem) {
+  .es-lesson__body {
+    grid-template-columns: 12.5rem minmax(0, 1fr);
+    column-gap: var(--es-space-8);
+  }
+
+  .es-lesson__rail {
+    position: sticky;
+    top: var(--es-space-6);
+    max-height: calc(100vh - var(--es-space-12));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: var(--es-edge) transparent;
+  }
+}
+
+@media (min-width: 64rem) and (max-height: 599.98px) {
+  .es-lesson__rail {
+    position: static;
+    max-height: none;
+  }
+}
+
+.es-lesson__n {
+  display: inline-block;
+  min-width: 1.25em;
+  color: var(--es-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Below 64rem: the strip under the header, sticky while the viewport is tall enough to spare it, over an instrument's own heads (the
+   swimlane's process row) that the page scrolls under it. */
+.es-lesson__strip {
+  z-index: 25;
+  margin-inline: calc(var(--es-space-4) * -1);
+  padding: var(--es-space-1) var(--es-space-4);
+  background: var(--es-surface-0);
+}
+
+.es-lesson__strip .es-srail {
+  max-width: none;
+}
+
+.es-lesson__strip .es-srail__toggle {
+  min-height: 2.75rem;
+}
+
+@media (min-height: 600px) {
+  .es-lesson__strip {
+    position: sticky;
+    top: 0;
+    box-shadow: 0 1px 0 var(--es-edge);
+  }
+}
+
+/* The column: one sheet of paper, the reading measure inside it, and the instruments at its full width. */
+.es-lesson__main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-16);
+  min-width: 0;
+  padding: var(--es-space-6) var(--es-space-4) var(--es-space-12);
+  margin-inline: calc(var(--es-space-4) * -1);
+  border-block: 1px solid var(--es-paper-rule);
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+}
+
+@media (min-width: 40rem) {
+  .es-lesson__main {
+    margin-inline: 0;
+    padding: var(--es-space-8) var(--es-space-8) var(--es-space-16);
+    border: 1px solid var(--es-paper-rule);
+    box-shadow: var(--es-shadow-paper);
+  }
+}
+
+@media (min-width: 64rem) {
+  .es-lesson__main {
+    padding-top: var(--es-space-6);
+    padding-inline: var(--es-space-12);
+  }
+
+  /*
+   * The Run's heading is set run-in, beside its setup, as a reference book sets a short head: the setup is read in the same glance and the
+   * instrument under it starts one line higher (REDESIGN §3.4: the instrument near y 356 at 1440 x 900).
+   */
+  .es-lesson__section[data-section='run'] {
+    grid-template-columns: max-content minmax(0, 1fr);
+    column-gap: var(--es-space-6);
+  }
+
+  .es-lesson__section[data-section='run'] > * {
+    grid-column: 1 / -1;
+  }
+
+  .es-lesson__section[data-section='run'] > .es-lesson__section-title:has(+ :is(.es-lesson__setup, .es-lesson__primer)) {
+    grid-column: 1;
+    align-self: baseline;
+  }
+
+  .es-lesson__section[data-section='run'] > .es-lesson__section-title + :is(.es-lesson__setup, .es-lesson__primer) {
+    grid-column: 2;
+    align-self: baseline;
+  }
+}
+
+.es-lesson__section,
+.es-lesson__part {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-6);
+  min-width: 0;
+}
+
+.es-lesson__section > .es-lesson__part + .es-lesson__part,
+.es-lesson__read-flow > .es-lesson__part + .es-lesson__part,
+.es-lesson__intro + .es-lesson__part {
+  margin-top: var(--es-space-12);
+}
+
+/* Read's parts, in one column; from 80rem wide and 44rem tall the dock (Dock.tsx) stands in a second, sticky beside them. */
+.es-lesson__read-flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-6);
+  min-width: 0;
+}
+
+@media (min-width: 80rem) and (min-height: 44rem) {
+  .es-lesson__section[data-docked] {
+    --lesson-dock: 24rem;
+    isolation: isolate;
+    grid-template-columns: minmax(0, 1fr) var(--lesson-dock);
+    column-gap: var(--es-space-8);
+    align-items: start;
+  }
+
+  /* A run open in Read keeps the column's whole width: it passes through the dock's margin, and the dock steps back (it is hidden) while it
+     does, so neither covers the other. */
+  .es-lesson__section[data-docked] .es-run:is([data-phase='open'], [data-phase='failed']) {
+    width: calc(100% + var(--lesson-dock) + var(--es-space-8));
+    max-width: none;
+  }
+}
+
+/* Where there is no dock, a part's way back to the run the learner touched last. */
+.es-lesson__back {
+  margin: calc(var(--es-space-4) * -1) 0 0;
+  font-size: var(--es-size-note);
+}
+
+.es-lesson__section-title,
+.es-lesson__part-title {
+  margin: 0;
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-large);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-wrap: balance;
+}
+
+.es-lesson__part-title + .es-lesson__meta {
+  margin-top: calc(var(--es-space-4) * -1);
+}
+
+.es-lesson__meta {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+/* ---------------------------------------------------------------------------------------------- prose */
+
+.es-lesson__prose {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-4);
+  min-width: 0;
+  font-size: var(--es-font-body-size);
+  line-height: var(--es-font-body-leading);
+}
+
+.es-lesson__prose > * {
+  max-width: var(--lesson-measure);
+  margin: 0;
+}
+
+.es-lesson__prose :is(p, li) {
+  text-wrap: pretty;
+}
+
+.es-lesson__prose :is(ul, ol) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-2);
+  padding-inline-start: 1.4em;
+}
+
+/* A numbered list keeps its numbers: a text that says "the first four" and "the fifth" points at them. */
+.es-lesson__prose ol {
+  list-style: decimal;
+}
+
+.es-lesson__prose ol > li::marker {
+  color: var(--es-text-2);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.es-lesson__prose h3 {
+  margin-top: var(--es-space-4);
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-title);
+  font-weight: 700;
+}
+
+.es-lesson__prose code {
+  font-family: var(--es-font-mono);
+  font-size: 0.92em;
+}
+
+/* A long name in a line of prose breaks where it must, so that a phone's width at 320 px needs no sideways scroll. */
+.es-lesson__prose :not(pre) > code {
+  overflow-wrap: anywhere;
+}
+
+/* A table may break out of the measure, to the column's width; it and a code block scroll sideways when they are wider still. */
+.es-lesson__prose > :is(.es-table, pre, .es-run) {
+  max-width: 100%;
+}
+
+.es-lesson__prose > .es-table {
+  width: max-content;
+}
+
+.es-lesson__prose > :is(.es-table, pre) {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--es-edge) transparent;
+}
+
+.es-lesson__prose > pre {
+  /* Lines wrap rather than run under the edge with no sign that they scroll: every character of a quoted line is on screen at 390 px and
+     beside the dock at a desk (the walks' trip: `.tolist()` was off screen). A wrapped line keeps the indentation it started with. */
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: var(--es-space-3) var(--es-space-4);
+  border: 1px solid var(--es-paper-rule);
+  background: color-mix(in srgb, var(--es-surface-1) 45%, var(--es-paper));
+  font-family: var(--es-font-mono);
+  font-size: var(--es-font-mono-size);
+  line-height: var(--es-font-mono-leading);
+}
+
+.es-lesson .es-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--es-size-print);
+  font-variant-numeric: tabular-nums;
+}
+
+.es-lesson .es-table :is(th, td) {
+  padding: var(--es-space-2) var(--es-space-3);
+  border-bottom: 1px solid var(--es-paper-rule);
+  text-align: left;
+  vertical-align: baseline;
+}
+
+.es-lesson .es-table th {
+  border-bottom: 2px solid var(--es-paper-ink);
+}
+
+.es-lesson .es-table [data-align='right'] {
+  text-align: right;
+}
+
+.es-lesson .es-table [data-align='center'] {
+  text-align: center;
+}
+
+.es-lesson .es-ks {
+  white-space: nowrap;
+}
+
+/* A tagged number: a dotted underline, and the tag for a screen reader. It is text, never a tab stop. */
+.es-num {
+  text-decoration: underline dotted;
+  text-decoration-color: var(--es-text-3);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.22em;
+}
+
+/* A claim's mark stays on one line with the word before it. */
+.es-claimed {
+  white-space: nowrap;
+}
+
+.es-claimed > * {
+  white-space: normal;
+}
+
+.es-claimmark .es-pop__trigger {
+  color: var(--es-text-2);
+  text-decoration-color: currentColor;
+}
+
+.es-claimvalue {
+  font-variant-numeric: tabular-nums;
+  /* A symbol's name (`WAITING_FOR_STRUCTURED_OUTPUT_GRAMMAR`) breaks where it must at a phone's width, and is never cut off. */
+  overflow-wrap: anywhere;
+}
+
+.es-claimmark__n {
+  font-variant-numeric: tabular-nums;
+}
+
+.es-claimref__fact,
+.es-claimref__value,
+.es-claimref__origin,
+.es-claimref__checked,
+.es-claimref__all {
+  display: block;
+}
+
+/* The claim is read at the body's weight, so the source's link leads the sheet. */
+.es-claimref__fact {
+  font-weight: 400;
+}
+
+.es-claimref__origin > a {
+  font-weight: 700;
+}
+
+/*
+ * On a phone a source sheet is a bottom sheet over the foot bar: the whole width between the gutters, never past the screen's foot or over
+ * the bar's amber control, and as tall as it needs up to most of the screen, scrolling inside where a claim is long.
+ */
+@media (max-width: 63.99rem) and (min-height: 600px) {
+  .es-lesson .es-claimmark .es-pop__panel {
+    position: fixed;
+    z-index: 40;
+    top: auto;
+    right: var(--es-space-4);
+    bottom: calc(3.5rem + var(--es-space-2));
+    left: var(--es-space-4);
+    width: auto;
+    max-height: calc(100svh - 3.5rem - 7rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    translate: none;
+    animation: none;
+  }
+}
+
+.es-claimref__value {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+  align-items: baseline;
+  margin-top: var(--es-space-1);
+}
+
+.es-claimref__tag {
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  font-weight: 700;
+}
+
+.es-claimref__tag[data-tag='unverified'] {
+  color: var(--es-status-bad);
+}
+
+.es-claimref__quote {
+  display: block;
+  margin-top: var(--es-space-1);
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-claimref__checked {
+  margin-top: var(--es-space-1);
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+}
+
+.es-claimref__stale {
+  display: inline-flex;
+  gap: var(--es-space-1);
+  align-items: center;
+  margin-inline-start: var(--es-space-2);
+  color: var(--es-status-bad);
+}
+
+.es-claimref__all {
+  margin-top: var(--es-space-2);
+  font-size: var(--es-size-note);
+}
+
+/* ---------------------------------------------------------------------------------------------- run */
+
+.es-lesson__setup,
+.es-lesson__primer {
+  font-size: var(--es-size-control);
+}
+
+.es-lesson__primer-title {
+  font-weight: 700;
+}
+
+.es-run {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-3);
+  min-width: 0;
+  scroll-margin-top: var(--es-space-4);
+}
+
+.es-run__head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-1) var(--es-space-3);
+  align-items: baseline;
+  margin: 0;
+}
+
+.es-run__kind {
+  font-weight: 700;
+}
+
+.es-run__title {
+  font-size: var(--es-size-title);
+  font-weight: 700;
+}
+
+.es-run__game,
+.es-run__mode,
+.es-run__rule,
+.es-run__elsewhere {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-run__rule {
+  max-width: var(--lesson-measure);
+}
+
+.es-run__start {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2) var(--es-space-4);
+  align-items: center;
+  margin: 0;
+  padding: var(--es-space-4);
+  border: 1px dashed var(--es-edge);
+}
+
+.es-run__note,
+.es-run__loading {
+  display: flex;
+  gap: var(--es-space-2);
+  align-items: center;
+  min-height: 12rem;
+  margin: 0;
+  padding: var(--es-space-4);
+  border: 1px dashed var(--es-edge);
+  color: var(--es-text-2);
+}
+
+.es-run__play {
+  min-width: 0;
+}
+
+/* While the game's code loads, its place is the height it will take (content.css, .es-c-game__loading[data-reserve]). */
+.es-run__loading {
+  min-height: clamp(30rem, 100svh - 6rem, 52rem);
+}
+
+/* ---------------------------------------------------------------------------------------------- a guess */
+
+.es-guess {
+  display: grid;
+  gap: var(--es-space-3);
+  max-width: var(--lesson-measure);
+  padding: var(--es-space-4) var(--es-space-6) var(--es-space-6);
+  border: 1px solid var(--es-edge);
+  background: var(--es-paper);
+}
+
+.es-guess[data-phase='asking'] {
+  box-shadow: inset 0 0 0 1px var(--es-edge);
+}
+
+.es-guess > p,
+.es-guess__keys,
+.es-guess__choice {
+  margin: 0;
+}
+
+.es-guess__label {
+  font-weight: 700;
+}
+
+.es-guess__ask {
+  font-size: var(--es-size-control);
+  line-height: 1.45;
+}
+
+.es-guess__rule,
+.es-guess__status,
+.es-guess__reads,
+.es-guess__run,
+.es-guess__source {
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-guess__slip,
+.es-guess__range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-4);
+}
+
+.es-guess__choice {
+  display: grid;
+  gap: var(--es-space-2);
+  padding: 0;
+  border: 0;
+}
+
+.es-guess__legend {
+  margin-bottom: var(--es-space-2);
+  font-weight: 700;
+}
+
+.es-guess__option {
+  display: flex;
+  gap: var(--es-space-3);
+  align-items: flex-start;
+  min-height: 2.75rem;
+  padding: var(--es-space-2) 0;
+  cursor: pointer;
+}
+
+.es-guess__option input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0.15rem 0 0;
+  accent-color: var(--es-paper-ink);
+}
+
+.es-guess__sure {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2) var(--es-space-3);
+  align-items: center;
+}
+
+.es-guess__sure-label {
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-guess__plates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+}
+
+.es-guess__actions {
+  display: flex;
+  gap: var(--es-space-3);
+}
+
+.es-guess__locked,
+.es-guess__verdict {
+  display: flex;
+  gap: var(--es-space-2);
+  align-items: center;
+  font-weight: 700;
+}
+
+.es-guess__locked svg,
+.es-guess__verdict svg {
+  width: 1.25em;
+  height: 1.25em;
+  flex: none;
+}
+
+.es-guess__reveal {
+  display: grid;
+  gap: var(--es-space-3);
+}
+
+.es-guess__reveal[data-ok='true'] .es-guess__verdict {
+  color: var(--es-status-ok);
+}
+
+.es-guess__keys {
+  display: grid;
+  gap: var(--es-space-1);
+}
+
+.es-guess__keys > div {
+  display: grid;
+  grid-template-columns: 7rem minmax(0, 1fr);
+  gap: var(--es-space-3);
+}
+
+.es-guess__keys dt {
+  color: var(--es-text-2);
+}
+
+.es-guess__keys dd {
+  margin: 0;
+  font-family: var(--es-font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.es-guess__working ol {
+  margin: var(--es-space-2) 0 0;
+  padding-inline-start: 1.4em;
+}
+
+.es-guess__working-head {
+  display: flex;
+  gap: var(--es-space-3);
+  align-items: center;
+  margin: 0;
+  font-weight: 700;
+}
+
+.es-guess__problem {
+  display: flex;
+  gap: var(--es-space-2);
+  color: var(--es-status-bad);
+}
+
+.es-guess__locked:focus-visible,
+.es-guess__verdict:focus-visible {
+  outline: 3px solid var(--es-focus);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------------------------- figures and notes */
+
+.es-lesson__figure {
+  display: grid;
+  gap: var(--es-space-2);
+  margin: 0;
+}
+
+.es-lesson__figure img {
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--es-paper-rule);
+  background: var(--es-paper);
+}
+
+.es-lesson__figure figcaption {
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------------------------------------- ways on */
+
+.es-lesson__way {
+  margin-top: var(--es-space-2);
+}
+
+.es-lesson__foot {
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  min-height: 3.5rem;
+  margin-inline: calc(var(--es-space-4) * -1);
+  padding: var(--es-space-1) var(--es-space-4);
+  border-top: 1px solid var(--es-edge);
+  background: var(--es-surface-1);
+}
+
+@media (min-height: 600px) {
+  .es-lesson__foot {
+    position: sticky;
+    bottom: 0;
+  }
+}
+
+/* The label names its target in full: a long part title wraps to a second line inside the bar, and is never cut at either end. */
+.es-lesson__foot-action {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 2.75rem;
+  padding: var(--es-space-1) var(--es-space-3);
+  border: 2px solid var(--es-marker-edge);
+  border-radius: var(--es-radius-control);
+  background: var(--es-marker);
+  color: var(--es-text-1);
+  font-size: var(--es-size-note);
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
+  text-decoration: none;
+  text-wrap: balance;
+}
+
+.es-lesson__foot-action:focus-visible {
+  outline: 3px solid var(--es-focus);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------------------------------- keep */
+
+.es-lesson__keep {
+  padding-top: var(--es-space-8);
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+.es-lesson__keep-title {
+  margin: var(--es-space-4) 0 0;
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-control);
+  font-weight: 700;
+}
+
+.es-lesson__carry {
+  display: grid;
+  gap: var(--es-space-2);
+  max-width: var(--lesson-measure);
+  margin: 0;
+  padding-inline-start: 1.4em;
+  line-height: 1.5;
+}
+
+.es-lesson__build {
+  max-width: var(--lesson-measure);
+  margin: 0;
+}
+
+.es-lesson__record {
+  display: grid;
+  gap: var(--es-space-1);
+  max-width: 100%;
+  padding: var(--es-space-3) var(--es-space-4);
+  overflow-x: auto;
+  border: 1px solid var(--es-paper-rule);
+  background: color-mix(in srgb, var(--es-surface-1) 45%, var(--es-paper));
+  user-select: text;
+}
+
+.es-lesson__record code {
+  font-family: var(--es-font-mono);
+  font-size: var(--es-font-mono-size);
+  font-variant-numeric: tabular-nums;
+}
+
+.es-lesson__keep-way {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-3);
+  align-items: flex-start;
+  margin-top: var(--es-space-2);
+}
+
+/* ---------------------------------------------------------------------------------------------- sources and the model's card */
+
+.es-lesson__sources {
+  display: grid;
+  gap: var(--es-space-4);
+  padding-top: var(--es-space-8);
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+.es-sources {
+  display: grid;
+  /* Two columns where the lesson's column is wide: a lesson with twenty claims would otherwise end in a page of sources. */
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr));
+  gap: var(--es-space-4) var(--es-space-8);
+  margin: 0;
+  padding-inline-start: 2em;
+  font-size: var(--es-size-note);
+  line-height: 1.5;
+}
+
+.es-sources__entry {
+  scroll-margin-top: var(--es-space-12);
+}
+
+.es-sources__entry:target {
+  outline: 3px solid var(--es-focus);
+  outline-offset: 4px;
+}
+
+.es-lesson__card {
+  display: grid;
+  gap: var(--es-space-3);
+}
+
+.es-lesson__card p {
+  margin: 0;
+}
+
+.es-lesson__card-title {
+  font-weight: 700;
+}
+
+.es-run__next .es-next__action {
+  font-family: var(--es-font-body);
+  font-size: inherit;
+  text-align: start;
+  cursor: pointer;
+}
+
+.es-run__next .es-next__action:focus-visible {
+  outline: 3px solid var(--es-focus);
+  outline-offset: 2px;
+}
+
+.es-run__note--folded {
+  min-height: 0;
+}
+
+/* Wherever a table sits (a list, a note), it scrolls inside the column and never widens the page: the hidden tag words inside it are
+   placed against it, so they scroll with it too. */
+.es-lesson .es-table {
+  position: relative;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.es-run__start .es-button {
+  max-width: 100%;
+  white-space: normal;
+  text-align: start;
+}
+
+.es-lesson__main > *,
+.es-lesson__sources > *,
+.es-sources__entry {
+  min-width: 0;
+}
+
+.es-sources,
+.es-claimref__quote,
+.es-claimref__fact {
+  overflow-wrap: anywhere;
+}
+
+.es-lesson pre {
+  position: relative;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+/* The Test's pass rule: one sentence, stated once, above the questions it governs. */
+.es-lesson__rule {
+  margin: var(--es-space-3) 0 0;
+  max-width: 68ch;
+  color: var(--es-text-1);
+}
+
+/* A second source of the same sentence: far enough from the first that their 44 px boxes do not overlap (WCAG 2.5.8), so each can be
+   reached and seen. */
+.es-claimchain {
+  margin-inline-start: 2rem;
+}

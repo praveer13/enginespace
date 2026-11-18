@@ -48,7 +48,7 @@ describe('an unknown grader build', () => {
     expect(found.status).toBe('fail')
     expect(found.summary).toBe('enginespace-grader 0.1.0 is not a build this site knows.')
     expect(found.problems[0]).toContain('has published no grader yet')
-    expect(found.problems[0]).toContain('W2-T10')
+    expect(found.problems[0]).not.toMatch(/W\d+-T\d+/)
   })
 
   test('cuts a version string from the file before it quotes it', () => {

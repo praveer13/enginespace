@@ -1,0 +1,187 @@
+/*
+ * Broken benchmark's result, in the dock (REDESIGN §2.6): the verdict, the ways on, the docket, the report read out and the real tools' ledger.
+ * It loads with the result and not before: the game's route carries none of it.
+ */
+
+/* ------------------------------------------------------------------------------------------------ the result */
+
+.es-bench-debrief {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+}
+
+.es-bench-debrief .es-debrief__verdict {
+  margin: 0;
+}
+
+.es-bench-debrief[data-verdict='Not yet'] .es-debrief__verdict {
+  color: var(--es-paper-ink-2);
+}
+
+.es-bench-debrief .es-debrief__sentence {
+  margin: 0;
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-bench-debrief .es-debrief__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2);
+}
+
+.es-bench-debrief .es-debrief__actions .es-button {
+  max-width: 100%;
+  white-space: normal;
+  text-align: left;
+}
+
+.es-bench-debrief__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-bench-debrief__body p {
+  margin: 0;
+}
+
+/* In a phone's pinned dock the ways on come straight under the verdict, so the move in hand is on the screen with it (P5). */
+@media (max-width: 63.999rem) {
+  .es-bench-debrief .es-debrief__actions {
+    order: 1;
+  }
+
+  .es-bench-debrief .es-debrief__sentence {
+    order: 2;
+  }
+
+  .es-bench-debrief .es-debrief__body {
+    order: 3;
+  }
+}
+
+.es-bench-docket {
+  overflow-x: auto;
+}
+
+.es-bench-docket table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.es-bench-docket caption {
+  padding-bottom: var(--es-space-1);
+  text-align: left;
+  font-size: var(--es-size-caption);
+  color: var(--es-text-2);
+}
+
+.es-bench-docket th,
+.es-bench-docket td {
+  padding: var(--es-space-1) var(--es-space-2) var(--es-space-1) 0;
+  border-bottom: 1px solid var(--es-paper-rule);
+  font-size: var(--es-size-caption);
+  font-weight: 400;
+  vertical-align: middle;
+}
+
+.es-bench-docket thead th {
+  border-bottom: 1px solid var(--es-edge);
+  font-weight: 700;
+}
+
+.es-bench-docket__unit {
+  display: block;
+  color: var(--es-text-2);
+  font-weight: 400;
+}
+
+.es-bench-docket__score {
+  text-align: right;
+}
+
+.es-bench-ruling__means {
+  margin: 0 0 var(--es-space-2);
+  color: var(--es-text-2);
+}
+
+.es-bench-ruling__subhead {
+  margin: var(--es-space-3) 0 var(--es-space-1);
+  font-size: var(--es-size-base);
+  font-weight: 700;
+}
+
+.es-bench-lines--ruling dt {
+  font-size: var(--es-size-caption);
+}
+
+.es-bench-verdict {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3em;
+  margin-right: var(--es-space-1);
+  font-weight: 700;
+}
+
+.es-bench-verdict__mark {
+  flex: none;
+  width: 1em;
+  height: 1em;
+  align-self: center;
+}
+
+.es-bench-verdict[data-ok='false'] {
+  color: var(--es-paper-ink-2);
+}
+
+.es-bench-instances {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-bench-instances > li {
+  min-width: 0;
+}
+
+.es-bench-production {
+  display: grid;
+  gap: var(--es-space-2);
+}
+
+.es-bench-production p {
+  margin: 0;
+}
+
+.es-bench-production ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-bench-flagsets {
+  display: grid;
+  gap: var(--es-space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-bench-more > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.es-bench-more[open] > summary {
+  margin-bottom: var(--es-space-2);
+}
+

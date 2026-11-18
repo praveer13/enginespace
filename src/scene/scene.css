@@ -12,7 +12,7 @@
   display: grid;
   grid-template: 'view' minmax(0, 1fr) / minmax(0, 1fr);
   overflow: hidden;
-  border-radius: var(--es-radius-plate);
+  border-radius: var(--es-radius-control);
   background-color: var(--es-surface-0);
   isolation: isolate;
 }
@@ -150,8 +150,8 @@
   background-color: var(--es-surface-1);
 }
 
-/* The selected fire is under the lamp: the active state's amber, and its filament as the edge. */
+/* The selected step: a darker ground and an ink rule round it (focus is ink in Data Book). */
 .es-selection__option[data-selected] {
-  background-color: var(--es-lamp);
-  box-shadow: inset 3px 0 0 var(--es-lamp-ring);
+  background-color: var(--es-surface-2);
+  box-shadow: inset 0 0 0 2px var(--es-text-1);
 }

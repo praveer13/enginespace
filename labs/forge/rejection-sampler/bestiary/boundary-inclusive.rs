@@ -4,15 +4,15 @@
 //! exactly on a boundary of the CDF went to the bucket before it. In integers the same slip is `<=` where `<` is right, in two places:
 //! the accept step (`u <= px`) and the walk over the weights (`draw <= running total`).
 //!
-//! Each slip moves a dish's probability by 1/65,536, which 20,000 draws do not show (packages/sim/spec/check.ts), so only the
-//! coins can tell it: `accept` (one coin too many is kept) and `pick` (the boundary draws go to the dish before) must fail it.
+//! Each slip moves a token's probability by 1/65,536, which 20,000 draws do not show (packages/sim/spec/check.ts), so only the
+//! coins can tell it: `accept` (one coin too many is accepted) and `pick` (the boundary draws go to the token before) must fail it.
 //! `residual` is the reference's and passes. `round` and `exact` may or may not see it, and bestiary.json does not ask them to.
 
 use crate::TOTAL;
 use kslab::Rng;
 
 pub fn accept(px: u32, _qx: u32, u: u32) -> bool {
-    // The mistake: the boundary u == px is kept too, and with px == 0 the coin 0 keeps a dish that p rules out.
+    // The mistake: the boundary u == px is accepted too, and with px == 0 the coin 0 accepts a token that p rules out.
     u <= px
 }
 
@@ -24,7 +24,7 @@ pub fn pick(weights: &[u32], draw: u32) -> usize {
     let mut running = 0;
     for (token, &weight) in weights.iter().enumerate() {
         running += weight;
-        // The mistake: a draw that lands on the running total goes to this dish and not to the next.
+        // The mistake: a draw that lands on the running total goes to this token and not to the next.
         if draw <= running {
             return token;
         }

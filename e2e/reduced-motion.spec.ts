@@ -7,8 +7,8 @@
  *     that repeats, or a transition, and no animation is running.
  *   - A 3D pass draws a first frame, comes to rest, and then asks for no animation frame at all: a counter on `requestAnimationFrame`
  *     reads the same after the scene has rested as it did when it did, for a second and a half.
- *   - The front page's game plays under it: Auto, which rings the bell by itself, is off until it is asked for (WCAG 2.2.2), the keys
- *     play the level to its debrief, and the bell's strike does not run.
+ *   - The front page's game plays under it: Auto-step, which steps by itself, is off until it is asked for (WCAG 2.2.2), the keys
+ *     play the level to its result, and nothing on the diagram is still moving.
  *   - A check that cannot fail proves nothing: the same scan and the same counter are run on a page that animates, and see it.
  *
  * The routes are the pull-request eight and what W1 added (e2e/routes.ts: W1-T36's sixteen pages, and the pages of the full service's
@@ -100,11 +100,14 @@ test.describe('at rest, nothing moves', () => {
 })
 
 test.describe('a 3D pass asks for no frame once it has settled', () => {
+  // At a desk's width: the step loop offers no 3D on a phone's (build B's finish review), and the front page and /play/loop are its pages.
+  test.use({ viewport: { width: 1280, height: 800 } })
   for (const route of ROUTES.filter(SCENE_IN_RUN)) {
     test(`${route}: a first frame is drawn, and then none is asked for`, async ({ page }) => {
       test.setTimeout(120_000)
       await countFrames(page)
-      await open(page, route)
+      // The sampler offers its 3D on the chain only, the level whose rows give depth something to carry (wave R's finish review).
+      await open(page, route === '/play/verifier' ? '/play/verifier?level=chain' : route)
       // The design page's specimen never says that it has settled (it is a demonstration, not a game), so it is waited for by its frames.
       await settled3d(page, { rested: route !== '/design' })
       const drawn = await framesAtRest(page)
@@ -116,19 +119,59 @@ test.describe('a 3D pass asks for no frame once it has settled', () => {
 })
 
 test.describe('the front page\'s game under reduced motion', () => {
-  test('Auto is off until it is asked for, the keys play the level, and the bell\'s strike does not run', async ({ page, context }) => {
+  test('Auto-step is off until it is asked for, the keys play the level, and nothing on the diagram moves', async ({ page, context }) => {
     await withSettings(context, { view3d: false })
     await open(page, '/')
-    await expect(page.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'false')
-    await front.start(page).focus()
-    await page.keyboard.press('Enter')
+    await expect(page.getByRole('button', { name: 'Auto-step' })).toHaveAttribute('aria-pressed', 'false')
     await playToTheDebrief(page)
-    await expect(front.verdict(page)).toHaveText('Well fired.')
-    // The strike of the bell and the printer's feed are CSS animations, 1 ms long under the setting, so none is still running.
+    await expect(front.verdict(page)).toHaveText('Passed.')
+    // The step's slabs and the readout's delta are drawn at their end under the setting, so none is still running.
     await expect.poll(async () => (await movingThings(page)).running).toEqual([])
-    expect(await page.evaluate(() => getComputedStyle(document.querySelector('.es-bell__body') as Element).animationDuration)).toBe('0.001s')
-    // Auto never started by itself: the clock moved by the one ring that the level took.
-    await expect(page.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'false')
+    // Auto-step never started by itself: the run took the one step the level asked for.
+    await expect(page.locator('[data-loop-readout] [data-readout-id="step"]')).toContainText('1')
+  })
+})
+
+/*
+ * R-T48: under reduced motion every duration token is 0, and a state that a learner reaches by acting (a popover, a disclosure, a lesson's
+ * run played to its debrief, a game's first-run strip stepped through) is drawn at its end: nothing is styled to move and nothing runs.
+ */
+test.describe('R-T48: states reached by acting are drawn at their end', () => {
+  test('the duration tokens are 0, and a popover and a disclosure open with nothing moving', async ({ page, context }) => {
+    await withSettings(context, { view3d: false })
+    await open(page, '/m/tr1/l2-nano-vllm-in-one-sitting')
+    await quiet(page)
+    const tokens = await page.evaluate(() => {
+      const style = getComputedStyle(document.documentElement)
+      return ['quick', 'step', 'feed', 'settle'].map((name) => style.getPropertyValue(`--es-dur-${name}`).trim())
+    })
+    expect(tokens, 'the duration tokens').toEqual(['0ms', '0ms', '0ms', '0ms'])
+    const mark = page.locator('.es-lesson .es-claimmark > a.es-pop__trigger').first()
+    await mark.focus()
+    await page.keyboard.press('Enter')
+    await expect(mark).toHaveAttribute('aria-expanded', 'true')
+    const summary = page.locator('.es-lesson details > summary').first()
+    if ((await summary.count()) > 0) {
+      await summary.focus()
+      await page.keyboard.press('Enter')
+    }
+    const found = await movingThings(page)
+    expect(found.styled, 'elements that are styled to move').toEqual([])
+    expect(found.running, 'animations that are running').toEqual([])
+  })
+
+  test("a game's first-run strip, stepped through to its end, and the page it leaves, hold nothing that moves", async ({ page, context }) => {
+    await withSettings(context, { view3d: false })
+    await open(page, '/play/pool')
+    await quiet(page)
+    for (let press = 0; press < 8; press++) {
+      const next = page.getByRole('button', { name: /^Next\b/ }).first()
+      if ((await next.count()) === 0 || !(await next.isVisible())) break
+      await next.click()
+    }
+    const found = await movingThings(page)
+    expect(found.styled, 'elements that are styled to move').toEqual([])
+    expect(found.running, 'animations that are running').toEqual([])
   })
 })
 

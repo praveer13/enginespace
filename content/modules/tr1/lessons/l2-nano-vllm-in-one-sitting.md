@@ -10,7 +10,7 @@ lanes: [B]
 games: [engine-floor]
 ---
 
-The quickest way to learn what an engine is made of is to read one small enough to hold in your head. nano-vllm is that engine. It serves one model from a Python library with no server, and it does the four jobs that every engine does: it keeps a queue of requests, decides what each step runs, manages the KV cache in blocks, and drives the GPU. The four jobs are four files. {{ks:T5.L7}} had you play the scheduler and {{ks:T5.L5}} had you write the block manager. Here you read both as someone else wrote them, and you meet the two other parts that those lessons left out.
+The quickest way to learn what an engine is made of is to read one small enough to hold in your head. nano-vllm is that engine: a Python library with no server, and the four jobs that every engine does, one file each. It keeps a queue of requests, decides what each step runs, manages the KV cache in blocks, and drives the GPU. {{ks:T5.L7}} had you play the scheduler and {{ks:T5.L5}} had you write the block manager. Here you read both as someone else wrote them, and meet the two parts that those lessons left out.
 
 Counted on 2026-11-05 at `bb823b3`, the four files are these.
 
@@ -21,7 +21,7 @@ Counted on 2026-11-05 at `bb823b3`, the four files are these.
 | The block manager | [`block_manager.py`](https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/block_manager.py) | the KV blocks, their reference counts, and the hash map that finds a shared prefix | 120 |
 | The model runner | [`model_runner.py`](https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/model_runner.py) | the model, the KV tensor, the CUDA graphs, each step's inputs, sampling, and the other ranks | 257 |
 
-Together they are 559 lines [derived], the sum of the column. The scheduler keeps its sequences in two deques, `waiting` and `running`. {{claim:nano-vllm.queues-are-deques}} The README calls the whole library about {{claim:nano-vllm.readme-lines}} of Python. Counting every Python file under `nanovllm/` with `wc -l` gives 1,385 lines [measured], the model and its layers included, so the four files are about two fifths of the library [derived]. Open the four files beside this page. Every excerpt below names its file, its lines and the pin in its first line, and the sentence before it links the same lines at that pin.
+Together they are 559 lines [derived], the sum of the column. The scheduler keeps its sequences in two deques, `waiting` and `running`. {{claim:nano-vllm.queues-are-deques}} The README calls the whole library about {{claim:nano-vllm.readme-lines}} of Python. Counting every Python file under `nanovllm/` with `wc -l` gives 1,385 lines [measured], the model and its layers included, so the four files are about two fifths of the library [derived]. Every excerpt names its file, lines and pin in its first line, and the sentence before it links them.
 
 ## The loop: schedule, run, postprocess
 
@@ -38,20 +38,19 @@ def step(self):
     return outputs, num_tokens
 ```
 
-Ask, run, tell. The scheduler says which sequences go in this step and whether the step is a prefill. The model runner runs them. The scheduler is told what came out. {{claim:nano-vllm.engine-step}} `generate` adds every prompt to the scheduler and then calls `step` until nothing is left. There is no thread behind it, no process in front of it and no queue between the caller and the loop: the caller's own thread does all of it, and the output is a list that appears when the last sequence has finished. It decodes token ids back into text once, at the very end, so nothing can stream. {{claim:nano-vllm.decode-at-the-end}} {{claim:nano-vllm.llm-is-the-engine}}
+Ask, run, tell. The scheduler says which sequences go in this step and whether the step is a prefill. The model runner runs them. The scheduler is told what came out. {{claim:nano-vllm.engine-step}} `generate` adds every prompt to the scheduler and then calls `step` until nothing is left. There is no thread behind it, no process in front of it and no queue between the caller and the loop: the caller's own thread does all of it. It decodes token ids back into text once, at the very end, so nothing can stream. {{claim:nano-vllm.decode-at-the-end}} {{claim:nano-vllm.llm-is-the-engine}}
 
-A request is a `Sequence` ([`sequence.py`](https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/sequence.py), 83 lines [measured]). It holds the token ids, a `block_table` that lists the KV blocks it owns, how many of its tokens are already in the KV cache (`num_cached_tokens`) and how many this step will add (`num_scheduled_tokens`). It is in one of three states, and you will want to remember the number: vLLM's requests have twelve. {{claim:nano-vllm.sequence-states}} {{claim:vllm.request.states}} The blocks it needs follow from its length and nothing else. {{claim:nano-vllm.sequence-blocks}} A block holds {{claim:nano-vllm.block-size}} by default, and the config insists that the size is a multiple of it.
+A request is a `Sequence` ([`sequence.py`](https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/sequence.py), 83 lines [measured]). It holds the token ids, a `block_table` that lists the KV blocks it owns, how many of its tokens are already in the KV cache (`num_cached_tokens`). It is in one of three states, and you will want to remember the number: vLLM's requests have twelve. {{claim:nano-vllm.sequence-states}} {{claim:vllm.request.states}} The blocks it needs follow from its length and nothing else. {{claim:nano-vllm.sequence-blocks}} A block holds {{claim:nano-vllm.block-size}} by default, and the config insists that the size is a multiple of it.
 
-Now a question about those blocks, because blocks are what make a prefix reusable, and the answer is not the one a token-level cache would give.
+Next, the scheduler. Two sequences are decoding, a new prompt arrives, and the scheduler is asked for its next step.
 
 :::predict
-id: tr1.l2.p1
-prompt: An earlier request with a 700-token prompt [estimated] has finished. A new request has a 700-token prompt [estimated] that shares its first 600 tokens [estimated] with the earlier one and then differs. With nano-vllm's blocks of 256 tokens [measured], how many of the new prompt's tokens does the model have to compute?
+id: tr1.l2.p2
+prompt: Two sequences are in the middle of decoding in nano-vllm, and a new prompt of 300 tokens [estimated] has just joined the waiting deque. The token budget of a step is large enough to hold it. How many tokens does the next step run?
 answer: { kind: numeric, unit: tokens, rel_tol: 0 }
-reveal: after-game
-kcs: [tr1.small-engine-anatomy]
+reveal: at-commit
+kcs: [tr1.phases-vs-one-budget]
 :::
-
 ## The scheduler: prefill first, then decode, never both
 
 The scheduler is 92 lines [measured]. The first half of [`Scheduler.schedule`](https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/scheduler.py#L29-L55) admits waiting prompts.
@@ -107,9 +106,19 @@ The decode half runs only when no prompt was waiting that could be admitted. Eac
 
 The last piece is [`postprocess`](https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/scheduler.py#L81-L92). It hashes the blocks the step filled, appends each sampled token, and frees the blocks of a sequence that hit the end-of-sequence token or its token limit. It also throws away the sampled token of any sequence whose prompt is not yet complete. The runner samples for every sequence of a prefill step, and only the chunk that finishes a prompt gives a first token. {{claim:nano-vllm.partial-chunk-no-token}}
 
+The answer is 300 tokens [derived]. The waiting prompt is admitted first, and a prefill step is returned before the running sequences are looked at, so the step holds only the new prompt and the two decoders get no token from it. The next step is a decode of three sequences, which holds three tokens [derived]. That is the whole of what the phrase "prefill or decode in a step" means, and it has a cost you can name: while a long prompt is being prefilled, every running sequence waits, so their inter-token latency includes the full prefill. {{ks:T5.L8}} had a name for the cure.
+
+One question on what a step holds, before the next part. It names its engine. For nano-vllm the rule is the one above. vLLM has no phases, only one token budget: it serves the running requests first, one token each, and then the waiting prompts out of what is left, cutting a prompt to fit. {{claim:vllm.scheduler.no-phases}} {{claim:vllm.scheduler.order}} The part "One budget, not two phases" shows why.
+
+:::item
+family: tr1.step-budget
+level: 2
+count: 1
+:::
+
 ## The block manager: blocks, hashes and a free list
 
-The block manager is 120 lines [measured], and [one method of it](https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/block_manager.py#L58-L73) answers the prediction.
+The block manager is 120 lines [measured], and [one method of it](https://github.com/GeeeekExplorer/nano-vllm/blob/bb823b3e06983d71485a8e1f23715ebd87d98ef8/nanovllm/engine/block_manager.py#L58-L73) decides how much of a shared prefix is reused.
 
 ```python
 # nanovllm/engine/block_manager.py, lines 58 to 73 at bb823b3
@@ -148,6 +157,18 @@ title: A buffer pool with a content address
 body: The block manager is a database's buffer pool. A fixed set of pages, a reference count on each, a free list, and a map from a page's identity to the frame that holds it, so that a page already in memory is found and pinned and not read again. A block's identity here is the hash of the tokens in it and of every block before it.
 breaks: A buffer pool finds a page by its id, and one page is one question. Here the identity is a chain, so a lookup is a walk that stops at the first block that differs, and the hit is always a prefix. A pool also never needs the page that comes after the hit to be computed, and the engine does.
 :::
+
+Now apply it to prompts of your own. An earlier request with a long prompt has finished, a new one shares most of it, and the question is how many tokens the model must compute.
+
+:::predict
+id: tr1.l2.p1
+prompt: An earlier request with a 700-token prompt [estimated] has finished. A new request has a 700-token prompt [estimated] that shares its first 600 tokens [estimated] with the earlier one and then differs. With nano-vllm's blocks of 256 tokens [measured], how many of the new prompt's tokens does the model have to compute?
+answer: { kind: numeric, unit: tokens, rel_tol: 0 }
+reveal: at-commit
+kcs: [tr1.small-engine-anatomy]
+:::
+
+The 700-token prompts [estimated] fill two whole blocks of 256 tokens, which are tokens 0 to 511 [derived], and 188 tokens of a third. The 600 shared tokens [estimated] cover the two whole blocks and 88 tokens of the third [derived]. Only whole blocks are hashed, so the earlier request left two blocks in the map and never hashed its third. The model computes 700 less 512 [derived], which is 188 tokens, and not the 100 [derived] that a cache with a granularity of one token would leave. The 88 tokens of the third block that really are shared are computed again [derived]. Bigger blocks make a prefix cheaper to look up and coarser to reuse, and vLLM's default block of {{claim:vllm.cache.block-size-default}} loses far less of a shared prefix than nano-vllm's {{claim:nano-vllm.block-size}}.
 
 ## The model runner: inputs, graphs and the one wait
 
@@ -199,19 +220,9 @@ Rank zero pickles the method name and its arguments into a shared-memory buffer,
 
 The shared buffer carries calls, and the tensors travel another way. The ranks join an NCCL process group at an address that is a literal in the source, {{claim:nano-vllm.nccl-init}} the layers exchange partial results over it, and the LM head gathers the ranks' logits to rank zero, which alone samples. {{claim:nano-vllm.logits-gather}} So the path of a request at two ranks has a new kind of stage: a hop between processes by shared memory, and a collective between two GPUs.
 
-## Before you play
+## Run it at two ranks
 
-Two questions are left to commit to before the second level. The first is the one about blocks above. The second is about the scheduler you just read. Two sequences are decoding, a new prompt arrives, and the scheduler is asked for its next step.
-
-:::predict
-id: tr1.l2.p2
-prompt: Two sequences are in the middle of decoding in nano-vllm, and a new prompt of 300 tokens [estimated] has just joined the waiting deque. The token budget of a step is large enough to hold it. How many tokens does the next step run?
-answer: { kind: numeric, unit: tokens, rel_tol: 0 }
-reveal: after-game
-kcs: [tr1.phases-vs-one-budget]
-:::
-
-Then play the second level, `nano-tp`: the same engine at two ranks. It is the first path in the module that crosses a process boundary, and it does so through shared memory and not a socket.
+The second level, `nano-tp`, is the same engine at two ranks. It is the first path in the module that crosses a process boundary, and it does so through shared memory and not a socket.
 
 :::game
 id: engine-floor
@@ -219,17 +230,11 @@ level: nano-tp
 mode: practice
 :::
 
-## Back to the predictions
-
-The first answer is 188 tokens [derived]. The 700-token prompts [estimated] fill two whole blocks of 256 tokens, which are tokens 0 to 511 [derived], and 188 tokens of a third. The 600 shared tokens [estimated] cover the two whole blocks and 88 tokens of the third [derived]. Only whole blocks are hashed, so the earlier request left two blocks in the map and never hashed its third. The new prompt's walk stops after two hits, because the loop never tries the last block anyway. The model computes 700 less 512 [derived], which is 188 tokens, and not the 100 [derived] that a cache with a granularity of one token would leave. The 88 tokens of the third block that really are shared are computed again [derived]. Bigger blocks make a prefix cheaper to look up and coarser to reuse, and vLLM's default block of {{claim:vllm.cache.block-size-default}} loses far less of a shared prefix than nano-vllm's {{claim:nano-vllm.block-size}}.
-
-The second answer is 300 tokens [derived]. The waiting prompt is admitted first, and a prefill step is returned before the running sequences are looked at, so the step holds only the new prompt and the two decoders get no token from it. The next step is a decode of three sequences, which holds three tokens [derived]. That is the whole of what the phrase "prefill or decode in a step" means, and it has a cost you can name: while a long prompt is being prefilled, every running sequence waits, so their inter-token latency includes the full prefill. {{ks:T5.L8}} had a name for the cure.
-
 ## One budget, not two phases
 
 vLLM's scheduler does not have the two phases. Its own code says so, in a comment above the loop: there is no "decoding phase" and no "prefill phase" in it, only the tokens each request has computed and the tokens it should have, and one token budget handed out so that every request catches up. {{claim:vllm.scheduler.no-phases}} Within a step it serves the running requests first and the waiting ones after them, out of the same budget. {{claim:vllm.scheduler.order}} Chunked prefill is on by default there, so a prompt that does not fit what is left of the budget is cut and carried on. {{claim:vllm.scheduler.chunked-prefill-default}}
 
-Run the second prediction's queue through both.
+Run the queue of two decoders and a new prompt through both.
 
 | The same queue | nano-vllm | vLLM v0.33.0 |
 |---|---|---|
@@ -247,6 +252,14 @@ title: nano-vllm is not a small vLLM
 body: nano-vllm borrows vLLM's names, a Scheduler, a BlockManager and a ModelRunner, and not its structure. It is an offline library with steps that are all prefill or all decode, blocks of 256 tokens [measured], one model and a loop that waits for every step. Learn the parts from it, and do not carry its scheduler, its block size or its loop into vLLM.
 :::
 
+One more question on the two schedulers.
+
+:::item
+family: tr1.step-budget
+level: 2
+count: 1
+:::
+
 ## What nano-vllm leaves out
 
 Every gap in the list below is a stage you will add to the path in the next lessons.
@@ -262,15 +275,9 @@ kind: notional-machine
 id: lifecycle
 :::
 
-## What to carry
-
-- An engine is a queue, a scheduler, a block manager and a model runner, joined by a loop that asks, runs and tells. Name which of the four owns any decision you read about.
-- A block is the unit of reuse, so the cache works at the granularity of its block size, and the last block of a prompt is always computed.
-- nano-vllm runs prefill or decode in a step. vLLM has one token budget for every request. Say which you are reading before you read a scheduler.
-
 ## Exit check
 
-This lesson tests two skills: naming what each part of a small engine owns (`tr1.small-engine-anatomy`), and saying how a scheduler that runs prefill or decode in a step differs from one token budget (`tr1.phases-vs-one-budget`). The exit ticket is three items on fresh seeds, and it tests the second skill: each gives a queue of running and waiting requests and a budget, names the engine, and asks what its next step holds. It is passed with at least two right (ASSESSMENT §4.2). The first skill is earned by the module's graded map, on its nano-vllm scenarios.
+Three questions on new numbers. Each gives a queue of running and waiting requests and a budget, names the engine, and asks what its next step holds. The graded map at the end of the module tests what each part owns, on its nano-vllm scenarios.
 
 :::item
 family: tr1.step-budget

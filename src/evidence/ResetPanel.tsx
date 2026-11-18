@@ -2,8 +2,8 @@ import * as Dialog from '@radix-ui/react-dialog'
 import { useState } from 'react'
 import { Button } from '@/design/components/Button'
 import { Readout } from '@/design/components/Readout'
-import { Stub } from '@/design/components/Stub'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
+import { Sheet, SheetLine } from '@/design/components/Sheet'
 import { saveFile } from './export'
 import { eraseDevice, exportAndSave } from './transfer'
 import type { Saved, TransferApi } from './transfer'
@@ -28,10 +28,10 @@ export function ErasedLines({ holds }: { holds: ResetPanelProps['holds'] }) {
   const count = (value: number) => <Readout value={value} tag="measured" size="sm" />
   return (
     <div className="es-xfer__lines">
-      <TicketLine note={count(holds.events)}>graded results</TicketLine>
-      <TicketLine note={count(holds.receipts)}>receipts</TicketLine>
-      <TicketLine note={count(holds.checkpoints)}>undo points</TicketLine>
-      <TicketLine>your settings, back to their defaults</TicketLine>
+      <SheetLine note={count(holds.events)}>graded results</SheetLine>
+      <SheetLine note={count(holds.receipts)}>receipts</SheetLine>
+      <SheetLine note={count(holds.checkpoints)}>undo points</SheetLine>
+      <SheetLine>your settings, back to their defaults</SheetLine>
     </div>
   )
 }
@@ -94,7 +94,7 @@ export function ResetPanel({ api, holds, onErased }: ResetPanelProps) {
         <Dialog.Portal>
           <Dialog.Overlay className="fixed inset-0 z-40 bg-surface-3 opacity-70" />
           <Dialog.Content className="fixed left-1/2 top-1/2 z-50 max-h-[calc(100vh-2rem)] w-[min(34rem,calc(100vw-2rem))] -translate-x-1/2 -translate-y-1/2 overflow-y-auto">
-            <Ticket
+            <Sheet
               as="div"
               width="full"
               hole={false}
@@ -109,9 +109,9 @@ export function ResetPanel({ api, holds, onErased }: ResetPanelProps) {
               state={problem === null ? 'default' : 'error'}
               error={problem}
               stub={
-                <Stub onClick={() => void erase()} loading={erasing}>
+                <PrimaryButton onClick={() => void erase()} loading={erasing}>
                   Erase everything
-                </Stub>
+                </PrimaryButton>
               }
             >
               <Dialog.Description>
@@ -135,7 +135,7 @@ export function ResetPanel({ api, holds, onErased }: ResetPanelProps) {
                   </Button>
                 </Dialog.Close>
               </div>
-            </Ticket>
+            </Sheet>
           </Dialog.Content>
         </Dialog.Portal>
       </Dialog.Root>

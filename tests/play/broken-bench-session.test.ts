@@ -93,8 +93,8 @@ describe('actions', () => {
 
   test('a flaw the court does not know is refused, and leaves the state as it was', () => {
     const before = start()
-    expect(() => benchReduce(before, { t: 'flaw', flaw: 'tail-latency' as Flaw })).toThrow('knows no flaw')
-    expect(() => benchReduce(before, { t: 'flaw', flaw: 'constructor' as Flaw })).toThrow('knows no flaw')
+    expect(() => benchReduce(before, { t: 'flaw', flaw: 'tail-latency' as Flaw })).toThrow('has no flaw')
+    expect(() => benchReduce(before, { t: 'flaw', flaw: 'constructor' as Flaw })).toThrow('has no flaw')
     expect(before.picks[0]).toBeNull()
   })
 
@@ -130,7 +130,7 @@ describe('actions', () => {
 
   test('no action follows the last ruling', () => {
     const done = benchGhost(benchLevel('due', 0))
-    expect(() => benchReduce(done, { t: 'view', v: 'rows' })).toThrow('has risen')
+    expect(() => benchReduce(done, { t: 'view', v: 'rows' })).toThrow('the run is over')
     const run = play('due', 0, rightAnswer)
     expect(() => applyAction(benchSession, run, { t: 'view', v: 'rows' })).toThrow('over')
   })
@@ -214,7 +214,7 @@ describe('grade and debrief', () => {
     const debrief = benchDebrief(run.state, ghost)
     expect(debrief.names).toEqual({ lever: slots[2].flaw })
     expect(debrief.sentence).toContain('the third case')
-    expect(debrief.sentence).toMatch(/^The court passed you/)
+    expect(debrief.sentence).toMatch(/^Enough reports stood to pass/)
     expect(debrief.sentence).not.toMatch(/\d/)
     for (const id of LEVEL_IDS) expect(benchDebrief(benchGhost(benchLevel(id, 0)), benchGhost(benchLevel(id, 0))).sentence).not.toMatch(/\d/)
   })

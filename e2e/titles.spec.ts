@@ -90,12 +90,13 @@ test.describe('a lab page', () => {
     })
   }
 
-  test('a lab that is not built yet keeps the heading its document has: `Lab tr1.fork`, and not `Lab`', async ({ page }) => {
+  test('a lab that is not published yet keeps the heading its document has: `Lab tr1.fork`, and not `Lab`', async ({ page }) => {
     await open(page, '/labs/tr1.fork')
     await mounted(page)
     await quiet(page)
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(labName('tr1.fork'))
-    await expect(page.locator('main')).toContainText(LAB_TASKS['tr1.fork'])
+    await expect(page.locator('main')).toContainText('Not published yet')
+    await expect(page.locator('main')).not.toContainText(LAB_TASKS['tr1.fork'])
   })
 
   test('a lab that the course does not have is titled for what it is', async ({ page, watch }) => {

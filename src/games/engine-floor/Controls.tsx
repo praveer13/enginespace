@@ -1,99 +1,58 @@
-import { useId, type ReactNode } from 'react'
+import { useContext, useEffect, useId, useRef } from 'react'
+import { FLOOR_COPY, FLOOR_QUESTION, GRADED_LINE, NO_SKIP, PATH_HEAD, PREDICT_HINT, READOUT_WORDS } from '@es/play/engine-floor/copy'
 import { ENGINE_NAMES } from '@es/play/engine-floor/engine'
-import type { FloorView, LaidView, TileView } from '@es/play/engine-floor/types'
-import { placeName } from '@es/play/engine-floor/words'
+import type { FloorView, TileView } from '@es/play/engine-floor/types'
+import { placeName, stageName } from '@es/play/engine-floor/words'
+import { RULES } from '@es/sim/lifecycle'
 import { Button } from '@/design/components/Button'
+import { DeltaChip } from '@/design/components/DeltaChip'
 import { Icon } from '@/design/components/Glyph'
-import { Stub } from '@/design/components/Stub'
-import { TapeLabel } from '@/design/components/TapeLabel'
-import { Ticket, TicketLine } from '@/design/components/Ticket'
+import { Marker } from '@/design/components/Marker'
+import { Stamp } from '@/design/components/Stamp'
+import { PrimaryButton } from '@/design/components/PrimaryButton'
+import { LessonGuessContext } from '@/games/kit/lessonGuess'
+import { useDeltas } from '@/games/kit/moments'
 import { Cite } from './Cite'
 import { Code } from './Code'
 import { HandoffGlyph } from './HandoffGlyph'
-import { handoffWords, plain } from './text'
+import { handoffWords, plain, readoutOf } from './text'
 import type { FloorRun } from './types'
 import { useFloorControls, type FloorControls } from './useFloorControls'
 import './floor.css'
 
 /*
- * Back of House's controls (GAMES.md §5 "Controls", §2.6 "Back of House"): HTML for every action, so a pointer, a keyboard and a screen
- * reader all reach the same things. Three tickets, in the order the learner uses them:
- *   - the order: the scenario the request is, and the prediction ("how many process boundaries does a sampled token cross?"), committed
- *     before anything is laid;
- *   - the tray: the hand-off cards, which a platform's chip narrows to the stages that start there. The cards are one tab stop and the
- *     arrows walk them (roving tabindex); Enter lays the one in hand, and focus goes to the next;
- *   - the path: the laid stages in order, an ordered list whose selected row can move up or down or take the path back, and the stub that
- *     runs it (R). When a run stopped, the ticket says where and why, from the stage's source, and offers to take the path back to it.
- * Backspace takes the last stage off. Nothing here is timed, and nothing locks: the tray waits behind the prediction and nowhere else.
+ * Request path's dock (REDESIGN §3.5, §3.6), top to bottom: the scenario card (the engine, the pin and what the request asks), the
+ * prediction while it is open, why a run stopped once one has, then the stage list (filter chips, one for each process, a field that
+ * filters by typed text, and a scrolling list of 44 px tiles, each laid by a press) and the path's two actions: Remove last, and Run the
+ * path, the amber control once there is a stage to run. The readout strip is under the dock (ReadoutStrip, below).
  *
- * The graded `map` (W1-T19) uses the same pieces with one difference in what they say: it allows one run, so the order names the engine
- * (its title is the level's, not an engine's), the path says that the stub is final, and once the run has been judged the path can no
- * longer be edited.
+ * Every action is HTML, so a pointer, a keyboard and a screen reader reach the same things. The tiles are one tab stop and the arrows walk
+ * them (roving tabindex); the field's Down arrow enters the list. Backspace takes the last stage off and R runs the path (Game.tsx).
  *
- * `useFloorControls` (useFloorControls.ts) holds the focus rules, and the pieces here draw it.
+ * The graded map uses the same pieces with one difference in what they say: it allows one run, it has no undo and no live readout, and its
+ * pass rule stands in the dock before the run.
  */
 
-/** What the request is, in words: the scenario of the level, one line for each thing GAMES.md §5 varies. */
-function scenarioLines(view: FloorView): { term: string; value: string }[] {
+/** What the request is, in words: the scenario of the level, one short line for each thing GAMES.md §5 varies. */
+function scenarioWords(view: FloorView): string[] {
   const { scenario } = view
   return [
-    // A practice level is titled for its engine. The graded level is not, because its engine is drawn: the order says which.
-    ...(view.level === 'map' ? [{ term: 'engine', value: ENGINE_NAMES[scenario.engine] }] : []),
-    { term: 'request', value: scenario.streaming ? 'streams its answer' : 'waits for the whole answer' },
-    { term: 'ranks', value: scenario.tp === 1 ? 'one rank' : 'two ranks' },
-    { term: 'samples', value: scenario.n === 1 ? 'one sample' : 'two samples' },
-    { term: 'prefix', value: scenario.prefixHit ? 'a prefix hit' : 'no prefix hit' },
-    { term: 'client', value: scenario.abort ? 'leaves mid-stream' : 'stays to the end' },
+    scenario.streaming ? 'streams its answer' : 'waits for the whole answer',
+    scenario.tp === 1 ? 'one rank' : 'two ranks',
+    scenario.n === 1 ? 'one sample' : 'two samples',
+    scenario.prefixHit ? 'a prefix hit' : 'no prefix hit',
+    scenario.abort ? 'the client leaves mid-stream' : 'the client stays to the end',
   ]
 }
 
-function Prediction({ controls }: { controls: FloorControls }) {
-  const { view, choices, pick, setPick } = controls
-  const question = useId()
-  if (view.prediction !== null) {
-    return (
-      <p className="flex flex-wrap items-baseline gap-x-2" data-prediction="">
-        <TapeLabel size="sm">your prediction</TapeLabel>
-        <span className="font-numeric text-size-plate">{view.prediction}</span>
-        <span>process {view.prediction === 1 ? 'boundary' : 'boundaries'} on a sampled token&apos;s way to the client</span>
-      </p>
-    )
-  }
-  return (
-    <div className="flex flex-col gap-2" data-prediction="">
-      <p id={question} className="font-bold">
-        How many process boundaries does a sampled token cross on its way to the client?
-      </p>
-      <p className="text-text-2">Count each hop from one process to another, the last one into the client included. A hop between threads of one process does not count.</p>
-      <div role="group" aria-labelledby={question} className="flex flex-wrap gap-2">
-        {choices.map((n) => (
-          <Button key={n} variant={pick === n ? 'ink' : 'plate'} aria-pressed={pick === n} aria-label={`${n} ${n === 1 ? 'boundary' : 'boundaries'}`} onClick={() => setPick(n)}>
-            {n}
-          </Button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/**
- * The order: the scenario, the pin it is read at, and the prediction. Its stamped headline leads the paper, with no head line over it
- * (DESIGN.md, Tickets): the pin prints on the foot line.
- */
-export function OrderTicket({ controls }: { controls: FloorControls }) {
-  const { view, commit, pick } = controls
+/** The scenario card: the engine at its pin, and what this request asks. Once the prediction is in, the level's note opens under it. */
+function ScenarioCard({ view }: { view: FloorView }) {
   const pin = view.pin
   return (
-    <Ticket
-      as="section"
-      width="full"
-      hole={false}
-      titleAs="h3"
-      title={view.title}
-      foot={[`${pin.title} · ${pin.repo} at ${pin.ref.slice(0, 7)}`, `read ${pin.readOn}`]}
-      stub={view.step === 'predict' ? <Stub disabled={pick === null} onClick={commit}>Commit the prediction</Stub> : undefined}
+    <section
+      className="es-floor-card"
+      aria-label="The request"
       data-floor-order=""
-      // The request, as the card says it: the engine and the five things about it, for a test or a script that reads the page.
       data-engine={view.scenario.engine}
       data-streaming={view.scenario.streaming}
       data-tp={view.scenario.tp}
@@ -101,107 +60,241 @@ export function OrderTicket({ controls }: { controls: FloorControls }) {
       data-prefix-hit={view.scenario.prefixHit}
       data-n={view.scenario.n}
     >
+      <p className="es-floor-card__engine">
+        <strong>{ENGINE_NAMES[view.scenario.engine]}</strong>{' '}
+        <span className="es-floor-card__pin">
+          <code>{pin.repo}</code> at <code>{pin.ref.slice(0, 7)}</code>, read {pin.readOn}
+        </span>
+      </p>
+      <p className="es-floor-card__asks">{scenarioWords(view).join(' · ')}</p>
       {view.prediction === null ? null : (
-        <p className="max-w-prose" data-floor-prompt="">
-          <Code>{view.prompt}</Code>
-        </p>
+        <details className="es-floor-card__note" data-floor-prompt="">
+          <summary>How this engine is built</summary>
+          <p>
+            <Code>{view.prompt}</Code>
+          </p>
+        </details>
       )}
-      <div className="flex flex-col" aria-label="The request" role="group">
-        {scenarioLines(view).map((line) => (
-          <TicketLine key={line.term} note={line.value}>
-            {line.term}
-          </TicketLine>
-        ))}
-      </div>
-      <Prediction controls={controls} />
-    </Ticket>
+    </section>
   )
 }
 
-/** A hand-off card: its mark and words on the head line, the engine's label, and where it starts and where it ends. */
+/** The prediction: the session's first ask, required, with the line that says why it cannot be skipped. Once in, one quiet line. */
+function Prediction({ controls, shown }: { controls: FloorControls; shown: boolean }) {
+  const { view, choices, pick, setPick, commit } = controls
+  const question = useId()
+  // In a lesson whose guess asks this question, the lesson's words stand in, and how sure the learner is goes with it.
+  const lesson = useContext(LessonGuessContext)
+  if (view.prediction !== null) {
+    return (
+      <p className="es-floor-said" data-prediction="">
+        Your prediction: <span className="font-numeric">{view.prediction}</span> process {view.prediction === 1 ? 'boundary' : 'boundaries'}.
+      </p>
+    )
+  }
+  if (!shown) {
+    return (
+      <p className="es-floor-said" data-prediction="" data-waiting="">
+        The prediction comes after the parts: name them first, then guess.
+      </p>
+    )
+  }
+  return (
+    <section className="es-floor-predict" aria-labelledby={question} data-prediction="">
+      {lesson?.label === undefined ? null : <p className="es-floor-predict__label">{lesson.label}</p>}
+      <h3 id={question} className="es-floor-predict__ask">
+        {lesson?.ask ?? FLOOR_QUESTION}
+      </h3>
+      <p className="es-floor-predict__hint">{PREDICT_HINT}</p>
+      <div role="group" aria-labelledby={question} className="es-floor-predict__choices">
+        {choices.map((n) => (
+          <Button key={n} variant={pick === n ? 'ink' : 'plate'} aria-pressed={pick === n} aria-label={`${n} ${n === 1 ? 'boundary' : 'boundaries'}`} onClick={() => setPick(n)}>
+            {n}
+          </Button>
+        ))}
+      </div>
+      {lesson?.sure}
+      <div className="es-floor-predict__commit">
+        <PrimaryButton disabled={pick === null} onClick={commit}>
+          Commit the prediction
+        </PrimaryButton>
+      </div>
+      <p className="es-floor-predict__why" data-floor-no-skip="">
+        {NO_SKIP}
+      </p>
+    </section>
+  )
+}
+
+/** Why the last run stopped: the row, the rule in the engine's terms with the places (or the pinned source), and the mechanism laid there. */
+function StopNote({ controls }: { controls: FloorControls }) {
+  const { view, takeBack } = controls
+  const stop = view.stop
+  const note = useRef<HTMLElement>(null)
+  // A run that stopped brings its reason into view in the dock, where the list may have scrolled it away.
+  const at = stop?.at ?? null
+  const runs = view.runs
+  useEffect(() => {
+    if (at !== null) note.current?.scrollIntoView({ block: 'nearest' })
+  }, [at, runs])
+  if (stop === null) return null
+  return (
+    <section ref={note} aria-label="Why the request stopped" className="es-floor-stop" data-stop={stop.failure} data-floor-stop="">
+      <p className="es-floor-stop__head">
+        <Icon name="alert" className="es-floor-stop__icon" />
+        <span>
+          Stopped at stage <span className="font-numeric">{stop.at + 1}</span>. {stop.failure === 'path' ? PATH_HEAD : RULES[stop.failure]}
+        </span>
+      </p>
+      <p className="es-floor-stop__why">
+        <Code>{stop.sentence}</Code>
+      </p>
+      <p className="es-floor-stop__wrong" data-floor-wrong-mechanism={stop.laid.mechanism}>
+        <HandoffGlyph mechanism={stop.laid.mechanism} className="es-floor-inline-glyph" /> The mechanism laid there: <strong>{handoffWords(stop.laid.mechanism)}</strong>
+        {stop.expected === null ? '.' : stop.expected.mechanism === stop.laid.mechanism ? ', the same as the engine’s; the place is what is wrong.' : <>; the engine has {handoffWords(stop.expected.mechanism)} there.</>}
+      </p>
+      <details className="es-floor-stop__more">
+        <summary>The two stages and their sources</summary>
+        {stop.expected === null ? (
+          <p>The request is already back where it began, so the path is complete without this stage.</p>
+        ) : (
+          <Cite title={`What ${ENGINE_NAMES[view.pin.engine]} does here`} note={stop.expected} />
+        )}
+        <Cite title="What was laid" note={stop.laid} />
+      </details>
+      {view.done ? null : (
+        <Button size="sm" onClick={() => takeBack(stop.at)}>
+          Take the path back to stage {stop.at + 1}
+        </Button>
+      )}
+    </section>
+  )
+}
+
+/** A tile of the stage list: its mark and mechanism, its name as code, and where it runs. A press lays it. */
 function Tile({ tile, onLay, tabIndex }: { tile: TileView; onLay: () => void; tabIndex: number }) {
   return (
-    <Ticket
-      as="button"
-      compact
-      hole={false}
-      width="full"
+    <button
+      type="button"
       className="es-floor-tile"
       tabIndex={tabIndex}
       data-stage={tile.id}
       aria-label={`Lay ${handoffWords(tile.mechanism)}: ${plain(tile.label)}. From ${placeName(tile.from)} to ${placeName(tile.to)}.`}
       onClick={onLay}
-      head={
-        <span className="flex items-center gap-1.5">
-          <HandoffGlyph mechanism={tile.mechanism} className="size-4 flex-none" />
-          {handoffWords(tile.mechanism)}
-        </span>
-      }
-      foot={[placeName(tile.from), `to ${placeName(tile.to)}`]}
     >
-      <span className="block">
-        <Code>{tile.label}</Code>
+      <span className="es-floor-tile__line">
+        <HandoffGlyph mechanism={tile.mechanism} className="es-floor-tile__glyph" />
+        <span className="es-floor-tile__mech">{handoffWords(tile.mechanism)}</span>
+        <code className="es-floor-tile__name">{stageName(tile.label)}</code>
       </span>
-    </Ticket>
+      <span className="es-floor-tile__where">
+        {placeName(tile.from)}
+        {placeName(tile.from) === placeName(tile.to) ? null : <> → {placeName(tile.to)}</>}
+      </span>
+    </button>
   )
 }
 
-/** The tray: the stages left to lay, narrowed by a platform. */
-export function Tray({ controls }: { controls: FloorControls }) {
-  const { view, platforms, filter, setFilter, tiles, tabStop, tray, chips, onTrayKey, lay } = controls
-  // Until the prediction is written the tray is closed, and its cards are not shown: their places would answer it. Once the ticket is
-  // home it is closed again: the cards left in it are stages of other engines, which the debrief sets beside this one's.
+/** The stage list (the session's tray): what can happen next, filtered by a process and by typed text. */
+export function StageList({ controls, ring }: { controls: FloorControls; ring: string | null }) {
+  const { view, platforms, filter, setFilter, query, setQuery, tiles, tabStop, tray, chips, onTrayKey, lay } = controls
+  const headId = useId()
+  const fieldId = useId()
   if (view.step !== 'lay') {
     return (
-      <section aria-label="The tray: stages to lay" className="es-floor-tray flex flex-col gap-3" data-floor-tray="" data-count={view.tray.length}>
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <TapeLabel>The tray</TapeLabel>
-          <span className="text-text-2">
-            {view.step === 'predict'
-              ? 'The tray opens when the prediction is written down.'
-              : view.served
-                ? view.level === 'map'
-                  ? 'The ticket is home. The stages left in the tray are not on this request’s path.'
-                  : 'The ticket is home. The stages left in the tray belong to other engines.'
-                : 'The run is over, and the tray is closed.'}
-          </span>
-        </div>
+      <section aria-labelledby={headId} className="es-floor-stages" data-floor-stages="" data-floor-tray="" data-count={view.tray.length}>
+        <h3 id={headId} className="es-floor-stages__head">
+          Stages
+        </h3>
+        <p className="es-floor-stages__closed">
+          {view.step === 'predict'
+            ? 'The stage list opens when the prediction is in.'
+            : view.served
+              ? view.level === 'map'
+                ? 'The request reached the client. The stages left are not on this request’s path.'
+                : 'The request reached the client. The stages left belong to other engines.'
+              : 'The run is over, and the stage list is closed.'}
+        </p>
       </section>
     )
   }
   return (
-    <section aria-label="The tray: stages to lay" className="es-floor-tray flex flex-col gap-3" data-floor-tray="" data-count={view.tray.length}>
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-        <TapeLabel>The tray</TapeLabel>
-        <span className="text-text-2">
-          <span className="font-numeric">{view.tray.length}</span> {view.tray.length === 1 ? 'stage' : 'stages'} left
+    <section aria-labelledby={headId} className="es-floor-stages" data-floor-stages="" data-count={view.tray.length}>
+      <div className="es-floor-stages__top">
+        <h3 id={headId} className="es-floor-stages__head">
+          Stages
+        </h3>
+        <span className="es-floor-stages__count">
+          <span className="font-numeric">{tiles.length}</span>
+          {tiles.length === view.tray.length ? null : (
+            <>
+              {' '}
+              of <span className="font-numeric">{view.tray.length}</span>
+            </>
+          )}{' '}
+          shown
         </span>
       </div>
-      <div ref={chips} role="group" aria-label="Show the stages that start on" className="flex flex-wrap gap-2">
-        <Button size="sm" variant={filter === null ? 'ink' : 'plate'} aria-pressed={filter === null} onClick={() => setFilter(null)}>
-          All
-        </Button>
-        {platforms.map((platform) => (
-          <Button
-            key={platform.key}
-            size="sm"
-            variant={filter === platform.key ? 'ink' : 'plate'}
-            aria-pressed={filter === platform.key}
-            onClick={() => setFilter(platform.key)}
-          >
-            {platform.key === 'GPU' ? 'the line · GPU' : platform.key}
-            {platform.here ? <span className="text-size-caption"> · here</span> : null}
-            <span className="font-numeric text-size-caption" aria-hidden="true">
-              {' '}
-              {platform.count}
-            </span>
-          </Button>
-        ))}
+      <div className="es-floor-filters">
+        <label htmlFor={fieldId} className="sr-only">
+          Filter the stages by words
+        </label>
+        <input
+          id={fieldId}
+          type="search"
+          className="es-floor-filter"
+          placeholder="Filter by words"
+          autoComplete="off"
+          spellCheck={false}
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key !== 'ArrowDown') return
+            event.preventDefault()
+            tray.current?.querySelector<HTMLButtonElement>('button')?.focus()
+          }}
+          data-floor-filter=""
+        />
+        <div ref={chips} role="group" aria-label="Show the stages that start in" className="es-floor-chips">
+          <button type="button" className="es-floor-chip" aria-pressed={filter === null} onClick={() => setFilter(null)}>
+            All
+          </button>
+          {platforms.map((platform) => (
+            <button key={platform.key} type="button" className="es-floor-chip" aria-pressed={filter === platform.key} onClick={() => setFilter(filter === platform.key ? null : platform.key)}>
+              {platform.key}
+              {platform.here ? <span className="es-floor-chip__here"> · here</span> : null}
+              <span className="es-floor-chip__count font-numeric" aria-hidden="true">
+                {platform.count}
+              </span>
+            </button>
+          ))}
+        </div>
       </div>
-      <ul ref={tray} onKeyDown={onTrayKey} data-native-keys="arrows" className="es-floor-tiles">
+      {tiles.length === 0 ? (
+        <p className="es-floor-stages__none" role="status">
+          No stage matches.{' '}
+          <button
+            type="button"
+            className="es-floor-link"
+            onClick={() => {
+              setQuery('')
+              setFilter(null)
+            }}
+          >
+            Show every stage
+          </button>
+        </p>
+      ) : null}
+      <ul ref={tray} onKeyDown={onTrayKey} data-native-keys="arrows" className="es-floor-tiles" data-floor-tray="" aria-label="Stages you can lay">
         {tiles.map((tile, index) => (
-          <li key={tile.id} className="min-w-0">
-            <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={() => lay(tile.id, index)} />
+          <li key={tile.id} className="es-floor-tiles__item">
+            {ring === tile.id ? (
+              <Marker kind="ring" word="first move" className="es-floor-ring">
+                <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={() => lay(tile.id, index)} />
+              </Marker>
+            ) : (
+              <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={() => lay(tile.id, index)} />
+            )}
           </li>
         ))}
       </ul>
@@ -209,150 +302,84 @@ export function Tray({ controls }: { controls: FloorControls }) {
   )
 }
 
-const STATE_WORDS: Readonly<Record<LaidView['state'], string>> = { ran: 'held', struck: 'stopped the ticket', pending: 'not run yet' }
-
-/** One laid stage: its number, its mark and words, and what the last run found of it. The selected row offers to move. */
-function PathRow({ stage, selected, controls }: { stage: LaidView; selected: boolean; controls: FloorControls }) {
-  const { view, select, move, takeBack, rowStop } = controls
-  const last = view.laid.length - 1
+/** Run the path and Remove last, with what a run allows. */
+function PathActions({ controls }: { controls: FloorControls }) {
+  const { view, unlay, sendIt } = controls
+  if (view.step !== 'lay') return null
   return (
-    <li className="es-floor-row" data-state={stage.state} data-selected={selected || undefined}>
-      <button
-        type="button"
-        className="es-floor-row__main"
-        aria-pressed={selected}
-        tabIndex={stage.index === rowStop ? 0 : -1}
-        aria-label={`Stage ${stage.index + 1}, ${STATE_WORDS[stage.state]}: ${handoffWords(stage.mechanism)}, ${plain(stage.label)}. From ${placeName(stage.from)} to ${placeName(stage.to)}.`}
-        onClick={() => select(stage.index)}
-      >
-        <span className="es-floor-row__no font-numeric" aria-hidden="true">
-          {String(stage.index + 1).padStart(2, '0')}
-        </span>
-        <HandoffGlyph mechanism={stage.mechanism} className="es-floor-row__glyph" />
-        <span className="es-floor-row__text">
-          <span className="es-type-ticket text-size-caption">{handoffWords(stage.mechanism)}</span>
-          <span>
-            <Code>{stage.label}</Code>
-          </span>
-          <span className="text-text-2 text-size-caption">
-            {placeName(stage.from)} to {placeName(stage.to)}
-          </span>
-        </span>
-        <span className="es-floor-row__mark" aria-hidden="true">
-          {stage.state === 'ran' ? <Icon name="check" className="size-5" /> : stage.state === 'struck' ? <Icon name="strike" className="size-5" /> : null}
-        </span>
-      </button>
-      {selected && !view.done ? (
-        <div className="es-floor-row__tools" role="group" aria-label={`Stage ${stage.index + 1}`}>
-          <Button size="sm" disabled={stage.index === 0} onClick={() => move(stage.index, -1)}>
-            Move up
-          </Button>
-          <Button size="sm" disabled={stage.index === last} onClick={() => move(stage.index, 1)}>
-            Move down
-          </Button>
-          <Button size="sm" onClick={() => takeBack(stage.index)}>
-            Take the path back to here
-          </Button>
-        </div>
-      ) : null}
-    </li>
-  )
-}
-
-/** Why the last run stopped, from the stage's source, with the way back. */
-function StopNote({ controls }: { controls: FloorControls }) {
-  const { view, takeBack } = controls
-  const stop = view.stop
-  if (stop === null) return null
-  return (
-    <section aria-label="Why the ticket stopped" className="es-floor-stop" data-stop={stop.failure} data-floor-stop="">
-      <p className="es-type-ticket es-floor-stop__head">
-        <Icon name="alert" className="size-5 flex-none" />
-        <span>
-          The ticket stopped at stage <span className="font-numeric">{stop.at + 1}</span>
-          {stop.failure === 'path' ? ': not the engine’s next.' : `: the ${stop.failure} rule.`}
-        </span>
-      </p>
-      <p className="max-w-prose">
-        <Code>{stop.sentence}</Code>
-      </p>
-      {stop.expected === null ? (
-        <p>The request is already back where it began, so the path is complete without this stage.</p>
-      ) : (
-        <Cite title={`What ${ENGINE_NAMES[view.pin.engine]} does here`} note={stop.expected} />
-      )}
-      <Cite title="What was laid" note={stop.laid} />
-      {view.done ? null : (
-        <div>
-          <Button size="sm" onClick={() => takeBack(stop.at)}>
-            Take the path back to where it stopped
-          </Button>
-        </div>
-      )}
-    </section>
-  )
-}
-
-/** The path: the laid stages in order, the stub that runs them, and what a run found. */
-export function PathTicket({ controls }: { controls: FloorControls }) {
-  const { view, selected, sendIt, unlay, send, rows, onRowKey } = controls
-  const word = view.laid.length === 1 ? 'stage' : 'stages'
-  return (
-    <Ticket
-      as="section"
-      width="full"
-      hole={false}
-      head="Path"
-      meta={`${view.laid.length} ${word} laid`}
-      foot={[view.runs === 0 ? 'not run yet' : `${view.runs} ${view.runs === 1 ? 'run' : 'runs'}`, `${view.reached} held`]}
-      stub={
-        <div ref={send}>
-          <Stub disabled={!view.canRun} onClick={sendIt}>
-            Run the path
-          </Stub>
-        </div>
-      }
-      data-floor-path=""
-    >
-      {view.laid.length === 0 ? (
-        <p className="text-text-2" data-empty="">
-          Nothing is laid. The first stage starts where the request begins, at <code className="es-type-mono">{placeName(view.entry)}</code>.
-        </p>
-      ) : (
-        <ol ref={rows} onKeyDown={onRowKey} data-native-keys="ArrowUp ArrowDown Home End" className="es-floor-rows" aria-label="The laid path, in order">
-          {view.laid.map((stage) => (
-            <PathRow key={stage.id} stage={stage} selected={selected === stage.index} controls={controls} />
-          ))}
-        </ol>
-      )}
-      <div className="flex flex-wrap items-center gap-3">
-        <Button size="sm" disabled={!view.canUnlay} aria-keyshortcuts="Backspace" onClick={unlay}>
-          Take the last stage off
+    <div className="es-floor-actions" data-floor-path="">
+      <div className="es-floor-actions__row">
+        <PrimaryButton disabled={!view.canRun} onClick={sendIt}>
+          Run the path
+        </PrimaryButton>
+        <Button size="sm" variant="plate" disabled={!view.canUnlay} aria-keyshortcuts="Backspace" onClick={unlay}>
+          Remove last
         </Button>
       </div>
-      {view.runsAllowed === 1 && !view.done ? (
-        <p className="text-text-2" data-floor-once="">
-          One run. The ticket goes once, and the level is over when it does, so lay every stage you mean to before you pull the stub.
+      {view.runsAllowed === 1 ? (
+        <p className="es-floor-actions__once" data-floor-once="">
+          One run: lay every stage you mean to before you run the path.
         </p>
       ) : null}
+    </div>
+  )
+}
+
+/** The graded map's line before its run: one run, no undo, no live readout, and the pass rule. */
+function GradedNote({ view, mode }: { view: FloorView; mode: FloorRun['mode'] }) {
+  if (view.level !== 'map' || view.done) return null
+  return (
+    <p className="es-floor-graded" data-floor-graded-note={mode}>
+      {mode === 'graded' ? <>{GRADED_LINE} </> : null}
+      <strong>Pass rule:</strong> {FLOOR_COPY.map.passRule}
+    </p>
+  )
+}
+
+/** The dock, in its order. `ring` is the stage the first run points at, if any. */
+export function Controls({ run, ring = null }: { run: FloorRun; ring?: string | null }) {
+  const controls = useFloorControls(run)
+  const { view } = controls
+  return (
+    <div className="es-floor-dock" data-floor-controls="" data-step={view.step}>
+      <ScenarioCard view={view} />
+      <GradedNote view={view} mode={run.mode} />
+      <Prediction controls={controls} shown={run.intro.askShown} />
       <StopNote controls={controls} />
-    </Ticket>
+      <StageList controls={controls} ring={ring} />
+      <PathActions controls={controls} />
+    </div>
   )
 }
 
 /**
- * The controls of the page. `top` is a line above the order, where the level says what mode it is in, and `rail` is what the page puts at
- * the foot of them: the levels (LevelRail.tsx). Both are the page's, so the controls do not know the game's levels or its modes.
+ * The readout strip (REDESIGN §3.5): stages laid · boundaries crossed · copies · syncs, counts of the laid path in the numeric face, with one
+ * stamp for the strip and each change beside its number for a second. A graded run has no live readout, and the strip says so.
  */
-export function Controls({ run, top, rail }: { run: FloorRun; top?: ReactNode; rail?: ReactNode }) {
-  const controls = useFloorControls(run)
+export function ReadoutStrip({ view, mode }: { view: FloorView; mode: FloorRun['mode'] }) {
+  const items = readoutOf(view)
+  const deltas = useDeltas(Object.fromEntries(items.map((item) => [item.id, item.value])))
+  if (mode === 'graded' && !view.done) {
+    return (
+      <p className="es-floor-noreadout" data-floor-readout="" data-hidden="">
+        No live readout in a graded run: the counts come with the result.
+      </p>
+    )
+  }
   return (
-    <div className="flex flex-col gap-4" data-floor-controls="">
-      {top}
-      <OrderTicket controls={controls} />
-      <Tray controls={controls} />
-      <PathTicket controls={controls} />
-      {rail}
+    <div className="es-floor-strip" data-floor-readout="">
+      <dl className="es-floor-strip__list">
+        {items.map((item) => (
+          <div key={item.id} className="es-floor-strip__item" data-readout-id={item.id}>
+            <dt className="es-floor-strip__label">{READOUT_WORDS[item.id]}</dt>
+            <dd className="es-floor-strip__value font-numeric">
+              {item.value}
+              {deltas[item.id] === undefined ? null : <DeltaChip key={deltas[item.id].key} value={deltas[item.id].value} className="es-floor-strip__delta" />}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <Stamp word="derived" className="es-floor-strip__stamp" />
     </div>
   )
 }

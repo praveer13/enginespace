@@ -1,7 +1,8 @@
 /*
- * W1-T06: the roster, the course's nine games built or not (packages/play/roster.ts). The Play index draws a line for each, and says
- * what arrives with which wave, so the list has to be the documents' list: D-049's names, ARCHITECTURE §6.1's modules and views, the
- * tracker's waves, and the registry's entries for the games that are built.
+ * W1-T06, R-T04: the roster, the course's nine games built or not (packages/play/roster.ts). The Games index draws a line for each, so the
+ * list has to be the documents' list: D-063's titles and subtitles (REDESIGN §2.7's table, which GAMES.md §2.6 copies), the role lines of
+ * REDESIGN §2.6, ARCHITECTURE §6.1's names, modules and views, the tracker's task titles and waves, and the registry's entries for the games
+ * that are built.
  */
 import { describe, expect, test } from 'bun:test'
 import { existsSync } from 'node:fs'
@@ -26,34 +27,50 @@ describe('the roster', () => {
     expect([...homes].sort((a, b) => a - b)).toEqual(homes)
   })
 
-  test("carries D-049's display name and subtitle for each game", () => {
-    const block = between(read('docs/DECISIONS.md'), '### D-049', '### D-050')
-    // The table is indented under a bullet, so its lines are read trimmed.
-    const rows = tableRows(block.split('\n').map((line) => line.trim()).join('\n'))
-    const names = new Map(rows.map(([id, title, subtitle]) => [id.replaceAll('`', ''), { title, subtitle }]))
+  test("carries D-063's title and subtitle for each game: REDESIGN §2.7's table, which D-063 adopts, and GAMES.md §2.6's copy of it", () => {
+    // D-063 names REDESIGN §2.7 as the policy, with its table of game titles and subtitles.
+    expect(between(read('docs/DECISIONS.md'), '### D-063', '### D-064')).toContain('REDESIGN §2.7 is the policy')
+    const brief = tableRows(between(read('docs/REDESIGN.md'), '**Games**', '**Labs.**'))
+    const names = new Map(brief.map(([id, , title, subtitle]) => [id.replaceAll('`', ''), { title: title.replaceAll('**', ''), subtitle }]))
     expect(names.size).toBe(9)
     for (const entry of ROSTER) expect([entry.id, { title: entry.title, subtitle: entry.subtitle }]).toEqual([entry.id, names.get(entry.id)])
+    const games = tableRows(between(read('docs/GAMES.md'), '#### The games', '#### Step loop'))
+    const byId = (rows: { id: string }[]) => [...rows].sort((x, y) => x.id.localeCompare(y.id))
+    expect(byId(games.map(([id, title, subtitle, role]) => ({ id: backticked(id)[0], title: title.replaceAll('**', ''), subtitle, role })))).toEqual(
+      byId(ROSTER.map((entry) => ({ id: entry.id, title: entry.title, subtitle: entry.subtitle, role: entry.role }))),
+    )
   })
 
-  test("carries ARCHITECTURE §6.1's modules, home first, and says which games have a 3D scene", () => {
+  test("carries REDESIGN §2.6's role line for each built game, and a role line of the same form for the rest", () => {
+    const roles = new Map(tableRows(between(read('docs/REDESIGN.md'), '**Role lines**', '**The first run')).map(([title, role]) => [title, role]))
+    expect(roles.size).toBe(5)
+    for (const [title, role] of roles) expect([title, ROSTER.find((entry) => entry.title === title)?.role]).toEqual([title, role])
+    for (const entry of ROSTER) expect([entry.id, /^You [a-z][^.]*\.$/.test(entry.role), entry.role.split(' ').length <= 6]).toEqual([entry.id, true, true])
+  })
+
+  test("carries ARCHITECTURE §6.1's title and subtitle and its modules, home first, and says which games have a 3D scene", () => {
     const rows = tableRows(between(read('docs/ARCHITECTURE.md'), '### 6.1 Roster', '### 6.2'))
     expect(rows.length).toBe(9)
     for (const row of rows) {
       const id = backticked(row[0])[0]
       const entry = rosterEntry(id)
-      const modules = [...row[3].matchAll(/\bTR(\d[ab]?)\b|\b(capstone)\b/g)].map((match) => (match[2] === undefined ? `tr${match[1]}` : 'capstone'))
+      expect([id, row[1]]).toEqual([id, `**${entry?.title}** · *${entry?.subtitle}*`])
+      const modules = [...row[2].matchAll(/\bTR(\d[ab]?)\b|\b(capstone)\b/g)].map((match) => (match[2] === undefined ? `tr${match[1]}` : 'capstone'))
       expect([id, entry?.modules]).toEqual([id, modules])
       // The 3D column is a dash for a game with no 3D scene.
-      expect([id, entry?.has3d]).toEqual([id, row[5].trim() !== '—'])
+      expect([id, entry?.has3d]).toEqual([id, row[4].trim() !== '—'])
     }
-    expect(ROSTER.filter((entry) => entry.has3d).length).toBe(6)
+    expect(ROSTER.filter((entry) => entry.has3d).length).toBe(5)
   })
 
-  test("carries the tracker's wave: the wave of the first task that builds the game", () => {
+  test("carries the tracker's wave, the wave of the first task that builds the game, and every such task's title names the game by its title", () => {
     const tracker = read('docs/TRACKER.md')
     for (const entry of ROSTER) {
       const heading = new RegExp(`^#### \\[.\\] W(\\d)-T\\d\\d · [^\\n]*\\(\`${entry.id}\`\\)`, 'm').exec(tracker)
       expect([entry.id, heading === null ? null : Number(heading[1])]).toEqual([entry.id, entry.wave])
+      const headings = [...tracker.matchAll(new RegExp(`^#### \\[.\\] W\\d-T\\d\\d · ([^\\n]*)\\(\`${entry.id}\`\\)`, 'gm'))].map((m) => m[1])
+      expect(headings.length).toBeGreaterThan(0)
+      for (const title of headings) expect([entry.id, title.endsWith(`${entry.title} `)]).toEqual([entry.id, true])
     }
   })
 
@@ -67,7 +84,7 @@ describe('the roster', () => {
 
   test('is frozen, and rosterEntry finds a game by its id and nothing by any other name', () => {
     expect(Object.isFrozen(ROSTER)).toBe(true)
-    expect(rosterEntry('loop')?.title).toBe('Service')
+    expect(rosterEntry('loop')?.title).toBe('Step loop')
     expect(rosterEntry('constructor')).toBeUndefined()
     expect(rosterEntry('nope')).toBeUndefined()
   })
@@ -89,7 +106,7 @@ describe('the registry and the roster', () => {
     }
   })
 
-  test('have Service built in W0, so its wave is the front page\'s', () => {
+  test('have Step loop built in W0, so its wave is the front page\'s', () => {
     expect(GAMES.has('loop')).toBe(true)
     expect(rosterEntry('loop')?.wave).toBe(0)
   })

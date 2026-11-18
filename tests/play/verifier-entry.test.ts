@@ -42,7 +42,7 @@ describe('verify:games for verifier', () => {
     expect(report.findings).toEqual([])
     expect(report.notes).toEqual([])
     const lines = report.lines.get('verifier') ?? []
-    expect(lines[0]).toBe("The Tasting · speculative decoding's verifier")
+    expect(lines[0]).toBe('Rejection sampler · Accept with min(1, p/q), resample from (p - q)+, and the output is exactly p.')
     for (const [id, seed] of [['overlap', 0], ['exact', 0], ['chain', 1], ['greedy-ngram', 0], ['mutants', 0], ['gamma', 0]]) {
       expect(lines.some((line) => line.startsWith(`${id}: practice seed ${seed} in band; `))).toBe(true)
     }
@@ -54,7 +54,7 @@ describe('verify:games for verifier', () => {
     expect(result.status).toBe(0)
     const games = GAMES.games.length
     expect(result.stdout).toContain(`verify-games: ${games} games registered, ${games} components`)
-    expect(result.stdout).toContain('  verifier\n    The Tasting')
+    expect(result.stdout).toContain('  verifier\n    Rejection sampler')
     expect(result.stdout).toMatch(/chain: practice seed 1 in band; \d+% of the first 400 seeds in band \(floor 20%\)/)
     expect(result.stdout).toContain('verify-games: ok')
   })
@@ -69,8 +69,8 @@ describe('verify:games for verifier', () => {
 })
 
 describe('the registry\'s record of The Tasting', () => {
-  test('is D-049\'s: the display name over its subtitle, the id `verifier`, TR6, and the 3D scene W1-T29 built', () => {
-    expect([VERIFIER.id, VERIFIER.title, VERIFIER.subtitle]).toEqual(['verifier', 'The Tasting', "speculative decoding's verifier"])
+  test('is D-063\'s: the title over its subtitle, the id `verifier`, TR6, and the 3D scene W1-T29 built', () => {
+    expect([VERIFIER.id, VERIFIER.title, VERIFIER.subtitle]).toEqual(['verifier', 'Rejection sampler', 'Accept with min(1, p/q), resample from (p - q)+, and the output is exactly p.'])
     expect(VERIFIER.modules).toEqual(['tr6'])
     expect(VERIFIER.has3d).toBe(true)
     expect(existsSync(path.join(root, 'src/games/verifier/Scene3D.tsx'))).toBe(true)
@@ -90,7 +90,7 @@ describe('the registry\'s record of The Tasting', () => {
   test('names the speculation model\'s card, which exists and says its numbers are synthetic and its bugs are the bestiary\'s (A§5.9)', () => {
     expect(VERIFIER.card).toBe(SPEC_CARD_ID)
     const card = readFileSync(path.join(root, 'content/cards', `${VERIFIER.card}.md`), 'utf8')
-    expect(card).toContain('The Tasting')
+    expect(card).toContain('the rejection sampler game (`verifier`)')
     expect(card).toContain('synthetic')
   })
 

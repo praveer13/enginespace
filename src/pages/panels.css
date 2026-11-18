@@ -89,16 +89,16 @@
 }
 
 /* A line of the tape keeps its label whole. A value too long for the rest of the line drops under it, flush right. */
-.es-page .es-printer__line {
+.es-page .es-readout-strip__line {
   flex-wrap: wrap;
 }
 
-.es-page .es-printer__line dt {
+.es-page .es-readout-strip__line dt {
   flex: none;
   white-space: nowrap;
 }
 
-.es-page .es-printer__line dd {
+.es-page .es-readout-strip__line dd {
   margin-left: auto;
   text-align: right;
 }
@@ -133,11 +133,9 @@
   min-width: 0;
   padding: var(--es-space-6);
   border: 1px solid var(--es-edge);
-  border-radius: var(--es-radius-plate);
+  border-radius: var(--es-radius-control);
   background-color: var(--es-surface-1);
-  background-image: var(--es-texture-sheen), var(--es-texture-brushed);
-  background-size: 100% auto, 100% 720px;
-  box-shadow: var(--es-shadow-plate);
+  box-shadow: var(--es-shadow-paper);
   color: var(--es-text-1);
 }
 
@@ -217,9 +215,7 @@
   font-family: var(--es-font-heading);
   font-size: var(--es-size-large);
   line-height: 1;
-  letter-spacing: 0.03em;
   font-weight: 800;
-  text-transform: uppercase;
 }
 
 .es-xfer__about,
@@ -282,12 +278,12 @@
 
 /* ---------------------------------------------------------------------------------------------- the ledger's counts */
 
-.es-ledger-ticket .es-ticket__paper {
+.es-ledger-ticket .es-sheet__paper {
   padding-inline: var(--es-space-4);
 }
 
 @media (min-width: 40rem) {
-  .es-ledger-ticket .es-ticket__paper {
+  .es-ledger-ticket .es-sheet__paper {
     padding-inline: var(--es-space-6);
   }
 }
@@ -309,11 +305,10 @@
 .es-ledger thead th {
   padding-block: 0 var(--es-space-2);
   border-bottom: 2px dotted var(--es-paper-rule);
-  font-family: var(--es-font-ticket);
+  font-family: var(--es-font-readout);
   font-size: 0.9375rem;
-  font-weight: var(--es-font-ticket-weight);
-  letter-spacing: var(--es-font-ticket-tracking);
-  text-transform: uppercase;
+  font-weight: var(--es-font-readout-weight);
+  letter-spacing: var(--es-font-readout-tracking);
 }
 
 .es-ledger tbody th {
@@ -324,10 +319,9 @@
 .es-ledger tfoot td {
   border-bottom: 0;
   border-top: 2px dotted var(--es-paper-rule);
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
-  letter-spacing: var(--es-font-ticket-tracking);
-  text-transform: uppercase;
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
+  letter-spacing: var(--es-font-readout-tracking);
 }
 
 .es-ledger .es-ledger__n {
@@ -422,10 +416,221 @@
    off from the list above it by a line more than the ticket puts between its parts. */
 .es-unbuilt__pending {
   margin-top: var(--es-space-4);
-  text-transform: uppercase;
 }
 
 .es-unbuilt__mark {
   width: 1.1em;
   height: 1.1em;
+}
+
+/* ---------------------------------------------------------------------------------------------- progress: dated rows and counts */
+
+/* A count of the learner's own events: the figure face with tabular numerals, no tag. */
+.es-count {
+  font-family: var(--es-font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--es-font-numeric-weight);
+}
+
+.es-count--none {
+  color: var(--es-text-3);
+}
+
+/* The dated rows: the day, what was done, how it came out. On a phone each row is one block, with the result under the words. */
+.es-activity {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.es-activity th,
+.es-activity td {
+  padding: var(--es-space-3) var(--es-space-2);
+  border-bottom: 1px solid var(--es-edge);
+  text-align: left;
+  vertical-align: top;
+}
+
+.es-activity thead th {
+  padding-block: 0 var(--es-space-2);
+  border-bottom: 2px solid var(--es-text-1);
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  font-weight: 700;
+}
+
+.es-activity tbody th {
+  font-weight: 400;
+}
+
+.es-activity__day {
+  width: 1%;
+  color: var(--es-text-2);
+  white-space: nowrap;
+}
+
+.es-activity__where {
+  display: block;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+}
+
+.es-activity__result {
+  width: 1%;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+@media (max-width: 40rem) {
+  .es-activity thead {
+    position: absolute;
+    inline-size: 1px;
+    block-size: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .es-activity tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: var(--es-space-4);
+    padding-block: var(--es-space-3);
+    border-bottom: 1px solid var(--es-edge);
+  }
+
+  .es-activity th,
+  .es-activity td {
+    padding: 0;
+    border: 0;
+  }
+
+  .es-activity__day {
+    grid-column: 1;
+    grid-row: 1;
+    width: auto;
+    font-size: var(--es-size-caption);
+  }
+
+  .es-activity__what {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: var(--es-space-1);
+  }
+
+  .es-activity__result {
+    grid-column: 2;
+    grid-row: 1;
+    width: auto;
+  }
+}
+
+/* Counts: tables of a word and its number, side by side where there is room. The legend line under each says what its words mean. */
+.es-wordsets {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-8);
+}
+
+@media (min-width: 56rem) {
+  .es-wordsets {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+  }
+}
+
+.es-words {
+  display: grid;
+  gap: var(--es-space-2);
+  align-content: start;
+}
+
+.es-words__caption {
+  padding-bottom: var(--es-space-2);
+  border-bottom: 2px solid var(--es-text-1);
+  font-weight: 700;
+  text-align: left;
+}
+
+.es-words__legend {
+  max-width: 52ch;
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  line-height: 1.5;
+}
+
+/* ---------------------------------------------------------------------------------------------- about */
+
+/* A model's card under its game's name, in full: the reading measure, one card after another, no box inside a box. */
+.es-about__cards {
+  display: grid;
+  gap: var(--es-space-8);
+}
+
+.es-about__card {
+  display: grid;
+  gap: var(--es-space-3);
+  max-width: 68ch;
+  padding-top: var(--es-space-4);
+  border-top: 1px solid var(--es-edge);
+}
+
+.es-about__card h3 {
+  margin: 0;
+}
+
+/* The tag legend under its heading: each word with what it means, as the stamp's sheet sets the same lines. */
+.es-about .es-taglegend {
+  max-width: 62ch;
+}
+
+/* ---------------------------------------------------------------------------------------------- sources and changes */
+
+.es-pins {
+  display: grid;
+  gap: var(--es-space-3);
+  justify-items: start;
+}
+
+.es-pins table {
+  width: 100%;
+}
+
+.es-pins__pin {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+  font-family: var(--es-font-numeric);
+}
+
+.es-pins__stamp {
+  margin: 0;
+}
+
+/* The way on at the head of a page: the sentence that tells the last time back, then Continue as the viewport's one amber fill. */
+.es-page__way {
+  display: grid;
+  gap: var(--es-space-3);
+  justify-items: start;
+}
+
+.es-page__last {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--es-text-2);
+}
+
+/* Progress leads with what the learner did: where it is kept follows the rows on a narrow screen. */
+@media (max-width: 63.99rem) {
+  [data-page='evidence'] .es-page__side {
+    order: 0;
+  }
+}
+
+/* The body of a page with no side column: its panels one after another, as the main column of a page with one. */
+.es-page__body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-16);
+  min-width: 0;
+  max-width: 44rem;
 }

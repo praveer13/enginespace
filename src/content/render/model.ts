@@ -6,8 +6,10 @@
  *
  * Nothing here touches the DOM, Vite or React, and nothing reads the clock: `today` is always a parameter.
  */
+import type { ReactNode } from 'react'
 import type { Claim, CompiledBlock, CompiledCard, IndexLesson, IndexModule, ProseFlow, ProseInline } from '@es/schema'
 import type { ReadoutUnit } from '@/design/components/Readout'
+import { LAB_TITLES } from '@/forge/titles'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* What every component of the renderer is handed                                                                     */
@@ -20,6 +22,16 @@ export interface RenderEnv {
   today: string
   /** The id of each heading node of the page (the node itself is the key), so that a link to `#why` finds it. */
   headings: ReadonlyMap<object, string>
+  /**
+   * On a lesson page, each cited claim's number (Claims.tsx): a claim is then a numbered mark linked to the lesson's Sources, and a tagged
+   * number carries its tag as hidden text. Without it (a module page) a claim is a chip and a tag is a strip of tape.
+   */
+  marks?: ReadonlyMap<string, number>
+  /**
+   * How a claim in a sentence is drawn: a chip on a module page (Blocks.tsx), a numbered mark on a lesson page (Claims.tsx). Prose takes it
+   * from here, so a page carries the code of the one it draws and not the other's.
+   */
+  claim?: (id: string, inSentence?: boolean) => ReactNode
 }
 
 /** The environment for a page: the claims and the day, and an id for every heading in `blocks`. */
@@ -31,10 +43,11 @@ export function renderEnv(blocks: readonly CompiledBlock[], claims: ReadonlyMap<
 export const titled = (page: string): string => `${page} · enginespace`
 
 /**
- * A lab's page name, `Lab tr8.replay`: the heading of its served document, its tab, and the heading of its page until the lab is built.
- * scripts/pages/plan.ts writes the document from this, and src/pages/Lab.tsx the page, so that the two never say different things.
+ * A lab's page name: its title in the engine's words where the lab is built (`Build a hybrid KV cache manager`, src/forge/titles.ts), and
+ * `Lab tr8.replay` until it is. It is the heading of the lab's served document, its tab, and the heading of its page. scripts/pages/plan.ts
+ * writes the document from this, and src/pages/Lab.tsx the page, so that the two never say different things.
  */
-export const labName = (lab: string): string => `Lab ${lab}`
+export const labName = (lab: string): string => (Object.hasOwn(LAB_TITLES, lab) ? LAB_TITLES[lab] : `Lab ${lab}`)
 
 /** Today as YYYY-MM-DD in UTC, the grain a claim's age is counted in. */
 export const todayIso = (now: Date = new Date()): string => now.toISOString().slice(0, 10)
@@ -314,3 +327,11 @@ export const pendingLab = (lab: string): Pending | null => (Object.hasOwn(LAB_TA
 export function answeringBlock(blocks: readonly CompiledBlock[], at: number, answer: { readonly game: string; readonly level: string }): number {
   return blocks.findIndex((block, place) => place > at && block.type === 'game' && block.id === answer.game && block.level === answer.level)
 }
+
+/** Each claim a lesson's prose cites, numbered from 1 in the order of first citation: the numbers of its marks and of its Sources (Claims.tsx). */
+export function claimNumbers(blocks: readonly CompiledBlock[]): ReadonlyMap<string, number> {
+  return new Map([...citedClaimIds(blocks)].map((id, at) => [id, at + 1]))
+}
+
+/** The anchor of a claim's entry in a lesson's Sources. */
+export const sourceAnchor = (n: number): string => `source-${n}`

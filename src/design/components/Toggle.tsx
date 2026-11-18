@@ -2,17 +2,15 @@ import * as Switch from '@radix-ui/react-switch'
 import clsx from 'clsx'
 import { useId, type ReactNode } from 'react'
 import { Icon } from './Glyph'
-import { PrintingDots } from './PrintingDots'
+import { LoadingDots } from './LoadingDots'
 
 /*
- * An equipment toggle: a lever in a stainless plate stamped OFF and ON, with a pilot light that burns the heat lamp's
- * amber when the lever is up (a switch that is on is an active state, and amber is the only one). It is a real switch
- * (Radix's, so the role, keys and state are the platform's). The state is the lever's side, the stamped word and the
- * light, never the light alone.
+ * A switch (REDESIGN 2.8): a flat track with a square thumb, and the state as a word in the open half, Off or On. On, the
+ * track takes the dark surface. No light: the state is the thumb's side, the word and the track's fill, never a colour
+ * alone. It is a real switch (Radix's, so the role, keys and state are the platform's).
  *
- * States: off, on, hover (the lever catches the tubes), focus (the heat lamp), active (the lever under the thumb),
- * disabled (no power: the plate dulls), loading (switching: the printer's dots by the label, the lever held), error (a
- * red line under it).
+ * States: off, on, hover (the thumb's edge darkens), focus (the ink ring), active (the thumb under the finger), disabled
+ * (a dashed track), loading (switching: dots by the label, the thumb held), error (a line in the second ink under it).
  */
 
 export interface ToggleProps {
@@ -63,19 +61,18 @@ export function Toggle({
       >
         <span className="es-toggle__plate" aria-hidden="true">
           <span className="es-toggle__word" data-word="off">
-            OFF
+            Off
           </span>
           <span className="es-toggle__word" data-word="on">
-            ON
+            On
           </span>
         </span>
         <Switch.Thumb className="es-toggle__lever" />
-        <span className="es-toggle__pilot" aria-hidden="true" />
       </Switch.Root>
       <span className="es-toggle__text">
         <label htmlFor={switchId} className="es-toggle__label">
           {label}
-          {loading ? <PrintingDots /> : null}
+          {loading ? <LoadingDots /> : null}
         </label>
         {hint ? (
           <span className="es-toggle__hint" id={hintId}>

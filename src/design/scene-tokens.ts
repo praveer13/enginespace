@@ -4,8 +4,7 @@
  * motion, forced colours or the root's `data-motion` change. Scenes take their material inputs from here and never
  * write a colour of their own (TRACKER W0-T17, check 5).
  *
- * Nothing here imports three: the material inputs are plain objects that `MeshStandardMaterial`,
- * `MeshPhysicalMaterial`, `SpotLight` and `HemisphereLight` accept as they are, so the entry chunk stays free of the
+ * Nothing here imports three: the light inputs are plain objects that `HemisphereLight` and `DirectionalLight` accept as they are, so the entry chunk stays free of the
  * 3D vendor chunk (D-023).
  */
 import { useSyncExternalStore } from 'react'
@@ -14,90 +13,15 @@ import { COLOR_ROLE_NAMES, cssVar, LANES, lightValue, MEMORY_STATES, PROBABILITI
 /** Every role's resolved value, as the stylesheet computes it on the root element. */
 export type SceneRoles = Record<RoleName, string>
 
-export interface MaterialInputs {
-  color: string
-  roughness: number
-  metalness: number
-}
-
-/** Brushed stainless for `MeshPhysicalMaterial`: the brush's grain runs along x (anisotropy). */
-export interface StainlessInputs extends MaterialInputs {
-  anisotropy: number
-  anisotropyRotation: number
-  clearcoat: number
-  clearcoatRoughness: number
-}
-
-/** The heat lamp, for a `SpotLight` over the present: the active state's light, and only that. */
-export interface HeatLampInputs {
-  color: string
-  intensity: number
-  distance: number
-  decay: number
-  angle: number
-  penumbra: number
-}
-
-/** The fluorescent tubes, for a `HemisphereLight`: cool white above, the steel's bounce below. */
+/** The scene's light, for a `HemisphereLight`: cool white above, the ground's grey below. */
 export interface FluorescentInputs {
   skyColor: string
   groundColor: string
   intensity: number
 }
 
-/**
- * The kitchen's equipment (scene kit v1, src/scene/props): the inputs the props' materials take. Every colour is a role; the
- * physical numbers are PROP_PARAMS below.
- */
-export interface PropMaterialInputs {
-  /** Brushed stainless in its three tones, the line's bright, shaded and deep steel. */
-  steel: string
-  steelShaded: string
-  steelDeep: string
-  /** Cast iron and the griddle's seasoned plate: the deep steel's role, darkened by the props' tone (src/scene/props/palette.ts). */
-  iron: string
-  /** Glazed ceramic: plates, and the subway tile on the back wall. */
-  ceramic: string
-  tile: string
-  /** The grout between the tiles. */
-  grout: string
-  /** The sealed floor. */
-  floor: string
-  /** A lit station, a lamp's bulb and the heat strip: the heat lamp's amber, and only those (One Lamp). */
-  glow: string
-  /** A dark station's element: cold deep steel. */
-  cold: string
-  /** The hood's tube lights: the fluorescent tubes' white. */
-  tube: string
-  /** Contact shadows under the props: the shadows' own ink (DESIGN.md's shadow vocabulary is text-1 at an alpha). */
-  shadow: string
-  /** Steam over a lit station: the steel's own pale grey, so it shows as haze against the white tile and the dark hood alike. */
-  steam: string
-  /** Ticket paper, its print and the masking tape. */
-  paper: string
-  ink: string
-  tape: string
-}
-
 export interface SceneMaterials {
-  /** The pass, the rail, the lanes, the racks: brushed stainless. */
-  stainless: StainlessInputs
-  /** Deep stainless: housings, clips, wells. */
-  stainlessDeep: MaterialInputs
-  /**
-   * Ticket paper. Every word and number a learner reads on it is DOM (GAMES.md §2.6, rule 7); the props' tickets carry only a
-   * texture of generic order lines in dots (src/scene/props/print.ts), which nobody needs to read.
-   */
-  paper: MaterialInputs
-  /** Masking tape. */
-  tape: MaterialInputs
-  heatLamp: HeatLampInputs
-  /** The lamp's bulb, glowing: `MeshStandardMaterial` with an emissive colour. */
-  heatLampBulb: MaterialInputs & { emissive: string; emissiveIntensity: number }
   fluorescent: FluorescentInputs
-  /** The kitchen's equipment (scene kit v1): its colours, and its physical numbers, carried here so a scene reaches them at runtime. */
-  props: PropMaterialInputs
-  propParams: typeof PROP_PARAMS
 }
 
 export interface SceneTokens {
@@ -107,54 +31,14 @@ export interface SceneTokens {
   materials: SceneMaterials
   /** The colour of each palette role, in `SCENE_PALETTE` order, for an instanced mesh's role index. */
   palette: readonly string[]
-  motion: { quickMs: number; bellMs: number; feedMs: number; settleMs: number; reduced: boolean }
+  motion: { quickMs: number; stepMs: number; feedMs: number; settleMs: number; reduced: boolean }
   contrastMore: boolean
   forcedColors: boolean
 }
 
-/**
- * Material parameters that are physical, not colour. [estimated]: starting values for W0-T17 to tune on the reference
- * laptop. Colours always come from the roles.
- */
+/** Light parameters, [estimated]: starting values tuned by eye. Colours always come from the roles. */
 export const MATERIAL_PARAMS = {
-  stainless: { roughness: 0.36, metalness: 0.92, anisotropy: 0.65, anisotropyRotation: 0, clearcoat: 0.12, clearcoatRoughness: 0.4 },
-  stainlessDeep: { roughness: 0.48, metalness: 0.85 },
-  paper: { roughness: 0.95, metalness: 0 },
-  tape: { roughness: 0.82, metalness: 0 },
-  heatLamp: { intensity: 2.4, distance: 6, decay: 2, angle: 0.62, penumbra: 0.7 },
-  heatLampBulb: { roughness: 0.4, metalness: 0, emissiveIntensity: 1.8 },
   fluorescent: { intensity: 1.15 },
-} as const
-
-/**
- * The kitchen's physical numbers (scene kit v1, src/scene/props), [estimated] starting values tuned on the /design specimens. A
- * finish is how one metal differs from brushed stainless in the props' one metal material: [roughness ×, grain ×, metalness ×],
- * where the grain scales both the brush's normal map and the anisotropy, so chrome has none and cast iron almost none.
- */
-export const PROP_PARAMS = {
-  metal: { metalness: 0.92, anisotropy: 0.7, clearcoat: 0.12, clearcoatRoughness: 0.4 },
-  finishes: {
-    brushed: [1, 1, 1],
-    spun: [0.78, 0.9, 1],
-    chrome: [0.16, 0, 1],
-    iron: [2.2, 0.14, 0.5],
-    griddle: [1.35, 0.32, 0.82],
-  },
-  ceramic: { roughness: 0.2, clearcoat: 0.85, clearcoatRoughness: 0.06 },
-  tile: { roughness: 0.14, groutRoughness: 0.92 },
-  floor: { roughness: 0.42 },
-  /** As bright as the W0 lamp's element (MATERIAL_PARAMS.heatLampBulb × materials.ts's BULB_GLOW), so bloom catches it at T2. */
-  glow: { emissiveIntensity: 5.76 },
-  /** The tubes glow below bloom's threshold: light, but not the present. */
-  tube: { emissiveIntensity: 1.7 },
-  shadow: { opacity: 0.62 },
-  cone: { opacity: 0.24 },
-  steam: { opacity: 0.45 },
-  /**
-   * A heat lamp over the pass, in metres and candela: a cone tight enough that its warm pool, about two plates across, lands on the
-   * steel under it and nowhere else, and `pool`, the strength of that pool's scatter off the brushed steel (props/materials.ts).
-   */
-  lamp: { intensity: 5.5, distance: 2.2, angle: 0.27, penumbra: 0.6, decay: 2, shadowRadius: 5, shadowMap: 1024, pool: 0.7 },
 } as const
 
 /**
@@ -199,47 +83,22 @@ export function sceneTokensFrom(
 ): SceneTokens {
   const roles = Object.fromEntries(ROLE_NAMES.map((name) => [name, read(cssVar(name)).trim()])) as SceneRoles
   const color = (name: ColorRoleName) => sceneColor(name, roles[name])
-  const { stainless, stainlessDeep, paper, tape, heatLamp, heatLampBulb, fluorescent } = MATERIAL_PARAMS
-  const bellMs = milliseconds(roles['dur-bell'])
+  const { fluorescent } = MATERIAL_PARAMS
+  const stepMs = milliseconds(roles['dur-step'])
   const colors = Object.fromEntries(COLOR_ROLE_NAMES.map((name) => [name, color(name)])) as Record<ColorRoleName, string>
   return {
     roles,
     colors,
     materials: {
-      stainless: { color: color('surface-1'), ...stainless },
-      stainlessDeep: { color: color('surface-3'), ...stainlessDeep },
-      paper: { color: color('paper'), ...paper },
-      tape: { color: color('tape'), ...tape },
-      heatLamp: { color: color('lamp'), ...heatLamp },
-      heatLampBulb: { color: color('lamp'), emissive: color('lamp'), ...heatLampBulb },
-      fluorescent: { skyColor: color('light-fluorescent'), groundColor: color('surface-0'), ...fluorescent },
-      props: {
-        steel: color('surface-1'),
-        steelShaded: color('surface-2'),
-        steelDeep: color('surface-3'),
-        iron: color('surface-3'),
-        ceramic: color('paper'),
-        tile: color('paper'),
-        grout: color('paper-rule'),
-        floor: color('surface-3'),
-        glow: color('lamp'),
-        cold: color('surface-3'),
-        tube: color('light-fluorescent'),
-        shadow: color('text-1'),
-        steam: color('surface-1'),
-        paper: color('paper'),
-        ink: color('paper-ink'),
-        tape: color('tape'),
-      },
-      propParams: PROP_PARAMS,
+      fluorescent: { skyColor: color('light-ambient'), groundColor: color('surface-0'), ...fluorescent },
     },
     palette: SCENE_PALETTE.map(color),
     motion: {
       quickMs: milliseconds(roles['dur-quick']),
-      bellMs,
+      stepMs,
       feedMs: milliseconds(roles['dur-feed']),
       settleMs: milliseconds(roles['dur-settle']),
-      reduced: flags.reduced ?? bellMs === 0,
+      reduced: flags.reduced ?? stepMs === 0,
     },
     contrastMore: flags.contrastMore ?? false,
     forcedColors: flags.forcedColors ?? false,

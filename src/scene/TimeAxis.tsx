@@ -53,7 +53,7 @@ export function TimeTrack({ now, unitsPerTime, frame = 'track', children }: Time
   // A new clock: slide to it, or jump under reduced motion.
   useLayoutEffect(() => {
     const m = motion.current
-    const ms = scrollMs(kit.tokens.motion.bellMs, kit.reducedMotion)
+    const ms = scrollMs(kit.tokens.motion.stepMs, kit.reducedMotion)
     if (ms === 0 || now <= m.current) {
       m.release?.()
       motion.current = { from: now, to: now, current: now, startedAt: 0, ms: 0, moving: false, release: null }

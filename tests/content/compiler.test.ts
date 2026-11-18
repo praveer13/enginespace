@@ -16,6 +16,7 @@ import path from 'node:path'
 import { gzipSync } from 'node:zlib'
 import { claimsOutputSchema, compiledLessonSchema, compiledModuleSchema, contentIndexSchema } from '@es/schema'
 import type { ProseFlow, ProseInline } from '@es/schema'
+import { PACING_CODES } from '../../scripts/content/pacing.ts'
 import { BUDGETS, canonicalJson, compileContent, writeOutputs } from '../../scripts/content/build.ts'
 import { CARD_COUNT, CARD_IDS, CLAIM_COUNT, CLAIMS, compile, COURSE, errors, KCS, LESSON, lineOf, MODULE, output, project, read, REPO_OUTPUT_COUNT, readSample, repo, report, sampleCard, swap, tempDir, where } from './support.ts'
 import type { Edit } from './support.ts'
@@ -637,11 +638,82 @@ describe('the compiled tree of the sample', () => {
   })
 })
 
+
 describe('compileContent on the repo itself', () => {
-  test('passes, so CI\'s compile step and the gates pass', () => {
+  test("passes, so CI's compile step and the gates pass", () => {
     const result = compileContent({ root: repo })
-    expect(report(result)).toBe('')
+    // R-T12: the pacing warnings are the worklist of the content tasks, so the built lessons still earn some. Nothing else is reported.
+    expect(errors(result)).toEqual([])
+    expect(result.diagnostics.filter((d) => !PACING_CODES.includes(d.code))).toEqual([])
     expect(result.outputs.length).toBe(REPO_OUTPUT_COUNT)
+  })
+})
+
+/** The words of a stretch of filler: `count` of them, each a word to the compiler's count and no number or claim. */
+const filler = (count: number): string => `${Array.from({ length: count }, () => 'word').join(' ')}.`
+
+describe('the pacing warnings (REDESIGN §2.5, the authoring rules)', () => {
+  const warnings = (result: ReturnType<typeof compile>) => result.diagnostics.filter((d) => d.severity === 'warning' && PACING_CODES.includes(d.code)).map((d) => `${d.file}:${d.line} ${d.code}`)
+  const edited = (...steps: ((text: string) => string)[]) => steps.reduce((text, step) => step(text), lesson)
+  const GAME = ':::game\nid: loop\nlevel: async\nmode: practice\n:::\n\n'
+  /** The sample, opening on its game with `words` words of setup before it. */
+  const opening = (words: number) => (text: string) => text.replace('## The bubble', `${filler(words)}\n\n${GAME}## The bubble`)
+
+  test('the sample earns none', () => {
+    expect(warnings(sample)).toEqual([])
+  })
+
+  test('more than 200 words before an opener\'s game: a warning on the game, none at 200', () => {
+    const long = edited(opening(201))
+    const result = compile({ [LESSON]: opening(201) })
+    expect(warnings(result)).toEqual([`${LESSON}:${lineOf(long, ':::game')} opener-setup-long`])
+    expect(errors(result)).toEqual([])
+    expect(warnings(compile({ [LESSON]: opening(100) }))).toEqual([])
+  })
+
+  test("an opener C lesson's first thing to do after 450 words: a warning on that thing", () => {
+    const slow = edited(swap('## The bubble', `${filler(460)}\n\n## The bubble`))
+    const result = compile({ [LESSON]: swap('## The bubble', `${filler(460)}\n\n## The bubble`) })
+    expect(warnings(result)).toEqual([`${LESSON}:${lineOf(slow, ':::predict')} opener-c-slow`])
+    expect(errors(result)).toEqual([])
+  })
+
+  test('more than 600 words between two things the learner does: a warning on the second', () => {
+    const edit = swap(':::game\nid: loop', `${filler(610)}\n\n:::game\nid: loop`)
+    const result = compile({ [LESSON]: edit })
+    expect(warnings(result)).toEqual([`${LESSON}:${lineOf(edit(lesson), ':::game')} pacing-gap`])
+    expect(warnings(compile({ [LESSON]: swap(':::game\nid: loop', `${filler(500)}\n\n:::game\nid: loop`) }))).toEqual([])
+  })
+
+  test("a graded game block that is not under the file's last heading: a warning on the block", () => {
+    const edit = (text: string) => swap(':::item', '## A later part\n\nMore.\n\n:::item')(swap('mode: practice', 'mode: graded')(text))
+    const result = compile({ [LESSON]: edit })
+    expect(warnings(result)).toEqual([`${LESSON}:${lineOf(edit(lesson), ':::game')} graded-not-last`])
+    expect(errors(result)).toEqual([])
+  })
+
+  test('a lesson with no Test: a warning on its first line', () => {
+    const edit = (text: string) => text.replace(/:::item\n[\s\S]*?\n:::\n\n/, '')
+    const result = compile({ [LESSON]: edit })
+    expect(warnings(result)).toEqual([`${LESSON}:1 no-test`])
+    expect(errors(result)).toEqual([])
+  })
+
+  test('prose that holds a build-log id: a warning on its line, and a code block is not prose', () => {
+    const edit = swap('This lesson is a sample.', 'This lesson is a sample (R-T12, D-016).')
+    const result = compile({ [LESSON]: edit })
+    expect(warnings(result)).toEqual([`${LESSON}:${lineOf(edit(lesson), 'R-T12')} build-log-id`])
+    expect(errors(result)).toEqual([])
+    expect(warnings(compile({ [LESSON]: swap('schedule -> launch', 'schedule R-T12 -> launch') }))).toEqual([])
+  })
+
+  test('a warning never changes the exit status of verify:content, whatever the repo holds', () => {
+    // A fixture that earns one warning, and not the repo: once every lesson keeps the rules, the repo earns none.
+    const root = project({ [LESSON]: edited(opening(250)) })
+    const run = spawnSync('bun', ['scripts/verify-content.ts', '--root', root], { cwd: repo, encoding: 'utf8', env: { ...process.env, CI: '1' } })
+    expect(run.stdout).toContain('warning')
+    expect(run.stdout).toMatch(/verify:content passed: .*\d+ warnings?/)
+    expect(run.status).toBe(0)
   })
 })
 

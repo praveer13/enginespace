@@ -1,10 +1,10 @@
 import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { Dispatch, PointerEvent as ReactPointerEvent } from 'react'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { Label } from '@/design/components/Label'
 import { useSceneTokens } from '@/design/scene-tokens'
 import { rowAt, tapeGeometry, timeToX, xToTime } from './geometry'
 import { CATEGORY_WORDS } from './marks'
-import { pickSpan, spanEnd, spanName, spanStart } from './model'
+import { cursorNs, pickSpan, spanEnd, spanName, spanStart } from './model'
 import type { TraceIndex } from './model'
 import { paintTape, patternsFor } from './paint'
 import { buildPlan, createPlan } from './plan'
@@ -14,13 +14,13 @@ import type { Command, TapeState } from './state'
 import { recordFrame } from './test-hook'
 import { tapeTheme } from './theme'
 import { ruler, rulerLabel } from './viewport'
-import { LANE_WORDS, slotOfCategory } from './words'
+import { LANE_WORDS, slotOfCategory, slotOfLane } from './words'
 
 /*
- * The tape (GAMES.md §2.6, The Tape): the canvas that draws the lanes, and the DOM over it. The canvas draws marks and blocks of
- * dots and holes and writes no text. Everything that reads is DOM positioned on the same boxes: the lane names on masking tape, the
- * ruler's numbers beside the feed holes, the words on the tape that marks are stuck with. The whole of it is hidden from assistive
- * technology, because the table below lists every span in the window and the marks ticket lists every mark (A§6.9).
+ * The trace diagram: the canvas that draws the lanes, and the DOM over it. The canvas draws the paper, the spans and the marks and
+ * writes no text. Everything that reads is DOM positioned on the same boxes: the lane names with their glyphs, the ruler's numbers
+ * over their ticks, the word "now" at the cursor and the words on the slips that marks are written on. The whole of it is hidden from
+ * assistive technology, because the table below lists every span in the window and the marks table lists every mark (A§6.9).
  *
  * Input. A press and a drag on the paper pans it; a press without a drag picks the span under it, and the nearer of its edges
  * becomes the cursor. The wheel with Ctrl or Meta zooms, and a sideways wheel or Shift pans. None of it is needed: every command is
@@ -222,10 +222,14 @@ export function Tape({ index, state, dispatch, rail }: TapeProps) {
   const causeAt =
     rail && cause !== null && x(spanEnd(index, cause)) > 0 && x(spanStart(index, cause)) < g.plotW ? (x(spanStart(index, cause)) + x(spanEnd(index, cause))) / 2 : null
 
+  // Where the cursor's line stands on the paper, or null when it is off it or there is no cursor.
+  const nowX = state.cursor === null ? null : x(cursorNs(index, state.cursor))
+  const nowAt = nowX !== null && nowX >= 0 && nowX <= g.plotW ? nowX : null
+
   return (
     <>
       <p id={noteId} className="sr-only">
-        The tape is drawn on a canvas. The table of spans below lists every span in the window, and the marks ticket lists every mark.
+        The trace is drawn on a canvas. The table of spans below lists every span in the window, and the table of marks lists every mark.
       </p>
       <div
         ref={wrap}
@@ -248,18 +252,16 @@ export function Tape({ index, state, dispatch, rail }: TapeProps) {
             const box = g.lanes[lane.index]
             return (
               <div key={lane.index} className="es-trace__lane" data-kind={lane.kind} style={{ top: box.y, height: box.h, width: g.stacked ? g.width : g.gutter }}>
-                <TapeLabel size="sm" tilt={lane.index % 2 === 0 ? 'left' : 'right'}>
+                <Label size="sm" slot={slotOfLane(lane.kind)}>
                   {LANE_WORDS[lane.kind]}
-                </TapeLabel>
+                </Label>
                 <span className="es-trace__lane-name">{lane.name}</span>
               </div>
             )
           })}
           {rail && !g.stacked ? (
             <div className="es-trace__lane" data-kind="rail" style={{ top: g.rail.y, height: g.rail.h, width: g.gutter }}>
-              <TapeLabel size="sm" tilt="right">
-                your marks
-              </TapeLabel>
+              <Label size="sm">Your marks</Label>
             </div>
           ) : null}
         </div>
@@ -270,10 +272,16 @@ export function Tape({ index, state, dispatch, rail }: TapeProps) {
             // A number is centred on its tick, and one the paper's edge would cut is left off: its neighbour says the same.
             .filter(({ tick, text }) => x(tick.ns) - (text.length * TICK_CHAR_PX) / 2 >= 0 && x(tick.ns) + (text.length * TICK_CHAR_PX) / 2 <= g.plotW)
             .map(({ tick, text }) => (
-              <span key={tick.ns} className="es-trace__tick" style={{ left: x(tick.ns), top: 19 }}>
+              <span key={tick.ns} className="es-trace__tick" style={{ left: x(tick.ns), top: 10 }}>
                 {text}
               </span>
             ))}
+          {nowAt === null ? null : (
+            // The cursor's word, in the foot beside its line: on the line's left when the line is near the paper's right edge.
+            <span className="es-trace__now" style={{ top: g.foot.y, ...(nowAt > g.plotW - 44 ? { right: g.plotW - nowAt + 5 } : { left: nowAt + 5 }) }}>
+              now
+            </span>
+          )}
           {rail
             ? marks.map((mark) => {
                 const left = x(mark.fromNs)
@@ -298,9 +306,9 @@ export function Tape({ index, state, dispatch, rail }: TapeProps) {
               className="es-trace__cause"
               style={{ top: g.rail.y + g.rail.h - 8, ...(causeAt < g.plotW / 2 ? { left: Math.max(0, causeAt - 6) } : { right: Math.max(0, g.plotW - causeAt - 6) }) }}
             >
-              <TapeLabel size="sm" tilt="right">
+              <Label size="sm">
                 cause: {cause === null ? '' : spanName(index, cause)}
-              </TapeLabel>
+              </Label>
             </span>
           )}
         </div>

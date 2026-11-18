@@ -13,9 +13,9 @@ export const SLOT_MARKS: Record<Slot, { glyph: GlyphShape; pattern: FillPattern;
   red: { glyph: 'triangle', pattern: 'solid', mark: 'fill' },
   blue: { glyph: 'circle', pattern: 'solid', mark: 'fill' },
   yellow: { glyph: 'diamond', pattern: 'hatch', mark: 'edge' },
-  green: { glyph: 'square', pattern: 'solid', mark: 'fill' },
+  green: { glyph: 'hexagon', pattern: 'solid', mark: 'fill' },
   white: { glyph: 'ring', pattern: 'hollow', mark: 'edge' },
-  brown: { glyph: 'hexagon', pattern: 'dots', mark: 'fill' },
+  brown: { glyph: 'square', pattern: 'dots', mark: 'fill' },
 }
 export type GlyphShape = 'triangle' | 'circle' | 'diamond' | 'square' | 'ring' | 'hexagon'
 

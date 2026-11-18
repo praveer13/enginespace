@@ -1,218 +1,238 @@
-import { lazy, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { drawInBand, levelOf } from '@es/play'
 import type { GameMode } from '@es/play'
+import { FLOOR_COPY } from '@es/play/engine-floor/copy'
 import { ENGINE_FLOOR } from '@es/play/engine-floor/entry'
 import { floorSession } from '@es/play/engine-floor/session'
+import type { FloorLevelId } from '@es/play/engine-floor/types'
+import { ROSTER } from '@es/play/roster'
 import type { Seed } from '@es/sim/core'
-import { GameShell } from '@/games/kit/GameShell'
-import type { GameView } from '@/games/kit/ViewSwitch'
+import { Button } from '@/design/components/Button'
+import { LevelMenu } from '@/design/components/LevelMenu'
+import { Frame } from '@/games/kit/Frame'
 import type { GameProps } from '@/games/registry'
-import { CameraButtons } from '@/scene/CameraButtons'
-import { Stage } from '@/scene/Stage'
-import { unavailableReason, useDeviceTier } from '@/scene/tiers'
 import { WorldCard } from './Card'
-import { Controls } from './Controls'
-import { Debrief } from './Debrief'
-import { GradedBar, LevelList } from './LevelRail'
+import { Controls, ReadoutStrip } from './Controls'
+import { floorKit, partRows, ringOf } from './kit'
 import { Mirror } from './Mirror'
-import type { Scene3DProps } from './Scene3D'
-import { sceneModelOf } from './scene-presets'
-import { DEFAULT_STOP, floorsOf, nextStop, stopsOf, type CameraStop } from './scene-stops'
 import type { FloorRun } from './types'
-import { View2D } from './View2D'
+import { FloorLegend, View2D, type RowTools } from './View2D'
 
-// The 3D scene is its own chunk over three's (A§6.10): the Stage loads it only on a device whose tier draws 3D.
-const Scene3D = lazy(() => import('./Scene3D'))
-
-/** The scene as the Stage mounts it, inside the Stage's canvas box. */
-function FloorScene(props: Scene3DProps) {
-  return <Scene3D {...props} />
-}
-
+// The result loads when a run ends, not before.
+const Debrief = lazy(() => import('./Debrief').then((module) => ({ default: module.Debrief })))
 /*
- * Back of House (`engine-floor`, D-049: "Back of House", a request's lifecycle). Its page is Play → Debrief, around the 2D view, the
- * controls and the mirror (D-018: one session, drawn by every view). The shell owns the run and its action log; this file wires Back of
- * House's parts into it, and the keys that are its own: `R` runs the laid path and Backspace takes the last stage off it.
+ * Request path (`engine-floor`, D-063): the learner traces one request. The page is the instrument frame (src/games/kit/Frame.tsx) around
+ * the swimlane, the dock, the readout and the table (D-018: one session, drawn by every view). The frame owns the run and its action log;
+ * this file wires Request path's parts into it, and the keys that are the game's: `R` runs the laid path and Backspace takes the last
+ * stage off it.
  *
- * The levels are the practice run of GAMES.md §5: one engine's one idea each, in the order of its difficulty. A level opens in practice on
- * its pinned seed, and a finished level offers the next. The last, `map`, can also be graded: a graded run draws a seed when it starts,
- * in band (GAMES.md §2.1), which is a fresh scenario of any of the five engines, with no undo and one run (W1-T19; ASSESSMENT §4.3).
- * Whether a page records the run is its own business: the game's page and a lesson's block each pass the recorder as `onFinish`
- * (src/games/kit/record.ts, W1b-T01). Inside a lesson the block names the level, so the rail of levels and the next level are left out.
- *
- * The 3D view (W1-T18) is the house in cutaway, in a Stage that paints the 2D house first and keeps it as the fallback (A§6.7). It opens on
- * its own on a device whose tier draws 3D, and leads the page with the controls beside it; `V` or the switch swaps the two views, and the
- * session lives here, above both, so a swap keeps the prediction, the path and the runs. The camera's stop lives here too: `C` and the
- * stop buttons move it, in 3D only, and a run sent from the cutaway takes the follow. On a wide screen the 3D view and its switches stay
- * in sight while the controls run on down the page (GameShell's sticky stage), so a run sent from the stub far down the column plays where
- * it is seen. The 2D view stays a first-class path to the whole concept (A§6.2).
- *
- * The debrief is imported with the game and not on demand. It draws with the same parts as the 2D view, so a chunk of its own would take
- * them out of the game's chunk, and `verify:bundle` finds a game by the chunk that Game.tsx opens: that chunk must hold the game whole.
- * (The trace viewer in a graded run's debrief is the exception, and it is a chunk of its own: it shares nothing with the game that the
- * game would then have to export.)
+ * The levels are the practice run of GAMES.md §5: one engine's one idea each. A level opens in practice on its pinned seed, with undo. The
+ * last, `map`, can also be graded: a graded run draws a seed when it starts, in band (GAMES.md §2.1), a fresh scenario of any of the five
+ * engines, with no undo, no live readout and one run (ASSESSMENT §4.3). A page records the run through `onFinish`; inside a lesson the block
+ * names the level, so the level menu and the next level are left out.
  */
 
-interface Attempt {
-  readonly level: string
-  readonly mode: GameMode
-  readonly seed: Seed
-}
+const ROLE = ROSTER.find((entry) => entry.id === ENGINE_FLOOR.id)?.role ?? ''
 
 const known = (id: string | undefined): string => ENGINE_FLOOR.levels.find((entry) => entry.id === id)?.id ?? ENGINE_FLOOR.levels[0].id
-const fresh = (): Seed => crypto.getRandomValues(new Uint32Array(1))[0]
-const practice = (id: string): Attempt => ({ level: id, mode: 'practice', seed: levelOf(ENGINE_FLOOR, id)?.practiceSeed ?? 0 })
-/** A graded run: a seed drawn at the start, in band, and stamped unseen by whoever records it (ARCHITECTURE §8.2). */
-const graded = (id: string): Attempt => ({ level: id, mode: 'graded', seed: drawInBand(floorSession, id, fresh()) })
 
-const startOf = (id: string, mode: GameMode | undefined): Attempt => (mode === 'graded' && levelOf(ENGINE_FLOOR, id)?.graded ? graded(id) : practice(id))
+/** A fresh seed that this level's band accepts, from the browser's entropy: unseen, not secret (ASSESSMENT §4.1). */
+const freshSeed = (level: string): Seed => drawInBand(floorSession, level, crypto.getRandomValues(new Uint32Array(1))[0])
 
-const run = (r: FloorRun): boolean => {
-  if (!r.view.canRun) return false
-  r.dispatch({ t: 'run' })
-  return true
+/** The seed a graded run of a level starts on, drawn now; none for practice, or for a level that is not graded. */
+function drawFor(level: string, mode: GameMode): { level: string; seed: Seed } | null {
+  return mode === 'graded' && levelOf(ENGINE_FLOOR, level)?.graded ? { level, seed: freshSeed(level) } : null
 }
 
-export default function Game({ level, mode, placement = 'page', rev, onFinish }: GameProps) {
-  // 3D opens by itself where the device draws it, and a learner's own choice of view wins from then on. Under `saveData` the Stage waits
-  // to be asked, so the page opens on the 2D view there.
-  const device = useDeviceTier()
-  const draws3d = device.known && device.tier >= 1
-  const [chosenView, setChosenView] = useState<GameView | null>(null)
-  const view: GameView = chosenView ?? (draws3d && device.hints?.saveData !== true ? '3d' : '2d')
-  const unavailable3d = device.known && !draws3d ? unavailableReason(device.reason) : undefined
-  const [stop, setStop] = useState<CameraStop>(DEFAULT_STOP)
-
-  const [asked, setAsked] = useState({ level, mode })
-  const [attempt, setAttempt] = useState<Attempt>(() => startOf(known(level), mode))
-  // A page that opens another level of the game, or the same one in another mode, gets it. (Adjusting state when a prop changes: React re-renders at once.)
-  if (level !== asked.level || mode !== asked.mode) {
-    setAsked({ level, mode })
-    setAttempt(startOf(known(level), mode))
+export default function Game({ level, mode: asked = 'practice', placement = 'page', rev, onFinish }: GameProps) {
+  const [prop, setProp] = useState({ level, mode: asked })
+  const [levelId, setLevelId] = useState(() => known(level))
+  const [mode, setMode] = useState<GameMode>(asked)
+  const [drawn, setDrawn] = useState<{ level: string; seed: Seed } | null>(() => drawFor(known(level), asked))
+  // A page that opens another level of the game, or the same one in another mode, gets it. (Adjusting state when a prop changes.)
+  if (prop.level !== level || prop.mode !== asked) {
+    setProp({ level, mode: asked })
+    setLevelId(known(level))
+    setMode(asked)
+    setDrawn(drawFor(known(level), asked))
   }
-  // Moving to another level or another attempt replaces the page's content, and the button that was pressed goes with it: focus goes back to
-  // the game. This game's own, found from its box, since a lesson can hold two of it.
+  const embedded = placement === 'embed'
+  const entry = levelOf(ENGINE_FLOOR, levelId) ?? ENGINE_FLOOR.levels[0]
+  const at = ENGINE_FLOOR.levels.findIndex((candidate) => candidate.id === entry.id)
+  const after = embedded ? null : (ENGINE_FLOOR.levels[at + 1] ?? null)
+  const graded = mode === 'graded' && entry.graded
+  const seed = graded ? (drawn !== null && drawn.level === entry.id ? drawn.seed : entry.practiceSeed) : entry.practiceSeed
+
+  function choose(next: string, nextMode: GameMode) {
+    const target = levelOf(ENGINE_FLOOR, next) ?? ENGINE_FLOOR.levels[0]
+    setLevelId(target.id)
+    setMode(nextMode)
+    setDrawn(drawFor(target.id, nextMode))
+  }
+
+  // Moving on replaces the page's content, and the control that was pressed goes with it: focus goes back to this game's own frame.
   const host = useRef<HTMLDivElement>(null)
   const moved = useRef(false)
   useEffect(() => {
     if (!moved.current) return
     moved.current = false
     host.current?.querySelector<HTMLElement>('[data-game]')?.focus({ preventScroll: true })
-  }, [attempt])
-  const go = (next: Attempt) => {
-    moved.current = true
-    setAttempt(next)
-  }
+  }, [levelId, mode, drawn])
 
-  const embedded = placement === 'embed'
-  const entry = levelOf(ENGINE_FLOOR, attempt.level) ?? ENGINE_FLOOR.levels[0]
-  const at = ENGINE_FLOOR.levels.findIndex((candidate) => candidate.id === entry.id)
-  const after = embedded ? null : (ENGINE_FLOOR.levels[at + 1] ?? null)
+  const menu = embedded ? undefined : (
+    <LevelMenu
+      label="Level"
+      value={entry.id}
+      levels={ENGINE_FLOOR.levels.map((candidate) => ({ id: candidate.id, title: candidate.title, mode: candidate.id === entry.id ? (graded ? 'graded' : 'practice') : candidate.graded ? 'graded' : 'practice' }))}
+      onChange={(id) => {
+        moved.current = true
+        choose(id, 'practice')
+      }}
+    />
+  )
+
+  // Practice or a graded run, for the level that can be graded; a level that cannot says what practice is.
+  const modeSwitch = (
+    <>
+      <span className="es-floor-mode" data-floor-mode={graded ? 'graded' : 'practice'}>
+        {graded ? 'Graded: a fresh scenario, one run, no undo.' : entry.graded ? 'Practice: a pinned scenario, with undo. A graded run draws a fresh one.' : 'Practice: a pinned scenario, with undo.'}
+      </span>
+      {entry.graded ? (
+        <Button
+          size="sm"
+          variant="plate"
+          onClick={() => {
+            moved.current = true
+            choose(entry.id, graded ? 'practice' : 'graded')
+          }}
+        >
+          {graded ? 'Back to practice' : 'Start a graded run'}
+        </Button>
+      ) : null}
+    </>
+  )
 
   return (
-    <div ref={host} className="contents">
-      <GameShell
-        game={ENGINE_FLOOR}
-        session={floorSession}
-        level={entry.id}
+    <div ref={host} className="flex flex-col gap-6">
+      <FloorLevel
+        key={`${entry.id}|${graded ? 'graded' : 'practice'}`}
+        levelId={entry.id as FloorLevelId}
         levelTitle={entry.title}
-        seed={attempt.seed}
-        mode={attempt.mode}
-        rev={rev}
-        headingLevel={embedded ? 3 : 2}
+        seed={seed}
+        mode={graded ? 'graded' : 'practice'}
         embedded={embedded}
+        rev={rev}
         onFinish={onFinish}
-        allow3d={draws3d}
-        unavailable3d={unavailable3d}
-        view={view}
-        onViewChange={setChosenView}
-        stage="sticky"
-        onCommand={(command, r) => {
-          if (command === 'run' || command === 'step') return run(r)
-          if (command === 'unlay') {
-            if (!r.view.canUnlay) return false
-            r.dispatch({ t: 'unlay' })
-            return true
-          }
-          if (command === 'camera') {
-            if (view !== '3d') return false
-            const stops = stopsOf(floorsOf(r.view))
-            const next = nextStop(stops, stop)
-            setStop(next)
-            r.announce(`Camera: ${stops.find((candidate) => candidate.id === next)?.label ?? 'Cutaway'}.`)
-            return true
-          }
-          return false
+        ledger={onFinish !== undefined}
+        menu={menu}
+        modeSwitch={modeSwitch}
+        next={after === null ? null : { id: after.id, title: after.title }}
+        onNext={() => {
+          if (after === null) return
+          moved.current = true
+          choose(after.id, 'practice')
         }}
-        view2d={(r) => <View2D run={r} />}
-        scene3d={(r) => <FloorStage run={r} stop={stop} onStop={setStop} />}
-        controls={(r) => (
-          <>
-            {view === '3d' ? <Stops run={r} stop={stop} onStop={setStop} /> : null}
-            <Controls
-              run={r}
-              top={<GradedBar entry={entry} mode={attempt.mode} done={r.done} onGraded={() => go(graded(entry.id))} onPractice={() => go(practice(entry.id))} />}
-              rail={embedded ? undefined : <LevelList levels={ENGINE_FLOOR.levels} current={entry.id} onLevel={(id) => go(practice(id))} />}
-            />
-          </>
-        )}
-        mirror={(r) => <Mirror run={r} />}
-        debrief={(r, outcome) => (
-          <Debrief
-            run={r}
-            outcome={outcome}
-            next={after === null ? null : { id: after.id, title: after.title }}
-            onNext={() => after !== null && go(practice(after.id))}
-            onGraded={entry.graded ? () => go(graded(entry.id)) : null}
-            onPractice={() => go(practice(entry.id))}
-          />
-        )}
-        card={<WorldCard />}
+        onGraded={
+          entry.graded
+            ? () => {
+                moved.current = true
+                choose(entry.id, 'graded')
+              }
+            : null
+        }
       />
     </div>
   )
 }
 
-/** The camera's stops for the house the view stands in: the cutaway, one for each storey, and the ticket followed. */
-function Stops({ run, stop, onStop }: { run: FloorRun; stop: CameraStop; onStop: (stop: CameraStop) => void }) {
-  const stops = useMemo(() => stopsOf(floorsOf(run.view)), [run.view])
-  return <CameraButtons presets={stops} value={stops.some((candidate) => candidate.id === stop) ? stop : 'cutaway'} onChange={(id) => onStop(id as CameraStop)} label="Camera on the house" />
+interface LevelProps {
+  levelId: FloorLevelId
+  levelTitle: string
+  seed: Seed
+  mode: GameMode
+  embedded: boolean
+  rev: string | undefined
+  onFinish: GameProps['onFinish']
+  ledger: boolean
+  menu: ReactNode
+  modeSwitch: ReactNode
+  next: { id: string; title: string } | null
+  onNext: () => void
+  onGraded: (() => void) | null
 }
 
-/**
- * The 3D view's box: the Stage, with the 2D house as its first paint and its fallback (scrolling in the box where it runs longer than the
- * box), and the scene behind it. The house is taller than it is wide, so the box is too, about the first screen's height: 70% of it at a
- * laptop's width and 58% on a phone, at least 20rem [estimated].
- */
-const STAGE_BOX = 'h-[clamp(20rem,min(70svh,52vw),48rem)] max-[479px]:h-[max(20rem,58svh)]'
+/** The tools a row's popover offers while the run is open: move a stage, or take the path back to it. */
+const toolsOf = (run: FloorRun): RowTools | null =>
+  run.done ? null : { move: (index, by) => run.dispatch({ t: 'move', from: index, by }), takeBack: (to) => run.dispatch({ t: 'unlay', to }) }
 
-function FloorStage({ run, stop, onStop }: { run: FloorRun; stop: CameraStop; onStop: (stop: CameraStop) => void }) {
-  // The scene's model is laid out here, from the view, and its house is kept while the plan stays the same (scene-presets.ts).
-  const [model, setModel] = useState(() => sceneModelOf(run.view))
-  const [seen, setSeen] = useState(run.view)
-  if (seen !== run.view) {
-    setSeen(run.view)
-    setModel(sceneModelOf(run.view, model))
-  }
-  // A run sent from the cutaway takes the follow, close on the ticket, so its way and where it stops are seen (cut to, under reduced motion).
-  const runs = run.view.runs
-  const ran = useRef(runs)
-  useEffect(() => {
-    if (runs > ran.current && stop === 'cutaway') onStop('follow')
-    ran.current = runs
-  }, [runs, stop, onStop])
+/** One level's frame. A new level starts it again. */
+function FloorLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, ledger, menu, modeSwitch, next, onNext, onGraded }: LevelProps) {
+  const copy = FLOOR_COPY[levelId]
+  const kit = useCallback((at: number) => floorKit(levelId, at), [levelId])
   return (
-    <Stage
-      id="engine-floor"
-      className={`${STAGE_BOX} border border-edge shadow-shelf`}
-      view2d={
-        <div className="h-full overflow-y-auto p-3">
-          <View2D run={run} />
-        </div>
-      }
-      scene={FloorScene}
-      sceneProps={{ view: run.view, model, stop }}
-      announce={run.announce}
+    <Frame
+      game={ENGINE_FLOOR}
+      role={ROLE}
+      session={floorSession}
+      level={levelId}
+      levelTitle={levelTitle}
+      seed={seed}
+      mode={mode}
+      rev={rev}
+      embedded={embedded}
+      onFinish={onFinish}
+      ledger={ledger}
+      kit={kit}
+      menu={menu}
+      modeSwitch={modeSwitch}
+      onCommand={(command, run) => {
+        if (command === 'run' || command === 'step') {
+          if (!run.view.canRun) return false
+          run.dispatch({ t: 'run' })
+          return true
+        }
+        if (command === 'unlay') {
+          if (!run.view.canUnlay) return false
+          run.dispatch({ t: 'unlay' })
+          return true
+        }
+        return false
+      }}
+      goal={(run) => ({
+        aim: copy.goal.aim,
+        control: copy.goal.controls,
+        target: copy.goal.beat,
+        ends: copy.goal.ends,
+        met: run.done ? (run.view.served ? 'The request reached the client.' : 'The run is over.') : undefined,
+      })}
+      diagram={(run) => <View2D run={run} tools={toolsOf(run)} />}
+      legend={(run) => <FloorLegend view={run.view} />}
+      dock={(run) => <Controls run={run} ring={ringOf(run.intro.ring)} />}
+      readout={(run) => <ReadoutStrip view={run.view} mode={run.mode} />}
+      result={(run, outcome) => (
+        <Suspense fallback={<p role="status">Reading the run…</p>}>
+          <Debrief run={run} outcome={outcome} next={next} onNext={onNext} onGraded={onGraded} embedded={embedded} />
+        </Suspense>
+      )}
+      mirror={(run) => <Mirror run={run} />}
+      parts={partRows(levelId)}
+      howTo={<HowTo />}
+      titleBlock={{ model: "Model of one request's path, after the pinned engines", clock: 'Clock: none; the model keeps the order of the stages only', leavesOut: <WorldCard /> }}
     />
+  )
+}
+
+/** How to play: the round of one level. */
+function HowTo() {
+  return (
+    <div className="flex flex-col gap-3" data-floor-howto="">
+      <ol className="list-decimal pl-5">
+        <li>Read the goal line: what to lay, and when the level ends.</li>
+        <li>Predict first: how many process boundaries a sampled token crosses on its way to the client. The run answers it.</li>
+        <li>Lay stages from the stage list, in order. Each one draws a row on the swimlane: a node where it lands and an arrow with its mechanism.</li>
+        <li>Run the path. The request goes as far as each stage holds; the first that does not is marked stopped, and the dock says which rule it broke.</li>
+        <li>Select a row&apos;s name to see its mechanism, its process and its source, or to move it. At the end, the dock shows your path beside another engine&apos;s.</li>
+      </ol>
+    </div>
   )
 }

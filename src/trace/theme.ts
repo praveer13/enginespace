@@ -1,13 +1,16 @@
 /*
- * The tape's colours, taken from the token roles (ARCHITECTURE §6.4, `scene-tokens.ts`). The canvas cannot read a stylesheet, so the
+ * The diagram's colours, taken from the token roles (ARCHITECTURE §6.4, `scene-tokens.ts`). The canvas cannot read a stylesheet, so the
  * painter is handed these resolved values and never names a colour of its own: this file only says which role each mark takes.
  *
- * The categorical code is the only colour code (DESIGN.md, "The Only Code Rule"), so a span takes the lane role of its kind of work
- * (the expo blue, the line green, the dumbwaiter brown, "Heard!" yellow) and a mark takes the lane role of the category it names.
- * Yellow and white marks carry their edge colour, because neither stands alone on paper. The heat lamp is the cursor's alone.
+ * The one colour code is the only code (REDESIGN 2.8, the Colour Is State Rule): a span takes the lane role of its kind of work (blue
+ * for the CPU, green for the GPU, brown for a copy, yellow for a sync, white for a note) and a mark takes the lane role of the category
+ * it names. Each carries the code's glyph, drawn in the span's own ink, and yellow and white carry their edge, because neither stands
+ * alone on paper. Amber is the cursor's alone (the One Marker Rule).
  */
 import { slotOf } from '@/design/tokens'
 import type { ColorRoleName, Slot } from '@/design/tokens'
+import { SLOT_MARKS } from '@/design/code'
+import type { GlyphShape } from '@/design/code'
 import type { SceneRoles } from '@/design/scene-tokens'
 import type { Category } from './marks'
 import type { SpanStyle } from './model'
@@ -15,6 +18,10 @@ import type { SpanStyle } from './model'
 export interface Ink {
   readonly fill: string
   readonly edge: string
+  /** What reads on the fill: the glyph's colour. */
+  readonly ink: string
+  /** The code's glyph for this colour. */
+  readonly glyph: GlyphShape
 }
 
 export interface TapeTheme {
@@ -22,13 +29,13 @@ export interface TapeTheme {
   readonly paperRule: string
   readonly paperInk: string
   readonly edge: string
-  /** The steel under the paper: the holes show it. */
-  readonly steel: string
-  readonly steelDeep: string
+  /** The label column beside the paper. */
+  readonly gutter: string
+  /** The marker: amber, and its edge. */
   readonly lamp: string
   readonly lampRing: string
-  readonly tape: string
-  readonly tapeInk: string
+  /** A slip's ground under a mark being made. */
+  readonly well: string
   readonly styles: Readonly<Record<SpanStyle, Ink>>
   readonly categories: Readonly<Record<Category, Ink>>
 }
@@ -43,7 +50,7 @@ export const STYLE_ROLE: Readonly<Record<SpanStyle, ColorRoleName>> = {
   note: 'lane-idle',
 }
 
-/** The role a mark's category takes. A CPU gap is the expo's colour: the line waits on the expo. */
+/** The role a mark's category takes. A CPU gap is the CPU's colour: the GPU waits on the CPU. */
 export const CATEGORY_ROLE: Readonly<Record<Category, ColorRoleName>> = {
   kernel: 'lane-gpu',
   copy: 'lane-copy',
@@ -55,24 +62,23 @@ export const CATEGORY_ROLE: Readonly<Record<Category, ColorRoleName>> = {
 export const slotOfRole = (role: ColorRoleName): Slot => slotOf(role) ?? 'white'
 
 const edgeRole = (role: ColorRoleName): ColorRoleName => `cat-${slotOfRole(role)}-edge` as ColorRoleName
+const inkRole = (role: ColorRoleName): ColorRoleName => `cat-${slotOfRole(role)}-ink` as ColorRoleName
 
 export function tapeTheme(roles: SceneRoles): TapeTheme {
-  const ink = (role: ColorRoleName): Ink => ({ fill: roles[role], edge: roles[edgeRole(role)] })
+  const ink = (role: ColorRoleName): Ink => ({ fill: roles[role], edge: roles[edgeRole(role)], ink: roles[inkRole(role)], glyph: SLOT_MARKS[slotOfRole(role)].glyph })
   const styles = Object.fromEntries((Object.keys(STYLE_ROLE) as SpanStyle[]).map((style) => [style, ink(STYLE_ROLE[style])])) as Record<SpanStyle, Ink>
   // A note is an outline in the neutral edge, not in the white board's.
-  styles.note = { fill: roles['lane-idle'], edge: roles.edge }
+  styles.note = { ...styles.note, edge: roles.edge }
   const categories = Object.fromEntries((Object.keys(CATEGORY_ROLE) as Category[]).map((c) => [c, ink(CATEGORY_ROLE[c])])) as Record<Category, Ink>
   return {
     paper: roles.paper,
     paperRule: roles['paper-rule'],
     paperInk: roles['paper-ink'],
     edge: roles.edge,
-    steel: roles['surface-2'],
-    steelDeep: roles['surface-3'],
-    lamp: roles.lamp,
-    lampRing: roles['lamp-ring'],
-    tape: roles.tape,
-    tapeInk: roles['tape-ink'],
+    gutter: roles['surface-1'],
+    lamp: roles.marker,
+    lampRing: roles['marker-edge'],
+    well: roles['surface-2'],
     styles,
     categories,
   }

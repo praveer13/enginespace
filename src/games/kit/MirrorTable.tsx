@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import { useId, useState, type KeyboardEvent, type ReactNode } from 'react'
-import { Ticket } from '@/design/components/Ticket'
+import { Sheet } from '@/design/components/Sheet'
 
 /*
  * The mirror kit (ARCHITECTURE §6.9, GAMES.md §2.3): a DOM table of the whole state, with a summary line above it. The canvas and
@@ -78,7 +78,7 @@ export function MirrorTable({ id, caption, columns, rows, summary, head = 'Mirro
   }
 
   return (
-    <Ticket as="section" width="full" hole={false} foot={[head]} className={clsx('es-mirror', className)} data-mirror="">
+    <Sheet as="section" width="full" hole={false} foot={[head]} className={clsx('es-mirror', className)} data-mirror="">
       {summary ? <p data-mirror-summary="">{summary}</p> : null}
       <div role="region" aria-labelledby={captionId} tabIndex={0} className="es-mirror__region mt-2">
         <table id={id} role="table" className="es-mirror__table w-full border-collapse text-left">
@@ -110,7 +110,7 @@ export function MirrorTable({ id, caption, columns, rows, summary, head = 'Mirro
                     aria-current={selected ? 'true' : undefined}
                     data-selected={selected || undefined}
                     data-lamp={row.lamp || undefined}
-                    className={clsx('border-b border-paper-rule', row.lamp && 'bg-lamp text-paper-ink')}
+                    className={clsx('border-b border-paper-rule', row.lamp && 'bg-marker text-paper-ink')}
                     role="row"
                   >
                     {columns.map((column, position) => {
@@ -158,6 +158,6 @@ export function MirrorTable({ id, caption, columns, rows, summary, head = 'Mirro
           </tbody>
         </table>
       </div>
-    </Ticket>
+    </Sheet>
   )
 }

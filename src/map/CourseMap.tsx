@@ -1,23 +1,25 @@
 import { useId } from 'react'
 import type { CourseMap, IndexModule } from '@es/schema'
-import { PrinterTape, type PrinterTapeLine } from '@/design/components/PrinterTape'
-import { Readout } from '@/design/components/Readout'
-import { TapeLabel } from '@/design/components/TapeLabel'
+import { ContinueLink } from '@/design/components/Header'
 import { TextLink } from '@/design/components/TextLink'
-import { nextModule, type Progress } from '@/progress/derive'
+import type { Progress } from '@/progress/derive'
+import type { LessonState, Step } from '@/progress/next'
+import { LEGENDS } from '@/progress/words'
+import type { Due } from './due'
 import { MAP } from './copy'
 import { Stop } from './Stop'
-import { decimalsOf, LANE_ORDER, laneTotals, printedId } from './summary'
+import { sentenceOf } from './sentence'
+import { formatHours, LANE_ORDER, laneTotals } from './summary'
 import './map.css'
 
 /*
- * The course map (`/map`; ARCHITECTURE §3.1, TRACKER W1-T06): the menu, opened out. Under the page's heading and the printer's tape of
- * the course so far, every module hangs on the rail in the order a learner meets them, one ticket each, in rows of as many as the page
- * is wide. The tickets are an ordered list, so a reader who cannot see the rail gets the course in its order, each ticket with its
- * facts and one link to its module; the rail, the clips and the pips are drawn on top of that list and add nothing it lacks.
+ * Course (`/map`; REDESIGN 3.2): one column of modules in course order on a track line, opened by the way on. The way on is `nextStep`'s
+ * answer told back as a sentence, with Continue beside it and, when they apply, a quiet line for the reviews due and one for the
+ * earlier lessons not finished. Under it come the hours in all and by lane, the two legend lines and the sentence that nothing is
+ * locked. The modules are an ordered list, so a reader who cannot see the track gets the course in its order.
  *
- * The page takes everything it shows as props: the course index, the compiled map, and the progress derived from the ledger. It reads
- * no store, and what it shows of the learner is a function of their events and the course (src/progress). `Map.tsx` is the route.
+ * The page takes everything it shows as props: the course index, the compiled map, the progress derived from the ledger and the way
+ * on. It reads no store; `Map.tsx` is the route.
  */
 
 export interface CourseMapViewProps {
@@ -28,79 +30,113 @@ export interface CourseMapViewProps {
   progress: Progress | null
   /** True once the ledger has been read. Until then the page says so, and does not say the learner has done nothing. */
   ready: boolean
+  /** The way on, `nextStep`'s answer: null until the ledger has been read. */
+  step?: Step | null
+  /** "Last time you ...", or null when no lesson has an event yet. */
+  last?: string | null
+  /** Each lesson's state by id. */
+  states?: ReadonlyMap<string, LessonState>
+  /** The reviews due, or null when none is, or the deck has not been read. */
+  due?: Due | null
 }
 
-function Tape({ modules, totalHours, progress, ready, next }: Pick<CourseMapViewProps, 'modules' | 'totalHours' | 'progress' | 'ready'> & { next: string | null }) {
+const NO_STATES: ReadonlyMap<string, LessonState> = new Map()
+
+/** The way on, at the top of the page. It waits for the ledger, and says so, so it never offers a place it has not read. */
+function WayOn({ step, last, ready, due }: { step: Step | null; last: string | null; ready: boolean; due: Due | null }) {
+  if (!ready || step === null) {
+    return (
+      <div className="es-course__way" data-state="reading">
+        <p className="es-course__sentence" role="status">
+          {MAP.way.reading}
+        </p>
+      </div>
+    )
+  }
+  return (
+    <div className="es-course__way">
+      <div className="es-course__say">
+        <p className="es-course__sentence">
+          <span className="es-course__mark" role="img" aria-label={MAP.way.mark} />
+          <span>{sentenceOf(step, last)}</span>
+        </p>
+        {due !== null || step.skipped > 0 ? (
+          <p className="es-course__asides">
+            {due === null ? null : (
+              <span>
+                <TextLink to="/today">{MAP.way.reviews(due.count, due.minutes)}</TextLink>
+              </span>
+            )}
+            {step.skipped > 0 ? <span>{MAP.way.skipped(step.skipped)}</span> : null}
+          </p>
+        ) : null}
+      </div>
+      <ContinueLink target={step} emphasis="primary" minutes={step.minutes} className="es-course__continue" />
+    </div>
+  )
+}
+
+const num = (value: number) => <span className="es-course__num">{formatHours(value)}</span>
+
+/** The hours of the course in all and by lane, one line, and what the numbers are. */
+function Hours({ modules, totalHours }: Pick<CourseMapViewProps, 'modules' | 'totalHours'>) {
   const totals = laneTotals(modules)
-  const counts = progress?.counts
-  const reading = ready && counts !== undefined
-  const lines: PrinterTapeLine[] = [
-    { id: 'hours', label: MAP.tape.hours, value: <Readout value={totalHours} digits={decimalsOf(totalHours)} tag="derived" size="sm" /> },
-    ...LANE_ORDER.filter((lane) => totals[lane] > 0).map(
-      (lane): PrinterTapeLine => ({
-        id: `lane-${lane}`,
-        label: MAP.tape.lanes[lane],
-        value: <Readout value={totals[lane]} digits={decimalsOf(totals[lane])} tag="derived" size="sm" />,
-      }),
-    ),
-    {
-      id: 'earned',
-      label: MAP.tape.earned,
-      value: reading ? (
-        <>
-          <Readout value={counts.earned} tag="measured" size="sm" /> {MAP.tape.of} {counts.total}
-        </>
-      ) : (
-        MAP.tape.reading
-      ),
-    },
-    {
-      id: 'kept',
-      label: MAP.tape.kept,
-      value: reading ? <Readout value={counts.kept} tag="measured" size="sm" /> : MAP.tape.reading,
-    },
-    {
-      id: 'next',
-      label: MAP.tape.next,
-      value: !ready ? MAP.tape.reading : next === null ? MAP.tape.none : <TextLink to={`/m/${next}`}>{printedId(next)}</TextLink>,
-    },
-  ]
-  return <PrinterTape label={MAP.tape.name} lines={lines} className="es-map__tape" />
+  const names = { B: MAP.hours.browser, L: MAP.hours.laptop, F: MAP.hours.gpu }
+  const lanes = LANE_ORDER.filter((lane) => totals[lane] > 0)
+  return (
+    <p className="es-course__hours">
+      {num(totalHours)} {MAP.hours.all}:{' '}
+      {lanes.map((lane, at) => (
+        <span key={lane}>
+          {at > 0 ? ', ' : ''}
+          {num(totals[lane])} {names[lane]}
+        </span>
+      ))}
+      . {MAP.hours.note.before} <span className="es-course__tag">{MAP.hours.estimated}</span> {MAP.hours.note.between} <span className="es-course__tag">{MAP.hours.derived}</span>.
+    </p>
+  )
 }
 
-export function CourseMapView({ modules, totalHours, map, progress, ready }: CourseMapViewProps) {
+export function CourseMapView({ modules, totalHours, map, progress, ready, step = null, last = null, states = NO_STATES, due = null }: CourseMapViewProps) {
   const listId = useId()
-  // The lamp waits for the ledger: a learner who has earned a module would see it light the wrong ticket for a moment.
-  const next = ready && progress !== null ? nextModule(modules, progress) : null
+  // The marker waits for the ledger, so it never sits on the wrong module for a moment.
+  const here = ready ? (step?.module ?? null) : null
   const details = new Map(map.modules.map((module) => [module.id, module]))
   return (
-    <div className="es-map" data-page="map">
-      <header className="es-map__header">
-        <div className="es-map__intro">
-          <div className="es-map__heading">
-            <h1 className="es-map__title">{MAP.title}</h1>
-            <TapeLabel tilt="left" className="es-map__term">
-              {MAP.term}
-            </TapeLabel>
-          </div>
-          {MAP.lede.map((line) => (
-            <p key={line} className="es-map__lede">
-              {line}
-            </p>
-          ))}
+    <div className="es-course" data-page="map">
+      <h1 className="es-course__h1">{MAP.title}</h1>
+      <WayOn step={step} last={last} ready={ready} due={due} />
+      <div className="es-course__notes">
+        <div className="es-course__facts">
+          <Hours modules={modules} totalHours={totalHours} />
+          <p className="es-course__nothing">{MAP.nothing}</p>
         </div>
-        <Tape modules={modules} totalHours={totalHours} progress={progress} ready={ready} next={next} />
-      </header>
-      <section aria-labelledby={listId} className="es-map__course">
+        <div className="es-course__legends">
+          <p>{LEGENDS.lesson}</p>
+          <p>{LEGENDS.skill}</p>
+        </div>
+      </div>
+      <section aria-labelledby={listId} className="es-course__modules">
         <h2 id={listId} className="sr-only">
           {MAP.modules}
         </h2>
-        <ol className="es-map__rails">
+        <ol className="es-course__rows">
           {modules.map((module) => (
-            <Stop key={module.id} module={module} detail={details.get(module.id)} progress={progress?.modules.get(module.id)} ready={ready} next={module.id === next} />
+            <Stop
+              key={module.id}
+              module={module}
+              detail={details.get(module.id)}
+              lessons={map.lessons.filter((lesson) => lesson.module === module.id)}
+              states={states}
+              progress={progress?.modules.get(module.id)}
+              ready={ready}
+              here={module.id === here}
+              step={step}
+            />
           ))}
         </ol>
       </section>
     </div>
   )
 }
+

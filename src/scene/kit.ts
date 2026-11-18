@@ -20,7 +20,7 @@ export interface Kit {
   readonly strike: (t: number) => number
   /**
    * How many lights may cast real-time shadows in this scene: the tier's `shadowLights` when the scene asked for shadows
-   * (`<SceneCanvas shadows>`), else 0. Heat lamps cast in the order they are listed, up to this many.
+   * (`<SceneCanvas shadows>`), else 0. Lights cast in the order they are listed, up to this many.
    */
   readonly shadowLights: number
   /**

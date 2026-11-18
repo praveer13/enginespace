@@ -153,7 +153,7 @@ describe('argmax-bank (TR0)', () => {
 
   test('fails when the site holds no bank for the stage, and says whose recording it waits for', async () => {
     const fixture = withArtifact('argmax', 'outputs', ARGMAX_FORMAT, argmax([3], [101]))
-    expect(checkOf(await run(fixture), 'argmax-bank')?.bound).toBe('This site holds no argmax bank for tr8.replay.s2 yet (the owner records it, W2-T17), so the ids cannot be compared.')
+    expect(checkOf(await run(fixture), 'argmax-bank')?.bound).toBe('This site holds no argmax bank for tr8.replay.s2 yet, so the ids cannot be compared.')
   })
 })
 
@@ -165,7 +165,7 @@ describe('a re-check over nothing is not a pass (the review of W2\'s grader trac
     expect(checkOf(outcome, 'identity-tally')).toEqual({
       id: 'identity-tally',
       status: 'fail',
-      bound: 'The artifact "identity" holds no sequence, so no run was compared with another: an identity over no sequence is no identity (D-046).',
+      bound: 'The artifact "identity" holds no sequence, so no run was compared with another: an identity over no sequence is no identity.',
     })
     expect(outcome.verdict.provenance).toBe('gpu-unverified')
   })

@@ -86,7 +86,7 @@ describe('the drawing paints with the design system\'s roles', () => {
   test('amber is the lamp\'s pool and ring over the present order, and nothing else is amber (One Lamp)', () => {
     for (const { name, sheet } of everySheet()) {
       for (const layer of sheet.layers) {
-        const lit = layer.marks.some((mark) => paintsOf(mark).some((paint) => paint === 'lamp' || paint === 'lamp-ring'))
+        const lit = layer.marks.some((mark) => paintsOf(mark).some((paint) => paint === 'marker' || paint === 'marker-edge'))
         expect([name, layer.part, lit && layer.part !== 'present']).toEqual([name, layer.part, false])
       }
       expect(sheet.layers.filter((layer) => layer.part === 'present')).toHaveLength(1)
@@ -108,7 +108,7 @@ describe('what the drawing writes', () => {
         if (mark.kind !== 'text') continue
         const text = mark.text
         const ok =
-          /^[A-Z][A-Z .,'-]*$/.test(text) || // names on tape: REPORTED, AT DESK, CUT, SECONDS, EACH ORDER, DUE TO DONE
+          /^[A-Z][A-Z .,'-]*$/.test(text) || // names on tape: REPORTED, MEASURED, CUT, SECONDS, EACH REQUEST, DUE TO DONE
           /^\d{4}$/.test(text) || // an order's number
           /^\d+(\.\d+)? (ms|s)$/.test(text) || // a ruler's edge on the histogram
           /^\d+(\.\d+)?$/.test(text) // a tick in seconds on the timeline, or a stack's tally
@@ -140,9 +140,9 @@ describe('the histogram', () => {
         .map((mark) => mark.text)
         .sort()
     expect(names(histogramOf(scene, 'landscape', { p99Us: null, cut: 0 }))).toEqual(['REPORTED'])
-    expect(names(histogramOf(scene, 'landscape', { cut: 0 }))).toEqual(['AT DESK', 'REPORTED'])
-    expect(names(histogramOf(scene, 'landscape', { cut: 0, correctedUs: 500_000, yoursUs: 700_000 }))).toEqual(['AT DESK', 'CORRECTED', 'REPORTED', 'YOURS'])
-    expect(names(histogramOf(scene, 'portrait', { cut: 12 }))).toEqual(['AT DESK', 'CUT', 'REPORTED'])
+    expect(names(histogramOf(scene, 'landscape', { cut: 0 }))).toEqual(['MEASURED', 'REPORTED'])
+    expect(names(histogramOf(scene, 'landscape', { cut: 0, correctedUs: 500_000, yoursUs: 700_000 }))).toEqual(['CORRECTED', 'MEASURED', 'REPORTED', 'YOURS'])
+    expect(names(histogramOf(scene, 'portrait', { cut: 12 }))).toEqual(['CUT', 'MEASURED', 'REPORTED'])
   })
 
   test('never lays one flag\'s tape on another\'s, however close the numbers, and keeps every tape inside the sheet', () => {
@@ -154,9 +154,9 @@ describe('the histogram', () => {
         const tapes: { name: string; y: number; h: number }[] = []
         flags.forEach((mark, i) => {
           const next = flags[i + 1]
-          if (mark.kind === 'rect' && mark.fill === 'tape' && next?.kind === 'text' && next.text !== 'CUT') tapes.push({ name: next.text, y: mark.y, h: mark.h })
+          if (mark.kind === 'rect' && mark.fill === 'paper' && next?.kind === 'text' && next.face === 'label' && next.text !== 'CUT') tapes.push({ name: next.text, y: mark.y, h: mark.h })
         })
-        expect(tapes.map((tape) => tape.name).sort()).toEqual(['AT DESK', 'CORRECTED', 'REPORTED', 'YOURS'])
+        expect(tapes.map((tape) => tape.name).sort()).toEqual(['CORRECTED', 'MEASURED', 'REPORTED', 'YOURS'])
         tapes.sort((a, b) => a.y - b.y)
         for (let i = 0; i < tapes.length; i++) {
           expect([orientation, gap, tapes[i].name, tapes[i].y >= 0 && tapes[i].y + tapes[i].h <= sheet.height]).toEqual([orientation, gap, tapes[i].name, true])
@@ -338,7 +338,7 @@ describe('the drawing is the page', () => {
   test('has the label of the drawing on its root, as an image', () => {
     const svg = svgMarkup(sheetSvg(histogramOf(scenes[1], 'landscape')))
     expect(svg).toContain('role="img"')
-    expect(svg).toContain('aria-label="Graph paper.')
+    expect(svg).toContain('aria-label="Histogram.')
     expect(svg).toContain(`viewBox="0 0 ${histogramOf(scenes[1], 'landscape').width} ${histogramOf(scenes[1], 'landscape').height}"`)
   })
 
@@ -351,10 +351,10 @@ describe('the drawing is the page', () => {
     }
   })
 
-  test('a sheet is a sentence to assistive technology: its label says what it shows, and the numbers are not in it but the count of orders', () => {
+  test('a sheet is a sentence to assistive technology: its label says what it shows, and the numbers are not in it but the count of requests', () => {
     const sheet = histogramOf(scenes[1], 'landscape')
-    expect(sheet.label.startsWith('Graph paper.')).toBe(true)
-    expect(sheet.label).toContain(`${scenes[1].rows.length} orders`)
+    expect(sheet.label.startsWith('Histogram.')).toBe(true)
+    expect(sheet.label).toContain(`${scenes[1].rows.length} requests`)
     const timeline = layoutTimeline({ rows: scenes[1].rows, selected: 0 })
     expect(timeline.label).toMatch(/hollow notch/)
   })

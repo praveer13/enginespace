@@ -5,49 +5,39 @@ primary_target: "src/pages/Map.tsx"
 related_targets: ["src/map","src/progress","src/pages/Module.tsx"]
 ---
 
-# Course map
+# Course (`/map`)
 
 ## Scope
 
-- **Surface:** the course map (`/map`), which the front page's menu opens out into, in Operate mode. Its related targets are the module pages' loop and progress sections and the progress model they read.
-- **Visitor:** a learner who has played the front page's service, or comes back with evidence on this device, and wants to know which module to open next, what it leans on in kernelspace and whether it needs a GPU.
-- **Action:** open a module.
-- **Proof:** every fact is the course's own: hours [estimated], lanes, kernelspace lessons, artifacts. The evidence line is counted from the learner's ledger when the page draws, and nothing about it is stored.
-- **Constraints:**
-  - the PRODUCT.md constraints (zero servers, nothing collected);
-  - 320 px with no sideways scroll, keyboard, reduced motion;
-  - prerequisites advise and never lock, so every ticket opens;
-  - an accessible ordered list sits behind the drawing.
+- **Surface:** Course, the course map, in Operate mode (REDESIGN §3.2). Its related targets are the module pages and the progress model they read.
+- **Visitor:** a learner deciding what to open next, first time or returning, who wants to know where they are, what each module needs (browser, laptop or GPU) and how long it takes.
+- **Action:** Continue to the lesson `nextStep` names, or open any module: nothing is locked, and prerequisites advise.
+- **Proof:** every fact is the course's own: hours [estimated] with totals [derived], lanes, kernelspace lessons it builds on, and the learner's states counted from their own ledger on this device.
+- **Constraints:** the PRODUCT.md constraints; 320 px with no sideways scroll; keyboard; reduced motion; an ordered list a screen reader walks.
 
 ## Direction contract
 
-THESIS: The course is the night's order rail: one ticket per module, hung in the order a learner meets them, so the map is a rail with a lamp over the next ticket. The page refuses the roadmap with progress rings, the grid of same-size cards and the chart of lane bars.
+THESIS: The course drawn as one track: a vertical line with a node per module in course order, the module the learner is in open with its lessons, and one way on above it all. It refuses the roadmap of progress rings and the grid of same-size cards.
 
-OWN-WORLD:
-- **Ground and rail:** brushed stainless, with the rail's polished rod and spring clips; each row of tickets hangs from its own stretch of rod.
-- **Tickets:** white bond paper, dot-matrix print with the red second ink; lanes are masking tape and marker, never a code colour.
-- **Evidence:** printed pips, an open ring until a knowledge component is practised, a solid dot once it is earned, always beside the count in words.
-- **Active state:** heat-lamp amber over the next ticket only.
+OWN-WORLD: Data Book (REDESIGN §2.8): flat paper cut square with one soft sheet shadow and no texture; ink text in Atkinson Hyperlegible, titles in Big Shoulders Display 800 in sentence case; every number the learner compares in the tabular mono face with its tag; one amber marker that means "now", only on the control to act on now, a diagram's now cursor and the current position in a rail or on the course track; the code colours only where the model's state is drawn.
 
-STORY: The learner sees the whole course at once, how much of it needs a GPU, and what each module leans on in kernelspace. They find the next ticket by the lamp, believe that nothing is locked, and open it.
+STORY: The learner sees where they are and what comes next in one sentence and one amber Continue; the track tells them what each module needs and what they will be able to do, so the course reads as a path and not a menu.
 
-FIRST VIEWPORT:
-- The stamped heading "Course map" with a short lede at the left, and the printer's tape at the right (hours by lane, knowledge components earned, the next ticket).
-- Under them the first rail runs the full width with four tickets hung from it, the next ticket under the lamp, and each ticket's stub is its link.
-- On a phone the tape comes first and the tickets hang one to a row from the same rod.
+FIRST VIEWPORT: At 1440 the h1 "Course", the next-step block (the amber position mark, the sentence "You have not started. Next: TR1 lesson 1 ..." or "Last time ... Next ...", and the amber Continue or Start at its right), the hours line and the legend of states, then the track with TR1 open and its next lesson marked. At 390 the next-step block comes first with its button full width, and the track's line and nodes sit in the left 24 px.
 
-FORM:
-- **Chosen form:** the menu, which GAMES.md §2.6 names as the course map, set out on the pass's ticket rail: Rail, Ticket, Stub, TapeLabel and PrinterTape from src/design/components. It is the specified surface, with no concept roll.
-- seed: none (specified surface, no roll)
-- **Signature move:** the lamp follows the learner's evidence: it hangs over the first open module that is not yet earned.
+FORM: Data Book's course track (REDESIGN §3.2). seed: none (a specified surface inside the established world, which the owner confirmed at the look gate; no roll)
 
-FINISH: unreviewed and undocumented is unfinished; this build ends with the finish review, the verdict, DESIGN.md, and every shipping raster carrying its provenance
+FINISH: unreviewed and undocumented is unfinished; this surface ends with wave R's finish review (R-T50), its material fixes, and DESIGN.md written from the built world
 
 ## Memorable moment
 
-The first visit with an empty ledger: three rails of open pips, and one lamp over TR1. After a first earned knowledge component the pip fills, and the lamp stays where the course should go on.
+A returning learner lands on the sentence that says where they left off, the amber Continue beside it, and the open module's next lesson under the amber mark: one look, one press.
 
 ## Unresolved
 
-- **Module completion:** ASSESSMENT.md §9's "browser-complete" and "complete" need exit-ticket events and Prove-it events, which no W1 task has written yet. This surface counts knowledge components (practised, earned, kept) and says what it counts.
-- **Planned modules:** TR0, TR3, TR4, TR5b, TR7 and the capstone have a ticket from the first day, marked planned, with the prerequisites and artifacts that their curriculum files give.
+- An unpublished module's title is underlined like a link though it is not one (the finish review's fidelity table).
+- "n reviews due" beside Continue needs the review deck in this route's closure (the R-T24 follow-up).
+
+## The Pass's contract, superseded
+
+Until wave R this surface was specified in The Pass (D-047), the kitchen world. D-062 replaced it with Data Book, which the owner confirmed at the look gate on 2026-11-16, and stage 4 took the kitchen's files out of the tree. The superseded contract and its adaptations are in this file's git history; none of it applies to the built surface.

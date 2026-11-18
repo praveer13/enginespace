@@ -1,7 +1,7 @@
 /**
- * What a house's path says about itself (GAMES.md §5, "Core loop" steps 2 and 6): the prediction's answer, and the facts the debrief
- * sets side by side when it lays two houses' floor plans next to each other: where detokenizing runs, how many ZMQ hops the path has,
- * and how the ranks get the batch.
+ * What an engine's path says about itself (GAMES.md §5, "Core loop" steps 2 and 6): the prediction's answer, and the facts the result sets
+ * side by side when it lays two engines' paths next to each other: where detokenizing runs, how many ZMQ hops the path has, and how the
+ * ranks get the batch.
  *
  * Every fact is counted from the lifecycle data of one path, so each is [derived] from the pinned stages and is only as good as the
  * stages are. They are counts and names of the model's stages, and nothing here is a measurement of an engine.
@@ -11,7 +11,7 @@ import type { Mechanism, Place, StageDef } from '@es/sim/lifecycle'
 import { FLOOR_KINDS, floorKindOf, placeName } from './words'
 import type { FloorKind } from './words'
 
-export interface HouseFacts {
+export interface PathFacts {
   /** Stages in the path. */
   readonly stages: number
   /** The hand-offs of the path, by mechanism. */
@@ -26,8 +26,8 @@ export interface HouseFacts {
   readonly detokenizesAt: string | null
   /** How the ranks after the first get the batch: the stage that reaches them; null with one rank. */
   readonly ranksVia: { readonly mechanism: Mechanism; readonly label: string } | null
-  /** The floors the path visits, from the dining room down. */
-  readonly floors: readonly FloorKind[]
+  /** The kinds of process the path visits, from the client to the GPU. */
+  readonly kinds: readonly FloorKind[]
 }
 
 /** The stage that samples: its id ends in `.sample` in every engine of the model. */
@@ -41,27 +41,32 @@ const isDetokenize = (stage: StageDef): boolean => /\.(?:detokenize|process-outp
  * follows it is not counted. For an offline library, where the request begins in the process that samples, there are none.
  */
 export function boundariesOut(path: readonly StageDef[], entry: Place): number {
+  return boundaryStagesOut(path, entry).length
+}
+
+/** The stages that `boundariesOut` counts, in path order: what a reveal names beside the number. */
+export function boundaryStagesOut(path: readonly StageDef[], entry: Place): StageDef[] {
   const sampler = path.findIndex(isSample)
-  if (sampler < 0) return 0
-  let crossed = 0
+  if (sampler < 0) return []
+  const crossed: StageDef[] = []
   for (const stage of path.slice(sampler + 1)) {
-    if (boundaryOf(stage.from, stage.to) === 'process') crossed += 1
+    if (boundaryOf(stage.from, stage.to) === 'process') crossed.push(stage)
     if (stage.to.process === entry.process && stage.to.thread === entry.thread) break
   }
   return crossed
 }
 
-export function factsOf(path: readonly StageDef[], entry: Place): HouseFacts {
+export function factsOf(path: readonly StageDef[], entry: Place): PathFacts {
   const base = pathFacts(path)
   const detokenizer = path.find(isDetokenize)
   const toRank = path.find((stage) => stage.to.device === 'host' && stage.to.rank > 0 && stage.from.rank !== stage.to.rank)
   const processes = new Set<string>([entry.process])
-  const floors: FloorKind[] = []
+  const kinds: FloorKind[] = []
   for (const stage of path) {
     for (const place of [stage.from, stage.to]) {
       processes.add(place.process)
       const kind = floorKindOf(place)
-      if (!floors.includes(kind)) floors.push(kind)
+      if (!kinds.includes(kind)) kinds.push(kind)
     }
   }
   return {
@@ -72,7 +77,7 @@ export function factsOf(path: readonly StageDef[], entry: Place): HouseFacts {
     zmqHops: path.filter((stage) => /\bZMQ\b/.test(stage.label)).length,
     detokenizesAt: detokenizer === undefined ? null : placeName(detokenizer.to),
     ranksVia: toRank === undefined ? null : { mechanism: toRank.mechanism, label: toRank.label },
-    floors: FLOOR_KINDS.filter((kind) => floors.includes(kind)),
+    kinds: FLOOR_KINDS.filter((kind) => kinds.includes(kind)),
   }
 }
 

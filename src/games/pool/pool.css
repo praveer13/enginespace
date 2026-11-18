@@ -1,0 +1,702 @@
+/*
+ * KV page pool in the instrument frame (REDESIGN §2.6, §2.8, §3.5): the diagram (the running batch, the page grid, the free queue), its
+ * legend, the dock's decisions, the readout strip and the result. Token roles only. A page's state is its memory role's colour with that
+ * role's glyph, so a state never rests on colour alone (WCAG 1.4.1); the marker (amber) falls only on the pages an eviction is about to
+ * take, which is now.
+ */
+
+/* ------------------------------------------------------------------------------------------------ the diagram */
+
+.es-pool {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+  min-width: 0;
+  min-height: 100%;
+  padding: var(--es-space-3);
+  /* Plain paper: a graticule here would be neither the cells' grid nor a value axis (REDESIGN 2.8). */
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+}
+
+@media (max-width: 63.999rem) {
+  .es-pool {
+    gap: var(--es-space-1);
+    padding: var(--es-space-2);
+  }
+
+  .es-pool__slot {
+    min-height: 2rem;
+  }
+
+  .es-pool__legend .es-legend {
+    gap: 0 var(--es-space-3);
+  }
+
+  .es-pool__groups[data-one] {
+    display: none;
+  }
+
+  /* The free queue, where an eviction is decided, comes before the grid, so it is on the screen when the view is short. It keeps to one
+     row, the next to evict at the left, and the rest scroll sideways inside it, so it never pushes the grid out of the view. */
+  .es-pool__queue {
+    order: 1;
+  }
+
+  .es-pool__queue .es-pool__strip {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: thin;
+  }
+
+  .es-pool__queue .es-pool__strip > * {
+    flex: none;
+  }
+
+  .es-pool__grid-box {
+    order: 2;
+  }
+}
+
+.es-pool__label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--es-space-2);
+  margin: 0 0 var(--es-space-1);
+  font-size: var(--es-size-note);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.es-pool__count {
+  color: var(--es-text-2);
+  font-weight: 400;
+}
+
+/* On a phone, while the first run names the parts, a label's count stands back from its name to leave room for the intro's numbered disc;
+   at a desk the disc stands in the diagram's gutter (frame.css). */
+@media (max-width: 63.999rem) {
+  .es-frame:is([data-intro='parts'], [data-intro='look']) .es-pool__label > .es-pool__count {
+    margin-inline-start: 2.25rem;
+  }
+}
+
+/* The running batch: one slot to a batch slot, dashed while empty. */
+.es-pool__slots {
+  display: grid;
+  grid-template-columns: repeat(var(--es-slots), minmax(0, 1fr));
+  gap: var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-pool__slot {
+  display: flex;
+  min-width: 0;
+  min-height: 3rem;
+  flex-direction: column;
+  gap: var(--es-space-1);
+  padding: var(--es-space-1) var(--es-space-2);
+  border: 1px solid var(--es-edge);
+  background: var(--es-paper);
+  font-size: var(--es-size-caption);
+}
+
+.es-pool__slot[data-empty] {
+  justify-content: center;
+  border-style: dashed;
+  color: var(--es-text-2);
+}
+
+.es-pool__slot-head {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.es-pool__slot-meta {
+  color: var(--es-text-2);
+}
+
+/* A block table: a row to a KV group, a segment to a block. */
+.es-pool__ruler {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.es-pool__ruler-row {
+  display: flex;
+  align-items: center;
+  gap: var(--es-space-1);
+}
+
+.es-pool__ruler-group {
+  flex: none;
+  width: 0.75rem;
+  color: var(--es-text-2);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-micro);
+  line-height: 1;
+  text-align: right;
+}
+
+.es-pool__segs {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: repeat(var(--es-blocks), minmax(0, 1fr));
+  gap: 1px;
+  height: 0.4375rem;
+}
+
+.es-pool__seg {
+  border: 1px solid var(--es-cat-blue-edge);
+  background: var(--es-memory-used);
+}
+
+.es-pool__seg[data-seg='let-go'] {
+  border-style: dashed;
+  border-color: var(--es-edge);
+  background: transparent;
+}
+
+.es-pool__seg[data-seg='hit'] {
+  border-color: var(--es-cat-green-edge);
+  background: var(--es-memory-shared);
+}
+
+.es-pool__seg[data-seg='fresh'] {
+  border-color: var(--es-edge);
+  background: var(--es-paper);
+}
+
+/* The page grid: sixteen to a row, each page in its place for its whole life. */
+.es-pool__grid {
+  display: grid;
+  grid-template-columns: repeat(var(--es-cols), minmax(0, var(--es-cell-max)));
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-pool__cell {
+  --es-fill: var(--es-cat-white);
+  --es-cell-edge: var(--es-cat-white-edge);
+  --es-cell-ink: var(--es-cat-white-ink);
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  border: 1px solid var(--es-cell-edge);
+  background: var(--es-fill);
+  color: var(--es-cell-ink);
+  transition:
+    background-color var(--es-dur-quick) var(--es-ease-settle),
+    box-shadow var(--es-dur-quick) var(--es-ease-settle);
+}
+
+.es-pool__cell[data-state='used'] {
+  --es-fill: var(--es-memory-used);
+  --es-cell-edge: var(--es-cat-blue-edge);
+  --es-cell-ink: var(--es-cat-blue-ink);
+}
+
+.es-pool__cell[data-state='cached'] {
+  --es-fill: var(--es-memory-cached);
+  --es-cell-edge: var(--es-cat-yellow-edge);
+  --es-cell-ink: var(--es-cat-yellow-ink);
+}
+
+/* A cached page is hatched, as the 3D legend draws it: yellow stripes on paper, so a pool of cached pages never reads as a field of the
+   marker's amber (the Colour Is State Rule, the One Marker Rule). */
+.es-pool__cell[data-state='cached'] {
+  background: repeating-linear-gradient(135deg, var(--es-memory-cached) 0 3px, var(--es-paper) 3px 6px);
+}
+
+.es-pool__cell[data-state='shared'] {
+  --es-fill: var(--es-memory-shared);
+  --es-cell-edge: var(--es-cat-green-edge);
+  --es-cell-ink: var(--es-cat-green-ink);
+}
+
+.es-pool__cell[data-state='adapter'] {
+  --es-fill: var(--es-memory-adapter);
+  --es-cell-edge: var(--es-cat-brown-edge);
+  --es-cell-ink: var(--es-cat-brown-ink);
+}
+
+.es-pool__cell[data-state='evicted'] {
+  --es-fill: var(--es-memory-evicted);
+  --es-cell-edge: var(--es-cat-red-edge);
+  --es-cell-ink: var(--es-cat-red-ink);
+}
+
+.es-pool__cell[data-state='free'] {
+  background: transparent;
+  border-style: dashed;
+}
+
+/* The pages an eviction is about to take carry the marker: now. A page a row points at takes the ink ring. */
+.es-pool__cell[data-chosen] {
+  box-shadow:
+    0 0 0 1px var(--es-marker-edge),
+    0 0 0 3px var(--es-marker);
+  z-index: 1;
+}
+
+.es-pool__cell[data-pointed] {
+  outline: 2px solid var(--es-text-1);
+  outline-offset: 1px;
+  z-index: 2;
+}
+
+.es-pool__cell[data-pick] {
+  cursor: pointer;
+}
+
+.es-pool__glyph {
+  width: 55%;
+  height: 55%;
+}
+
+.es-pool__cell[data-state='free'] .es-pool__glyph {
+  width: 40%;
+  height: 40%;
+  color: var(--es-paper-rule);
+}
+
+.es-pool__group {
+  position: absolute;
+  top: 1px;
+  left: 2px;
+  display: none;
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-micro);
+  line-height: 1;
+}
+
+@media (min-width: 64rem) {
+  .es-pool__group {
+    display: block;
+  }
+}
+
+/* The free queue: the order of eviction, the next on the left. */
+.es-pool__strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-pool__strip .es-pool__cell {
+  width: 1rem;
+  height: 1rem;
+}
+
+.es-pool__strip .es-pool__group {
+  display: none;
+}
+
+/* A waiting request on the drawing: its name on a slip, edged as the loop's chips are. It takes no press: the dock admits it. */
+.es-pool__wait {
+  padding: 0 var(--es-space-2);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-trim);
+  background: var(--es-paper);
+  font-family: var(--es-font-numeric);
+  font-size: var(--es-size-caption);
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+@media (max-width: 63.999rem) {
+  .es-pool__waiting {
+    display: none;
+  }
+}
+
+.es-pool__free-run {
+  padding-inline: var(--es-space-1);
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+}
+
+/* The legend, under the diagram. */
+.es-pool__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-6);
+}
+
+.es-pool__groups {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  line-height: 1.4;
+}
+
+.es-pool__groups-n {
+  font-family: var(--es-font-mono);
+  font-weight: 700;
+}
+
+.es-pool__cameras {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--es-space-2) var(--es-space-4);
+}
+
+.es-pool__mode {
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+/* ------------------------------------------------------------------------------------------------ the dock */
+
+.es-dock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-4);
+}
+
+.es-dock__title {
+  margin: 0 0 var(--es-space-1);
+  font-size: var(--es-size-control);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.es-dock__text {
+  margin: 0 0 var(--es-space-2);
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+/* On a phone the pinned dock holds the decision and its options, whole: the rule the heading names is in Parts and How to play, and the
+   wide dock's sentence for it is left out, so the options and the pool they change share the screen. */
+@media (max-width: 63.999rem) {
+  .es-dock__text--wide {
+    display: none;
+  }
+}
+
+.es-dock__note {
+  margin: 0 0 var(--es-space-2);
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  font-style: italic;
+}
+
+.es-dock__guess {
+  padding-bottom: var(--es-space-3);
+  border-bottom: 1px solid var(--es-paper-rule);
+}
+
+.es-dock__guess-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+}
+
+.es-dock__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-3);
+  margin-block: var(--es-space-2);
+}
+
+.es-dock__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-dock__option {
+  display: grid;
+  width: 100%;
+  min-height: 2.75rem;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: center;
+  gap: 0 var(--es-space-2);
+  padding: var(--es-space-1) var(--es-space-2);
+  border: 1px solid var(--es-paper-rule);
+  border-radius: var(--es-radius-control);
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--es-dur-quick) var(--es-ease-settle);
+}
+
+.es-dock__option:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--es-surface-2) 35%, var(--es-paper));
+}
+
+.es-dock__option:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: 2px;
+}
+
+.es-dock__option:disabled {
+  border-style: dashed;
+  color: var(--es-text-2);
+  cursor: not-allowed;
+}
+
+.es-dock__option[aria-pressed='true'] {
+  border-color: var(--es-cat-red-edge);
+  background: color-mix(in srgb, var(--es-memory-evicted) 10%, var(--es-paper));
+}
+
+/* On a phone an option is its name and its words on one row, so three options and Admit none fit the pinned dock. */
+@media (max-width: 63.999rem) {
+  .es-dock__option:has(> .es-dock__option-meta) {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding-block: 2px;
+  }
+}
+
+.es-dock__option-name {
+  display: flex;
+  align-items: center;
+  gap: var(--es-space-2);
+  font-size: var(--es-size-note);
+}
+
+.es-dock__option-meta,
+.es-dock__option-why {
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  line-height: 1.35;
+}
+
+.es-dock__mark {
+  flex: none;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.es-dock__mark[data-state='cached'] {
+  color: var(--es-memory-cached);
+}
+
+.es-dock__mark[data-state='shared'] {
+  color: var(--es-memory-shared);
+}
+
+.es-dock__mark[data-state='evicted'] {
+  color: var(--es-memory-evicted);
+}
+
+.es-dock__label {
+  color: var(--es-text-2);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-caption);
+}
+
+.es-dock__count {
+  font-size: var(--es-size-note);
+}
+
+/* ------------------------------------------------------------------------------------------------ the readout strip */
+
+.es-strip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-1);
+}
+
+.es-strip__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--es-space-2);
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  font-weight: 700;
+}
+
+/* Each number keeps its whole width and a fixed gap from the next ("15 of 15" never runs into "1296"); a narrow dock wraps the strip to a
+   second line, with the delta's band over it too. */
+.es-strip__list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1.125rem var(--es-space-4);
+  margin: 0;
+}
+
+.es-strip__item {
+  display: flex;
+  flex: none;
+  flex-direction: column-reverse;
+}
+
+.es-strip__label {
+  color: var(--es-text-2);
+  font-size: var(--es-size-micro);
+  line-height: 1.2;
+}
+
+.es-strip__value {
+  margin: 0;
+  font-size: var(--es-size-control);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+@media (max-width: 63.999rem) {
+  .es-strip__value {
+    font-size: var(--es-size-base);
+  }
+
+  /* The readout keeps to one line on a phone. */
+  .es-strip__list {
+    column-gap: var(--es-space-2);
+  }
+}
+
+/*
+ * The delta stands over its number for one second, in a band the list keeps free for it, so the strip does not move when it comes and goes
+ * and the delta covers no other number.
+ */
+.es-strip__list {
+  padding-top: 1.125rem;
+}
+
+.es-strip__value {
+  position: relative;
+}
+
+.es-strip__delta {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  font-size: var(--es-size-caption);
+}
+
+/* ------------------------------------------------------------------------------------------------ the first run's ring */
+
+/* The intro's amber ring sits on the reference run's first move, a whole row of the list wide, with its word under it. */
+.es-dock__ring {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--es-space-1);
+  margin: 6px 6px var(--es-space-1);
+}
+
+.es-dock__ring .es-marker__ring {
+  display: flex;
+}
+
+.es-dock__ring .es-marker__ring > * {
+  flex: 1 1 auto;
+}
+
+.es-pool-debrief__again {
+  margin: 0;
+}
+
+/* ------------------------------------------------------------------------------------------------ the result */
+
+.es-pool-debrief__body {
+  max-width: 75ch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-pool-debrief__body p,
+.es-pool-debrief__body h4 {
+  margin: 0;
+}
+
+.es-pool-debrief__body h4 {
+  font-size: var(--es-size-base);
+}
+
+.es-pool-debrief__body a {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* ------------------------------------------------------------------------------------------------ a selected page */
+
+/* A page the pointer selected takes the ink ring, as a row's page does; its popover opens from its number beside the pool's name. */
+.es-pool__cell[data-selected] {
+  outline: 2px solid var(--es-text-1);
+  outline-offset: 1px;
+  z-index: 2;
+}
+
+.es-pool__cell:not([data-pick]) {
+  cursor: help;
+}
+
+.es-pool__pick {
+  font-weight: 400;
+}
+
+/* ------------------------------------------------------------------------------------------------ the lesson's dock (DockView.tsx) */
+
+.es-pooldock {
+  gap: var(--es-space-2);
+  min-height: 0;
+  padding: var(--es-space-3);
+  border: 1px solid var(--es-paper-rule);
+}
+
+.es-pooldock__slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-pooldock__slot {
+  min-width: 2.5rem;
+  padding: 0.125rem var(--es-space-2);
+  border: 1px solid var(--es-cat-blue-edge);
+  background: var(--es-memory-used);
+  color: var(--es-cat-blue-ink);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-caption);
+  text-align: center;
+}
+
+.es-pooldock__slot[data-empty] {
+  border-style: dashed;
+  border-color: var(--es-edge);
+  background: transparent;
+  color: var(--es-text-2);
+  font-family: var(--es-font-body);
+}
+
+.es-pooldock .es-pool__grid {
+  gap: 2px;
+}
+
+.es-pooldock .es-strip {
+  margin-top: var(--es-space-1);
+}

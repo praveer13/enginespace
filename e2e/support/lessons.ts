@@ -10,6 +10,8 @@ import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { expect } from '@playwright/test'
 import type { Locator, Page } from '@playwright/test'
+import { OPENERS } from '../../tests/content/openers-table'
+import type { OpenerKind } from '../../tests/content/openers-table'
 
 const root = path.resolve(import.meta.dirname, '../..')
 
@@ -19,6 +21,29 @@ export interface LessonGame {
   readonly game: string
   readonly level: string
   readonly mode: 'practice' | 'graded'
+}
+
+/** A lesson's id from its route: `/m/tr2/l3-async-scheduling-closes-the-bubble` is `tr2.l3`. */
+export const lessonIdOfRoute = (route: string): string => {
+  const [, , module, file] = route.split('/')
+  return `${module}.${/^l\d+/.exec(file)?.[0] ?? file}`
+}
+
+/**
+ * How the lesson at `route` opens, from the openers table of REDESIGN §2.5 (tests/content/openers-table.ts), so a content task that edits a
+ * lesson to its row changes the table and no spec. The table's letter is the lesson's target: a lesson that has not been edited yet still
+ * renders its old opener until its task lands.
+ */
+export const openerOfRoute = (route: string): OpenerKind => {
+  const row = OPENERS.find((one) => one.lesson === lessonIdOfRoute(route))
+  if (row === undefined) throw new Error(`${route} has no row in the openers table`)
+  return row.opener
+}
+
+/** The routes of the lessons that have a game block and whose row in the openers table says `opener`, in course order. */
+export const lessonRoutes = (opener: OpenerKind): string[] => {
+  const wanted = new Set(OPENERS.filter((row) => row.opener === opener).map((row) => row.lesson))
+  return [...new Set(lessonGames().map((game) => game.route))].filter((route) => wanted.has(lessonIdOfRoute(route)))
 }
 
 /** Every game block of the course's lessons, lesson by lesson, in the order of the files and of the blocks in each. */
@@ -46,19 +71,23 @@ export function lessonGames(): LessonGame[] {
   return found
 }
 
-/** The block's ticket: one per block, since no lesson names a game, a level and a mode twice (tests/content/game-blocks.test.ts). */
+/** The block's run on the lesson page: one per block, since no lesson names a game, a level and a mode twice (tests/content/game-blocks.test.ts). */
 export const ticketOf = (page: Page, block: Pick<LessonGame, 'game' | 'level' | 'mode'>): Locator =>
-  page.locator(`section[data-block="game"][data-play="${block.game}/${block.level}"][data-mode="${block.mode}"]`)
+  page.locator(`[data-block="game"][data-play="${block.game}/${block.level}"][data-mode="${block.mode}"]`)
 
-/** The game a block opened, under its ticket. */
-export const embedOf = (page: Page, block: Pick<LessonGame, 'game' | 'level' | 'mode'>): Locator =>
-  page.locator('.es-c-game[data-open]').filter({ has: ticketOf(page, block) }).locator('section[data-game]')
+/** The game a block opened, inside its run. */
+export const embedOf = (page: Page, block: Pick<LessonGame, 'game' | 'level' | 'mode'>): Locator => ticketOf(page, block).locator('section[data-game]')
 
-/** Starts a block's level with the keys: focus on its stub, and Enter. Returns the game it opened, once it is on the page. */
+/**
+ * Starts a block's level with the keys, unless the lesson opened it already (an opening run starts with the page): focus on its control, and
+ * Enter. Returns the game it opened, once it is on the page.
+ */
 export async function startBlock(page: Page, block: Pick<LessonGame, 'game' | 'level' | 'mode'>): Promise<Locator> {
   const ticket = ticketOf(page, block)
-  await ticket.getByRole('button', { name: 'Start level' }).focus()
-  await page.keyboard.press('Enter')
+  if ((await ticket.getAttribute('data-phase')) !== 'open') {
+    await ticket.getByRole('button', { name: /^(Play|Next level)/ }).focus()
+    await page.keyboard.press('Enter')
+  }
   await expect(ticket).toHaveAttribute('data-phase', 'open')
   const game = embedOf(page, block)
   await expect(game).toBeVisible({ timeout: 60_000 })

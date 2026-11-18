@@ -102,16 +102,16 @@
 }
 
 /* A line of the tape keeps its label whole. A value too long for the rest of the line drops under it, flush right. */
-.es-doc__side .es-printer__line {
+.es-doc__side .es-readout-strip__line {
   flex-wrap: wrap;
 }
 
-.es-doc__side .es-printer__line dt {
+.es-doc__side .es-readout-strip__line dt {
   flex: none;
   white-space: nowrap;
 }
 
-.es-doc__side .es-printer__line dd {
+.es-doc__side .es-readout-strip__line dd {
   margin-left: auto;
 }
 
@@ -140,48 +140,37 @@
 
 /* ---------------------------------------------------------------------------------------------- a ticket's head and text */
 
-/*
- * The ids on a page's foot lines (or on the head line of a ticket with no title) are lower case in the source and print in capitals, as
- * the printer prints a table.
- */
-.es-c-block .es-ticket__head,
-.es-doc .es-c-block .es-ticket__foot {
-  text-transform: uppercase;
-}
-
-.es-c-block .es-ticket__body > * + :is(h3, h4) {
+.es-c-block .es-sheet__body > * + :is(h3, h4) {
   margin-top: var(--es-space-6);
 }
 
-.es-c-block .es-ticket__body h4 {
+.es-c-block .es-sheet__body h4 {
   font-size: var(--es-size-base);
   line-height: 1.4;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }
 
-.es-c-block .es-ticket__body :is(ul, ol) {
+.es-c-block .es-sheet__body :is(ul, ol) {
   padding-left: 1.4em;
 }
 
-.es-c-block .es-ticket__body ul {
+.es-c-block .es-sheet__body ul {
   list-style: disc;
 }
 
-.es-c-block .es-ticket__body ol {
+.es-c-block .es-sheet__body ol {
   list-style: decimal;
 }
 
-.es-c-block .es-ticket__body li + li {
+.es-c-block .es-sheet__body li + li {
   margin-top: var(--es-space-1);
 }
 
-.es-c-block .es-ticket__body li :is(ul, ol) {
+.es-c-block .es-sheet__body li :is(ul, ol) {
   margin-top: var(--es-space-1);
 }
 
-.es-c-block .es-ticket__body :is(code, kbd) {
+.es-c-block .es-sheet__body :is(code, kbd) {
   padding: 0.05em 0.3em;
   border-radius: var(--es-radius-paper);
   background-color: color-mix(in srgb, var(--es-paper-rule) 26%, var(--es-paper));
@@ -189,7 +178,7 @@
   overflow-wrap: anywhere;
 }
 
-.es-c-block .es-ticket__body pre {
+.es-c-block .es-sheet__body pre {
   padding: var(--es-space-3) var(--es-space-4);
   overflow-x: auto;
   border-block: 2px dotted var(--es-paper-rule);
@@ -199,7 +188,7 @@
   tab-size: 4;
 }
 
-.es-c-block .es-ticket__body pre code {
+.es-c-block .es-sheet__body pre code {
   padding: 0;
   background: none;
   font-size: inherit;
@@ -334,7 +323,7 @@
 }
 
 /* The facts of a block, torn off the roll. */
-.es-c-block .es-ticket__body .es-c-tapes {
+.es-c-block .es-sheet__body .es-c-tapes {
   display: flex;
   flex-wrap: wrap;
   gap: var(--es-space-2) var(--es-space-3);
@@ -344,12 +333,7 @@
 
 /* ---------------------------------------------------------------------------------------------- the blocks */
 
-/* What a placeholder lacks, printed in the ribbon's red, in capitals as the printer prints a warning. */
-.es-c-pending {
-  text-transform: uppercase;
-}
-
-.es-c-pending .es-ticket-line__note {
+.es-c-pending .es-sheet-line__note {
   white-space: nowrap;
 }
 
@@ -358,7 +342,7 @@
   height: 1.1em;
 }
 
-.es-c-block .es-ticket__body .es-c-options {
+.es-c-block .es-sheet__body .es-c-options {
   list-style: upper-alpha;
 }
 
@@ -390,7 +374,7 @@
   font-weight: 700;
 }
 
-.es-c-block .es-ticket__body h3.es-c-part {
+.es-c-block .es-sheet__body h3.es-c-part {
   padding-top: var(--es-space-4);
   border-top: 2px dotted var(--es-paper-rule);
 }
@@ -410,7 +394,20 @@
   color: var(--es-text-2);
 }
 
-.es-c-block .es-ticket__body .es-c-artifacts {
+.es-c-figure__machine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+  align-items: center;
+  margin: 0;
+}
+
+.es-c-figure__machine-note {
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-c-block .es-sheet__body .es-c-artifacts {
   display: grid;
   gap: var(--es-space-4);
   padding: 0;
@@ -453,10 +450,55 @@
 /* What the committed ticket waits for is the present, so it prints in ribbon black; the printer's dots name it as a line of the ticket. */
 .es-c-predict__status {
   margin-top: var(--es-space-3);
-  font-family: var(--es-font-ticket);
-  font-weight: var(--es-font-ticket-weight);
-  letter-spacing: var(--es-font-ticket-tracking);
+  font-family: var(--es-font-readout);
+  font-weight: var(--es-font-readout-weight);
+  letter-spacing: var(--es-font-readout-tracking);
   color: var(--es-paper-ink);
+}
+
+/*
+ * The working of an answer revealed at commit (D-067): the lines that lead from the question's own numbers, or from a claim, to the answer,
+ * numbered so that a learner can say which line they would have written differently, and the source of a claim under them. One stamp, at the
+ * head, says what kind of number the answer is.
+ */
+.es-c-predict__working {
+  display: grid;
+  gap: var(--es-space-2);
+  max-width: 68ch;
+  margin-top: var(--es-space-3);
+}
+
+.es-c-predict__working-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-3);
+  margin: 0;
+  font-weight: 700;
+}
+
+.es-c-predict__working ol {
+  display: grid;
+  gap: var(--es-space-2);
+  margin: 0;
+  padding-left: 1.5em;
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  text-wrap: pretty;
+}
+
+.es-c-predict__working li::marker {
+  color: var(--es-text-2);
+  font-variant-numeric: tabular-nums;
+}
+
+.es-c-predict__source {
+  max-width: 68ch;
+  margin: 0;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--es-text-2);
+  overflow-wrap: anywhere;
 }
 
 /* A range has two slips side by side, and one under the other on a phone. */
@@ -484,7 +526,7 @@
   font-weight: 700;
 }
 
-.es-c-block .es-ticket__body .es-c-game__elsewhere {
+.es-c-block .es-sheet__body .es-c-game__elsewhere {
   font-size: var(--es-size-print);
 }
 
@@ -498,6 +540,14 @@
   outline: none;
 }
 
+/* The game of a lesson arrives in a chunk of its own, after the page below it has been laid out and often scrolled to. Its place is held at about
+   the height it takes (a frame is 850 to 1400 px tall [measured 2026-11-17 at 390 and 1440 px]), so what the reader is on does not jump away. */
+.es-c-game__loading[data-reserve] {
+  padding: var(--es-space-4);
+  border: 1px dashed var(--es-edge);
+  min-height: clamp(30rem, 100svh - 6rem, 52rem);
+}
+
 /*
  * On a wide screen a game the learner has opened takes the room the lesson leaves beside its tape: the tickets keep their measure, and the
  * game's view gets about the width it has on its own page.
@@ -506,4 +556,111 @@
   .es-doc__columns:has(.es-c-game[data-open]) {
     grid-template-columns: minmax(0, 1fr) minmax(0, 20rem);
   }
+}
+
+/* ---------------------------------------------------------------------------------------------- the lesson's dock */
+
+/*
+ * The dock (Dock.tsx, REDESIGN §2.5, §3.4): the learner's run beside Read, from 80rem wide and 44rem tall. It stands in Read's second
+ * column (lesson.css), sticky under the top of the viewport, a sheet of the same paper with a hairline edge: a second view of the run,
+ * never a second instrument. It fits a 44rem viewport whole, so it does not scroll, and a part's popover may open past its edge. A run
+ * open in Read is drawn over it where the run passes through its margin, and while it does the dock steps back (hidden).
+ */
+.es-ldock {
+  position: sticky;
+  /* Under Read's own content (lesson.css isolates the section): a run open in Read that passes through the margin is drawn over the dock. */
+  z-index: -1;
+  top: var(--es-space-6);
+  grid-column: 2;
+  grid-row: 1;
+  display: grid;
+  gap: var(--es-space-3);
+  padding: var(--es-space-4);
+  border: 1px solid var(--es-edge);
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  transition: opacity var(--es-dur-quick) var(--es-ease-settle);
+}
+
+/* It steps back at once, and comes back with a short fade. */
+.es-ldock[data-covered] {
+  visibility: hidden;
+  opacity: 0;
+  transition: none;
+}
+
+.es-ldock__title {
+  margin: 0;
+  padding-bottom: var(--es-space-2);
+  border-bottom: 2px solid var(--es-paper-ink);
+  font-family: var(--es-font-body);
+  font-size: var(--es-size-control);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.es-ldock__what {
+  margin: 0;
+  font-size: var(--es-size-note);
+  line-height: 1.35;
+}
+
+.es-ldock__game {
+  font-weight: 700;
+}
+
+.es-ldock__level::before {
+  content: '·';
+  content: '·' / '';
+  margin-inline-end: var(--es-space-1);
+  color: var(--es-text-3);
+}
+
+.es-ldock__mode {
+  color: var(--es-text-2);
+}
+
+.es-ldock__view {
+  min-width: 0;
+}
+
+.es-ldock__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+  align-items: center;
+}
+
+.es-ldock__lead {
+  margin: 0;
+  font-weight: 700;
+}
+
+.es-ldock__note {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  line-height: 1.4;
+  text-wrap: pretty;
+}
+
+.es-ldock__empty {
+  display: grid;
+  gap: var(--es-space-2);
+  padding: var(--es-space-6) var(--es-space-4);
+  border: 1px dashed var(--es-edge);
+}
+
+.es-ldock__back {
+  margin: 0;
+  padding-top: var(--es-space-2);
+  border-top: 1px solid var(--es-paper-rule);
+  font-size: var(--es-size-note);
+}
+
+.es-ldock__back a {
+  color: inherit;
+  text-underline-offset: 0.2em;
 }

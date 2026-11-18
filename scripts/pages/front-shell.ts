@@ -9,8 +9,8 @@
  *
  *   - In a build, it starts a server-side loader of Vite's own (a server in middleware mode, with this project's root, base, mode and
  *     aliases, and no watcher), loads the shell module through it, renders and closes it. It also writes modulepreload links for the
- *     front page's chunk, the chunks that chunk imports and the course index, inside the root, so they load beside the entry rather
- *     than after it. prepare-pages replaces the root of every other route's document, and the preloads with it.
+ *     front page's chunk, the chunks that chunk imports and the course index, and stylesheet links for those chunks' own CSS, inside the
+ *     root, so they load beside the entry rather than after it. prepare-pages replaces the root of every other route's document, and the preloads with it.
  *   - In the dev server it renders the same shell into the document of `/` through the dev server's own loader, and leaves the root
  *     of every other address empty. A render that fails there is logged, and `/` then renders in the browser alone.
  *
@@ -71,11 +71,18 @@ export function preloadsFor(ctx: Pick<IndexHtmlTransformContext, 'bundle'>, root
     if (modules.includes(FRONT_PAGE)) closure(chunk.fileName, wanted)
     if (modules.includes(COURSE_INDEX)) wanted.add(chunk.fileName)
   }
-  return [...wanted]
-    .filter((file) => !loaded.has(file))
-    .sort()
-    .map((file) => `<link rel="modulepreload" crossorigin href="${base}${file}">`)
-    .join('')
+  // The stylesheets those chunks bring (the diagram's and the parts'), which the first paint is styled by: front.css carries the same rules
+  // for the static HTML, so these only fetch early what the chunks would ask for, and the page looks the same before and after they come.
+  const sheetsOf = (file: string): readonly string[] => [...((byFile.get(file) as { viteMetadata?: { importedCss?: Set<string> } } | undefined)?.viteMetadata?.importedCss ?? [])]
+  const entrySheets = new Set([...loaded].flatMap(sheetsOf))
+  const sheets = [...new Set([...wanted].filter((file) => !loaded.has(file)).flatMap(sheetsOf))].filter((file) => !entrySheets.has(file)).sort()
+  return [
+    ...[...wanted]
+      .filter((file) => !loaded.has(file))
+      .sort()
+      .map((file) => `<link rel="modulepreload" crossorigin href="${base}${file}">`),
+    ...sheets.map((file) => `<link rel="stylesheet" crossorigin href="${base}${file}">`),
+  ].join('')
 }
 
 export function frontShell(): Plugin {

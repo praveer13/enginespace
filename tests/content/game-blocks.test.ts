@@ -50,7 +50,7 @@ describe("the lessons' game blocks", () => {
     expect(problems).toEqual([])
   })
 
-  test('two blocks of one lesson never name the same game, level and mode, so each embed is named apart from the others (GameShell)', () => {
+  test('two blocks of one lesson never name the same game, level and mode, so each embed is named apart from the others (the frame)', () => {
     const seen = new Set<string>()
     const twice = blocks.flatMap(({ lesson, block }) => {
       const key = `${lesson} ${block.id}/${block.level}/${block.mode}`

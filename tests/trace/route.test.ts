@@ -18,8 +18,8 @@ describe('the Trace Room route outside the dev server and test builds', () => {
     for (const location of ['/trace-room/synthetic-7', '/trace-room/sample']) {
       const markup = at(location)
       expect(markup.match(/<h1/g)?.length).toBe(1)
-      expect(markup).toContain('Not built yet')
-      expect(markup).toContain('W2-T20')
+      expect(markup).toContain('Not published yet')
+      expect(markup).not.toContain('W2-T20')
       expect(markup).toContain(`Trace id: ${location.split('/').pop()}`)
       expect(markup).not.toContain('data-trace-view')
       expect(markup).not.toContain('specimen tape')
@@ -28,8 +28,8 @@ describe('the Trace Room route outside the dev server and test builds', () => {
 
   test('says nothing of an id on the list’s address', () => {
     const markup = at('/trace-room')
-    expect(markup).toContain('Not built yet')
-    expect(markup).toContain('W2-T20')
+    expect(markup).toContain('Not published yet')
+    expect(markup).not.toContain('W2-T20')
     expect(markup).not.toContain('Trace id')
   })
 })

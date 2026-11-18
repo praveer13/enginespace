@@ -1,5 +1,5 @@
-//! Bestiary: resample from q. The plates are kept exactly as they should be, and a plate that is sent back is replaced by a dish picked
-//! from q, the commis's own tastes, and not from the residual (p − q)⁺: the commis is asked to plate the dish again.
+//! Bestiary: resample from q. The draft tokens are accepted exactly as they should be, and a rejected token is replaced by a token picked
+//! from q, the draft model's own distribution, and not from the residual (p − q)⁺: the draft model is asked to propose the token again.
 //! `round` must fail it. `accept`, `residual` and `pick` are the reference's and pass.
 
 use crate::TOTAL;

@@ -1,31 +1,26 @@
 /**
- * posters: renders Service's poster, the static picture the front page paints before any script runs (A§6.11, GAMES.md §3 "2D path").
+ * posters: renders the step loop's posters, the first frame of its timing diagram as a file (A§6.11, REDESIGN §2.9).
  *
- * The poster is the front page's 2D view's first frame, drawn by the same pure code: the practice seed of the front page's first
- * level, as a view (`loopView`), laid out through the front page's shot (`layoutFrame`) and written as SVG (`frameSvg`). The page
- * renders the same tree as React elements, and tests/front/shell.test.ts requires the two to be the same markup. It has two
- * orientations, a laptop's and a phone's, whose camera stands back (GAMES.md §2.3): the page shows one of them by its width.
+ * A poster is the front page's diagram at its first frame, drawn from the lane layout (packages/play/loop/lanes.ts) by src/front/poster.ts:
+ * the practice seed of the first demo level, as a view (`loopView`), laid out at the front page's two geometries and written as SVG. It
+ * has two orientations, a desk's and a phone's. The Games index draws the landscape one in the step loop's well.
  *
- * The SVG paints with the design system's custom properties (`var(--es-lane-gpu)` and the rest) and nothing else, so it takes the
- * look of whatever page holds it: inlined in `index.html` (W0-T18), or opened alone it falls back to the browser's defaults.
+ * The SVG paints with the design system's custom properties (`var(--es-paper)` and the rest) and nothing else, so it takes the look of
+ * whatever page holds it; opened alone it falls back to the browser's defaults.
  *
  *   bun scripts/posters.ts            print what the posters are and how big
  *   bun scripts/posters.ts --write    write public/posters/*.svg
  *   bun scripts/posters.ts --check    fail when a committed poster is not what the code draws now
  *
- * `renderPosters` is the whole of it: the file name and the markup of each poster. The tests and W0-T18's build step call it.
+ * `renderPosters` is the whole of it: the file name and the markup of each poster. The tests call it.
  */
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { frameSvg, layoutFrame } from '../packages/play/loop/layout'
-import type { Orientation } from '../packages/play/loop/layout'
-import { loopInit, loopLevel, loopView } from '../packages/play/loop/session'
 import { countMarks, svgMarkup } from '../packages/play/loop/svg'
+import { ORIENTATIONS, passDrawing, posterView, type Orientation } from '../src/front/poster'
 
-/** The level and seed the front page opens on: the first level, on its pinned practice seed (D-038, D-043). */
-export const POSTER_LEVEL = 'first-1-fill'
-export const POSTER_SEED = 1
+export { POSTER_LEVEL, POSTER_SEED } from '../src/front/poster'
 
 export interface Poster {
   /** The file under `public/posters/`. */
@@ -37,9 +32,9 @@ export interface Poster {
 
 /** Both posters, landscape first. */
 export function renderPosters(): Poster[] {
-  const view = loopView(loopInit(loopLevel(POSTER_LEVEL, POSTER_SEED)))
-  return (['landscape', 'portrait'] as const).map((orientation): Poster => {
-    const tree = frameSvg(layoutFrame(view, { orientation, shot: 'front' }))
+  const view = posterView()
+  return ORIENTATIONS.map((orientation): Poster => {
+    const tree = passDrawing(view, orientation)
     return { file: `loop-first-frame-${orientation}.svg`, orientation, svg: `${svgMarkup(tree)}\n`, marks: countMarks(tree) }
   })
 }
@@ -52,7 +47,7 @@ export function stalePosters(base = root): string[] {
   return renderPosters().flatMap((poster) => {
     const file = path.join(folder(base), poster.file)
     if (!existsSync(file)) return [`public/posters/${poster.file} is missing: run bun scripts/posters.ts --write`]
-    return readFileSync(file, 'utf8') === poster.svg ? [] : [`public/posters/${poster.file} is not what layout.ts draws now: run bun scripts/posters.ts --write`]
+    return readFileSync(file, 'utf8') === poster.svg ? [] : [`public/posters/${poster.file} is not what the lane layout draws now: run bun scripts/posters.ts --write`]
   })
 }
 
