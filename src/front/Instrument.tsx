@@ -1,12 +1,11 @@
-import { lazy, Suspense, useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ComponentType, type KeyboardEvent, type ReactNode } from 'react'
-import { Link } from 'react-router'
+import { lazy, Suspense, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type KeyboardEvent, type ReactNode } from 'react'
 import { keymapOf, levelOf } from '@es/play'
 import type { KeyBinding } from '@es/play'
 import { LOOP_COPY, requestName } from '@es/play/loop/copy'
 import { FIRST_SERVICE, FULL_SERVICE_KEYS, LOOP } from '@es/play/loop/entry'
 import { DESK, PHONE } from '@es/play/loop/lanes'
 import { busyGuess, LOOP_MET, LOOP_MOMENTS, loopPartsOf } from '@es/play/loop/parts'
-import { loopSession } from '@es/play/loop/session'
+import { loopGhost, loopLevel, loopSession, loopView } from '@es/play/loop/session'
 import type { LoopAction, LoopLevelId, LoopView } from '@es/play/loop/types'
 import type { Seed } from '@es/sim/core'
 import { Button } from '@/design/components/Button'
@@ -29,7 +28,7 @@ import type { Scene3DProps } from '@/games/loop/Scene3D'
 import type { LoopRunCore } from '@/games/loop/types'
 import { useLoopControls, type AutoToggleRef } from '@/games/loop/useLoopControls'
 import { Lanes, type CalloutPart } from '@/games/loop/View2D'
-import { COACH_PARTS, DOCK, FRAME, RESULT } from './copy'
+import { COACH_PARTS, DOCK, FRAME } from './copy'
 import { useFrontDevice } from './device'
 import { useNight } from './night'
 import { FIRST_PARTS, introOpens, type IntroStage } from './way'
@@ -67,6 +66,13 @@ const TrackScene = lazy(() => import('@/games/loop/Scene3D'))
 const GuessForm = lazy(() => import('@/games/loop/GuessForm'))
 /** The async scheduling switch: only the later levels have it. */
 const LoopOverlap = lazy(() => import('@/games/loop/LoopOverlap'))
+/**
+ * A level's result: drawn only after the learner acts, so asked for on the first move, and kept once it has come, so a level's end draws
+ * it in the same render as the outcome and focus can go to it at once.
+ */
+type Later = typeof import('@/games/loop/DemoResult')
+let loaded: Later | null = null
+const later = () => import('@/games/loop/DemoResult').then((module) => (loaded = module))
 
 function FrontTrack(props: Scene3DProps) {
   return <TrackScene {...props} />
@@ -75,6 +81,8 @@ function FrontTrack(props: Scene3DProps) {
 const STEP: LoopAction = { t: 'run', until: 'step' }
 /** The view switch's words (REDESIGN §2.6). "3D" is the view's name, not a count, so it stays out of the copy that verify:numbers reads. */
 const VIEW_WORDS = { flat: FRAME.diagram, depth: '3D' } as const
+/** Said in the coach strip when a later demo level opens in 3D without the learner asking for it; out of the copy for the same reason. */
+const WHY_3D = 'This level opens in 3D: the same diagram, tilted, with the reference run behind yours. Diagram turns it back.'
 /** The front page's diagram: the brief's own geometry at a desk and on a phone (lanes.ts DESK and PHONE). */
 const FRONT_GEOMETRY = { wide: DESK, narrow: PHONE } as const
 
@@ -196,6 +204,7 @@ export function Instrument({ returning, course, onTouched }: InstrumentProps) {
         onIntro={endIntro}
         view={view}
         onView={setChosen}
+        auto={chosen === null}
         can3d={can3d}
         unavailable3d={unavailable}
         course={course}
@@ -219,6 +228,8 @@ interface DemoRunProps {
   onIntro: (next?: IntroStage) => void
   view: GameView
   onView: (view: GameView) => void
+  /** The view is the page's choice, not the learner's: a level that opens in 3D says why. */
+  auto: boolean
   can3d: boolean
   unavailable3d?: string
   course: InstrumentProps['course']
@@ -231,7 +242,7 @@ interface DemoRunProps {
 /** True while React renders on the server: the static HTML. */
 const onServer = () => typeof window === 'undefined'
 
-function DemoRun({ levelAt, levelId, seed, refocus, next, onNext, onAgain, intro, onIntro, view: shown, onView, can3d, unavailable3d, course, onTouched, boxHeight, onBoxHeight }: DemoRunProps) {
+function DemoRun({ levelAt, levelId, seed, refocus, next, onNext, onAgain, intro, onIntro, view: shown, onView, auto, can3d, unavailable3d, course, onTouched, boxHeight, onBoxHeight }: DemoRunProps) {
   const entry = levelOf(LOOP, levelId) ?? LOOP.levels[0]
   const copy = LOOP_COPY[levelId]
   const run = useRun({
@@ -242,6 +253,8 @@ function DemoRun({ levelAt, levelId, seed, refocus, next, onNext, onAgain, intro
     mode: 'practice',
   })
   const { view, outcome, dispatch, announce } = run
+  // The reference run of this level and seed, played to its end once: the diagram draws it as outlines under the learner's own.
+  const reference = useMemo(() => loopView(loopGhost(loopLevel(levelId, seed))), [levelId, seed])
   const titleId = useId()
   const coachId = useId()
   const mirrorId = useId()
@@ -249,6 +262,7 @@ function DemoRun({ levelAt, levelId, seed, refocus, next, onNext, onAgain, intro
   const [goalOpen, setGoalOpen] = useState(false)
   const [partAt, setPartAt] = useState(0)
   const night = useNight()
+  const [held, setHeld] = useState(loaded)
   const toggleAuto: AutoToggleRef = useRef(null)
 
   const core: LoopRunCore = {
@@ -294,6 +308,7 @@ function DemoRun({ levelAt, levelId, seed, refocus, next, onNext, onAgain, intro
   const moved = run.turns > 0
   useEffect(() => {
     if (!moved) return
+    void later().then(setHeld)
     onTouched()
     if (intro !== 'off') onIntro('off')
   }, [moved, intro, onIntro, onTouched])
@@ -351,11 +366,11 @@ function DemoRun({ levelAt, levelId, seed, refocus, next, onNext, onAgain, intro
   // The run's end puts the result in the dock and focus on it.
   const result = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (outcome === null) return
+    if (outcome === null || held === null) return
     result.current?.focus({ preventScroll: true })
     // On a short screen the result is under the diagram: bring its way on into view.
     result.current?.scrollIntoView({ block: 'nearest' })
-  }, [outcome])
+  }, [outcome, held])
 
   // Escape ends the intro, unless it closes something of its own first.
   const onKeyDown = (event: KeyboardEvent) => {
@@ -390,6 +405,8 @@ function DemoRun({ levelAt, levelId, seed, refocus, next, onNext, onAgain, intro
       fit={fit}
       ring={ring}
       callouts={callouts}
+      // While a guess about the run ahead is open, nothing of the reference past now is drawn.
+      reference={{ view: reference, ahead: busyGuess(view) === null }}
       onAdmit={(req) => (view.canHang && view.waiting.includes(req) ? dispatch({ t: 'admit', req }) : undefined)}
       focusAfter={() => container.current?.querySelector<HTMLButtonElement>('[data-front-step] button:not(:disabled)')?.focus()}
     />
@@ -471,7 +488,9 @@ function DemoRun({ levelAt, levelId, seed, refocus, next, onNext, onAgain, intro
             <DockControls controls={controls} view={view} intro={introShown} waitingButtons={mount3d} />
           ) : (
             <div ref={result} tabIndex={-1} className="es-front-result" data-result="" aria-labelledby={`${coachId}-verdict`}>
-              <Result verdictId={`${coachId}-verdict`} ok={outcome.grade.ok} sentence={outcome.debrief.sentence} next={next} onNext={onNext} onAgain={onAgain} course={course} />
+              {held === null ? null : (
+                <held.Result verdictId={`${coachId}-verdict`} ok={outcome.grade.ok} sentence={outcome.debrief.sentence} next={next} onNext={onNext} onAgain={onAgain} course={course} />
+              )}
             </div>
           )}
         </div>
@@ -496,7 +515,7 @@ function DemoRun({ levelAt, levelId, seed, refocus, next, onNext, onAgain, intro
           ) : introShown !== 'off' ? (
             <Coach intro={introShown} partAt={partAt} firstName={firstName} onNextPart={() => (partAt + 1 < COACH_PARTS.length ? setPartAt(partAt + 1) : onIntro('move'))} onSkip={() => onIntro('off')} />
           ) : (
-            <Told prompt={run.turns === 0 ? copy.prompt : null} line={said.line} moment={said.moment} />
+            <Told prompt={run.turns === 0 ? (mount3d && auto && levelAt > 0 ? `${WHY_3D} ${copy.prompt}` : copy.prompt) : null} line={said.line} moment={said.moment} />
           )}
         </div>
       </div>
@@ -659,58 +678,6 @@ function Told({ prompt, line, moment }: { prompt: string | null; line: string; m
         </p>
       ) : null}
       {line !== '' ? <p className="es-front-coach__said">{line}</p> : null}
-    </div>
-  )
-}
-
-/**
- * A level's result: the verdict and the debrief's sentence, then the way on. After demo levels 1 to 3 the next demo level is the amber
- * control and the course an outline beside it; after the fourth, one sentence bridges to the course and Start the course is the amber one.
- */
-function Result({
-  verdictId,
-  ok,
-  sentence,
-  next,
-  onNext,
-  onAgain,
-  course,
-}: {
-  verdictId: string
-  ok: boolean
-  sentence: string
-  next: { title: string } | null
-  onNext: () => void
-  onAgain: () => void
-  course: InstrumentProps['course']
-}) {
-  return (
-    <div className="es-front-result__body" data-loop-debrief="">
-      <p className="es-front-result__verdict" id={verdictId} data-result-heading="" data-verdict={ok ? 'passed' : 'not-yet'}>
-        {ok ? RESULT.passed : RESULT.notYet}
-      </p>
-      <p className="es-front-result__sentence">{next === null ? RESULT.bridge : sentence}</p>
-      <div className="es-front-result__ways">
-        {next !== null ? (
-          <>
-            <PrimaryButton standalone onClick={onNext}>
-              {RESULT.nextDemo}: {next.title}
-            </PrimaryButton>
-            {course === null ? null : (
-              <Link to={course.href} className="es-front-out" data-front-course="">
-                {course.short}
-              </Link>
-            )}
-          </>
-        ) : course === null ? null : (
-          <PrimaryButton standalone to={course.href}>
-            {course.label}
-          </PrimaryButton>
-        )}
-        <Button size="sm" variant="quiet" onClick={onAgain}>
-          {RESULT.again}
-        </Button>
-      </div>
     </div>
   )
 }

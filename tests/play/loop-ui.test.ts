@@ -28,7 +28,8 @@ import { Mirror } from '@/games/loop/Mirror'
 import { readoutItems } from '@/games/loop/strip'
 import { LoopReadout } from '@/games/loop/Tape'
 import type { LoopOutcome } from '@/games/loop/types'
-import { LoopLegend, View2D } from '@/games/loop/View2D'
+import { LoopLegend } from '@/games/loop/Legend'
+import { Lanes, View2D } from '@/games/loop/View2D'
 import { fakeRun, houseNight, statesOfHouseNight } from './loop-support'
 
 const render = (element: ReactElement) => renderToStaticMarkup(h(StaticRouter, { location: '/play/loop' }, element))
@@ -114,6 +115,39 @@ describe('the timing diagram (REDESIGN §2.9, §3.1)', () => {
     expect(markup).toContain('data-call="sync"')
     expect(markup).toMatch(/data-lane-idle="idle\/1"/)
     expect(markup).toMatch(/data-lane-dim="dim\/1"[^]*?>(bubble )?3 ticks</)
+  })
+
+  test('a dimension line is whole between its end ticks, its value over it; a sync is hatched, so its yellow is never one mark with now', () => {
+    const markup = render(h(View2D, { run: fakeRun(levelState('first-3-gap')) }))
+    const dim = markup.slice(markup.indexOf('data-lane-dim="dim/1"'), markup.indexOf('</g>', markup.indexOf('data-lane-dim="dim/1"')))
+    // One path: the left end tick, the line from end to end, the right end tick; no break in the line for the value.
+    const d = /class="es-lanes__dim" d="M([\d.]+) ([\d.]+)v14M([\d.]+) ([\d.]+)H([\d.]+)M([\d.]+) ([\d.]+)v14"/.exec(dim)
+    expect(d).not.toBeNull()
+    const [a, top, from, y, to, b] = (d ?? []).slice(1, 7).map(Number)
+    expect([from, to]).toEqual([a, b])
+    expect(y).toBe(top + 7)
+    // The value stands over the line, not on it.
+    const valueY = Number(/class="es-lanes__dim-text"[^>]*? y="([\d.]+)"/.exec(dim)?.[1])
+    expect(valueY).toBeLessThan(y)
+    expect([...dim.matchAll(/<line/g)]).toHaveLength(0)
+    expect(markup).toContain('id="es-lanes-sync"')
+  })
+
+  test('the reference run of the same level and seed is drawn as outlines under the learner\'s run, from the first state, and named once', () => {
+    const level = buildLevel('first-1-fill', 1)
+    const reference = loopView(loopGhost(level))
+    const first = loopView(initState(level))
+    const markup = render(h(Lanes, { view: first, reference: { view: reference, ahead: true } }))
+    // Four slots live in the reference's one step, and its CPU calls: every forward on a slot row an outline, and nothing of the learner's.
+    expect([...markup.matchAll(/data-ref-slab="slot-(\d)\/0"/g)].map((match) => match[1])).toEqual(['0', '1', '2', '3'])
+    expect(markup).toMatch(/data-ref-slab="cpu\/0\/schedule"/)
+    expect(markup).not.toContain('data-use="token"')
+    expect([...markup.matchAll(/class="es-lanes__ref-text"/g)]).toHaveLength(1)
+    // While a guess about the run ahead is open, nothing of the reference past now is drawn.
+    const hidden = render(h(Lanes, { view: first, reference: { view: reference, ahead: false } }))
+    expect(hidden).not.toContain('data-ref-slab')
+    // A diagram that is passed no reference draws none.
+    expect(render(h(Lanes, { view: first }))).not.toContain('data-ref-slab')
   })
 
   test('the legend carries the code\'s colours as this diagram uses them, and the marker for now', () => {

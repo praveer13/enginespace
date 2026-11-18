@@ -21,7 +21,8 @@ import type { Scene3DProps } from './Scene3D'
 import { readoutItems } from './strip'
 import { LoopReadout } from './Tape'
 import type { LoopRunCore } from './types'
-import { LoopLegend, View2D } from './View2D'
+import { LoopLegend } from './Legend'
+import { View2D } from './View2D'
 
 // The debrief is the stage after the run: its compare strips and the real engine's numbers load when a run ends, not before.
 const Debrief = lazy(() => import('./Debrief').then((module) => ({ default: module.Debrief })))
