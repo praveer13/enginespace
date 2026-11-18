@@ -71,6 +71,19 @@ Minutes are [estimated].
 | — | Gap Hunt: practice, then graded levels | 75 | B |
 | — | Lab `tr3.profile`, stages s1-s5 | 420 | F |
 
+## Before you write (added 2026-11-18)
+
+For the authors of W2-T20 (Trace attribution) and W2-T24 (TR3's lessons). Four rules for reading a GPU timeline, each at the lesson named. Section names are the appendix's own, and each figure was checked against the saved page.
+
+**Where these come from.** The appendix "Measuring and Analyzing GPU Kernel Performance" of the book "Modern GPU Programming For MLSys" (the MLC project; https://mlc.ai/modern-gpu-programming-for-mlsys/, repository github.com/mlc-ai/modern-gpu-programming-for-mlsys), read on 2026-11-18. Its figures are the book's authors' figures from one B200 run, and the course has not reproduced them, so each is [unverified]. A lesson states a figure as the authors', never as the course's, and checks a hardware fact against NVIDIA's documents. Cite the repository file at a commit, never the site or `main`. No licence was found for the book: copy no sentence, figure, listing or exercise of it, and write each point in the course's own words with the course's own seeded numbers.
+
+- **(a) `tr3.l3` or `tr3.l4`, a "Watch out" card, and one case in Trace attribution (W2-T20) with work on a second stream.** A blank interval on one stream does not prove that the whole GPU was idle: another stream may be running a kernel across it. The book's section is "Diagnose Long Gaps in the GPU Timeline". GPU-busy is already defined here as a union over streams (§1, item 4), so the card says why. Call an interval a gap of the whole GPU only when no stream has work in it, and only within the capture.
+- **(b) `tr3.l4`, one paragraph and one numeric variant of `tr3.gap-cause`.** A gap splits into three parts: the time before the host enters the launch call, the time inside it, and the time queued after it returns. The book's worked case, in the same section, supposes four timestamps (the first kernel ends at 20 us; the launch call starts at 95 us, lasts 3 us and ends at 98 us; the second kernel starts at 100 us) and gets an 80 us gap of 75 + 3 + 2 us. It is an invented illustration, not a capture. Draw the variant's timestamps from the item's own seed.
+- **(c) `tr3.l3`, one sentence.** A report's "Queue Dur" column "neither proves a dependency nor equals the GPU gap"; the book's report shows 5.074 us of queue time for a kernel whose gap after the one before it is 0.224 us (same section). This holds only if the Nsight Systems version the course settles on still prints that column. The book used 2025.6.3, and 2026.5.1 is proposed in §7, not pinned. Read the report's columns at the pin first, and drop the sentence if the column is gone.
+- **(d) `tr3.l1`, one sentence.** One GEMM kernel of the book's lasts 87.00 us in Proton's average (section "Use Proton to Compare the Kernels in the Operation"), 92.608 us in Nsight Systems (section "Locate the Most Expensive Kernel in the Timeline") and 95.30 us in Nsight Compute (section "SpeedOfLight Denominators and Duration"), and the book says "Compare implementations with the unprofiled CUDA event baseline." These are separate captures of one operation, so the sentence is that a profiler changes the number it reports and a fix is sized without one. As one sentence for the lesson this needs nothing more. As a check in the lab it would be a design change: every run in the lab (s2 and s4) is a profiler capture, and an unprofiled run per side costs GPU time, receipt rows and rules in ASSESSMENT §6. Do not add it as a check.
+
+**Question for the owner (not for the task's author to settle):** does the TR3 lab get an unprofiled run for each side of a toggled pair, so that a fix's size is read from it?
+
 ## 4. The loop
 
 | Step | What the learner does | Evidence |

@@ -52,7 +52,7 @@ A lesson opens in one of three ways, and a test holds each of the 27 built lesso
 | **B. Primer, then run** | 61 to 200 words, then guesses and the game, before the first `##` | The words render under "Before you run": the three to six facts the level needs, as a list or a small table, taken from the lesson's own prose. No new claim. |
 | **C. Read first** | The first game is after the first `##`, or there is none | The lesson opens on Read. Its first part ends in something to do within 450 words: a guess with a reveal, or a one-question checkpoint. |
 
-The seven rules, for every lesson of the course:
+The twelve rules, for every lesson of the course. Rules 8 to 12 shape how a lesson is written once its opener and parts are chosen; the compiler has no warning for them, so the author and the reviewer hold them:
 
 1. Choose the opener by one question: can a reader who has finished the earlier lessons finish this level from its parts list, its goal line and at most 200 words? If yes, A or B. If no, C.
 2. A setup states the question. A primer states facts the level needs. Neither explains the answer. Every engine term the level's controls and prompts use is in the level's parts list or in the setup or primer (`tests/content/vocabulary.test.ts`).
@@ -61,6 +61,26 @@ The seven rules, for every lesson of the course:
 5. No kitchen sentence, no build-log id: no task, decision or design-document section in prose.
 6. After moving a block, re-read the prose for words that assume the old order ("above", "below", "you just", "the level that follows").
 7. Moving blocks changes a lesson's `rev`, so earlier evidence for it shows "re-check". Nothing is lost.
+8. **Open on what the last thing could not do.** Every Read, and every lesson after a module's first, opens on what the reader just ran or on what the last lesson's version could not do. A back-reference to kernelspace comes after that, never first. Example, for a lesson on async scheduling after the step loop's first run: "The loop you just ran waits for each step to end before it plans the next, so the GPU idles while the CPU works. This version plans the next step during the current one." Kernelspace's account of the scheduler follows in the next paragraph.
+9. **Say what changed, and what did not.** A module's first lesson fixes three or four questions that every later lesson answers. Every later lesson carries one small plain table, in Read, of what changed since the last lesson and what did not, and "unchanged" is a legal cell. It is a Markdown table and no new block type. The payoff of a lesson is never held back to a later one. Example, for a lesson on CUDA graphs after one on async scheduling:
+
+   ```text
+   | Question | Last lesson | This lesson |
+   |---|---|---|
+   | Who plans the next step | the CPU, during the step | unchanged |
+   | What the CPU launches | each kernel of the step | one graph for the step |
+   | What the GPU runs | the same kernels | unchanged |
+   ```
+
+10. **Make the comparison honest.** A table that sets two times or two counts side by side has a column for what else changed between them and a column for the bound the numbers are read against. A cell that nobody measured is a dash, never a guess. In prose, the sentence that makes a comparison names what else differs. Name the bound in the engine's own words ("the bytes read over the memory bandwidth", "the GPU-busy time of the step"). The copy guard (`src/copy/banned.ts`) bans some phrases in rendered text, "a floor" among them, so write "the floor", "its floor" or the bound's own name. Example, for the graphs-off and graphs-on runs of one step: the table has the columns Run, Time per step, What else changed and Bound it is read against, the graphs-on row says "padding to a captured size" under What else changed, and the cell for a bound that nobody computed is a dash. The sentence beside it reads "Graphs on also pads the batch, so the gain is not the launch cost alone."
+11. **Write one form per module.** Where a module has one relation at its centre, write it once, in at most a line, set as a `text` block, and repeat it unchanged in later lessons, goal lines and question stems. The course has one already: `tr8` lesson 1 sets `from due = (sent - due) + (first token - sent)`, and every later use of the idea keeps those words. TR3's author settles the term for the idle stretch of a step with the owner before writing TR3's form: the built course uses two words for it ("bubble" and "CPU gap"), and policy 4 of `docs/REDESIGN.md` §2.7 (one term, one meaning) allows one. The form is not written here.
+12. **Keep four sentence rules.**
+    - Say what a step does not buy yet. "Padding to a captured size lets a graph replay. It does not make the kernels shorter: the GPU runs the same work."
+    - Say that an arbitrary number is arbitrary, in the next sentence. "The seed is 7. Nothing about 7 is special: any seed draws a fair question."
+    - One fact to a sentence, the point first, and each claim mark after its own sentence's full stop. A sentence that carries two facts and one mark makes the reader guess which the mark supports.
+    - Do not list in prose what a table can carry. Three backends, each with a GPU, an instruction and a default, are a table of three rows and three columns, not a paragraph.
+
+Rules 8 to 12 were adopted on 2026-11-18, after a reading of "Modern GPU Programming For MLSys" by the MLC project (https://mlc.ai/modern-gpu-programming-for-mlsys/). No licence was found for the book, so nothing of its text, figures, listings or exercises is reproduced here, and every example above is the course's own.
 
 The compiler warns about the rules it can see, and never fails on one. Each warning prints `file:line`:
 

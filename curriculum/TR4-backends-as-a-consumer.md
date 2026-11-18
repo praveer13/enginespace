@@ -76,6 +76,27 @@ Minutes are [estimated].
 | H100 | SM90 | FlashAttention 3 | `fa3` |
 | B200 | SM100 | FlashAttention 4 | `trtllm_mha` |
 
+## Before you write (added 2026-11-18)
+
+For the authors of W2-T26 (the sweep lab) and W2-T27 (lesson 3). Section names are the appendix's own, and each figure was checked against the saved page.
+
+**Where these come from.** The appendix "Measuring and Analyzing GPU Kernel Performance" of the book "Modern GPU Programming For MLSys" (the MLC project; https://mlc.ai/modern-gpu-programming-for-mlsys/, repository github.com/mlc-ai/modern-gpu-programming-for-mlsys), read on 2026-11-18. Its figures are the book's authors' figures from one B200 run, and the course has not reproduced them, so each is [unverified]. A lesson states a figure as the authors', never as the course's, and checks a hardware fact against NVIDIA's documents. Cite the repository file at a commit, never the site or `main`. No licence was found for the book: copy no sentence, figure, listing or exercise of it, and write each point in the course's own words with the course's own seeded numbers.
+
+**The sweep lab (W2-T26): four timing practices.**
+
+1. **Warm up until the timings stop drifting, not for a fixed count.** §5 says "at least 5 warm-up calls [estimated]". The book's authors found, for one GEMM on one B200, that "results were still falling after 50 warm-up calls but stabilized by 500, and repeat=100 was more stable than repeat=10" (section "Measure GPU Stream Time with CUDA Events"), and tell the reader to raise the warm-up until the early rounds stop drifting. Make the harness test for drift and record how many calls it took; do not borrow the book's 50, 500 or 100. TR8 lesson 2's rule (declare a window, then check that it has settled) is the shape.
+2. **State the cache policy, and test the lab's floor against it.** The book says that repeating a call on the same tensors "models a warm-cache workload", and that its own timer writes a 256 MiB buffer before each call "to reduce reuse of data left in L2" (same section); it also says to "use one cache policy throughout the comparison" (section "Keep Benchmark Conditions Consistent"). The lab's floor assumes every byte of K and V comes from device memory (§5, s3). If a small shape's K and V stay in the L2 cache between repeats, an honest timing could fall below the floor and fail W2-T26's second accept item. `docs/ASSESSMENT.md` line 369 says "an honest run never breaks one", and line 385 says how an honest failure is handled (the claim or the tolerance is fixed and logged in DECISIONS.md, and the learner loses nothing). The harness states its policy (flush between repeats, or draw only shapes far larger than the cache), and the floor is tested against it. Whether a small shape can beat the floor on a 4090 or an H100 is unknown: the hardware atlas holds no L2 size.
+3. **Alternate the order of the backends between rounds** "so that no implementation is consistently measured on a colder or hotter device" (section "Keep Benchmark Conditions Consistent"). Record the order of each round in the receipt.
+4. **Set tolerances per backend as well as per data type.** §5 says "per-dtype tolerances that W2-T26 sets". The book's own check against a PyTorch reference uses one example pair (`rtol` and `atol` of 1e-2, marked "example only; adjust for the output dtype, accumulation, and shape"), so its figure is no tolerance for this lab. Two backends of one data type can differ in what they approximate, so measure each honest backend's worst error first (open item 4). This touches `docs/ASSESSMENT.md` lines 260 and 297, which say "per-dtype tolerances" for `tr4.sweep.s2`. The task's author notes them there; this note changes nothing in ASSESSMENT.
+
+**Question for the owner:** does a small shape beat the floor because of the L2 cache? The first reference sweep on a 4090 and an H100 should test it before the floor ships as a check.
+
+**Lesson 3 (W2-T27): one three-row table and one item.** The table's columns are the generation, the instruction its kernel is built on, and which GPUs have it; the item asks why a 4090 cannot run FA3. Each row carries a claim from a primary source (the FlashAttention repository at the pinned build, NVIDIA's documents); the book is the go-deeper link and not a source. What the book shows and does not show:
+
+- The book's overview in its chapter "Flash Attention 4" says that FlashAttention-3 "used TMA, WGMMA, and warp specialization on Hopper" and that FA4 "targets Blackwell and reorganizes the pipeline around tcgen05 and TMEM". Its chapter "The Evolution of Tensor Core Data Layouts", section "Comparing the Three Data Paths", names the main matrix instruction of three architectures: Ampere `mma.sync`, Hopper `wgmma.mma_async`, Blackwell `tcgen05.mma`. That is a table of instructions by architecture. It is not a list of which GPUs run which FlashAttention.
+- State the rest with care. FA3 is Hopper-only. FA4's README lists Hopper and Blackwell, its interface accepts compute capability 8.x to 12.x, and a 4090 run is [unverified] (§1, item 4). vLLM picks FA4 by default only on SM100 and newer (§1, item 2).
+- The book's FA4 code is a tutorial kernel, "specialized for fixed tile shapes rather than serving as a general attention interface", for its Blackwell target only. It does not show that FA4 needs Blackwell, and none of its constraints or constants is the engines' FA4. The chapter has no timings and says nothing of decode.
+
 ## 4. The loop
 
 | Step | What the learner does | Evidence |
