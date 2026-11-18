@@ -87,7 +87,7 @@ function allCommands(plan: CheckPlan): string[] {
 }
 
 describe('the rotation model', () => {
-  test('a miss finds room, a hit goes to the back, and a full rotation dumps its front', () => {
+  test('a miss finds room, a hit goes to the back, and a full queue evicts its front', () => {
     const rotation = createRotation(3)
     expect([1, 2, 3].map((key) => rotation.touch(key))).toEqual(['miss', 'miss', 'miss'])
     expect(rotation.order()).toBe('1,2,3')

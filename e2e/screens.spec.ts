@@ -162,3 +162,30 @@ test.describe('the length and position of each screen (REDESIGN 5.2)', () => {
     })
   })
 })
+
+/*
+ * A phone gets no 3D on the Step loop: its time track has no layout a phone can read (REDESIGN 2.9: "2D in lessons and on phones"). The
+ * five full levels held it back by the same rule as the demo levels, and the 3D setting a desk visit leaves (on, which is the default) must
+ * not bring it back. The desk is the control: the same level offers the switch at 1440 px, so that the phone's missing switch is a choice.
+ */
+test.describe('the Step loop on a phone', () => {
+  const LEVELS = ['async', 'graphs', 'mrv2', 'close', 'mask']
+  test('a full level offers a 3D switch at a desk and none at 390 or 360 px, with 3D on in the settings', async ({ page, context }) => {
+    await withSettings(context, { view3d: true })
+    const game = page.locator('section[data-game="loop"]')
+    const switch3d = game.getByRole('button', { name: '3D', exact: true })
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await open(page, '/play/loop?level=graphs&es-tier=1')
+    await expect(game).toBeVisible()
+    await expect(switch3d).toBeEnabled()
+    for (const [width, height] of [[390, 844], [360, 800]] as const) {
+      for (const level of LEVELS) {
+        await page.setViewportSize({ width, height })
+        await open(page, `/play/loop?level=${level}&es-tier=1`)
+        await expect(game, `${level} at ${width}`).toBeVisible()
+        await expect(switch3d, `${level} at ${width}`).toHaveCount(0)
+        await expect(game, `${level} at ${width}`).toHaveAttribute('data-view', '2d')
+      }
+    }
+  })
+})

@@ -413,6 +413,28 @@ describe('what a learner reads', () => {
     }
   })
 
+  test('keeps the practice lab in the labels\' words: no "the rotation", "dumped", "the dump" or "dumps its" in a verdict, a label or the page, but the one gloss', () => {
+    // The wire reply "miss dump 2" is the crate's protocol and stays: it has none of the three phrases. The page's gloss of the crate's name is
+    // the single allowed sentence: "The crate calls the free queue the rotation".
+    const LAB_WORDS = /(?<![\p{L}\p{N}])(?:the rotation|a full rotation|dumped|dumps its|the dump)(?![\p{L}\p{N}])/giu
+    const found = (text: string): string[] => text.replace(/calls the free queue the rotation/gi, '').match(LAB_WORDS) ?? []
+    const pageTexts = Object.values(FORGE_LABS).flatMap((lab) => [lab.title, lab.lead, lab.editNote ?? '', ...lab.checks.flatMap((check) => [check.label, check.catches])])
+    const read = [...oracleTexts().map((t) => t.text), ...pageTexts]
+    expect(read.flatMap(found)).toEqual([])
+    // The gloss is there once, and is the only use.
+    expect(pageTexts.filter((text) => /calls the free queue the rotation/i.test(text))).toHaveLength(1)
+    // The five sentences as they stood: each is found by the same reader.
+    for (const old of [
+      'a full rotation dumps its front',
+      'the rotation stays full',
+      'a dumped key is gone, so touching it again is a miss',
+      'the front is dumped, and the rotation stays full',
+      'the dump goes by the last touch, not by arrival',
+    ]) {
+      expect([old, found(old).length > 0]).toEqual([old, true])
+    }
+  })
+
   test('holds no variant title that a learner could read as the kitchen: the guard reads every family variant', () => {
     const titles = FAMILIES.flatMap((gen) => gen.variants.map((variant) => ({ where: `${gen.id}/${variant.id}`, title: variant.title })))
     expect(titles.length).toBeGreaterThan(60)
