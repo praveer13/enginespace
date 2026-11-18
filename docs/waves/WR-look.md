@@ -2,7 +2,7 @@
 
 Stage 2 ends here, before anything is deleted. The look was chosen on paper (The Pass) and disliked when built, and the brief then chose Data Book on paper. So this page shows two built things. It does not say which is better, and no agent has answered the three questions below. The owner answers them.
 
-- **Build A** is the tag `wave-r-stage1` (`094089c`, branch `look-a`): the new names, the way on, the lesson template and the frame, under The Pass, with the kitchen whole.
+- **Build A** is the tag `wave-r-stage1`, which is the commit `094089c` (branch `look-a`). The tag exists only in the clone that made it; the commit is in the branch's history, so a clone without the tag uses the commit. It holds the new names, the way on, the lesson template and the frame, under The Pass, with the kitchen whole.
 - **Build B** is `wave-r` at `4cccff2`, the head of stage 2: the same, under Data Book.
 
 Ten pairs follow: five screens at 1440 x 900 and at 390 x 844. Each pair is the same route, the same keys and clicks and the same viewport, from a fresh browser with nothing stored. Each image is the viewport, cropped to it, and its caption names the build's SHA. Five of the images are held under 300 KB by a 256-colour palette; the rest are the browser's own PNG.
@@ -19,7 +19,7 @@ bun scripts/look-gate.ts clean      # removes the two scratch worktrees afterwar
 By hand, the same thing:
 
 ```
-git worktree add --detach ../enginespace-build-a wave-r-stage1
+git worktree add --detach ../enginespace-build-a wave-r-stage1   # or 094089c, where the clone has no such tag
 git worktree add --detach ../enginespace-build-b wave-r
 for b in a b; do (cd ../enginespace-build-$b && cp -al ../enginespace/node_modules node_modules && npm run build); done
 (cd ../enginespace-build-a && npx vite preview --port 4301 --strictPort) &
@@ -43,7 +43,7 @@ The images come from `bun scripts/look-gate.ts shoot` with both serving (`ES_CHR
 - **The step loop, 3D.** A shows the kitchen scene. B shows the time track, the timing diagram stood up in 3D. B draws no kitchen for the step loop: the kitchen's scene left B's tree when the front page was rebuilt, since that page was its last importer. Every other kitchen file is still in B's tree until stage 4.
 - **The front page.** A is the kitchen with a panel over it. B is a heading and a live timing diagram beside it, in 2D first, with 3D one tap away on a desk and none on a phone.
 - **The pool and the lesson.** The same content, laid out alike. They differ mostly in surface and face, so their pairs are the closest.
-- **One disclosure.** No concept roll was dealt for Data Book; the brief's judges chose it. Accepting the brief's choice in its place, or asking for a roll to be dealt and recorded before the design file is written, is the owner's call. On 2026-11-16 the owner chose Data Book with this disclosure on the page and asked for no roll.
+- **One disclosure.** No concept roll was dealt for Data Book; the brief's judges chose it. Accepting the brief's choice in its place, or asking for a roll to be dealt and recorded before the design file is written, is the owner's call. On 2026-11-16 the owner chose Data Book with this disclosure on the page, in the words "data book for sure", and did not ask for a roll.
 
 ## 4. The ten pairs
 
