@@ -211,7 +211,7 @@
   --es-cell-ink: var(--es-cat-yellow-ink);
 }
 
-/* A cached page is hatched, as the 3D legend draws it: yellow stripes on paper, so a pool of cached pages never reads as a field of the
+/* A cached page is hatched, as the 3D scene draws it: yellow stripes on paper, so a pool of cached pages never reads as a field of the
    marker's amber (the Colour Is State Rule, the One Marker Rule). */
 .es-pool__cell[data-state='cached'] {
   background: repeating-linear-gradient(135deg, var(--es-memory-cached) 0 3px, var(--es-paper) 3px 6px);

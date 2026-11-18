@@ -7,17 +7,10 @@ import './pool3d.css'
 
 /*
  * What the 3D view shows of the pool, in words, and the way to choose it by hand (A§6.8: a pick in the scene is never the only way): a
- * button for each running request (its block table shows as threads to its pages), a page's number (it fans into its layers), and the key
- * to a page's forms. A lazy chunk of its own, which the page loads with the 3D view, under the camera buttons.
+ * button for each running request (its block table shows as threads to its pages, and its first page fans into its layers), and a page's
+ * number (it fans into its layers). The legend under it is the 2D view's own (Game.tsx): the scene draws each page's glyph as the diagram
+ * does. A lazy chunk of its own, which the page loads with the 3D view, under the camera buttons.
  */
-
-/** The forms a page is drawn in, as the key names them. */
-const KEY = [
-  { form: 'hollow', words: 'hollow: free' },
-  { form: 'solid', words: 'solid: in use' },
-  { form: 'marked', words: 'hatched: cached' },
-  { form: 'dotted', words: 'dotted: a prefix hit waits on it' },
-] as const
 
 export interface Select3DProps {
   view: PoolView
@@ -65,20 +58,6 @@ export default function Select3D({ view, pick, station, onPick }: Select3DProps)
         ) : null}
       </div>
       <Note view={view} pick={shown} station={station} />
-      <ul className="es-pool3d-key" aria-label="How a page is drawn" data-pool-key="">
-        {KEY.map((entry) => (
-          <li key={entry.form}>
-            <span className="es-pool3d-swatch" data-form={entry.form} aria-hidden="true" />
-            {entry.words}
-          </li>
-        ))}
-        {view.kits.length > 0 ? (
-          <li>
-            <span className="es-pool3d-swatch" data-form="groove" aria-hidden="true" />
-            grooved: an adapter&apos;s
-          </li>
-        ) : null}
-      </ul>
     </>
   )
 }
@@ -117,12 +96,15 @@ function Note({ view, pick, station }: { view: PoolView; pick: PoolPick | null; 
   if (request === undefined) {
     return (
       <p className="es-pool3d-note" data-pool-fan="">
-        {view.running.length === 0 ? 'No request is running yet. Once a request is admitted, its block table shows as threads from its tile to its pages. Select a page to fan it into its layers.' : 'Select a request to see its pages, or a page to fan it into its layers.'}
+        {view.running.length === 0 ? 'No request is running yet. Admit one in the dock: its block table shows as threads from its tile to its pages, and one of its pages stands open into the layers it serves.' : 'Select a request to see its pages, or a page to fan it into its layers.'}
       </p>
     )
   }
   const table = tableFor(view, request, station)
   const total = table.reduce((sum, list) => sum + list.length, 0)
+  // Its page nearest the front of the rack stands open in the scene (scene-layout.ts's headPage).
+  const head = table.flat().reduce<(typeof table)[number][number] | undefined>((best, page) => (best === undefined || Math.floor(page.id / view.cols) > Math.floor(best.id / view.cols) ? page : best), undefined)
+  const group = head?.station == null ? null : view.stations[head.station]
   return (
     <p className="es-pool3d-note" data-pool-fan="">
       {pick === null ? 'Showing ' : ''}
@@ -138,6 +120,19 @@ function Note({ view, pick, station }: { view: PoolView; pick: PoolPick | null; 
             .filter((words) => words !== null)
             .join(', ')}
           ). A thread runs from its tile to each page, in the order of its blocks.
+          {head !== undefined && group !== null ? (
+            <>
+              {' '}
+              Its page <span className="font-numeric">{head.id + 1}</span> stands open into the <span className="font-numeric">{group.layers}</span> layers it serves
+              {group.padLayers > 0 ? (
+                <>
+                  {' '}
+                  and <span className="font-numeric">{group.padLayers}</span> padding layers
+                </>
+              ) : null}
+              .
+            </>
+          ) : null}
         </>
       ) : (
         '. It has no page yet.'

@@ -1,12 +1,17 @@
-import { useCallback, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type RefObject } from 'react'
+import { CircleGeometry, Color, MeshBasicMaterial, RingGeometry, type BufferGeometry, type InstancedMesh } from 'three'
+import type { GlyphShape } from '@/design/code'
+import { resolveColor } from '@/design/tokens'
 import type { PoolView } from '@es/play/pool/types'
 import { CameraRig } from '@/scene/CameraRig'
 import { FlatLights } from '@/scene/FlatLights'
 import { FlatTrack } from '@/scene/FlatTrack'
-import { toWorld } from '@/scene/flat-track'
+import { PX, toWorld } from '@/scene/flat-track'
+import { useKit } from '@/scene/kit'
 import type { LabelSpec } from '@/scene/labels'
+import { capacityFor } from '@/scene/marks'
 import { SceneCanvas } from '@/scene/SceneCanvas'
-import { presetsFor, rackOf, type Canvas } from './scene-layout'
+import { fanRoom, geometryOf, presetsFor, rackOf, type Canvas, type PageGlyph } from './scene-layout'
 import type { PoolPick } from './types'
 import './pool3d.css'
 
@@ -16,9 +21,12 @@ import './pool3d.css'
  * the 2D diagram and the mirror draw, so it draws the night and decides nothing.
  *
  *   - Every page stands in its cell for its whole life, in a form as well as a colour: free hollow, in use solid, cached hatched, shared
- *     by a prefix hit dotted. A page never moves: a moving page would teach that pages are copied.
- *   - A selected page fans into the layers it serves, rising out of it on the settle duration; a selected request shows a thread from its
- *     tile to each page of its block table. Under reduced motion the fan is drawn at its end.
+ *     by a prefix hit dotted; and on its top the 2D cell's glyph, so the legend under the scene is the diagram's own. A page never moves:
+ *     a moving page would teach that pages are copied.
+ *   - What depth is for: a request's block table runs as threads from its tile to its pages, scattered over the one pool, and a page
+ *     stands up into the layers it serves. The scene opens on both: the request admitted last shows its threads, and its page nearest the
+ *     front fans, rising out of it on the settle duration; a selection shows another. Under reduced motion the fan is drawn at
+ *     its end.
  *   - Matte, with contact shadows and baked occlusion: no environment map, no fog, no bloom. Amber is the marker's, on what a decision may
  *     take. Every word and number is DOM, in the label layer; the page says what is selected (Stage3D.tsx).
  *
@@ -43,8 +51,74 @@ export interface Scene3DProps {
 
 /** The canvas's size before it is measured: about the desk's box [estimated]. */
 const FIRST: Canvas = { width: 870, height: 560 }
-/** A request's tile word is hidden in a canvas narrower than this, and the region names with it [estimated]: the page names them. */
-const ROOMY = 460
+
+/** Each glyph's flat shape, one unit across, lying on the sheet with the diagram's up toward the back, as Glyph.tsx draws it on 24 units. */
+const SHAPES: Readonly<Record<GlyphShape, () => BufferGeometry>> = {
+  circle: () => new CircleGeometry(8.25 / 24, 24),
+  diamond: () => new CircleGeometry(9.25 / 24, 4),
+  hexagon: () => new CircleGeometry(9.25 / 24, 6, Math.PI / 2),
+  square: () => new CircleGeometry((8 / 24) * Math.SQRT2, 4, Math.PI / 4),
+  triangle: () => new CircleGeometry(9.5 / 24, 3, Math.PI / 2),
+  ring: () => new RingGeometry(6 / 24, 9 / 24, 24),
+}
+
+/** One shape's glyphs, as one instanced mesh, each in its role's colour. */
+function GlyphSet({ shape, glyphs }: { shape: GlyphShape; glyphs: readonly PageGlyph[] }) {
+  const kit = useKit()
+  const geometry = useMemo(() => SHAPES[shape]().rotateX(-Math.PI / 2), [shape])
+  const material = useMemo(() => new MeshBasicMaterial({ color: new Color(1, 1, 1), toneMapped: false }), [])
+  useEffect(
+    () => () => {
+      geometry.dispose()
+      material.dispose()
+    },
+    [geometry, material],
+  )
+  const capacity = capacityFor(glyphs.length)
+  const mesh = useRef<InstancedMesh>(null)
+  useLayoutEffect(() => {
+    const instanced = mesh.current
+    if (!instanced) return
+    const out = instanced.instanceMatrix.array as Float32Array
+    const colour = new Color()
+    glyphs.forEach((glyph, i) => {
+      const o = i * 16
+      const size = glyph.size / PX
+      out.fill(0, o, o + 16)
+      out[o] = size
+      out[o + 5] = 1
+      out[o + 10] = size
+      out[o + 12] = glyph.x / PX
+      out[o + 13] = glyph.y / PX
+      out[o + 14] = glyph.z / PX
+      out[o + 15] = 1
+      // The role as the page computes it, or its light value where that is not a hex colour (forced colours), as the kit reads a role.
+      const value = kit.tokens.roles[glyph.role]
+      instanced.setColorAt(i, colour.set(/^#[0-9a-f]{3,6}$/i.test(value) ? value : resolveColor(glyph.role)))
+    })
+    instanced.count = glyphs.length
+    instanced.instanceMatrix.needsUpdate = true
+    if (instanced.instanceColor) instanced.instanceColor.needsUpdate = true
+    kit.invalidate()
+  }, [glyphs, kit])
+  return <instancedMesh key={capacity} ref={mesh} name={`glyphs/${shape}`} args={[geometry, material, capacity]} frustumCulled={false} />
+}
+
+/** Every page's glyph, a mesh for each shape on the drawing. */
+function Glyphs({ glyphs }: { glyphs: readonly PageGlyph[] }) {
+  const byShape = useMemo(() => {
+    const out = new Map<GlyphShape, PageGlyph[]>()
+    for (const glyph of glyphs) out.set(glyph.shape, [...(out.get(glyph.shape) ?? []), glyph])
+    return [...out]
+  }, [glyphs])
+  return (
+    <>
+      {byShape.map(([shape, list]) => (
+        <GlyphSet key={shape} shape={shape} glyphs={list} />
+      ))}
+    </>
+  )
+}
 
 /** The canvas's box, kept fresh as it resizes. */
 function useCanvasSize(): [RefObject<HTMLDivElement | null>, Canvas] {
@@ -73,8 +147,11 @@ export default function Scene3D({ view, preset, station, chosen, pointed = [], p
   // The fan opens when it changes (another page, or another group), and not when a decision leaves it as it was.
   // eslint-disable-next-line react-hooks/exhaustive-deps -- the move starts again on the moment alone; the model it starts from is the latest of that moment
   const from = useMemo(() => (rack.fan === null ? null : rack.closed), [rack.moment])
-  const { x1, z1 } = rack.model.bounds
-  const presets = useMemo(() => presetsFor({ x0: 0, x1, z0: 0, z1 }, canvas), [x1, z1, canvas])
+  // The frame is the level's: the pool's size, the batch's and the tallest fan, so nothing the learner does moves the camera.
+  const { cols, cap } = view
+  const pages = view.pans.length
+  const room = fanRoom(view)
+  const presets = useMemo(() => presetsFor(geometryOf(pages, cols, cap), canvas, room), [pages, cols, cap, room, canvas])
   const labels = useMemo<LabelSpec[]>(
     () =>
       rack.model.labels.map((label) => ({
@@ -83,7 +160,7 @@ export default function Scene3D({ view, preset, station, chosen, pointed = [], p
         place: label.place,
         className: `es-pool3d-label es-pool3d-label--${label.kind}`,
         content: label.text,
-        minWidth: label.kind === 'band' || label.kind === 'idle' ? ROOMY : label.minWidth,
+        minWidth: label.minWidth,
       })),
     [rack.model.labels],
   )
@@ -100,6 +177,7 @@ export default function Scene3D({ view, preset, station, chosen, pointed = [], p
         <CameraRig presets={presets} preset={preset} />
         <FlatLights />
         <FlatTrack model={rack.model} from={from} onPick={onPick ? onPicked : undefined} />
+        <Glyphs glyphs={rack.glyphs} />
       </SceneCanvas>
     </div>
   )
