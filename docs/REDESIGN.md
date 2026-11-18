@@ -2,7 +2,7 @@
 
 Date: 2026-11-15. Revision 2, after the skeptic's review of revision 1. This is the one brief the team builds. The plan is `docs/waves/wr-tasks.json` (50 tasks, R-T01 to R-T50), and the diagnosis it answers is `docs/waves/WR-diagnosis.md`.
 
-Build it applies to: branch `wave-2` at 727167e (worktree `.worktrees/audit-ux`, read-only for this round).
+Build it applies to: branch `wave-2` at 727167e.
 
 ## How far to trust this
 
