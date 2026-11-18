@@ -56,7 +56,7 @@ const nextBack = (day: LocalDay): string => `This idea comes back ${formatDay(da
 
 export default function Work({ line, index, total, entropy, met, card, today, last, onChecked, onNext, gen }: WorkProps) {
   const evidence = useEvidence()
-  if (gen.id !== line.family) throw new Error(`the line is served by the family "${line.family}", and the ticket was given "${gen.id}"`)
+  if (gen.id !== line.family) throw new Error(`the line is served by the family "${line.family}", and the question was given "${gen.id}"`)
   // Drawn once, when the ticket comes up. A later change to what the learner has met (this very answer, once it is written) must not redraw it.
   const [drawn] = useState(() => drawForKc(gen, line.kc, line.level, entropy, met))
   const { item } = drawn

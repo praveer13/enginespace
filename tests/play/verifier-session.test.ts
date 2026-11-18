@@ -138,9 +138,9 @@ describe('the reducer refuses what a level does not allow', () => {
   test('a run is submitted when its answer is whole, and not before, and nothing follows a submission', () => {
     refuses('overlap', 0, [{ t: 'submit' }], 'commit a prediction first')
     refuses('chain', 1, [{ t: 'submit' }], 'commit a prediction first')
-    refuses('exact', 0, [{ t: 'submit' }], 'recipe is empty')
+    refuses('exact', 0, [{ t: 'submit' }], 'weights are all zero')
     refuses('greedy-ngram', 0, [{ t: 'submit' }], 'temperature-0 question first')
-    refuses('greedy-ngram', 0, [{ t: 'judge', kept: true }, { t: 'submit' }], 'recipe is empty')
+    refuses('greedy-ngram', 0, [{ t: 'judge', kept: true }, { t: 'submit' }], 'weights are all zero')
     refuses('mutants', 0, [{ t: 'label', card: 0, bug: 'resample-from-p' }, { t: 'submit' }], 'name the bug in every card')
     refuses('gamma', 0, [{ t: 'submit' }], 'pick a draft length')
     for (const [id, seed] of PRACTICE) {

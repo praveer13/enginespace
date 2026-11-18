@@ -93,7 +93,7 @@ export const mapProbe: BlindProbe = (session, seeds = MAP_SEEDS) => {
     return passed
   }
   return [
-    rowOf('tray', 'the tray laid as it stands', passes((level) => level.tray), levels.length),
+    rowOf('tray', 'the stage list laid as it stands', passes((level) => level.tray), levels.length),
     rowOf('by-place', 'from where the request stands, the first stage of the list that starts there', passes(byPlace), levels.length),
     rowOf('one-path', 'the path of the scenario that the seeds ask most often, laid every time', passes(() => one), levels.length),
     rowOf('per-engine', `told which engine's card it is, the path of that engine's most-asked scenario`, passes((level) => engines.get(level.scenario.engine) ?? []), levels.length),

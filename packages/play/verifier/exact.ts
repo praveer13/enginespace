@@ -77,10 +77,10 @@ export const excessWeights = (p: Dist, q: Dist): number[] => p.weights.map((px, 
 /** The recipe as integer weights, and the weights' total: the number of draws the recipe's walk takes. */
 function recipe(p: Dist, q: Dist, r: Exclude<Recovery, { kind: 'p-without-x' }>): { counts: number[]; total: number } {
   const weights = r.kind === 'excess' ? excessWeights(p, q) : [...r.w]
-  if (weights.length !== p.weights.length) throw new RangeError(`a recipe has one weight for each of ${p.weights.length} tokens, got ${weights.length}`)
+  if (weights.length !== p.weights.length) throw new RangeError(`a recovery has one weight for each of ${p.weights.length} tokens, got ${weights.length}`)
   let total = 0
   for (const w of weights) {
-    if (!Number.isSafeInteger(w) || w < 0) throw new RangeError(`a recipe weight is a non-negative integer, got ${w}`)
+    if (!Number.isSafeInteger(w) || w < 0) throw new RangeError(`a recovery weight is a non-negative integer, got ${w}`)
     total += w
   }
   if (r.inclusive !== true || total === 0) return { counts: weights, total }
@@ -115,7 +115,7 @@ export function outputExact(p: Dist, q: Dist, accept: AcceptRule, r: Recovery): 
       for (let x = 0; x < n; x++) {
         const lost = q.weights[x] - keptCoins[x]
         if (x === y || lost === 0) continue
-        if (p.weights[x] === p.total) throw new RangeError('p has all its weight on the rejected token, so there is nothing to re-plate from')
+        if (p.weights[x] === p.total) throw new RangeError('p has all its weight on the rejected token, so there is nothing to resample from')
         replaced = add(replaced, ratio(BigInt(lost) * BigInt(p.weights[y]), total * BigInt(p.total - p.weights[x])))
       }
       return add(kept[y], replaced)
@@ -124,7 +124,7 @@ export function outputExact(p: Dist, q: Dist, accept: AcceptRule, r: Recovery): 
 
   if (rejected.num === 0n) return kept
   const { counts, total: draws } = recipe(p, q, r)
-  if (draws === 0) throw new RangeError('the recipe has no weight, so a plate that is sent back has nowhere to be re-plated from')
+  if (draws === 0) throw new RangeError('the recovery has no weight, so a rejected draw has nowhere to be resampled from')
   return kept.map((k, y) => add(k, mul(rejected, ratio(BigInt(counts[y]), BigInt(draws)))))
 }
 
