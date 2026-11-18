@@ -1,4 +1,4 @@
-import { useCallback, type ComponentType, type ReactNode } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import { Stage } from '@/scene/Stage'
 import type { Scene3DProps } from './Scene3D'
 import type { Shot } from './scene-shots'
@@ -9,8 +9,8 @@ import type { VerifierRun } from './types'
  * with the scene behind it. The diagram is the default view (REDESIGN §2.9), so this module, and the Stage and the scene's tokens with it,
  * load only when the learner switches to 3D: the route that opens on the diagram carries none of it.
  *
- * The box is about 16:10 and on a phone a little taller than wide, in a lesson's column; on the game's page it is the frame's view (verifier.css),
- * so the skylines, the control and the readout share the first screen.
+ * The box is about 16:10 in a lesson's column; on the game's page it is the frame's view (verifier.css), so the skylines, the control and
+ * the readout share the first screen. A phone never mounts it: the frame withholds the 3D view there.
  */
 const STAGE_BOX = 'es-vf-stage'
 
@@ -29,15 +29,13 @@ export interface VerifierStageProps {
 }
 
 export default function VerifierStage({ run, preset, shots, scaffold, outcome, diagram, scene }: VerifierStageProps) {
-  // A token picked in the scene while there are weights to set hands focus to its weight.
-  const onPick = useCallback((token: number) => document.querySelector<HTMLInputElement>(`[data-vf-dish="${token}"]`)?.focus(), [])
   return (
     <Stage
       id="verifier"
       className={`${STAGE_BOX} border border-edge shadow-shelf`}
       view2d={diagram}
       scene={scene}
-      sceneProps={{ view: run.view, shots, preset, scaffold, outcome, onPick }}
+      sceneProps={{ view: run.view, shots, preset, scaffold, outcome }}
       announce={run.announce}
     />
   )

@@ -749,14 +749,9 @@
  * The 3D scene's print (Scene3D.tsx): every word and number on the plate, as DOM over the canvas (D-021), set as the 2D diagram sets them,
  * so a row's name, a token's number and a bar's count read the same in either view. Every colour, face and size is a token role.
  */
+/* The 3D view's box. A phone never draws it: the frame withholds the 3D view below 48rem. */
 .es-vf-stage {
   height: clamp(18rem, min(56svh, 34vw), 32rem);
-}
-
-@media (max-width: 29.9rem) {
-  .es-vf-stage {
-    height: clamp(18.75rem, 112vw, 60svh);
-  }
 }
 
 /* On the game's page the box is the frame's view, which fits the first screen beside the dock at desk widths and over the pinned dock on
@@ -791,15 +786,14 @@
   white-space: nowrap;
 }
 
-/* A draft position's name in the label column: it wraps inside the column and never runs over its first bar. */
+/* A draft position's name in the label column, on one line, ending short of its row's first bar. */
 .es-label.es-vf-label--row {
-  max-width: 6.5rem;
-  text-align: left;
-  white-space: normal;
+  text-align: right;
 }
 
-/* A token's number under its pair of bars, in the numbers' face. */
-.es-vf-label--tick {
+/* A token's number under its pair of bars, and the value scale's numbers, in the numbers' face. */
+.es-vf-label--tick,
+.es-vf-label--axis {
   color: var(--es-text-2);
   font-family: var(--es-font-numeric);
   font-size: var(--es-size-caption);

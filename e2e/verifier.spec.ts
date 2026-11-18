@@ -284,7 +284,8 @@ test.describe('the keys of the game', () => {
     await page.keyboard.press('Shift+Slash')
     const keys = page.getByRole('dialog')
     await expect(keys).toBeVisible()
-    await expect(keys.locator('kbd')).toHaveText(['Space', '.', ',', '[', ']', 'C', 'V', '?', 'D', 'Enter'])
+    // The recipe level has one draft position and no 3D view, so its list has no view or camera key.
+    await expect(keys.locator('kbd')).toHaveText(['Space', '.', ',', '[', ']', '?', 'D', 'Enter'])
     await page.keyboard.press('Escape')
     await expect(keys).toBeHidden()
     await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('verifier')

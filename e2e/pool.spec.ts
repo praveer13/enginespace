@@ -323,7 +323,8 @@ test.describe('the keys of the game', () => {
     await page.keyboard.press('Shift+Slash')
     const keys = page.getByRole('dialog', { name: 'Keyboard' })
     await expect(keys).toBeVisible()
-    await expect(keys.locator('kbd')).toHaveText(['Space', '.', ',', '[', ']', 'C', 'V', '?', 'W', 'D'])
+    // At the phone's width the 3D view is not offered, so the list has no view or camera key.
+    await expect(keys.locator('kbd')).toHaveText(['Space', '.', ',', '[', ']', '?', 'W', 'D'])
     await page.keyboard.press('Escape')
     await expect(keys).toBeHidden()
     await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-game'))).toBe('pool')
