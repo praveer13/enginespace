@@ -68,7 +68,7 @@
   font-weight: 400;
 }
 
-/* The selection panel under the scene: which request's threads and which page's fan the scene shows, and the key to a page's form. */
+/* The selection panel under the scene: which request's threads and which page's fan the scene shows. */
 .es-pool3d-panel__row {
   display: flex;
   flex-wrap: wrap;
@@ -93,57 +93,16 @@
   font-variant-numeric: tabular-nums;
 }
 
-/* The key: a page's form, drawn as the scene draws it and named, so the shape carries a state without colour. */
-.es-pool3d-key {
-  display: flex;
-  flex-wrap: wrap;
+/* The legend under the selection is the 2D view's own (View2D.tsx), across the panel's width. */
+.es-pool__cameras > .es-pool__legend {
   flex: 1 1 100%;
-  gap: 0.25rem 1rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  color: var(--es-text-2);
-  font-size: var(--es-size-caption);
 }
 
-.es-pool3d-key li {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-}
-
-.es-pool3d-swatch {
-  display: inline-block;
-  width: 1rem;
-  height: 1rem;
-  border: 2px solid var(--es-edge);
-  background-color: var(--es-paper);
-}
-
-.es-pool3d-swatch[data-form='solid'] {
-  background-color: var(--es-memory-used);
-  border-color: var(--es-cat-blue-edge);
-}
-
-.es-pool3d-swatch[data-form='marked'] {
-  border-color: var(--es-cat-yellow-edge);
-  background: repeating-linear-gradient(135deg, var(--es-memory-cached) 0 3px, var(--es-paper) 3px 5px);
-}
-
-.es-pool3d-swatch[data-form='dotted'] {
-  border-color: var(--es-cat-green-edge);
-  background: radial-gradient(circle, var(--es-paper) 1.5px, transparent 2px) 0 0 / 5px 5px, var(--es-memory-shared);
-}
-
-.es-pool3d-swatch[data-form='groove'] {
-  border-color: var(--es-cat-brown-edge);
-  background-color: var(--es-memory-adapter);
-  box-shadow: inset 0 0 0 2px var(--es-paper);
-}
-
-/* What the scene shows, in words, across the legend's width. */
+/* What the scene shows, in words, across the legend's width. It keeps the height of its longest sentence (a request's table and its open
+   page, three lines at a desk), so a selection never resizes the scene's box above it. */
 .es-pool3d-note {
   flex: 1 1 100%;
+  min-height: 3lh;
   margin: 0;
   color: var(--es-text-2);
 }

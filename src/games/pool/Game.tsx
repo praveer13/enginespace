@@ -282,6 +282,8 @@ function PoolLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, l
             <Suspense fallback={null}>
               <Select3D view={run.view} pick={pick} station={preset === 'station' ? Math.min(station, run.view.stations.length - 1) : null} onPick={setPick} />
             </Suspense>
+            {/* One legend: the diagram's own, since the scene draws each page's glyph as the diagram does. */}
+            <PoolLegend view={run.view} />
           </div>
         ) : (
           <PoolLegend view={run.view} />
