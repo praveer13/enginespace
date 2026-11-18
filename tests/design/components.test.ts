@@ -144,7 +144,7 @@ describe('BusyMark and StepControl', () => {
     expect(html).not.toContain('data-glyph')
   })
 
-  test('the bell is a named button when it fires the step, and its count is tagged', () => {
+  test('the step control is a named button when it fires the step, and its count is tagged', () => {
     const html = render(h(StepControl, { step: 12, onRing: () => undefined }))
     expect(html).toContain('aria-label="Step: run the next step"')
     expect(html).toContain('>0012<')

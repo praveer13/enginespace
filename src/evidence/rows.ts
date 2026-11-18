@@ -52,7 +52,12 @@ export interface RowContext {
   lessons: readonly MapLesson[]
   /** A level's name: "KV page pool, One KV group". */
   levelName: LevelNamer
+  /** What a question asks about, from its family and variant: "The gap with async scheduling off". Left out, a row says only that a question was answered. */
+  itemName?: ItemNamer
 }
+
+/** A question's subject for the learner: the words of its family's variant. Undefined for a family or variant this build does not list. */
+export type ItemNamer = (family: string, variant: string) => string | undefined
 
 const refParts = (ref: string): string[] => ref.slice(ref.indexOf(':') + 1).split('/')
 
@@ -69,9 +74,12 @@ export function activityRows(events: readonly LedgerEvent[], context: RowContext
       case 'predict':
         rows.push({ ...base, what: 'Committed a guess before a run', result: event.ok ? 'close' : 'off' })
         break
-      case 'item':
-        rows.push({ ...base, what: 'Answered a question', result: resultOf(event) })
+      case 'item': {
+        const parts = refParts(event.ref)
+        const named = context.itemName?.(parts[1] ?? '', parts[2] ?? '')
+        rows.push({ ...base, what: named === undefined ? 'Answered a question' : `Answered a question: ${named}`, result: resultOf(event) })
         break
+      }
       case 'play': {
         const parts = refParts(event.ref)
         const named = context.levelName(parts[0] ?? '', parts[1] ?? '')

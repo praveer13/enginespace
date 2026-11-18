@@ -413,10 +413,10 @@ describe('what a learner reads', () => {
     }
   })
 
-  test('keeps the practice lab in the labels\' words: no "the rotation", "dumped", "the dump" or "dumps its" in a verdict, a label or the page, but the one gloss', () => {
+  test('keeps the practice lab in the labels\' words: no "the rotation", "a rotation", "dumped", "the dump" or "dumps its" in a verdict, a label or the page, but the one gloss', () => {
     // The wire reply "miss dump 2" is the crate's protocol and stays: it has none of the three phrases. The page's gloss of the crate's name is
     // the single allowed sentence: "The crate calls the free queue the rotation".
-    const LAB_WORDS = /(?<![\p{L}\p{N}])(?:the rotation|a full rotation|dumped|dumps its|the dump)(?![\p{L}\p{N}])/giu
+    const LAB_WORDS = /(?<![\p{L}\p{N}])(?:the rotation|a rotation|a full rotation|dumped|dumps its|the dump)(?![\p{L}\p{N}])/giu
     const found = (text: string): string[] => text.replace(/calls the free queue the rotation/gi, '').match(LAB_WORDS) ?? []
     const pageTexts = Object.values(FORGE_LABS).flatMap((lab) => [lab.title, lab.lead, lab.editNote ?? '', ...lab.checks.flatMap((check) => [check.label, check.catches])])
     const read = [...oracleTexts().map((t) => t.text), ...pageTexts]
@@ -433,6 +433,35 @@ describe('what a learner reads', () => {
     ]) {
       expect([old, found(old).length > 0]).toEqual([old, true])
     }
+  })
+
+  test('holds no kitchen word in the message of an error that the code throws or a session refuses with, in the app, the games and the sims', () => {
+    // Such a message reaches no page today (a button is disabled before the action can be sent), but a test prints it, and the next page that
+    // shows it must not have to find the words first. The list is the guard's own, and two forms it missed: "a rotation" and "dumped".
+    const EXTRA = /(?<![\p{L}\p{N}])(?:a rotation|the rotation|dumped)(?![\p{L}\p{N}])/giu
+    const found: string[] = []
+    for (const dir of ['src', 'packages']) {
+      for (const file of filesUnder(path.join(root, dir)).filter((name) => /\.tsx?$/.test(name))) {
+        const code = readFileSync(file, 'utf8')
+        if (!/throw new|need\(/.test(code)) continue
+        const source = ts.createSourceFile(file, code, ts.ScriptTarget.Latest, true)
+        const messages: ts.Expression[] = []
+        const visit = (node: ts.Node): void => {
+          if (ts.isNewExpression(node) && /Error$/.test(node.expression.getText(source)) && node.arguments?.[0] !== undefined) messages.push(node.arguments[0])
+          if (ts.isCallExpression(node) && node.expression.getText(source) === 'need' && node.arguments[1] !== undefined) messages.push(node.arguments[1])
+          ts.forEachChild(node, visit)
+        }
+        visit(source)
+        for (const message of messages) {
+          const text = message.getText(source)
+          const hits = [...findBanned(text).map((f) => f.match), ...(text.match(EXTRA) ?? [])]
+          if (hits.length > 0) found.push(`${path.relative(root, file)}:${source.getLineAndCharacterOfPosition(message.getStart()).line + 1}: ${hits.join(', ')}`)
+        }
+      }
+    }
+    expect(found).toEqual([])
+    // The two forms it missed are found.
+    for (const old of ['it cannot be dumped', 'a rotation holds 1 to 4096 keys']) expect([old, (old.match(EXTRA) ?? []).length > 0]).toEqual([old, true])
   })
 
   test('holds no variant title that a learner could read as the kitchen: the guard reads every family variant', () => {

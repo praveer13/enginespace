@@ -10,6 +10,7 @@ import type { Of } from './BlockFrame'
 import { useLevelNames } from './levelNames'
 import { pendingGame } from './model'
 import { usePairedGuess } from './paired'
+import { PredictLoading } from './PredictLoading'
 import { useBlockRun } from './runs'
 import { runAnchor, type Slotted } from './sections'
 
@@ -126,7 +127,11 @@ export function Instrument({ block, at, blocks, scope, rev, kind, guesses = [], 
       {started && kind !== 'graded' && !unbuilt && !failed ? null : head}
       {kind === 'graded' ? <p className="es-run__rule">New numbers are drawn when you start, and there is no undo. The level states its pass rule before the run.</p> : null}
       {above.length === 0 ? null : (
-        <Suspense fallback={null}>
+        <Suspense
+          fallback={above.map((guess, nth) => (
+            <PredictLoading key={guess.at} block={blocks[guess.at] as Of<'predict'>} {...(many ? { label: `Guess ${nth + 1} of ${guesses.length}, before this run` } : {})} />
+          ))}
+        >
           {above.map((guess, nth) => (
             <PredictTicket key={guess.at} block={blocks[guess.at] as Of<'predict'>} scope={scope} at={guess.at} blocks={blocks} rev={rev} slot="above" {...(many ? { label: `Guess ${nth + 1} of ${guesses.length}, before this run` } : {})} />
           ))}

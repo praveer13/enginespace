@@ -13,7 +13,9 @@
  */
 import { useMemo } from 'react'
 import { GAMES } from '@es/play'
+import { faceById } from '@es/play/items/catalog'
 import type { CourseMap } from '@es/schema/compiled'
+import type { ItemNamer } from '@/evidence/rows'
 import { useEvidence } from '@/evidence/useEvidence'
 import { readPlace } from '@/settings/bookmark'
 import { deriveProgress } from './derive'
@@ -42,6 +44,9 @@ export const levelName: LevelNamer = (game, level) => {
   const title = entry?.levels.find((candidate) => candidate.id === level)?.title
   return entry === undefined || title === undefined ? undefined : `${entry.title}, ${title}`
 }
+
+/** What a question asks about, as the learner reads it: its variant's title from the item families' faces. */
+export const itemName: ItemNamer = (family, variant) => faceById(family)?.variants.find((spec) => spec.id === variant)?.title
 
 export function useProgress(map: CourseMap | null): ProgressState {
   const { ready, events } = useEvidence()

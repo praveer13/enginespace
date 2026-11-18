@@ -45,10 +45,10 @@ interface Fixed {
 
 /** The recipes that ignore the pair, as tests/play/verifier-levels.test.ts has them. */
 const FIXED: readonly Fixed[] = [
-  { id: 'even-weights', describe: 'the same weight on every dish', actions: () => recipe(Array.from({ length: VOCAB }, () => 1)) },
-  { id: 'from-p', describe: 'the recipe that starts from p', actions: () => [{ t: 'preset', from: 'p' }] },
-  { id: 'from-q', describe: 'the recipe that starts from q', actions: () => [{ t: 'preset', from: 'q' }] },
-  { id: 'one-dish', describe: 'all the weight on one dish', actions: () => recipe(Array.from({ length: VOCAB }, (_, token) => (token === 2 ? 1 : 0))) },
+  { id: 'even-weights', describe: 'the same weight on every token', actions: () => recipe(Array.from({ length: VOCAB }, () => 1)) },
+  { id: 'from-p', describe: 'the weights that start from p', actions: () => [{ t: 'preset', from: 'p' }] },
+  { id: 'from-q', describe: 'the weights that start from q', actions: () => [{ t: 'preset', from: 'q' }] },
+  { id: 'one-dish', describe: 'all the weight on one token', actions: () => recipe(Array.from({ length: VOCAB }, (_, token) => (token === 2 ? 1 : 0))) },
   { id: 'half-and-half', describe: 'the weights 2, 1, 2, 1, 2, 1', actions: () => recipe(Array.from({ length: VOCAB }, (_, token) => (token % 2 === 0 ? 2 : 1))) },
 ]
 

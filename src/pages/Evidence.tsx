@@ -8,7 +8,7 @@ import { LedgerFiles } from '@/evidence/LedgerFiles'
 import { activityRows, attemptCounts, skillCounts } from '@/evidence/rows'
 import { StorageTape } from '@/evidence/StorageTape'
 import { useEvidence } from '@/evidence/useEvidence'
-import { levelName, useProgress } from '@/progress/useProgress'
+import { itemName, levelName, useProgress } from '@/progress/useProgress'
 import './panels.css'
 
 /*
@@ -27,7 +27,7 @@ export function Component() {
   const mapValue = map.status === 'ready' ? map.value : null
   const { progress, next, last } = useProgress(mapValue)
   const counts = useMemo(() => countEvents(evidence.events, homeModule), [evidence.events])
-  const rows = useMemo(() => (mapValue === null ? null : activityRows(evidence.events, { lessons: mapValue.lessons, levelName })), [evidence.events, mapValue])
+  const rows = useMemo(() => (mapValue === null ? null : activityRows(evidence.events, { lessons: mapValue.lessons, levelName, itemName })), [evidence.events, mapValue])
   const skills = useMemo(() => (progress === null ? null : skillCounts(progress.counts)), [progress])
   const attempts = useMemo(() => attemptCounts(evidence.events), [evidence.events])
   const modules = index.status === 'ready' ? index.value.modules.map(({ id, title }) => ({ id, title })) : null

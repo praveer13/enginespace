@@ -68,6 +68,19 @@
   color: var(--es-text-3);
 }
 
+/* On a phone the breadcrumb is one line: the module's code stands for its name, which stays in the link for a screen reader, so the three
+   crumbs never wrap into lines that each begin with a slash. */
+@media (max-width: 40rem) {
+  .es-lesson__crumb-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 .es-lesson__crumbs [aria-current='page'] {
   color: var(--es-text-1);
   font-weight: 700;
@@ -649,6 +662,19 @@
   font-weight: 700;
 }
 
+/* A guess's chunk loads after the page is laid out. Its place holds the stem, which is already known, and the room that the rule, the field,
+   the sureness and Commit take under it, so nothing below it moves [measured 2026-11-18: a number's guess is 421 px tall at 1440 and 556 px at
+   390, and the placeholder at 250 and 278 px of reserve matches it to within a pixel]. */
+.es-guess__reserve {
+  min-height: 15.625rem;
+}
+
+@media (max-width: 40rem) {
+  .es-guess__reserve {
+    min-height: 17.375rem;
+  }
+}
+
 .es-guess__ask {
   font-size: var(--es-size-control);
   line-height: 1.45;
@@ -1016,4 +1042,16 @@
    reached and seen. */
 .es-claimchain {
   margin-inline-start: 2rem;
+}
+
+/* A question set's chunk loads after the page is laid out: its place holds the sheet that stands there before it is started [measured 2026-11-18:
+   226 px at 1440 and 253 to 275 px at 390], so nothing below it moves. */
+.es-lesson__reserve-set {
+  min-height: 14.25rem;
+}
+
+@media (max-width: 40rem) {
+  .es-lesson__reserve-set {
+    min-height: 17.25rem;
+  }
 }

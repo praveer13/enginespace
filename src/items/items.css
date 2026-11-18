@@ -432,3 +432,15 @@
   align-items: center;
   gap: var(--es-space-3);
 }
+
+/* While a set's code loads (the press on Start), its place is about the height a question takes (a set asking is 670 to 1,100 px tall
+   [measured 2026-11-18 at 1440 and 390 px in TR1, TR2 and TR5a]), so the lesson under it does not jump up and then down when it arrives. */
+.es-c-block[data-block='item'][data-phase='loading'] {
+  min-height: 42rem;
+}
+
+@media (max-width: 40rem) {
+  .es-c-block[data-block='item'][data-phase='loading'] {
+    min-height: 46rem;
+  }
+}

@@ -357,7 +357,7 @@ export function Debrief({ run, outcome, next, onNext, embedded = false, onGraded
         </p>
         <p className="es-vf-debrief__stamp">The figures below are of a made-up world.</p>
         <Facts run={run} outcome={outcome} />
-        <p className="es-type-body max-w-prose" data-vf-takeaway="">
+        <p className="font-bold" data-vf-takeaway="">
           {TAKEAWAY[view.level]}
         </p>
         <Engines level={view.level} embedded={embedded} />

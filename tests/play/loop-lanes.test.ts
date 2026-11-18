@@ -63,6 +63,21 @@ function holds(layout: LaneLayout, g: LaneGeometry, slots: number) {
   for (let i = 1; i < layout.axis.ticks.length; i++) expect(layout.axis.ticks[i].x - layout.axis.ticks[i - 1].x).toBeGreaterThanOrEqual(g.axisLabelGap - EPS)
 }
 
+describe('the queue on a track that scrolls inside a narrower box', () => {
+  const view = { ...night(4, [5, 9, 3, 7, 12, 4], 6), waiting: [0, 1, 2, 3, 4, 5, 6] }
+
+  test('only the chips that show are drawn, room is kept for the count of the rest, and a wide box changes nothing', () => {
+    const track = FRAME_PHONE.width - FRAME_PHONE.labelWidth
+    const whole = laneLayout(view, FRAME_PHONE)
+    const visible = 250 - FRAME_PHONE.labelWidth
+    const cut = laneLayout(view, FRAME_PHONE, visible)
+    expect(cut.queue.chips.length + cut.queue.more).toBe(view.waiting.length)
+    expect(cut.queue.more).toBeGreaterThan(0)
+    for (const chip of cut.queue.chips) expect(chip.x - FRAME_PHONE.labelWidth + chip.width).toBeLessThanOrEqual(visible - 32)
+    expect(laneLayout(view, FRAME_PHONE, track + 50).queue).toEqual(whole.queue)
+  })
+})
+
 describe('one tick maps to one x', () => {
   const view = night(4, [5, 9, 3, 7, 12, 4], 6)
   const layout = laneLayout(view)

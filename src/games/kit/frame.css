@@ -410,6 +410,13 @@
     overflow: hidden;
   }
 
+  /* While the dock holds the parts list whole, the row is taller than a drawing needs: the sheet takes its drawing's height, and the legend
+     stands under the drawing, so no blank paper lies between the two. */
+  .es-frame[data-placement='page'][data-intro][data-view='2d'] .es-frame__diagram {
+    align-self: start;
+    max-height: 100%;
+  }
+
   /* The diagram's gutter, at its left: the first run's callout discs stand in it, level with the parts they name, as on the front page, so
      a disc never covers a word or a mark of the drawing, and nothing moves when they go. */
   .es-frame__surface {

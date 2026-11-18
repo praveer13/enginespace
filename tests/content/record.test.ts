@@ -52,7 +52,7 @@ describe('the lesson record', () => {
       'guess 300 pages (think so), model 260 pages',
       'One KV group: passed in practice',
       'Full attention and a sliding window: not yet',
-      'questions 3 of 3 passed',
+      'questions 3 of 3: passed',
     ])
   })
 

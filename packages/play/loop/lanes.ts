@@ -308,7 +308,10 @@ export function axisStep(pxPerTick: number, gap: number): number {
 
 const useOf = (place: PlaceView | undefined): SlabUse => (place === undefined || place.state === 'empty' ? 'empty' : place.state === 'binned' ? 'ghost' : 'token')
 
-export function laneLayout(source: LaneSource, geometry: LaneGeometry = DESK): LaneLayout {
+/** The room a queue keeps for its count of the requests not shown, "+3", in px [estimated: the caption size's two digits and a sign, and a gap]. */
+const COUNT_ROOM = 32
+
+export function laneLayout(source: LaneSource, geometry: LaneGeometry = DESK, visibleTrack?: number): LaneLayout {
   const g = geometry
   if (!Number.isInteger(source.slots) || source.slots < 1) throw new RangeError(`a step loop has at least one slot, not ${source.slots}`)
 
@@ -319,8 +322,13 @@ export function laneLayout(source: LaneSource, geometry: LaneGeometry = DESK): L
   const trackWidth = g.width - g.labelWidth
   const scale: TimeScale = { start, end: start + g.windowTicks, x: trackX, width: trackWidth, pxPerTick: trackWidth / g.windowTicks }
 
-  // The queue: as many chips as fit across the track, and a count of the rest.
-  const fit = Math.max(0, Math.floor((trackWidth + g.chipGap) / (g.chipWidth + g.chipGap)))
+  // The queue: as many chips as fit across the track, and a count of the rest. A track that scrolls inside a narrower box (a phone) passes
+  // the width that shows (`visibleTrack`): the chips are counted across that, with room kept for the count, so that no chip stands cut
+  // at the box's edge with nothing to say that more are waiting.
+  const shows = Math.min(trackWidth, visibleTrack ?? trackWidth)
+  const across = (width: number) => Math.max(0, Math.floor((width + g.chipGap) / (g.chipWidth + g.chipGap)))
+  let fit = across(shows)
+  if (shows < trackWidth && source.waiting.length > fit) fit = Math.max(1, across(shows - COUNT_ROOM))
   const shown = source.waiting.slice(0, fit)
   const chips: QueueChip[] = shown.map((req, i) => ({ req, label: requestName(req), x: trackX + i * (g.chipWidth + g.chipGap), y: 0, width: g.chipWidth, height: g.queueHeight }))
 

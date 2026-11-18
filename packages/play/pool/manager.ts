@@ -156,7 +156,7 @@ export class PoolManager extends KvReference {
    * of the queue. Like every operation it counts a step of the sim's clock. Throws for a page that is not cached and unheld.
    */
   dump(page: number): void {
-    if (!this.isCached(page)) throw new RangeError(`page ${page} is not a cached page that nobody holds, so it cannot be dumped`)
+    if (!this.isCached(page)) throw new RangeError(`page ${page} is not a cached page that nobody holds, so it cannot be evicted`)
     const ts = this.steps++
     this.pending = []
     this.unlink(page)
