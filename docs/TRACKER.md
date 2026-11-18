@@ -1117,6 +1117,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   2. `verify:games` passes.
   3. Synthetic traces carry their label.
   4. At 360 px, a graded `attribute` case can be completed in list mode (e2e).
+- **Before you write (2026-11-18):** one case needs work on a second stream, so that a blank interval on one stream is not an idle GPU. See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", (a).
 
 #### [ ] W2-T21 · Owner: capture 6-10 reference traces · M · owner · deps: W2-T04, W2-T19
 - **Goal:** Per O-5:
@@ -1150,6 +1151,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 #### [ ] W2-T24 · TR3 content · L · sonnet · deps: W2-T20, W2-T23
 - **Goal:** TR3's module and lessons: `--profile`, Perfetto, and nsys graph traces. Written to the authoring rules of REDESIGN.md §2.5 (and `content/README.md`) from the start: an opener chosen by rule 1, guesses that each get a reveal, a Test that closes the file, and engine terms only (`src/copy/terms.ts`). Each new lesson adds its row to the openers table, and `tests/content/openers.test.ts` and `tests/content/vocabulary.test.ts` hold it.
 - **Accept:** The checks of W1-T15 pass, and each lesson has its row in the openers table and passes the openers and vocabulary tests.
+- **Before you write (2026-11-18):** four rules for reading a GPU timeline, each at its lesson, and a question for the owner. See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", (a) to (d).
 
 ### TR4: backends as a consumer
 
@@ -1168,10 +1170,12 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 - **Accept:**
   1. A synthetic fixture passes.
   2. A sweep with a timing below its floor fails.
+- **Before you write (2026-11-18):** four timing practices (a drift check for warm-up, a stated cache policy tested against the floor, alternating backend order, tolerances per backend), the lines of `docs/ASSESSMENT.md` they touch, and a question for the owner. See `curriculum/TR4-backends-as-a-consumer.md`, "Before you write".
 
 #### [ ] W2-T27 · TR4 content · M · sonnet · deps: W2-T25, W2-T26
 - **Goal:** TR4's module and lessons: FA2, FA3 and FA4, FlashInfer and FlashMLA, read as a consumer. FlashMLA's hardware list carries a 60-day TTL (catalog §3.5). Written to the authoring rules of REDESIGN.md §2.5 (and `content/README.md`) from the start: an opener chosen by rule 1, guesses that each get a reveal, a Test that closes the file, and engine terms only (`src/copy/terms.ts`). Each new lesson adds its row to the openers table, and `tests/content/openers.test.ts` and `tests/content/vocabulary.test.ts` hold it.
 - **Accept:** The checks of W1-T15 pass, and each lesson has its row in the openers table and passes the openers and vocabulary tests.
+- **Before you write (2026-11-18):** lesson 3's three-row table and one item, with what each source does and does not show. See `curriculum/TR4-backends-as-a-consumer.md`, "Before you write".
 
 ### TR5b: offload, connector and events
 
