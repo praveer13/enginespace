@@ -480,24 +480,27 @@ describe(`the claims of ${CLAIMS_FILE}`, () => {
   const OTHERS: readonly RegExp[] = [
     /^https:\/\/github\.com\/NVIDIA\/TensorRT-LLM\/blob\/b96ba434e8a05e2ab52d2082bd8d70b1d844739b\/[^#]+#L\d+(?:-L\d+)?$/,
     /^https:\/\/github\.com\/praveer13\/kernelspace\/blob\/d478f91[0-9a-f]{33}\/[^#]+#L\d+(?:-L\d+)?$/,
+    // The book "Modern GPU Programming For MLSys", read as a page: its measuring appendix, for one figure that its authors report.
+    /^https:\/\/mlc\.ai\/modern-gpu-programming-for-mlsys\/appendix\/benchmarking_gpu_kernels\.html$/,
   ]
   /** The two posts, which are read as pages and not at a line. */
   const POSTS: readonly RegExp[] = [/^https:\/\/vllm\.ai\/blog\/2026-03-24-mrv2$/, /^https:\/\/lmsys\.org\/blog\/2026-08-17-advanced-cuda-graph\/$/]
   const isPost = (url: string): boolean => POSTS.some((pattern) => pattern.test(url))
 
-  test('are many, and each is measured, except the three that someone else measured on their own hardware', () => {
+  test('are many, and each is measured, except the four that someone else measured on their own hardware', () => {
     expect(mine.length).toBeGreaterThanOrEqual(55)
     expect(mine.filter((claim) => claim.tag !== 'measured').map((claim) => `${claim.id} ${claim.tag}`)).toEqual([
       'vllm.mrv2.blog-gain unverified',
       'vllm.mrv2.blog-spec-tpot unverified',
       'trtllm.cudagraph.padding-gain unverified',
+      'mlc-book.gemm-launch-api unverified',
     ])
   })
 
-  test("begin their ids with their engine, or with loop when kernelspace's is the source", () => {
+  test("begin their ids with their engine, with loop when kernelspace's is the source, or with mlc-book for the book", () => {
     for (const claim of mine) {
       const prefix = claim.id.split('.')[0]
-      expect([claim.id, ['vllm', 'sglang', 'mini-sglang', 'trtllm', 'loop'].includes(prefix)]).toEqual([claim.id, true])
+      expect([claim.id, ['vllm', 'sglang', 'mini-sglang', 'trtllm', 'loop', 'mlc-book'].includes(prefix)]).toEqual([claim.id, true])
       if (claim.pin !== undefined) expect([claim.id, claim.id.startsWith(`${claim.pin}.`)]).toEqual([claim.id, true])
     }
   })
@@ -510,7 +513,7 @@ describe(`the claims of ${CLAIMS_FILE}`, () => {
         expect([claim.id, ENGINES.some((pattern) => pattern.test(url)) || isPost(url)]).toEqual([claim.id, true])
       } else {
         expect([claim.id, OTHERS.some((pattern) => pattern.test(url))]).toEqual([claim.id, true])
-        expect([claim.id, claim.id.startsWith('trtllm.') || claim.id.startsWith('loop.')]).toEqual([claim.id, true])
+        expect([claim.id, claim.id.startsWith('trtllm.') || claim.id.startsWith('loop.') || claim.id.startsWith('mlc-book.')]).toEqual([claim.id, true])
       }
     }
   })
@@ -617,6 +620,41 @@ describe('lesson 1: one step, and what the GPU waits for', () => {
     mentions('tr2.l1', 'the busy shares', `${fmt(big.cpuUs)} µs and ${fmt(small.cpuUs)} µs [synthetic]`)
     mentions('tr2.l1', 'the busy share of the big card', `busy for ${fmt((100 * big.forwardUs) / (big.forwardUs + big.cpuUs), 1)}% [derived]`)
     mentions('tr2.l1', 'the busy share of the small card', `busy for ${fmt((100 * small.forwardUs) / (small.forwardUs + small.cpuUs), 1)}% [derived]`)
+  })
+
+  test('the Read opens on what the level showed, and the back-reference to kernelspace follows it', () => {
+    const text = lessonOf('tr2.l1').text
+    const read = text.slice(text.indexOf('## One thread, one loop') + '## One thread, one loop'.length).trim()
+    expect(read.startsWith('In the level the GPU lane went empty whenever the CPU lane was busy')).toBe(true)
+    const paragraph = read.slice(0, read.indexOf('\n\n'))
+    expect(paragraph.indexOf('{{ks:T5.L7}}')).toBeGreaterThan(paragraph.indexOf('In the level'))
+  })
+
+  test("EngineCore.step's first four calls are shown by TR1's convention: a block headed with its file, its lines and the pin, `...` for the lines cut, and the line before it links the same lines", () => {
+    const text = lessonOf('tr2.l1').text
+    const blocks = [...text.matchAll(/```python\n# (\S+), lines (\d+) to (\d+) at (\S+)\n([\s\S]*?)```/g)]
+    expect(blocks.length).toBe(1)
+    const [whole, file, first, last, pin, body] = blocks[0]
+    expect([file, Number(first), Number(last), pin]).toEqual(['vllm/v1/engine/core.py', 677, 686, 'v0.33.0'])
+    // The file's lines from the first call to the end of the fourth, set back by the method's indent, with the `with` block's head cut to `...`.
+    const lines = body.replace(/\n$/, '').split('\n')
+    expect(lines[0]).toBe('scheduler_output = self.scheduler.schedule(self._should_throttle_prefills())')
+    expect(lines[lines.length - 1]).toBe('        model_output = self.model_executor.sample_tokens(grammar_output)')
+    expect(lines.filter((line) => line === '...').length).toBe(1)
+    expect(lines.filter((line) => line !== '...').length).toBe(6)
+    const before = text.slice(0, text.indexOf(whole)).trimEnd().split('\n').pop() ?? ''
+    expect(before).toContain(`(https://github.com/vllm-project/vllm/blob/${pin}/${file}#L${first}-L${last})`)
+    expect(before).toContain('`EngineCore.step` is 31 lines [measured] at the pin')
+    // The first four calls of the list are the block's, in the block's order, and the line after the block names the fifth.
+    const after = text.slice(text.indexOf(whole) + whole.length).trim().split('\n')[0]
+    expect(after).toContain('The fifth call, `update_from_output`, follows a drain of aborts. {{claim:vllm.step.order}}')
+    const at = ['self.scheduler.schedule(', 'self.model_executor.execute_model(', 'self.scheduler.get_grammar_bitmask(', 'future.result()', 'self.model_executor.sample_tokens('].map((call) => body.indexOf(call))
+    expect([at.every((index) => index >= 0), [...at].sort((a, b) => a - b)]).toEqual([true, at])
+  })
+
+  test('an arbitrary number says so in the next sentence, and a comparison of the two cards names what else differs between them', () => {
+    mentions('tr2.l1', 'the ticks are arbitrary', "{{claim:loop.world.step-ticks-serial}} The three numbers are arbitrary: others would change the share, not the rule.")
+    mentions('tr2.l1', 'the confound', 'which also differ in their GPU and in where the host card prices the per-sequence work. So read them as two cases, not as an effect of size.')
   })
 })
 
@@ -783,6 +821,25 @@ describe('lesson 5: CUDA graphs', () => {
     expect([sizes.batches.length, Math.min(...sizes.batches), Math.max(...sizes.batches), sizes.molds]).toEqual([40, 7, 11, 3])
     expect(sizes.uncapturedByNaive).toBe(40)
     mentions('tr2.l5', 'the histogram', `drawn from a histogram whose batches are ${Math.min(...sizes.batches)} to ${Math.max(...sizes.batches)} rows [synthetic]`)
+  })
+
+  test("says over what batches decode is bandwidth-bound, in kernelspace's numbers, and no more than they say", () => {
+    // T4.L3 gives decode about 1 FLOP a byte at batch 1, N times that for a batch of N, and an H100 ridge of about 295 at FP16, from the weights.
+    const claim = (id: string) => result.claims.find((record) => record.claim.id === id)?.claim
+    expect([claim('loop.kernelspace.decode-intensity')?.value, claim('loop.kernelspace.h100-ridge')?.value]).toEqual([1, 295])
+    mentions('tr2.l5', 'the range', "decode is bandwidth-bound while the batch stays well below the GPU's ridge, about 295 requests [derived] for FP16 weights on an H100, counting the weights alone.")
+    for (const id of ['decode-intensity', 'batch-lever', 'h100-ridge', 'decode-plus-kv']) mentions('tr2.l5', id, `{{claim:loop.kernelspace.${id}}}`)
+  })
+
+  test("says what the model's 6 µs is, and sets one launch call that the book's authors report beside it as theirs, unverified", () => {
+    mentions('tr2.l5', 'the quantity', "The 6 µs [estimated] is the engine thread's time for one kernel in a run of launches, from the start of its launch to the start of the next.")
+    mentions('tr2.l5', 'the book', '50.717 µs [unverified] for the host\'s launch API call of one GEMM kernel')
+    mentions('tr2.l5', 'the learner settles it', 'your own capture in TR3 is what settles the figure for your machine')
+    const book = result.claims.find((record) => record.claim.id === 'mlc-book.gemm-launch-api')?.claim
+    expect([book?.value, book?.tag, book?.source?.accessed]).toEqual([50.717, 'unverified', '2026-11-18'])
+    // The figure comes after the guess, which asks for the model's own launch cost.
+    const text = lessonOf('tr2.l5').text
+    expect(text.indexOf('{{claim:mlc-book.gemm-launch-api}}')).toBeGreaterThan(text.indexOf('id: tr2.l5.p1'))
   })
 })
 

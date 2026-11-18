@@ -192,6 +192,19 @@ describe('the Quoted excerpts section', () => {
     for (const pin of pins) expect([pin, quoted.includes(pin)]).toEqual([pin, true])
   })
 
+  test('names every lesson outside TR1 that quotes an excerpt, with the excerpt as its block heads it', () => {
+    const headed: string[] = []
+    for (const file of files('content/modules', '.md').filter((file) => !file.startsWith('content/modules/tr1/'))) {
+      for (const match of read(file).matchAll(/^# (\S+, lines? \d+(?: to \d+)? at \S+)$/gm)) headed.push(`${file}: ${match[1]}`)
+    }
+    expect(headed).toEqual(['content/modules/tr2/lessons/l1-one-step-five-calls.md: vllm/v1/engine/core.py, lines 677 to 686 at v0.33.0'])
+    for (const entry of headed) {
+      const [file, head] = entry.split(': ')
+      expect([file, flat(quoted).includes(file)]).toEqual([file, true])
+      expect([head, flat(quoted).includes(head)]).toEqual([head, true])
+    }
+  })
+
   test('names every ref at which a claim or the lifecycle model quotes one of the four projects', () => {
     const refs = new Set<string>()
     const projects = 'vllm-project\\/vllm|sgl-project\\/sglang|sgl-project\\/mini-sglang|GeeeekExplorer\\/nano-vllm'

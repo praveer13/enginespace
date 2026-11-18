@@ -10,7 +10,7 @@ lanes: [B]
 games: [loop]
 ---
 
-The third lesson left nine steps on the small card with a bubble that overlap could not close. All nine admitted a request, and seven launched kernel by kernel, because no graph had been captured for their size. Their launch took longer than the forward it launched. This lesson is about that launch: what a CUDA graph is, why replaying one is cheap, why it holds only for the shapes that were captured, what the padding costs, and the five modes in which vLLM captures. {{ks:T4.L3}} told you that decode is bandwidth-bound, so a step costs the GPU about the same with one request or many, and the CPU side matters more.
+The third lesson left nine steps on the small card with a bubble that overlap could not close. All nine admitted a request, and seven launched kernel by kernel, because no graph had been captured for their size. Their launch took longer than the forward it launched. This lesson is about that launch: what a CUDA graph is, why replaying one is cheap, why it holds only for the shapes that were captured, what the padding costs, and the five modes in which vLLM captures. {{ks:T4.L3}} told you that decode is bandwidth-bound while the batch stays well below the GPU's ridge, about 295 requests [derived] for FP16 weights on an H100, counting the weights alone. {{claim:loop.kernelspace.decode-intensity}} {{claim:loop.kernelspace.batch-lever}} {{claim:loop.kernelspace.h100-ridge}} {{claim:loop.kernelspace.decode-plus-kv}} In that range a step costs the GPU about the same with one request or many, and the CPU side matters more.
 
 ## One launch for every kernel
 
@@ -34,6 +34,8 @@ answer: { kind: numeric, unit: us, rel_tol: 0.02 }
 reveal: after-game
 kcs: [tr2.graph-replay]
 :::
+
+The 6 µs [estimated] is the engine thread's time for one kernel in a run of launches, from the start of its launch to the start of the next. One launch call timed on its own from the host can take several times longer. The authors of the book Modern GPU Programming For MLSys report 50.717 µs [unverified] for the host's launch API call of one GEMM kernel, issued through PyTorch on one B200 and traced once under Nsight Systems, in the appendix on measuring a kernel, read on 2026-11-18. {{claim:mlc-book.gemm-launch-api}} The course has not repeated that run, and your own capture in TR3 is what settles the figure for your machine.
 
 There is a test for whether a forward is launch-bound, and it needs no profiler. Time the forward at several sizes of work. If the curve is flat across a wide range of sizes, the time is the launches and not the compute. SGLang's post on its graphs makes the point about prefill on gpt-oss-120b: every curve is flat across a range of prompt lengths, which it calls the signature of launch overhead rather than compute. {{claim:sglang.cudagraph.blog-flat-curve}}
 
