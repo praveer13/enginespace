@@ -1042,3 +1042,15 @@
 .es-claimchain {
   margin-inline-start: 2rem;
 }
+
+/* A question set's chunk loads after the page is laid out: its place holds the sheet that stands there before it is started [measured 2026-11-18:
+   226 px at 1440 and 253 to 275 px at 390], so nothing below it moves. */
+.es-lesson__reserve-set {
+  min-height: 14.25rem;
+}
+
+@media (max-width: 40rem) {
+  .es-lesson__reserve-set {
+    min-height: 17.25rem;
+  }
+}

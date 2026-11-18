@@ -16,7 +16,9 @@ import { Instrument } from '@/content/render/Instrument'
 import { useLevelNames } from '@/content/render/levelNames'
 import type { LedgerReading } from '@/content/render/LessonLedger'
 import { citedClaimIds, claimNumbers, kernelspaceLabel, kernelspaceUrl, labName, pendingLab, plainText, renderEnv, titled, todayIso, type RenderEnv } from '@/content/render/model'
+import { PredictLoading } from '@/content/render/PredictLoading'
 import { Prose } from '@/content/render/Prose'
+import { Tagged } from '@/content/render/Tagged'
 import type { LessonOnward } from '@/games/kit/lessonRun'
 import { useHasRun, useLatestRun } from '@/games/kit/RunContext'
 import { groupSections, proseWords, runAnchor, testLabel, type LessonSections, type Piece } from '@/content/render/sections'
@@ -508,7 +510,7 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
               <Instrument key={at} block={lesson.blocks[at] as Of<'game'>} at={at} blocks={lesson.blocks} scope={lesson.id} rev={lesson.rev} kind="graded" />
             ))}
             {sections.test.questions.map((at, nth) => (
-              <Suspense key={at} fallback={<p className="es-lesson__meta">Setting up the questions…</p>}>
+              <Suspense key={at} fallback={<p className="es-lesson__meta es-lesson__reserve-set">Setting up the questions…</p>}>
                 <ItemBlock
                   block={lesson.blocks[at] as Of<'item'>}
                   scope={lesson.id}
@@ -708,7 +710,7 @@ function BlockPiece({ at, lesson, env, whereOf, sections }: PieceProps & { at: n
     case 'predict': {
       const below = sections.answeredBelow.get(at)
       return (
-        <Suspense fallback={<p className="es-lesson__meta">{block.prompt}</p>}>
+        <Suspense fallback={<PredictLoading block={block} />}>
           <PredictTicket block={block} scope={lesson.id} at={at} blocks={lesson.blocks} rev={lesson.rev} where={below === undefined ? undefined : whereOf(below)} />
         </Suspense>
       )
@@ -717,7 +719,7 @@ function BlockPiece({ at, lesson, env, whereOf, sections }: PieceProps & { at: n
       return <Instrument block={block} at={at} blocks={lesson.blocks} scope={lesson.id} rev={lesson.rev} kind="inline" guesses={sections.slots.get(at)} />
     case 'item':
       return (
-        <Suspense fallback={<p className="es-lesson__meta">Setting up the question…</p>}>
+        <Suspense fallback={<p className="es-lesson__meta es-lesson__reserve-set">Setting up the question…</p>}>
           <ItemBlock block={block} scope={lesson.id} quiet practice />
         </Suspense>
       )
@@ -738,13 +740,17 @@ function BlockPiece({ at, lesson, env, whereOf, sections }: PieceProps & { at: n
       if (block.kind === 'warning')
         return (
           <Note kind="watch" title={block.title === undefined ? undefined : `Watch out: ${lower(block.title)}`}>
-            <p>{block.body}</p>
+            <p>
+              <Tagged text={block.body} />
+            </p>
           </Note>
         )
       if (block.kind === 'isomorphism')
         return (
-          <Note kind="same-idea" title={block.title === undefined ? undefined : `The same idea elsewhere: ${lower(block.title)}`} breaks={block.breaks}>
-            <p>{block.body}</p>
+          <Note kind="same-idea" title={block.title === undefined ? undefined : `The same idea elsewhere: ${lower(block.title)}`} breaks={<Tagged text={block.breaks} />}>
+            <p>
+              <Tagged text={block.body} />
+            </p>
           </Note>
         )
       return null

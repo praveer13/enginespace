@@ -417,6 +417,19 @@
   .es-dock[data-ask='admit'] .es-dock__list {
     grid-area: 2 / 1 / 3 / 3;
   }
+
+  /* The choice of none is a line tall, as the heading is, so the three options under it stay whole; its hit area is still 44 px tall. */
+  .es-dock[data-ask='admit'] .es-dock__row .es-button {
+    min-height: 2rem;
+    padding-block: 0;
+  }
+
+  .es-dock[data-ask='admit'] .es-dock__row .es-button::after {
+    position: absolute;
+    inset-block: -0.375rem;
+    inset-inline: 0;
+    content: '';
+  }
 }
 
 .es-dock__note {
