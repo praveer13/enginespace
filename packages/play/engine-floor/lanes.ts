@@ -165,8 +165,12 @@ export interface LaneGeometry {
   readonly tail: number
 }
 
-/** At 1440 x 900 the diagram is about 896 px wide (REDESIGN §3.5); the row is fitted to the box's height (`fitRow`). */
-export const LANES_DESK: LaneGeometry = { box: 896, gutter: 40, head: 52, start: 30, row: 32, threadMin: 60, threadMax: 150, pad: 12, tail: 96 }
+/**
+ * At 1440 x 900 the diagram is about 896 px wide (REDESIGN §3.5); the row is fitted to the box's height (`fitRow`). An engine of few threads
+ * (nano-vllm's one thread and its GPU) takes columns up to 240 px wide, so its path and names spread over the sheet rather than its left
+ * third; an engine of many threads shares the sheet's width among them, as before [estimated from the type's size].
+ */
+export const LANES_DESK: LaneGeometry = { box: 896, gutter: 40, head: 52, start: 30, row: 32, threadMin: 60, threadMax: 240, pad: 12, tail: 96 }
 
 /** At 390 x 844 the box is 358 px wide: a thread is 72 px, so a process of one thread is the brief's 72 px column, and the diagram scrolls sideways. */
 export const LANES_PHONE: LaneGeometry = { box: 358, gutter: 28, head: 52, start: 28, row: 30, threadMin: 72, threadMax: 72, pad: 10, tail: 84 }
@@ -205,6 +209,16 @@ export const ARROW_WORDS: Readonly<Record<Mechanism, string>> = {
 /** How wide words are set, in CSS pixels [estimated from Atkinson Hyperlegible's advance]: the arrow's word at 12 px bold, a name at 13 px mono. */
 export const tagWidth = (mechanism: Mechanism): number => Math.ceil(20 + ARROW_WORDS[mechanism].length * 6.9 + 6)
 export const nameWidth = (name: string): number => Math.ceil(name.length * 7.9 + 8)
+
+/**
+ * The tag side rule: an arrow's word reads at the left of the arrow's last leg, on the other side from the stage's name. A hop inside one
+ * column has nowhere else to put it, so the first column keeps a slot at its left wide enough for the widest of the five mechanisms' words
+ * ("launch"), between the row numbers and its lifeline. Where a thread's half-width already holds it (the desk's wide columns) the slot is 0.
+ */
+export const TAG_SLOT = 6 + Math.max(...(['call', 'launch', 'queue', 'ipc', 'h2d', 'd2h', 'sync'] as const).map((mechanism) => tagWidth(mechanism)))
+
+/** The room a column of threads `threadW` wide needs at its left so that a hop inside it keeps its word (`TAG_SLOT`). */
+export const leadOf = (threadW: number): number => Math.max(0, TAG_SLOT - Math.floor(threadW / 2))
 
 export interface LaneRow {
   readonly index: number
@@ -250,10 +264,12 @@ export function layoutLanes(input: LanesInput, geometry: LaneGeometry = LANES_DE
   const visited = [input.entry, ...placesOf(input.stages)]
   const groups = input.closed ? [] : columnsOf([...input.plan, ...visited])
   const threadCount = groups.reduce((sum, group) => sum + group.places.length, 0)
+  const fit = (room: number): number => (threadCount === 0 ? g.threadMax : Math.max(g.threadMin, Math.min(g.threadMax, Math.floor(room / threadCount))))
   const room = g.box - g.gutter - g.tail
-  const threadW = threadCount === 0 ? g.threadMax : Math.max(g.threadMin, Math.min(g.threadMax, Math.floor(room / threadCount)))
+  const threadW = fit(room - leadOf(fit(room)))
+  const lead = leadOf(threadW)
   const byKey = new Map<string, LaneThread>()
-  let left = g.gutter
+  let left = g.gutter + lead
   const columns: LaneColumn[] = groups.map((group) => {
     const x0 = left
     const threads = group.places.map((place, at): LaneThread => {
@@ -265,7 +281,7 @@ export function layoutLanes(input: LanesInput, geometry: LaneGeometry = LANES_DE
     return { key: group.process ?? 'gpu', kind: group.kind, process: group.process, title: group.title, name: group.name, id: group.id, x0, w: threads.length * threadW, threads }
   })
   const width = Math.max(g.box, left + g.tail)
-  const xOf = (place: Place): number => byKey.get(placeKey(place))?.x ?? g.gutter + 14
+  const xOf = (place: Place): number => byKey.get(placeKey(place))?.x ?? g.gutter + lead + 14
   const top = g.head
   const start = { x: xOf(input.entry), y: top + Math.round(g.start / 2) }
   const yOf = (index: number): number => top + g.start + index * g.row + Math.round(g.row / 2)

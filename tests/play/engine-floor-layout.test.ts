@@ -446,6 +446,22 @@ describe('the swimlane\'s geometry (REDESIGN §3.6)', () => {
     }
   })
 
+  test('a hop inside one column keeps its mechanism word in a slot at its left, at desk and phone widths (the tag side rule)', () => {
+    const FIVE = new Set(['call', 'launch', 'queue', 'ipc', 'h2d', 'd2h', 'sync'])
+    for (const geometry of [LANES_DESK, LANES_PHONE]) {
+      for (const sc of ALL_SCENARIOS) {
+        const lanes = layoutLanes(lanesOfScenario(sc), geometry)
+        for (const row of lanes.rows) {
+          if (row.path.length !== 2 || !FIVE.has(row.mechanism)) continue
+          // The word reads on the other side of the arrow from the stage's name: at its left, between the row numbers and the lifeline,
+          // unless the name itself reads at the left. It is never left as a mark alone under the name (View2D's mark-only fallback).
+          const fits = row.tag.side === 'left' ? row.tag.x - tagWidth(row.mechanism) >= geometry.gutter : row.tag.x + tagWidth(row.mechanism) <= lanes.width
+          expect([describeScenario(sc), row.id, row.tag.side !== row.side, fits]).toEqual([describeScenario(sc), row.id, true, true])
+        }
+      }
+    }
+  })
+
   test('each mechanism has a mark of its own and a word, and none is told apart by colour: the arrows are drawn in ink', () => {
     const marks = new Set(MECHANISMS.map((mechanism) => GLYPHS[mechanism].join(' ')))
     expect(marks.size).toBe(MECHANISMS.length)
