@@ -68,6 +68,19 @@
   color: var(--es-text-3);
 }
 
+/* On a phone the breadcrumb is one line: the module's code stands for its name, which stays in the link for a screen reader, so the three
+   crumbs never wrap into lines that each begin with a slash. */
+@media (max-width: 40rem) {
+  .es-lesson__crumb-name {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
 .es-lesson__crumbs [aria-current='page'] {
   color: var(--es-text-1);
   font-weight: 700;

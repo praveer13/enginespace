@@ -12,6 +12,7 @@ import { Frame, PendingLine, Tapes, type Of } from './BlockFrame'
 import { GameBlock } from './GameBlock'
 import { cardClaimIds, laneName, PENDING, pendingLab, sections, type RenderEnv } from './model'
 import { Inline, Prose } from './Prose'
+import { Tagged } from './Tagged'
 
 /*
  * The eight block types (ARCHITECTURE §4.3, D-016), each drawn as what it is on The Pass (D-047): a run of tickets, one per
@@ -145,19 +146,25 @@ function CardTicket({ block, env, scope }: { block: Of<'card'>; env: RenderEnv; 
         <Frame block="card" kind="warning" scope={scope} title={block.title ?? CARD_TITLES.warning}>
           <p className="es-c-warning">
             <Icon name="alert" className="es-c-warning__mark" />
-            <span>{block.body}</span>
+            <span>
+              <Tagged text={block.body} />
+            </span>
           </p>
         </Frame>
       )
     case 'isomorphism':
       return (
         <Frame block="card" kind="isomorphism" scope={scope} title={block.title ?? CARD_TITLES.isomorphism}>
-          <p>{block.body}</p>
+          <p>
+            <Tagged text={block.body} />
+          </p>
           <p className="es-c-breaks">
             <Label size="sm" tilt="none">
               where it breaks
             </Label>
-            <span>{block.breaks}</span>
+            <span>
+              <Tagged text={block.breaks} />
+            </span>
           </p>
         </Frame>
       )

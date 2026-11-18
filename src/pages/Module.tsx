@@ -203,7 +203,10 @@ export function ModuleView({ id, module, entry, claims, today, kcs, progress, re
             <li>
               <TextLink to="/map">Course</TextLink>
             </li>
-            <li aria-current="page">{`${moduleCode(id)} ${title}`}</li>
+            <li aria-current="page">
+              {moduleCode(id)}
+              <span className="es-module__crumb-name"> {title}</span>
+            </li>
           </ol>
         </nav>
         <div className="es-module__titleline">

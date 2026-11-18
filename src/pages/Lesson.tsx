@@ -402,7 +402,10 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
               <TextLink to="/map">Course</TextLink>
             </li>
             <li>
-              <TextLink to={moduleRoute}>{module === undefined ? moduleCode(lesson.module) : `${moduleCode(lesson.module)} ${module.title}`}</TextLink>
+              <TextLink to={moduleRoute}>
+                {moduleCode(lesson.module)}
+                {module === undefined ? null : <span className="es-lesson__crumb-name"> {module.title}</span>}
+              </TextLink>
             </li>
             <li aria-current="page">{position < 0 ? lesson.title : `Lesson ${position + 1} of ${lessons.length}`}</li>
           </ol>
