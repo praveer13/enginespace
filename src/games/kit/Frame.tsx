@@ -376,15 +376,17 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
       if (top < 0) window.scrollBy({ top: top - 8 })
       return
     }
-    // A result whose chunk is still loading has no ways on yet: they are looked for again until they are drawn, for about two seconds.
+    // A result whose chunk is still loading has no ways on yet: they are looked for again until they are drawn, for about two seconds. Its
+    // verdict takes focus from the result when it loads, so focus anywhere in the result means the learner is still there.
     const bring = (tries: number) => {
-      // The learner has moved on (focus left the verdict): the page is not moved under them.
-      if (document.activeElement !== target) return
-      const ways = resultRef.current?.querySelector<HTMLElement>('.es-debrief__actions, .es-loopdebrief__ways')
-      ;(ways ?? resultRef.current)?.scrollIntoView({ block: 'nearest' })
+      const result = resultRef.current
+      // The learner has moved on (focus left the result): the page is not moved under them.
+      if (!result?.contains(document.activeElement)) return
+      const ways = result.querySelector<HTMLElement>('.es-debrief__actions, .es-loopdebrief__ways')
+      ;(ways ?? result).scrollIntoView({ block: 'nearest' })
       if (!ways && tries > 0) return void setTimeout(() => bring(tries - 1), 100)
       // The verdict stays on the screen over its ways on: a long moment over it is not allowed to push it off the top.
-      const head = target?.getBoundingClientRect().top ?? 0
+      const head = result.querySelector('[data-result-heading]')?.getBoundingClientRect().top ?? 0
       if (head < 0) window.scrollBy({ top: head - 8 })
     }
     bring(20)
@@ -405,19 +407,6 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     if (main !== null) main.scrollTop = 0
     if (dock.getBoundingClientRect().top < 0) dock.scrollIntoView({ block: 'start' })
   }, [dockPhase, outcome])
-
-  // While the intro shows in a lesson at a desk, its Next row stands over the readout at the foot of the screen: the readout's height is
-  // the row's offset (frame.css), measured here as it changes.
-  const readoutRef = useRef<HTMLDivElement>(null)
-  const introOpen = intro !== null
-  useEffect(() => {
-    const readout = readoutRef.current
-    const frame = container.current
-    if (!embedded || !introOpen || readout === null || frame === null || typeof ResizeObserver === 'undefined') return
-    const observer = new ResizeObserver(() => frame.style.setProperty('--es-frame-readout', `${readout.offsetHeight}px`))
-    observer.observe(readout)
-    return () => observer.disconnect()
-  }, [embedded, introOpen, container])
 
   const Heading = embedded ? 'h3' : 'h2'
   const modeWord = mode === 'practice' ? 'practice' : 'graded'
@@ -598,7 +587,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
               </>
             )}
           </div>
-          <div ref={readoutRef} className="es-frame__readout" data-readout="">
+          <div className="es-frame__readout" data-readout="">
             {props.readout(api)}
           </div>
         </div>

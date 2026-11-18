@@ -1263,7 +1263,8 @@
     overflow: visible;
   }
 
-  .es-frame[data-game='engine-floor'][data-phase='play'] > .es-frame__body > .es-frame__dock > .es-frame__readout {
+  /* Not while the first run's parts are read with the page: the list ends whole above the readout (the frame's rule, frame.css). */
+  .es-frame[data-game='engine-floor'][data-phase='play']:not([data-intro]) > .es-frame__body > .es-frame__dock > .es-frame__readout {
     position: sticky;
     bottom: 0;
     z-index: 2;
