@@ -1416,9 +1416,10 @@
 @media (min-width: 64rem) and (min-height: 600px) {
   /* A stage the keyboard reaches is scrolled clear of the filters pinned at the screen's top (WCAG 2.4.11). The filters stand 149 px tall
      (two rows of process chips) or 189 px (three) on every level and at every width from 1024 to 1920 px [measured 2026-11-19 at b2435ba],
-     so 12.5rem (200 px) clears the taller. */
-  html:has(.es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro])) {
-    scroll-padding-top: 12.5rem;
+     so the stage's scroll margin of 12.5rem (200 px) clears the taller. The margin is the stage's, not the page's, so a filter control that
+     takes focus does not move the page. */
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-tile {
+    scroll-margin-top: 12.5rem;
   }
 
   .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-filters {
