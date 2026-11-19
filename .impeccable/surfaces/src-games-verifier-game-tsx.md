@@ -46,7 +46,7 @@ The accepted share settles on the overlap and the dock names it once: "The accep
 ## Unresolved
 
 - The bars have no value axis; the graticule is not their scale (the finish review's ceiling).
-- The chain's 3D marks (caps and outlines) are to be read against its legend in the next look.
+- The middle rows of the chain's "Over the run" are still busy; a count that would land on another label is not printed (its value stays in the scale and State as a table).
 
 ## The Pass's contract, superseded
 

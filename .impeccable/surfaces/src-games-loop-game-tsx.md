@@ -46,7 +46,8 @@ The first step with four slots full: the GPU's rows fill for the cost of one for
 ## Unresolved
 
 - The full levels' lanes and the demo's could share one drawing pass (the R-T28 follow-up).
-- The 3D scene uses about half of its box at the Lifted camera; Compare is where depth earns its place.
+- In 3D the dock beside the scene is blank paper from about y 430 to 700 before the first admit, and the full levels still draw one plate at the 2D geometry.
+- Scale's field of 64 slots by 160 steps shows a moire (the hatched tops alias at a few px a step); the Along time camera is withdrawn (its labels piled at every angle).
 
 ## The Pass's contract, superseded
 
