@@ -1151,7 +1151,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 #### [ ] W2-T24 · TR3 content · L · sonnet · deps: W2-T20, W2-T23
 - **Goal:** TR3's module and lessons: `--profile`, Perfetto, and nsys graph traces. Written to the authoring rules of REDESIGN.md §2.5 (and `content/README.md`) from the start: an opener chosen by rule 1, guesses that each get a reveal, a Test that closes the file, and engine terms only (`src/copy/terms.ts`). Each new lesson adds its row to the openers table, and `tests/content/openers.test.ts` and `tests/content/vocabulary.test.ts` hold it.
 - **Accept:** The checks of W1-T15 pass, and each lesson has its row in the openers table and passes the openers and vocabulary tests.
-- **Before you write (2026-11-18):** four rules for reading a GPU timeline, each at its lesson, the place of rule 11's form, three pointers and three questions for the owner. See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", (a) to (f).
+- **Before you write (2026-11-18):** four rules for reading a GPU timeline, each at its lesson, the place of rule 11's form, three pointers and four questions for the owner. See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", (a) to (f).
 
 ### TR4: backends as a consumer
 

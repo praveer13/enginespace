@@ -185,4 +185,4 @@ All [estimated]. The catalog's number is 12 h, kept.
 2. **The owner's capture plan** (which GPUs, which workloads, how many traces) is O-5; WORLD.md §3.2 proposes one.
 3. **Graded attribution on phones.** Settled: ASSESSMENT §4.3 counts marking by list on a phone the same, under the same nanosecond rule, and ARCHITECTURE §3.1 now keeps only the Trace Room's timeline viewer laptop-first.
 4. **Two real-engine attribution engines.** SGLang ships a deterministic trace-triage skill with kernel and overlap tables (sglang Z3). It is a reference a learner may compare against, never a grader.
-5. **Three questions of 2026-11-18**, among them the word for the stretch in which the GPU waits for the CPU: see "Before you write".
+5. **Four questions of 2026-11-18**, among them the word for the stretch in which the GPU waits for the CPU: see "Before you write".
