@@ -356,10 +356,6 @@
   gap: var(--es-space-2) var(--es-space-4);
 }
 
-.es-pool__mode {
-  color: var(--es-text-2);
-  font-size: var(--es-size-note);
-}
 
 /* ------------------------------------------------------------------------------------------------ the dock */
 
@@ -603,15 +599,23 @@
   white-space: nowrap;
 }
 
+/* The readout keeps its five counts on one line on a phone, and in a lesson's dock, which is narrower than the game page's. */
 @media (max-width: 63.999rem) {
   .es-strip__value {
     font-size: var(--es-size-base);
   }
 
-  /* The readout keeps to one line on a phone. */
   .es-strip__list {
     column-gap: var(--es-space-2);
   }
+}
+
+.es-frame[data-placement='embed'] .es-strip__value {
+  font-size: var(--es-size-base);
+}
+
+.es-frame[data-placement='embed'] .es-strip__list {
+  column-gap: var(--es-space-2);
 }
 
 /*

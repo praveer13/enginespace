@@ -929,7 +929,7 @@
       },
       {
         "name": "The Ink Focus Rule",
-        "body": "The focus ring is 3 px of text-1 at a 2 px offset, with a paper halo. It is never amber, so focus is not mistaken for now, and it reads against the amber button's own edge.",
+        "body": "The focus ring is 3 px of text-1 at a 2 px offset, with a paper halo. It is never amber, so focus is not mistaken for now, and it reads against the amber button's own edge. Where focus is sent so that reading starts there, not to a control: a verdict or a result takes the ring at a 6 px offset, clear of its words, and a page or a game's whole section takes none.",
         "section": "colors"
       },
       {

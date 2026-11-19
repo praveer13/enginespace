@@ -396,12 +396,12 @@ export function scaleTrack(): FlatModel {
     ...marks,
     rules: marks.rules.filter((rule) => inside(rule.x0)).map((rule) => ({ ...rule, x1: Math.min(rule.x1, end) })),
     inks: marks.inks.filter((ink) => inside(ink.x0)).map((ink) => ({ ...ink, x1: Math.min(ink.x1, end) })),
-    // At this size a slab's word does not fit: the CPU row and the last slot are named, and the axis keeps its numbers.
-    // At this size the contact shadows would only darken the paper between the slabs: the slabs stand on their baked occlusion alone.
+    // At this size a slab's word does not fit: the CPU row and the last slot are named, in the label column's room, and the axis keeps its
+    // numbers. The contact shadows would only darken the paper between the slabs: the slabs stand on their baked occlusion alone.
     boxes: marks.boxes.map((box) => ({ ...box, shadow: false })),
     labels: [
       ...marks.labels.filter((label) => (label.kind === 'tick' && inside(label.at[0])) || label.kind === 'now'),
-      { id: 'scale/row/cpu', at: [PAD.desk + 4, 0, PAD.desk + (layout.rows[0]?.y ?? 0) + 24], text: LANE_WORDS.cpu, kind: 'row', place: 'right' },
+      { id: 'scale/row/cpu', at: [PAD.desk + 4, 0, PAD.desk + (layout.rows[0]?.y ?? 0) + 24], text: LANE_WORDS.cpuShort, kind: 'row', place: 'right' },
       { id: 'scale/row/last', at: [PAD.desk + 4, 0, slotsBottom - 8], text: LANE_WORDS.slot(SCALE_SLOTS - 1), kind: 'row', place: 'right' },
       caption(bounds, `Scale: ${SCALE_SLOTS} slots for ${SCALE_STEPS} steps · synthetic ticks`),
     ],

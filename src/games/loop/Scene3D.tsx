@@ -30,7 +30,7 @@ import './track3d.css'
  *   - The now cursor, a thin amber sheet: the only thing that glows. No environment map, no fog, no bloom, no steam.
  *   - Every word and number is DOM in the label layer, and each row's name and slab's word carries its colour's glyph, as in the 2D view.
  *     The 2D view's legend stands over the canvas. The waiting queue is the dock's: the scene does not draw it a second time.
- *   - Six cameras (track-presets.ts). Side is the 2D diagram alone. Compare and Scale show the model's own runs, not the learner's, and
+ *   - Five cameras (track-presets.ts). Side is the 2D diagram alone. Compare and Scale show the model's own runs, not the learner's, and
  *     say so.
  *   - One authored move: on Compare, the async band starts as continuous batching and its gaps close over 640 ms; under reduced motion it
  *     is drawn at its end.
@@ -119,9 +119,9 @@ export default function Scene3D({ view, full, preset, reference }: Scene3DProps)
   const [box, canvas] = useCanvasSize()
   const camera = preset || DEFAULT_CAMERA
   const narrow = canvas.width < ROOMY
-  // Side is the 2D diagram alone; every other camera of the learner's run sees the reference behind it. Nothing of the reference past now
-  // is drawn while a guess about the run ahead is open.
-  const behind = camera === 'side' ? undefined : reference
+  // Side is the 2D diagram alone, and Top looks down on it alone, at a scale its lanes' names keep clear; Lifted sees the reference behind
+  // the learner's run. Nothing of the reference past now is drawn while a guess about the run ahead is open.
+  const behind = camera === 'side' || camera === 'top' ? undefined : reference
   const ahead = view === undefined || busyGuess(view) === null
   const own = useMemo(
     () => (full ? fullTrack(full, canvas.width) : view ? demoTrack(view, canvas.width, behind, { height: canvas.height, lift: narrow ? LIFT_NARROW_DEG : LIFT_DEG, ahead }) : null),

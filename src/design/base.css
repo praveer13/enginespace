@@ -55,7 +55,8 @@
     outline: none;
   }
 
-  main:focus-visible {
+  /* A page or a game's section takes focus only so that reading starts there: it draws no ring and no halo. */
+  :is(main, section):focus-visible {
     outline: none;
     box-shadow: none;
   }
@@ -243,15 +244,5 @@
   /* Reading measure for prose. */
   .es-prose {
     max-width: 66ch;
-  }
-
-  /* The raised surface and paper, for any element. `.es-steel` keeps its name; it is the flat raised surface now. */
-  .es-steel {
-    background-color: var(--es-surface-1);
-  }
-
-  .es-paper {
-    background-color: var(--es-paper);
-    color: var(--es-paper-ink);
   }
 }

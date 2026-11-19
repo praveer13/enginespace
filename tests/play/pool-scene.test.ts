@@ -40,7 +40,7 @@ const code = (file: string) => read(file).replace(/\/\*[\s\S]*?\*\//g, '').repla
 const view = (state: PoolState): PoolView => poolSession.view(state)
 const night = (id: PoolLevelId): PoolState[] => playThrough(practiceOf(id), house).states
 const NONE = { station: null, chosen: [], pointed: [], pick: null } as const
-/** The threads of a model: every ink but the fan's stem, which stands straight up from its page. */
+/** The threads of a model: every ink that is not straight up (the fan has no stem, and nothing else stands straight up). */
 const threadsOf = <T extends { x0: number; x1: number; z0: number; z1: number }>(inks: readonly T[]): T[] => inks.filter((ink) => ink.x0 !== ink.x1 || ink.z0 !== ink.z1)
 
 /** The pool sizes the levels have: their practice seeds, and the whole manager's three models. */
@@ -210,8 +210,10 @@ describe('a selected page fans into the layers it serves', () => {
     }
     // Its words: how many layers, and how many of them padding, as one label.
     expect(rack.model.labels.find((label) => label.id === 'fan/words')?.text).toBe(`${group.layers} layers + ${group.padLayers} padding`)
-    // A stem joins the page to its top layer.
-    expect(rack.model.inks.some((ink) => ink.x0 === ink.x1 && ink.z0 === ink.z1 && ink.y1 !== undefined && ink.y1 > PAGE_TOP)).toBe(true)
+    // No stem stands beside the fan (it read as a stray thread), and no layer throws a contact shadow on the cells under it (the Flat Paper
+    // Rule): the first layer rises out of the page itself.
+    expect(rack.model.inks.some((ink) => ink.x0 === ink.x1 && ink.z0 === ink.z1 && ink.y1 !== undefined && ink.y1 > PAGE_TOP)).toBe(false)
+    expect(rack.model.boxes.filter((box) => box.id.startsWith('fan/')).every((box) => box.shadow === false)).toBe(true)
   })
 
   test('the move opens the layers: halfway, they are between the page and where they rest, and at its end they are where they rest', () => {

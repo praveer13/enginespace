@@ -177,7 +177,7 @@ describe('the output: a collar on each target bar, as high as what the sampler p
           continue
         }
         expect(collar?.y0 ?? NaN).toBeCloseTo(Math.max(0, (out?.[t] ?? 0) * scale), 6)
-        expect(collar?.form).toBe('hollow')
+        expect(collar?.form).toBe('solid')
       }
     })
     expect(skylineOf(viewOf('chain', 1, chainActions[0]), FLAGS).model.boxes.some((box) => box.id.includes('/out'))).toBe(false)

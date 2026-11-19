@@ -10,9 +10,10 @@
  *     both bars share, in the overlap's green; then the draft's excess in the draft's yellow and the residual (p - q)+ in the residual's
  *     red. Uncut, q is the draft's yellow and p the target's blue. The forms carry the part besides its colour: the draft is hatched, the
  *     residual is a groove, the accepted part and the target are solid.
- *   - What the sampler put out is a collar round the target bar, as high as the output: it settles onto p as the rule is exact, and the
- *     scene's one authored move is that settling (FlatTrack's `from`). A collar stands on its bar: where the output stands over p, a dashed
- *     outline carries the bar up to it, and where a token has no p and nothing went out, there is no collar.
+ *   - What the sampler put out is a solid collar of ink round the target bar, as high as the output: it settles onto p as the rule is
+ *     exact, and the scene's one authored move is that settling (FlatTrack's `from`). A collar stands on its bar: where the output stands
+ *     over p, a riser of dashes on the bar's outline carries the bar up to it, and where a token has no p and nothing went out, there is no
+ *     collar.
  *   - A drawn round is a dot on its q bar's front, at its coin's height: solid where it landed in the accepted part, hollow above it.
  *   - The value scale stands at the front row's right end: a post as tall as the axis, a tick every eight sixty-fourths, its numbers DOM.
  *
@@ -47,8 +48,12 @@ export const PART: Record<'draft' | 'target' | 'accepted' | 'residual', { role: 
   residual: { role: 'probability-residual', form: 'groove' },
 }
 
-/** How far the output's collar stands out from the bar and how tall it is, and how big a drawn round's dot is and how far it stands off the bar, in px. */
-export const RING = { out: 2.5, height: 3 } as const
+/**
+ * How far the output's collar stands out from the bar and how tall it is, how tall each dash of the riser under a collar over its bar is and
+ * how far the dashes stand apart, and how big a drawn round's dot is and how far it stands off the bar, in px [estimated, set by eye at 1440
+ * in the three shots].
+ */
+export const RING = { out: 2.5, height: 4, dash: 4, every: 8 } as const
 const DOT = { size: 7, off: 2.5 } as const
 /** The value scale: where its post stands past the last token, how long a tick is, and how far its ticks stand apart, in sixty-fourths. */
 export const SCALE = { off: 14, tick: 6, step: 8 } as const
@@ -84,9 +89,22 @@ function stack(id: string, x: Column, z0: number, z1: number, parts: readonly { 
   return out
 }
 
-/** The collar that is the sampler's output round a bar: a thin hollow band at the output's height. */
+/**
+ * The collar that is the sampler's output round a bar: a solid band of ink, square to the bar and a little wider on every side, at the
+ * output's height. Solid, so that at every shot it reads as a band seated on the bar's axis and not as a frame hung in the air.
+ */
 function collar(id: string, x: Column, z0: number, z1: number, out: number): FlatBox {
-  return { id, x0: x.x0 - RING.out, x1: x.x1 + RING.out, z0: z0 - RING.out, z1: z1 + RING.out, y0: Math.max(0, out), height: RING.height, role: 'text-1', form: 'hollow', shadow: false }
+  return { id, x0: x.x0 - RING.out, x1: x.x1 + RING.out, z0: z0 - RING.out, z1: z1 + RING.out, y0: Math.max(0, out), height: RING.height, role: 'text-1', form: 'solid', shadow: false }
+}
+
+/**
+ * The riser under a collar that stands over its bar: the bar's own outline carried up from its top to the collar, as dashes, each a hollow
+ * ring on the bar's footprint whose rim keeps its weight at every distance (a line of the scene is one pixel, and the cameras lost it).
+ */
+function riser(id: string, x: Column, z0: number, z1: number, from: number, to: number): FlatBox[] {
+  const out: FlatBox[] = []
+  for (let y = from + 2, k = 0; y + 1 < to; y += RING.every, k++) out.push({ id: `${id}/${k}`, x0: x.x0, x1: x.x1, z0, z1, y0: y, height: Math.min(RING.dash, to - y - 1), role: 'text-2', form: 'hollow', shadow: false })
+  return out
 }
 
 /**
@@ -149,7 +167,10 @@ export function skylineOf(view: VerifierView, flags: SceneFlags, settled = false
       let top = p * scale
       if (out !== null) {
         boxes.push(collar(`r${r}/out${t}`, pc, z0, z1, out * scale))
-        if (out > p) wires.push({ id: `r${r}/over${t}`, x0: pc.x0, x1: pc.x1, z0, z1, y0: p * scale, height: (out - p) * scale, role: 'text-2', form: 'hollow', shadow: false })
+        if (out > p) {
+          wires.push({ id: `r${r}/over${t}`, x0: pc.x0, x1: pc.x1, z0, z1, y0: p * scale, height: (out - p) * scale, role: 'text-2', form: 'hollow', shadow: false })
+          boxes.push(...riser(`r${r}/over${t}`, pc, z0, z1, p * scale, out * scale))
+        }
         top = Math.max(top, out * scale + RING.height)
       }
       // The count stands over the bar, or over its collar where the output stands higher.
@@ -196,9 +217,10 @@ function barsOf(model: FlatModel, project: Projector): { row: number; rect: Rect
   const out: { row: number; rect: Rect }[] = []
   const columns = new Map<string, FlatBox[]>()
   for (const box of model.boxes) {
-    const m = /^r(\d+)\/([pq]\d+)\//.exec(box.id)
+    // A collar and its riser belong to their target bar's outline: a count is not printed on them either.
+    const m = /^r(\d+)\/(?:([pq]\d+)\/|(?:out|over)(\d+))/.exec(box.id)
     if (m === null) continue
-    const key = `${m[1]}/${m[2]}`
+    const key = `${m[1]}/${m[2] ?? `p${m[3]}`}`
     columns.set(key, [...(columns.get(key) ?? []), box])
   }
   for (const [key, parts] of columns) {
