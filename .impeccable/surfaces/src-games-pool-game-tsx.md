@@ -45,8 +45,8 @@ Request 1 admitted: its pages take their cells, and the dock names it once: "Req
 
 ## Unresolved
 
-- At 1440 the 3D scene uses about half of its box at the default camera.
-- The graticule behind the page cells runs at its own pitch; drawing it as the cell grid is open.
+- At level start in a wide box the 3D rack is width-bound: about 560 px of a 780 px box, with bare ground above and below it (measured 2026-11-18). A rack with fewer columns and more rows would fill it, and would part the 3D from the 2D grid's sixteen to a row.
+- A request's threads cross the "8 layers" slip in some state at every place the slip was tried.
 
 ## The Pass's contract, superseded
 

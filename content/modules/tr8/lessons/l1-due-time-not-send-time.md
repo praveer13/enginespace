@@ -51,16 +51,16 @@ kcs: [tr8.latency-from-due, tr8.open-vs-closed]
 
 Here is the log of the guess, for its first eight requests. The client sends a request when it is due or when its last reply has come, whichever is later.
 
-| Request | Due, ms [estimated] | Sent, ms [derived] | Reply, ms [derived] | Timed from the send, ms [derived] | Timed from the due time, ms [derived] |
-|---|---|---|---|---|---|
-| #1 | 0 | 0 | 100 | 100 | 100 |
-| #2 | 500 | 500 | 600 | 100 | 100 |
-| #3 | 1,000 | 1,000 | 3,100 | 2,100 | 2,100 |
-| #4 | 1,500 | 3,100 | 3,200 | 100 | 1,700 |
-| #5 | 2,000 | 3,200 | 3,300 | 100 | 1,300 |
-| #6 | 2,500 | 3,300 | 3,400 | 100 | 900 |
-| #7 | 3,000 | 3,400 | 3,500 | 100 | 500 |
-| #8 | 3,500 | 3,500 | 3,600 | 100 | 100 |
+| Request | Due, ms [estimated] | Sent, ms [derived] | Slip, ms [derived] | Reply, ms [derived] | From the send, ms [derived] | From the due time, ms [derived] |
+|---|---|---|---|---|---|---|
+| #1 | 0 | 0 | 0 | 100 | 100 | 100 |
+| #2 | 500 | 500 | 0 | 600 | 100 | 100 |
+| #3 | 1,000 | 1,000 | 0 | 3,100 | 2,100 | 2,100 |
+| #4 | 1,500 | 3,100 | 1,600 | 3,200 | 100 | 1,700 |
+| #5 | 2,000 | 3,200 | 1,200 | 3,300 | 100 | 1,300 |
+| #6 | 2,500 | 3,300 | 800 | 3,400 | 100 | 900 |
+| #7 | 3,000 | 3,400 | 400 | 3,500 | 100 | 500 |
+| #8 | 3,500 | 3,500 | 0 | 3,600 | 100 | 100 |
 
 :::figure
 src: figures/tr8/l1-slip.svg
@@ -69,7 +69,7 @@ description: The top timeline marks when each of eight requests was due, evenly 
 origin: authored
 :::
 
-Request #3 is the one the freeze caught, and it took 2,100 ms [derived] either way. Requests #4 to #7 are the ones the timer never saw. Each fell due while the client was still blocked on request #3, so each went out late, by 1,600, 1,200, 800 and 400 ms [derived], and then took 100 ms [derived]. The timer measured the 100 ms [derived]. The four waits add up to 4,000 ms [derived] that no latency in the log contains.
+Request #3 is the one the freeze caught, and it took 2,100 ms [derived] either way. Requests #4 to #7 are the ones the timer never saw. Each fell due while the client was still blocked on request #3, so each went out late: read the slip column. Each then took as long as requests #1 and #2 did, and that is all the timer measured. The four slips add up to 4,000 ms [derived] that no latency in the log contains.
 
 Five of the 200 requests [estimated] were touched by the freeze, and the timer saw one of them. With 200 values the p99 is the 198th smallest, which is the third largest [derived]. Timed from the send, the third largest is 100 ms [derived]. Timed from the due time it is 1,300 ms [derived]. The freeze is in the maximum of both views, 2,100 ms [derived], and nowhere in the p99 of the send-timed one.
 ## Open and closed
@@ -99,9 +99,9 @@ There is a third way to hold a request back, and it needs no stall: a cap on how
 
 Where the timer starts decides whether that wait is ever seen. SGLang's request function takes its start time as it begins, after the semaphore, so the wait for a permit is in no latency it reports. {{claim:sglang.bench.timer-inside-request}} vLLM records the wait apart, as `client_queue_time`, and starts the request's own clock at the send. {{claim:vllm.bench.client-queue-time}} The third lesson reads both flag by flag. Here is what a cap does in the course's own world.
 
-Every row uses the same server and the same offered traffic, and the freeze rows add a freeze of 3 s [estimated] in the middle of the run. The open loop sends 1,500 requests [estimated] at half of what the server can finish, which is 8.6 requests a second [measured]. The other harness has the same schedule and a cap of 24 requests in flight [estimated]. Measured by the course's sim on 2026-11-04 at `fd168df`, with the seed `7`.
+Every row uses the same server and the same offered traffic, and the freeze rows add a freeze of 3 s [estimated] in the middle of the run. The open loop sends 1,500 requests [estimated] at half of what the server can finish, which is 8.6 requests a second [synthetic]. The other harness has the same schedule and a cap of 24 requests in flight [estimated]. Printed by the course's model on 2026-11-04 at `fd168df`, with the seed `7`.
 
-| Harness | The run | Timer starts at | p99 time to first token, ms [measured] |
+| Harness | The run | Timer starts at | p99 time to first token, ms [synthetic] |
 |---|---|---|---|
 | Open loop | no freeze | the send, which is the due time | 136 |
 | Open loop | freeze | the send, which is the due time | 2,187 |
@@ -110,9 +110,9 @@ Every row uses the same server and the same offered traffic, and the freeze rows
 | Capped | freeze | the send | 140 |
 | Capped | freeze | the due time | 2,599 |
 
-The capped harness's own timer reported 140 ms [measured] for a run in which the users who fell due during the freeze waited seconds. Timed from the due time it agrees with the open loop, within a fifth [derived]. Even without a freeze, the cap hides a queue: Poisson arrivals come in clumps, a clump that takes the number in flight past the cap waits for permits, and the timer starts only when a permit is granted. That is 124 ms from the send against 920 ms from the due time [measured].
+The capped harness's own timer reported 140 ms [synthetic] for a run in which the users who fell due during the freeze waited seconds. Timed from the due time it agrees with the open loop, within a fifth [derived]. Even without a freeze, the cap hides a queue: Poisson arrivals come in clumps, a clump that takes the number in flight past the cap waits for permits, and the timer starts only when a permit is granted. That is 124 ms from the send against 920 ms from the due time [synthetic].
 
-You can read the slip off a log, if the log keeps both times: subtract due from sent for every row. An open loop that keeps up has a slip of about zero. The course's rule for a receipt allows at most 2 ms [estimated] for 99.9% [estimated] of the rows and at most 20 ms [estimated] for all of them, and a run that falls further behind is coordinated omission. In the table's runs the open loop sent no request late. The capped harness sent 345 of its 1,500 requests [measured] more than 2 ms [estimated] late in the calm run, and 497 [measured] in the freeze run, so it fails the rule in both. A log with no due column cannot be checked at all, and that is the first thing to say about it.
+You can read the slip off a log, if the log keeps both times: subtract due from sent for every row. An open loop that keeps up has a slip of about zero. The course's rule for a receipt allows at most 2 ms [estimated] for 99.9% [estimated] of the rows and at most 20 ms [estimated] for all of them, and a run that falls further behind is coordinated omission. In the table's runs the open loop sent no request late. The capped harness sent 345 of its 1,500 requests [synthetic] more than 2 ms [estimated] late in the calm run, and 497 [synthetic] in the freeze run, so it fails the rule in both. A log with no due column cannot be checked at all, and that is the first thing to say about it.
 
 :::card
 kind: isomorphism

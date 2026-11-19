@@ -145,7 +145,7 @@ The cache is a radix cache by default, and the match is made one token short of 
 
 With more than one GPU, each rank has its own scheduler process, and the schedulers must agree on what to run. Rank zero is the only one that talks to the tokenizer. It receives the messages, publishes each raw message to the other ranks on a ZeroMQ publish socket, and broadcasts how many messages there are over the CPU process group, so that every rank handles the same list in the same turn. {{claim:mini-sglang.rank0-broadcast}} Every rank then schedules, copies and launches, and the GPUs join their partial results with a collective inside the model. Only rank zero sends results on to the detokenizer. {{claim:mini-sglang.rank0-replies}}
 
-A second GPU adds a short list. The path gains the publish to the second rank, a hop over a socket, and the collective between the two GPUs. That is two stages [measured by the course's sim on 2026-11-05 at `905b782`]. The model follows the request through rank one's side of the pair, where the engine runs every rank in parallel, until the collective brings the result back to rank zero, which samples and replies.
+A second GPU adds a short list. The path gains the publish to the second rank, a hop over a socket, and the collective between the two GPUs. That is two stages [synthetic], counted in the course's lifecycle model on 2026-11-05 at `905b782`. The model follows the request through rank one's side of the pair, where the engine runs every rank in parallel, until the collective brings the result back to rank zero, which samples and replies.
 
 One question on where a stage runs, now that the loop and the ranks are read.
 

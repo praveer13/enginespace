@@ -46,6 +46,15 @@
   padding-block: var(--es-space-1);
 }
 
+/* A part with no disc on the drawing (not drawn on this level's screen, or out of view) keeps its number, but not the disc that would say
+   "this is on the drawing". */
+.es-intro__parts .es-parts__item[data-undrawn] .es-parts__n {
+  border-color: transparent;
+  background: none;
+  box-shadow: none;
+  color: var(--es-text-2);
+}
+
 .es-intro__parts .es-parts__sentence {
   font-size: var(--es-size-caption);
   line-height: 1.4;
@@ -53,9 +62,9 @@
 
 /*
  * Next and Skip intro stand under the step's title, before the list, so a long list never runs under them. Where the dock scrolls (the
- * game's page, and a phone's pinned dock), the row stays at the top of the dock's own scroll while the list moves under it, and the list's
- * foot fades into the dock's edge rather than showing a line cut through; in a lesson's Run at a desk, where the dock grows with the page,
- * the row is in the flow.
+ * game's page), the row stays at the top of the dock's own scroll while the list moves under it, and the dock's foot says "More below"
+ * over the readout (frame.css) rather than showing a line cut through; in a lesson, where the dock grows with the page, the row is in the
+ * flow.
  */
 .es-intro__actions {
   display: flex;
@@ -74,24 +83,16 @@
     padding: var(--es-space-1) var(--es-space-4);
     background: var(--es-paper);
   }
-
-  .es-frame[data-placement='page'] .es-frame__dock-main:has(> .es-intro[data-intro='parts']) {
-    mask-image: linear-gradient(to bottom, var(--es-paper) calc(100% - 1.75rem), transparent);
-  }
 }
 
 @media (max-width: 63.999rem) and (min-height: 700px) {
-  .es-frame:is([data-placement='page'], [data-placement='embed']) .es-intro__actions {
+  .es-frame[data-placement='page'] .es-intro__actions {
     position: sticky;
     top: calc(-1 * var(--es-space-2));
     z-index: 1;
     margin-inline: calc(-1 * var(--es-space-4));
     padding: 0 var(--es-space-4);
     background: var(--es-paper);
-  }
-
-  .es-frame[data-placement='embed'] .es-frame__dock-main:has(> .es-intro[data-intro='parts']) {
-    mask-image: linear-gradient(to bottom, var(--es-paper) calc(100% - 1.75rem), transparent);
   }
 }
 
@@ -150,6 +151,18 @@
 
   .es-intro {
     gap: var(--es-space-1);
+  }
+
+  /* On the game's page the pinned dock is the walk's while it names the parts, as the wide dock's box is: the level's own controls come up
+     under it at the next step, so none shows cut through at the dock's foot. */
+  .es-frame[data-placement='page'] .es-intro[data-intro='parts'] ~ * {
+    display: none;
+  }
+
+  .es-frame[data-placement='page'] .es-intro[data-intro='parts'] {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: 0;
   }
 
   /* While a phone's dock walks the parts one at a time, the part's own name heads it, and the strip's title is said to a reader only, so the

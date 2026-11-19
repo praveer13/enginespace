@@ -1,6 +1,6 @@
 /*
  * R-T18: the step loop's 3D time track (src/games/loop/Scene3D.tsx; REDESIGN §2.8, §2.9, P7). The scene draws a flat model of the
- * 2D diagram (track-layout.ts, full/track.ts) through six cameras (track-presets.ts). These tests hold it to the brief:
+ * 2D diagram (track-layout.ts, full/track.ts) through five cameras (track-presets.ts). These tests hold it to the brief:
  *   - the Side camera is the 2D diagram: a tick's x through its projection equals the 2D layout's x within 1 px, on a demo level and on a
  *     full level;
  *   - Lifted is Side tilted: time still runs left to right, and the slots recede in depth;
@@ -81,8 +81,8 @@ function project(camera: Camera, canvas: Canvas, x: number, y: number, z: number
 const preset = (model: FlatModel, canvas: Canvas, id: string) => trackPresets(model, canvas, model.cursors[0]?.x ?? 0).find((p) => p.id === id) as CameraPreset
 
 describe('the cameras', () => {
-  test('six, in the brief\'s words, with Lifted first: C steps through every one and wraps', () => {
-    expect(TRACK_CAMERAS.map((camera) => camera.label)).toEqual(['Lifted', 'Side', 'Along time', 'Top', 'Compare', 'Scale'])
+  test('five, in the brief\'s words, with Lifted first: C steps through every one and wraps', () => {
+    expect(TRACK_CAMERAS.map((camera) => camera.label)).toEqual(['Lifted', 'Side', 'Top', 'Compare', 'Scale'])
     expect(DEFAULT_CAMERA).toBe('lifted')
     let at: string = DEFAULT_CAMERA
     const seen = [at]
@@ -162,7 +162,9 @@ describe('Compare: static, continuous and async, and the gaps close', () => {
     expect(COMPARE_BANDS.map((band) => band.name)).toEqual(['Static batching', 'Continuous batching', 'Async scheduling'])
     for (const band of COMPARE_BANDS) expect(model.labels.some((label) => label.kind === 'band' && label.text === band.name)).toBe(true)
     expect(model.cursors).toHaveLength(3)
-    expect(model.labels.some((label) => label.kind === 'caption' && /synthetic/.test(label.text))).toBe(true)
+    // The unit stands in the label column at the last band's axis, as on every other camera, and no caption falls outside the box.
+    expect(model.labels.filter((label) => label.kind === 'axis').map((label) => label.text)).toEqual(['synthetic ticks'])
+    expect(model.labels.some((label) => label.kind === 'caption')).toBe(false)
   })
 
   test('async scheduling closes the gaps that continuous batching leaves, and the move starts from continuous batching', () => {
@@ -217,7 +219,7 @@ describe('the demo track draws the run', () => {
     const layout = laneLayout(view, trackGeometry(868).geometry)
     const solids = layout.slabs.filter((slab) => slab.use !== 'empty')
     const empty = layout.slabs.filter((slab) => slab.use === 'empty')
-    expect(model.boxes.filter((b) => !b.id.startsWith('chip/'))).toHaveLength(solids.length)
+    expect(model.boxes).toHaveLength(solids.length)
     expect(model.wires).toHaveLength(empty.length + layout.idle.length)
     for (const wire of model.wires) expect(wire.form).toBe('hollow')
     expect(model.cursors).toHaveLength(1)
@@ -225,35 +227,78 @@ describe('the demo track draws the run', () => {
     // Each slab stands on a contact shadow; the plates do not.
     expect(model.boxes.every((b) => b.shadow !== false)).toBe(true)
     expect(model.plates.every((b) => b.shadow === false)).toBe(true)
-    // A waiting request's chip is a pick that admits it.
-    for (const req of view.waiting.slice(0, layout.queue.chips.length)) expect(model.boxes.some((b) => b.pick === `req:${req}`)).toBe(true)
+    // The waiting queue is the dock's, drawn once: the scene draws no chip and takes no pick, so the now word can stand on none.
+    expect(view.waiting.length).toBeGreaterThan(0)
+    expect(model.boxes.some((b) => b.id.includes('chip/') || b.pick !== undefined)).toBe(false)
+    expect(model.labels.some((label) => label.kind === 'chip')).toBe(false)
   })
 
-  test('the reference run stands among the slabs as ink outlines up to now: left out where the learner matched it, standing in a gap where not', () => {
-    // A learner who admitted one request and ran three steps, against a reference that filled every slot: the reference's tokens on the
-    // three slots the learner left empty stand as outlines in the learner's gaps.
+  test('the reference run stands behind the learner\'s on one clock: the same ticks, one now sheet through both, and the gaps show', () => {
+    // A learner who admitted one request and ran three steps, against a reference that filled every slot.
     let lone: LoopState = hang(initState(handLevel([5, 9, 3, 7, 12, 4], { slots: 4, overlap: 'locked' })), 0)
     for (let i = 0; i < 3; i++) lone = step(lone)
     const behind = loopView(lone)
     const full = demoNight([5, 9, 3, 7, 12, 4], 4)
-    const plain = demoTrack(behind, 868)
-    const drawn = demoTrack(behind, 868, full)
-    const extra = drawn.inks.slice(plain.inks.length)
-    // Five segments a token: the four edges of its top and its foot's near edge.
-    expect(extra.length).toBeGreaterThan(0)
-    expect(extra.length % 5).toBe(0)
-    // Nothing past the learner's now is drawn: the reference is cut at the learner's clock.
+    const canvas: Canvas = { width: 868, height: 480 }
+    const drawn = demoTrack(behind, canvas.width, full, { height: canvas.height })
+    const refs = drawn.boxes.filter((b) => b.id.startsWith('ref/'))
+    const own = drawn.boxes.filter((b) => !b.id.startsWith('ref/'))
+    expect(refs.length).toBeGreaterThan(0)
+    // Behind: every mark of the reference is farther than every mark of the learner's run, so the Lifted camera draws it above.
+    expect(Math.max(...refs.map((b) => b.z1))).toBeLessThan(Math.min(...own.map((b) => b.z0)))
+    // On one clock: the reference's ticks are the learner's, at the same x.
+    const ownLayout = laneLayout(behind, trackGeometry(canvas.width).geometry)
+    const step0 = (id: string) => drawn.boxes.find((b) => b.id === id)
+    expect(step0('ref/slot-0/0')?.x0).toBeCloseTo(step0('slot-0/0')?.x0 ?? NaN, 9)
+    expect(ownLayout.axis.ticks.length).toBeGreaterThan(3)
+    // The learner's empty slots are dashed holes where the reference stands solid: three of four slots on its first step.
+    const holes = drawn.wires.filter((w) => /^slot-[1-3]\/0$/.test(w.id))
+    expect(holes).toHaveLength(3)
+    for (const slot of [1, 2, 3]) expect(refs.some((b) => b.id === `ref/slot-${slot}/0`)).toBe(true)
+    // One now sheet runs through both bands, and its word stands in its own row over both, where nothing else is drawn.
+    expect(drawn.cursors).toHaveLength(1)
+    expect(drawn.cursors[0].z0).toBeLessThan(Math.min(...refs.map((b) => b.z0)))
+    expect(drawn.cursors[0].z1).toBeGreaterThan(Math.max(...own.map((b) => b.z0)))
+    const now = drawn.labels.find((label) => label.kind === 'now')
+    const others = drawn.labels.filter((label) => label.kind !== 'now')
+    expect(Math.max(now?.at[2] ?? 0)).toBeLessThan(Math.min(...others.map((label) => label.at[2])))
+    // Each run says which it is.
+    expect(drawn.labels.filter((label) => label.kind === 'band').map((label) => label.text)).toEqual(['Reference run', 'Your run'])
+    // Ahead of now the reference is drawn to the window's end; while a guess about the run ahead is open, it stops at now.
     const nowX = drawn.cursors[0].x
-    for (const ink of extra) expect(Math.max(ink.x0, ink.x1)).toBeLessThanOrEqual(nowX + 1)
-    // An outline's top stands over a token's slab and over the dashed idle box in the same gap, so the two never draw as one line.
-    const tops = extra.filter((ink) => (ink.y ?? 0) > 1)
-    expect(tops.length).toBeGreaterThan(0)
-    for (const ink of tops) expect(ink.y).toBeGreaterThan(Math.max(...drawn.wires.map((wire) => (wire.y0 ?? 0) + wire.height)))
-    expect(drawn.labels.some((label) => label.id === 'reference')).toBe(true)
-    expect(plain.labels.some((label) => label.id === 'reference')).toBe(false)
-    // A learner who matched the reference token for token draws no outline at all: their slabs stand where the outlines would.
-    const same = demoTrack(full, 868, full)
-    expect(same.inks.length).toBe(demoTrack(full, 868).inks.length)
+    expect(Math.max(...refs.map((b) => b.x1))).toBeGreaterThan(nowX + 1)
+    const held = demoTrack(behind, canvas.width, full, { height: canvas.height, ahead: false })
+    for (const b of held.boxes.filter((box) => box.id.startsWith('ref/'))) expect(b.x1).toBeLessThanOrEqual(nowX + 1)
+    // Without a reference (the Side camera) the track is the 2D diagram alone.
+    expect(demoTrack(behind, canvas.width).boxes.some((b) => b.id.startsWith('ref/'))).toBe(false)
+  })
+
+  test('the two runs take the depth the canvas has: a taller box, deeper bands', () => {
+    const full = demoNight([5, 9, 3, 7, 12, 4], 4)
+    const depth = (height: number) => {
+      const model = demoTrack(full, 868, full, { height })
+      return model.bounds.z1 - model.bounds.z0
+    }
+    expect(depth(300)).toBeLessThan(depth(480))
+    expect(depth(480)).toBeLessThan(depth(720))
+    // At the desk's box (about 870 by 480), the plate seen at the lift is about as deep, against the width, as the canvas is.
+    const deep = depth(480) * Math.cos((LIFT_DEG * Math.PI) / 180)
+    expect(deep / 868).toBeGreaterThan(0.45)
+  })
+
+  test('an idle box\'s word and its bubble\'s value stand clear of the dimension line, one either side', () => {
+    const view = demoNight([5, 9, 3, 7, 12, 4], 4)
+    const model = demoTrack(view, 868)
+    const dims = model.labels.filter((label) => label.kind === 'dim')
+    const idles = model.labels.filter((label) => label.kind === 'idle' && !label.id.endsWith('/now'))
+    expect(dims.length).toBeGreaterThan(0)
+    for (const dim of dims) {
+      const word = idles.find((label) => label.id.replace('idle/', '') === dim.id.replace('dim/', ''))
+      expect(dim.place).toBe('above')
+      if (word === undefined) continue
+      expect(word.place).toBe('below')
+      expect(word.at[2]).toBeGreaterThan(dim.at[2])
+    }
   })
 
   test('the now word stands over the lanes at the cursor, where the 2D view puts it, and never under the axis', () => {

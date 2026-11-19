@@ -12,8 +12,12 @@
  *   - The waiting queue, in front, as dashed wires: requests that are not in the pool yet.
  *   - The threads: a request's block table, drawn as one thread from its slot to each page it holds, in the arch depth gives them. A page
  *     two requests share has two threads end on it, which no flat drawing shows.
- *   - The fan: a selected page opens into the layers it serves, one thin slab for each layer of its KV group, the padding layers last and
- *     hollow, stacked above it. The page itself does not move; its layers rise out of it and spread.
+ *   - The fan: a page opens into the layers it serves, one thin slab for each layer of its KV group, the padding layers last and hollow,
+ *     stacked above it. The page itself does not move; its layers rise out of it and spread toward the middle of the rack. The page that
+ *     opens is the one selected, or while a request shows, the page of its block table nearest the front, so the scene opens on both things depth
+ *     shows (a request's threads, and one of its pages standing up into its layers) without a click.
+ *   - The glyphs: each page carries its state's glyph on its top, the 2D diagram's circle, diamond, hexagon, square, triangle and ring, so
+ *     the legend under the scene is the 2D view's own.
  *
  * Every word and number is DOM: the labels are the label layer's, and the page says what is selected (Stage3D.tsx).
  */
@@ -21,6 +25,7 @@ import type { CameraPreset } from '@/scene/camera-rig'
 import type { FlatBox, FlatLabel, FlatModel, FlatSegment } from '@/scene/flat-track'
 import { PX } from '@/scene/flat-track'
 import type { MarkForm } from '@/scene/marks'
+import { SLOT_MARKS, type GlyphShape } from '@/design/code'
 import type { ColorRoleName } from '@/design/tokens'
 import type { PanState, PanView, PoolView } from '@es/play/pool/types'
 import type { PoolPick } from './types'
@@ -33,17 +38,36 @@ import type { PoolPick } from './types'
 export const PAGE = { size: 24, pitch: 30, height: 10 } as const
 /** The well the pages stand in: its height, and how far it reaches past the cells. */
 export const WELL = { height: 4, margin: 5 } as const
-/** The sheet's margin round the drawing. */
+/** The sheet's margin round the drawing, and how far the paper reaches past it on every side. */
 export const MARGIN = 44
+const BLEED = 900
 /** A batch slot's tile, the widest it grows, and the gap between slots; the room under it for the threads' arch to start. */
 export const SLOT = { depth: 26, height: 14, widest: 92, gap: 8 } as const
-export const THREAD_ROOM = 58
-/** A waiting request's wire, and the room between the rack and the queue. */
-export const WAIT = { width: 46, depth: 20, height: 8, gap: 6, shown: 12, room: 26 } as const
-/** The fan: the layers' height, how far the lowest rises over the page, the step between layers, and how far it spreads and stands back. */
-export const FAN = { thick: 3, rise: 12, step: 9, tallest: 130, spread: 9, widest: 90, back: 4, size: 0.86 } as const
-/** A thread: how many straight pieces it is drawn in, and how high it arches over the straight line [estimated]. */
-export const THREAD = { pieces: 8, arch: 12, perPx: 0.18 } as const
+export const THREAD_ROOM = 110
+/** A waiting request's wire, and the room between the rack and the queue. Eight show, so the queue and its "and N more" stay under the rack. */
+export const WAIT = { width: 46, depth: 20, height: 8, gap: 6, shown: 8, room: 36 } as const
+/** The room the region names take at the rack's left, in the diagram's px, which the cameras keep in the frame [estimated]. */
+export const NAME_ROOM = 92
+/** The room a request's name takes over its tile, in the diagram's px, which the cameras keep in the frame [estimated]. */
+const NAME_HEIGHT = 34
+/** How far behind the batch a request's name reaches on the sheet, seen from above [estimated: a line of the label face at the top shot's scale]. */
+const NAME_BACK = 22
+/** A page's glyph, as a share of the page (the 2D cell's 55%, a free page's ring 40%), and how far it lies over the page's top [estimated]. */
+export const GLYPH = { size: 0.55, free: 0.4, lift: 0.5 } as const
+/**
+ * The fan: the layers' height, how far the lowest rises over the page, the step between layers and the most they climb, how far they
+ * spread toward the middle of the rack, and how far they lean toward the front, so the stack stands clear of the batch behind the rack
+ * from every row [estimated, set by eye in the front shot at 1440].
+ */
+export const FAN = { thick: 3, rise: 8, step: 9, tallest: 76, low: 46, perRow: 15, spread: 9, widest: 90, lean: 12, leanMost: 28, size: 0.86 } as const
+/** How far toward the front a fan's top stands from the rack's back edge at the least, so a page's layers stand over the rack, not over the batch. */
+const FAN_FRONT = 2.5 * PAGE.pitch
+/**
+ * A thread: how many straight pieces it is drawn in, and how high it arches over the straight line, by how far it runs toward the front
+ * [estimated]. The arch grows with the run from the batch to the page's row, not with the run across, so a thread never climbs over the
+ * batch's tiles and their names on its way to a page at the far side of the rack.
+ */
+export const THREAD = { pieces: 8, arch: 12, perPx: 0.12 } as const
 /** The rings round a page or a tile: how far they stand off it, and their height. */
 export const RING = { off: 1.5, edge: 1.4, height: 2.2 } as const
 
@@ -60,6 +84,27 @@ export const pageRole: Readonly<Record<PanState, ColorRoleName>> = {
   shared: 'memory-shared',
   adapter: 'memory-adapter',
   evicted: 'memory-evicted',
+}
+
+/** A page's glyph and the role it is drawn in: the 2D cell's, a white glyph on a dark fill and an ink one on a pale fill. */
+const GLYPHS: Readonly<Record<PanState, readonly [GlyphShape, ColorRoleName]>> = {
+  free: [SLOT_MARKS.white.glyph, 'paper-rule'],
+  used: [SLOT_MARKS.blue.glyph, 'cat-blue-ink'],
+  cached: [SLOT_MARKS.yellow.glyph, 'cat-yellow-ink'],
+  shared: [SLOT_MARKS.green.glyph, 'cat-green-ink'],
+  adapter: [SLOT_MARKS.brown.glyph, 'cat-brown-ink'],
+  evicted: [SLOT_MARKS.red.glyph, 'cat-red-ink'],
+}
+
+/** A glyph on a page's top: its centre, its height over the sheet, its width across, its shape and its role. */
+export interface PageGlyph {
+  readonly id: number
+  readonly x: number
+  readonly y: number
+  readonly z: number
+  readonly size: number
+  readonly shape: GlyphShape
+  readonly role: ColorRoleName
 }
 
 /** A request's short name on the drawing and in the lists: request 0 is R1 (words.ts says it too, but the scene may not import the page). */
@@ -125,8 +170,7 @@ export const PAGE_TOP = WELL.height + PAGE.height
 
 /** A thread from one point to another, drawn in `THREAD.pieces` straight pieces that arch between them. */
 export function thread(from: readonly [number, number, number], to: readonly [number, number, number]): FlatSegment[] {
-  const reach = Math.hypot(to[0] - from[0], to[2] - from[2])
-  const lift = THREAD.arch + THREAD.perPx * reach
+  const lift = THREAD.arch + THREAD.perPx * Math.abs(to[2] - from[2])
   const at = (t: number): [number, number, number] => [from[0] + (to[0] - from[0]) * t, from[1] + (to[1] - from[1]) * t + lift * Math.sin(Math.PI * t), from[2] + (to[2] - from[2]) * t]
   return Array.from({ length: THREAD.pieces }, (_, i) => {
     const a = at(i / THREAD.pieces)
@@ -145,7 +189,20 @@ export interface Fan {
 }
 
 /** The layers' step for a stack of `n`, so the tallest fan stays under `FAN.tallest`. */
-const stepFor = (n: number): number => Math.min(FAN.step, (FAN.tallest - FAN.rise) / Math.max(1, n))
+const stepFor = (n: number, tallest: number = FAN.tallest): number => Math.min(FAN.step, (tallest - FAN.rise) / Math.max(1, n))
+/** The most a fan on page `page` climbs: less in the back rows, where the batch stands behind it on the screen [estimated]. */
+const tallestFor = (g: Geometry, page: number): number => Math.min(FAN.tallest, FAN.low + Math.floor(page / g.cols) * FAN.perRow)
+/** How far each layer of a stack of `n` on page `page` leans toward the front of the one under it: further for a page in the back rows. */
+const leanFor = (g: Geometry, page: number, n: number): number =>
+  Math.min(FAN.lean, Math.max(FAN.leanMost, FAN_FRONT - Math.floor(page / g.cols) * PAGE.pitch) / Math.max(1, n))
+
+/** Where the fan's layer `k` of `n` stands across: the first over its page, the rest stepping toward the middle of the rack, so a fan at the
+ * rack's edge never leans over the region names. */
+function fanX(g: Geometry, fan: Fan, k: number, n: number): number {
+  const at = pageBox(g, fan.page)
+  const toward = fan.page % g.cols < g.cols / 2 ? 1 : -1
+  return (at.x0 + at.x1) / 2 + toward * k * Math.min(FAN.spread, FAN.widest / Math.max(1, n))
+}
 
 function fanBoxes(g: Geometry, fan: Fan, open: boolean): FlatBox[] {
   const n = fan.layers + fan.pads
@@ -153,10 +210,9 @@ function fanBoxes(g: Geometry, fan: Fan, open: boolean): FlatBox[] {
   const cx = (at.x0 + at.x1) / 2
   const cz = (at.z0 + at.z1) / 2
   const half = (PAGE.size * FAN.size) / 2
-  const spread = Math.min(FAN.spread, FAN.widest / Math.max(1, n))
   return Array.from({ length: n }, (_, k) => {
-    const x = open ? cx + (k - (n - 1) / 2) * spread : cx
-    const z = open ? cz - k * FAN.back : cz
+    const x = open ? fanX(g, fan, k, n) : cx
+    const z = open ? cz + k * leanFor(g, fan.page, n) : cz
     const padding = k >= fan.layers
     return {
       id: `fan/${k}`,
@@ -164,18 +220,21 @@ function fanBoxes(g: Geometry, fan: Fan, open: boolean): FlatBox[] {
       x1: x + half,
       z0: z - half,
       z1: z + half,
-      y0: open ? PAGE_TOP + FAN.rise + k * stepFor(n) : PAGE_TOP,
+      y0: open ? PAGE_TOP + FAN.rise + k * stepFor(n, tallestFor(g, fan.page)) : PAGE_TOP,
       height: FAN.thick,
       role: padding ? 'cat-white-edge' : pageRole[fan.state],
       form: padding ? 'hollow' : pageForm[fan.state],
       // A pick on a layer is a pick on its page: the same pick again closes the fan.
       pick: `page:${fan.page}`,
+      // The layers stand in the air over their page, one sheet: a contact shadow under each would lay a blurred smear over the cells
+      // beneath (the Flat Paper Rule). The first layer rises out of the page itself, so the fan needs no stem to say whose it is.
+      shadow: false,
     } satisfies FlatBox
   })
 }
 
 /** How tall the fan stands over the sheet, for the cameras. */
-export const fanTop = (n: number): number => PAGE_TOP + FAN.rise + n * stepFor(n) + FAN.thick
+export const fanTop = (n: number, tallest: number = FAN.tallest): number => PAGE_TOP + FAN.rise + n * stepFor(n, tallest) + FAN.thick
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The rack                                                                                                           */
@@ -195,6 +254,8 @@ export interface Rack {
   readonly model: FlatModel
   /** The same drawing with the fan closed onto its page: where the move that opens it starts. */
   readonly closed: FlatModel
+  /** Each page's glyph, which the scene draws flat on its top. */
+  readonly glyphs: readonly PageGlyph[]
   readonly geometry: Geometry
   readonly fan: Fan | null
   /** The request whose threads are drawn: the one selected, else the one hung last. Null when none is on the line. */
@@ -225,16 +286,33 @@ export function fanOf(view: PoolView, pick: PoolPick | null): Fan | null {
   return { page: page.id, layers: group.layers, pads: group.padLayers, state: page.state }
 }
 
+/**
+ * The page that opens while a request shows: of its block table's pages, the one nearest the front of the rack (the first in the table's
+ * order among those), so its layers stand over the rack and not between the threads (Select3D.tsx says it in words).
+ */
+export function headPage(view: PoolView, req: number | null, station: number | null): number | null {
+  if (req === null) return null
+  let head: PanView | null = null
+  for (const page of tableOf(view, req, station).flat()) if (head === null || Math.floor(page.id / view.cols) > Math.floor(head.id / view.cols)) head = page
+  return head?.id ?? null
+}
+
+/** How tall the tallest fan of a level stands, with its words over it: the room the cameras keep over the back row. */
+export const fanRoom = (view: PoolView): number => fanTop(Math.max(1, ...view.stations.map((group) => group.layers + group.padLayers))) + 22
+
 export function rackOf(view: PoolView, { station, chosen, pointed, pick }: RackOptions): Rack {
   const g = geometryOf(view.pans.length, view.cols, view.cap)
   const open = view.ask?.kind === 'evict' ? view.ask.candidates : []
   const shownPick = pick !== null && (pick.kind === 'page' ? view.pans[pick.id] !== undefined : view.running.includes(pick.id)) ? pick : null
   const request = threadedRequest(view, shownPick)
-  const fan = fanOf(view, shownPick)
+  // The page selected fans; while a request shows, the first page of its block table does.
+  const head = headPage(view, request, station)
+  const fan = fanOf(view, shownPick) ?? fanOf(view, head === null ? null : { kind: 'page', id: head })
 
+  // The sheet reaches past the frame on every side, so the cameras, which frame the rack, show paper to the box's edges.
   const plates: FlatBox[] = [
-    { id: 'plate/base', x0: -14, x1: g.width + 14, z0: -14, z1: g.depth + 14, y0: -10, height: 9.4, role: 'surface-2', form: 'solid', shadow: false },
-    { id: 'plate/sheet', x0: 0, x1: g.width, z0: 0, z1: g.depth, y0: -0.6, height: 0.6, role: 'paper', form: 'solid', shadow: false },
+    { id: 'plate/base', x0: -BLEED - 14, x1: g.width + BLEED + 14, z0: -BLEED - 14, z1: g.depth + BLEED + 14, y0: -10, height: 9.4, role: 'surface-2', form: 'solid', shadow: false },
+    { id: 'plate/sheet', x0: -BLEED, x1: g.width + BLEED, z0: -BLEED, z1: g.depth + BLEED, y0: -0.6, height: 0.6, role: 'paper', form: 'solid', shadow: false },
     { id: 'plate/well', x0: g.rack.x0 - WELL.margin, x1: g.rack.x1 + WELL.margin, z0: g.rack.z0 - WELL.margin, z1: g.rack.z1 + WELL.margin, y0: 0, height: WELL.height, role: 'surface-2', form: 'solid', shadow: false },
   ]
 
@@ -244,12 +322,17 @@ export function rackOf(view: PoolView, { station, chosen, pointed, pick }: RackO
     rings.push({ id, x0: box.x0 - off, x1: box.x1 + off, z0: box.z0 - off, z1: box.z1 + off, y0, height, role, form: 'hollow', shadow: false })
   const chosenSet = new Set(chosen)
   // A free page is empty: a dashed wire outline in its cell, as every empty thing is in 3D (REDESIGN §2.8), lighter than any page in use.
+  // Each page carries its state's glyph, as the 2D cell does: on its top, or a free page's ring on the floor of its cell.
   const wires: FlatBox[] = []
+  const glyphs: PageGlyph[] = []
   for (const page of view.pans) {
     const at = pageBox(g, page.id)
     const state: PanState = chosenSet.has(page.id) ? 'evicted' : page.state
     if (state === 'free') wires.push({ id: `page/${page.id}`, ...at, y0: WELL.height, height: PAGE.height, role: 'edge', form: 'hollow' })
     else boxes.push({ id: `page/${page.id}`, ...at, y0: WELL.height, height: PAGE.height, role: pageRole[state], form: pageForm[state], pick: `page:${page.id}` })
+    const [shape, role] = GLYPHS[state]
+    const free = state === 'free'
+    glyphs.push({ id: page.id, x: (at.x0 + at.x1) / 2, z: (at.z0 + at.z1) / 2, y: (free ? WELL.height : PAGE_TOP) + GLYPH.lift, size: PAGE.size * (free ? GLYPH.free : GLYPH.size), shape, role })
   }
   const lamp = (id: number, key: string) => {
     ring(`${key}/${id}/lamp`, pageBox(g, id), 'marker', RING.off, WELL.height, RING.height)
@@ -269,7 +352,8 @@ export function rackOf(view: PoolView, { station, chosen, pointed, pick }: RackO
       continue
     }
     boxes.push({ id: `slot/${at}`, ...box, height: SLOT.height, role: 'paper', form: 'solid', pick: `req:${id}` })
-    labels.push({ id: `chip/${id}`, at: [(box.x0 + box.x1) / 2, SLOT.height, (box.z0 + box.z1) / 2], text: reqName(id), kind: 'chip', place: 'center' })
+    // Its name stands over its far edge, as a tab: its threads leave from the near edge and arch toward the front, so none crosses it.
+    labels.push({ id: `chip/${id}`, at: [(box.x0 + box.x1) / 2, SLOT.height, box.z0], text: reqName(id), kind: 'chip', place: 'above' })
     if (id === request) ring(`ring/slot/${at}`, box, 'marker-edge', RING.off, 0, RING.edge + 0.6)
   }
 
@@ -329,14 +413,10 @@ export function rackOf(view: PoolView, { station, chosen, pointed, pick }: RackO
     { id: 'name/pool', at: [g.rack.x0, WELL.height, g.rack.z1 + 14], text: `KV page pool, ${view.pans.length} pages`, kind: 'band', place: 'right' },
     { id: 'name/queue', at: [left, 0, (g.queue.z0 + g.queue.z1) / 2], text: 'Waiting queue', kind: 'band', place: 'left' },
   )
+  // The fan's words stand over its top layer, clear of the pages, the threads and the region names.
   const fanLabel = (n: number, f: Fan): FlatLabel => {
     const at = pageBox(g, f.page)
-    return { id: 'fan/words', at: [at.x1 + 10, fanTop(n) * 0.55, (at.z0 + at.z1) / 2], text: `${f.layers} layers${f.pads > 0 ? ` + ${f.pads} padding` : ''}`, kind: 'dim', place: 'right' }
-  }
-  const stem = (f: Fan): FlatSegment => {
-    const at = pageBox(g, f.page)
-    const n = f.layers + f.pads
-    return { x0: (at.x0 + at.x1) / 2, x1: (at.x0 + at.x1) / 2, z0: (at.z0 + at.z1) / 2, z1: (at.z0 + at.z1) / 2, y: PAGE_TOP, y1: fanTop(n) - FAN.thick }
+    return { id: 'fan/words', at: [fanX(g, f, n - 1, n), fanTop(n, tallestFor(g, f.page)), (at.z0 + at.z1) / 2 + (n - 1) * leanFor(g, f.page, n)], text: `${f.layers} layers${f.pads > 0 ? ` + ${f.pads} padding` : ''}`, kind: 'dim', place: 'above' }
   }
 
   const base: Omit<FlatModel, 'boxes' | 'inks' | 'labels'> = {
@@ -349,9 +429,9 @@ export function rackOf(view: PoolView, { station, chosen, pointed, pick }: RackO
   const fanOpen = fan === null ? [] : fanBoxes(g, fan, true)
   const fanShut = fan === null ? [] : fanBoxes(g, fan, false)
   const common = { ...base, boxes: [...boxes, ...rings], inks, labels }
-  const model: FlatModel = fan === null ? common : { ...common, boxes: [...common.boxes, ...fanOpen], inks: [...inks, stem(fan)], labels: [...labels, fanLabel(fan.layers + fan.pads, fan)] }
+  const model: FlatModel = fan === null ? common : { ...common, boxes: [...common.boxes, ...fanOpen], inks, labels: [...labels, fanLabel(fan.layers + fan.pads, fan)] }
   const closed: FlatModel = fan === null ? common : { ...common, boxes: [...common.boxes, ...fanShut] }
-  return { model, closed, geometry: g, fan, request, threaded, moment: JSON.stringify([fan?.page ?? null, fan?.layers ?? null, fan?.pads ?? null, station]) }
+  return { model, closed, glyphs, geometry: g, fan, request, threaded, moment: JSON.stringify([fan?.page ?? null, fan?.layers ?? null, fan?.pads ?? null, station, shownPick?.kind ?? null]) }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -364,27 +444,92 @@ export interface Canvas {
 }
 
 const FOV = 30
-const tan = (deg: number) => Math.tan((deg * Math.PI) / 180)
+/**
+ * How far each shot looks back from straight down, in degrees, and the share of the box the drawing leaves free round it [estimated, set by
+ * eye at 1440]. The front shot takes the tilt in its range that fills the box best: a wide box and a shallow pool look further across, a
+ * deep pool or a tall box further down.
+ */
+const TILT = { front: [52, 48, 44, 40], top: 8 } as const
+const MARGIN_SHARE = 1.06
 
-/** A shot from `deg` back from straight down, far enough to hold a sheet `w` by `d` and `up` high in a canvas of this aspect. */
-function shot(w: number, d: number, up: number, canvas: Canvas, deg: number, margin: number): Pick<CameraPreset, 'position' | 'target' | 'fov'> {
+type Point = readonly [number, number, number]
+
+/**
+ * A shot from `deg` back from straight down that holds every point, in world units, centred in a canvas of this aspect and filling it
+ * but for the margin: the camera's distance and aim are found by a few rounds of projecting the points and correcting both.
+ */
+export function fit(points: readonly Point[], canvas: Canvas, deg: number, margin = MARGIN_SHARE): Pick<CameraPreset, 'position' | 'target' | 'fov'> & { fill: number } {
   const aspect = canvas.width / Math.max(1, canvas.height)
-  const rad = (deg * Math.PI) / 180
-  const v = tan(FOV / 2)
-  // Seen tilted, the sheet's depth is foreshortened and what stands on it adds its height.
-  const dist = Math.max(w / 2 / (v * aspect), (d * Math.cos(rad) + up * Math.sin(rad)) / 2 / v) * margin
-  const target: [number, number, number] = [w / 2, up * 0.12, d / 2]
-  return { position: [target[0], dist * Math.cos(rad), target[2] + dist * Math.sin(rad)], target, fov: FOV }
+  const v = Math.tan((FOV * Math.PI) / 360)
+  const c = Math.cos((deg * Math.PI) / 180)
+  const s = Math.sin((deg * Math.PI) / 180)
+  // The view looks along (0, -c, -s); right is +x and up on the screen is (0, s, -c).
+  const n = points.length
+  let target: [number, number, number] = [points.reduce((a, p) => a + p[0], 0) / n, 0, points.reduce((a, p) => a + p[2], 0) / n]
+  let dist = 10
+  let fill = 0
+  for (let round = 0; round < 24; round++) {
+    const eye = [target[0], target[1] + c * dist, target[2] + s * dist]
+    let x0 = Infinity
+    let x1 = -Infinity
+    let y0 = Infinity
+    let y1 = -Infinity
+    for (const p of points) {
+      const dx = p[0] - eye[0]
+      const dy = p[1] - eye[1]
+      const dz = p[2] - eye[2]
+      const depth = -c * dy - s * dz
+      const sx = dx / (depth * v * aspect)
+      const sy = (s * dy - c * dz) / (depth * v)
+      x0 = Math.min(x0, sx)
+      x1 = Math.max(x1, sx)
+      y0 = Math.min(y0, sy)
+      y1 = Math.max(y1, sy)
+    }
+    const across = ((x0 + x1) / 2) * dist * v * aspect
+    const up = ((y0 + y1) / 2) * dist * v
+    target = [target[0] + across, target[1] + s * up, target[2] - c * up]
+    fill = ((x1 - x0) / 2) * ((y1 - y0) / 2)
+    dist *= Math.max((x1 - x0) / 2, (y1 - y0) / 2) * margin
+  }
+  return { position: [target[0], target[1] + c * dist, target[2] + s * dist], target, fov: FOV, fill }
 }
 
-/** The three cameras for a drawing in a canvas this size: Front of the page pool, One KV group (the same shot, with its group), From above. */
-export function presetsFor(bounds: FlatModel['bounds'], canvas: Canvas, tallest = PAGE_TOP + 60): CameraPreset[] {
-  const w = (bounds.x1 - bounds.x0) / PX
-  const d = (bounds.z1 - bounds.z0) / PX
-  const up = tallest / PX
-  const narrow = canvas.width < 560
-  const front = shot(w, d, up, canvas, narrow ? 38 : 46, narrow ? 1.2 : 1.3)
-  const above = shot(w, d, up * 0.4, canvas, 8, 1.14)
+/** What the cameras hold, in world units: the batch, the rack with the region names at its left, the queue, and the tallest fan over the back row. */
+export function framePoints(g: Geometry, fanHeight: number): Point[] {
+  const x0 = (g.rack.x0 - NAME_ROOM) / PX
+  const x1 = g.rack.x1 / PX
+  // Behind the batch, the requests' names over their tiles: from above they stand on the sheet behind the tiles, not over them.
+  const back = (g.slots.z0 - NAME_BACK) / PX
+  const front = (g.queue.z1 + 4) / PX
+  const row = (g.rack.z0 + PAGE.pitch / 2 + FAN.leanMost) / PX
+  const up = fanHeight / PX
+  return [
+    [x0, 0, back],
+    [x1, 0, back],
+    // The requests' names stand over the tiles' far edge, a line of type high [estimated].
+    [x0, (SLOT.height + NAME_HEIGHT) / PX, back],
+    [x1, (SLOT.height + NAME_HEIGHT) / PX, back],
+    [x0, 0, front],
+    [x1, 0, front],
+    [g.rack.x0 / PX, up, row],
+    [x1, up, row],
+  ]
+}
+
+/**
+ * The three cameras for a drawing in a canvas this size: Front of the page pool, One KV group (the same shot, with its group), From above.
+ * Each frames the rack, not the sheet, with room over the back row for the tallest fan the level has, so a fan opens inside the frame and
+ * the camera never moves while the learner plays.
+ */
+export function presetsFor(g: Geometry, canvas: Canvas, fanHeight: number): CameraPreset[] {
+  const points = framePoints(g, fanHeight)
+  // The most tilted shot that fills the box within a few hundredths of the best one does: depth reads more the further across it looks.
+  const shots = TILT.front.map((deg) => fit(points, canvas, deg))
+  const best = Math.max(...shots.map((candidate) => candidate.fill))
+  const shotOf = ({ position, target, fov }: ReturnType<typeof fit>) => ({ position, target, fov })
+  const front = shotOf(shots.find((candidate) => candidate.fill >= best - 0.04) as (typeof shots)[number])
+  const above = shotOf(fit(points, canvas, TILT.top))
   return [
     { id: 'front', label: 'front', shot: 'establish', projection: 'perspective', ...front },
     { id: 'station', label: 'station', shot: 'establish', projection: 'perspective', ...front },

@@ -13,7 +13,7 @@ import type { LedgerEvent } from '@es/ledger/types'
 import type { MapLesson } from '@es/schema/compiled'
 import { CONFIDENCE_NAMES } from '@es/play/items/types'
 import { attemptWord, indexLessons, lessonName, placeEvents, testState, type Bookmark, type LevelNamer } from '@/progress/next'
-import { unitName } from './slip'
+import { one, unitName } from './slip'
 
 /** The events that belong to one lesson, by the way on's rule (`placeEvents`: a question goes to the lesson it was answered in). */
 export function lessonEvents(events: readonly LedgerEvent[], lessons: readonly MapLesson[], id: string, bookmark: Bookmark | null = null): LedgerEvent[] {
@@ -23,9 +23,6 @@ export function lessonEvents(events: readonly LedgerEvent[], lessons: readonly M
 
 const byTime = (a: LedgerEvent, b: LedgerEvent): number => (a.at < b.at ? -1 : a.at > b.at ? 1 : 0)
 const figure = (value: number): string => value.toLocaleString('en-US', { maximumFractionDigits: 2 })
-
-/** A unit's name for one of it: "1 stage", "1 boundary"; a unit that is not a plural noun ("µs", "ms") is left as it is. */
-const one = (name: string): string => (/[a-z]{2,}ies$/.test(name) ? `${name.slice(0, -3)}y` : /[a-z]{2,}[^su]s$/.test(name) ? name.slice(0, -1) : name)
 
 /** A guess's value in words: "300 pages", "120 to 200 µs", or the option's id. */
 function valueWords(value: unknown, unit: string | undefined): string {
@@ -116,7 +113,7 @@ export function lessonRecord(row: MapLesson, lessons: readonly MapLesson[], even
   for (const guess of guessLines(own)) lines.push(guess.record)
   for (const run of runLines(own, [...row.run, ...row.inline, ...row.test.graded], names)) lines.push(run.text)
   const count = tally(row, own)
-  if (row.test.questions.length > 0 && count.tried) lines.push(`questions ${count.right} of ${count.of} ${count.passed ? 'passed' : 'not yet'}`)
+  if (row.test.questions.length > 0 && count.tried) lines.push(`questions ${tallyWords(count)}`)
   if (lines.length === 1) lines.push('nothing yet: a run, a guess and the questions each add a line')
   return lines
 }

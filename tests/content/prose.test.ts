@@ -51,9 +51,9 @@ describe('the nodes', () => {
     ])
   })
 
-  test('all four tags are chips', () => {
-    const { body } = prose('[measured] [derived] [estimated] [unverified]')
-    expect(body[0]).toMatchObject({ children: ['measured', 'derived', 'estimated', 'unverified'].flatMap((tag, i) => (i === 0 ? [{ type: 'tag', tag }] : [text(' '), { type: 'tag', tag }])) })
+  test('all five tags are chips', () => {
+    const { body } = prose('[measured] [derived] [estimated] [synthetic] [unverified]')
+    expect(body[0]).toMatchObject({ children: ['measured', 'derived', 'estimated', 'synthetic', 'unverified'].flatMap((tag, i) => (i === 0 ? [{ type: 'tag', tag }] : [text(' '), { type: 'tag', tag }])) })
   })
 
   test('a kernelspace KC reads as a ref too', () => {
@@ -270,6 +270,150 @@ describe('lines', () => {
   })
 })
 
+describe("the number gate: a model's number is [synthetic], never [measured]", () => {
+  test('a sentence that names the course\'s model as the source and tags a number [measured] is refused', () => {
+    expect(codes("The course's sim printed 957 µs [measured] on that card.")).toEqual(['1 model-number-measured'])
+    expect(codes("Printed by the course's model on 2026-11-08, the step takes 957 µs [measured].")).toEqual(['1 model-number-measured'])
+  })
+
+  test('the same sentence is fine as [synthetic], and a source that was read is still [measured]', () => {
+    expect(codes("The course's sim printed 957 µs [synthetic] on that card.")).toEqual([])
+    expect(codes('The scheduler is 92 lines [measured] at `bb823b3`, read on 2026-11-05.')).toEqual([])
+  })
+
+  test('a table whose caption says the model printed it cannot tag a column [measured]', () => {
+    const table = '| Step | Time, µs [measured] |\n|---|---|\n| one | 957 |'
+    expect(codes(`Printed by the course's model on 2026-11-08 at \`b5fb81a\`.\n\n${table}`).map((code) => code.split(' ')[1])).toEqual(['model-number-measured'])
+    expect(codes(`Printed by the course's model on 2026-11-08 at \`b5fb81a\`.\n\n${table.replace('measured', 'synthetic')}`)).toEqual([])
+    expect(codes(`The lines of each file at a pin.\n\n${table}`)).toEqual([])
+  })
+
+  test('the forms the lessons use for the model are read as the model: its sim, step loop, port, model and own world', () => {
+    for (const sentence of [
+      'The step loop gives 860 µs [measured] for that grammar.',
+      'The step loop measures 860 µs [measured] for that grammar.',
+      'The sim counts 12 bubbles [measured].',
+      'The port printed 5 rows [measured].',
+      'The model counts it as 29 replays and 28 attention launches [measured].',
+      'The model prices a page at 16 tokens [measured].',
+      "Here is the effect in the course's own world, which holds 1,159 requests [measured].",
+      "That is two stages [measured], counted in the course's lifecycle model on 2026-11-05.",
+      'Here the course’s sim prints 860 µs [measured], with a curly apostrophe.',
+      'The step loop reports 860 µs [measured] for that grammar.',
+      'The simulation gives 860 µs [measured] for that grammar.',
+    ]) {
+      expect([sentence, codes(sentence)]).toEqual([sentence, ['1 model-number-measured']])
+    }
+  })
+
+  test('the gate does not refuse a source that was read, a quoted run or a count of a fixture', () => {
+    for (const sentence of [
+      'The scheduler is 92 lines [measured] at `bb823b3`, read on 2026-11-05.',
+      "The README's second example shows the size of the effect, in a run with one pause of 1.4 s [measured] on the server.",
+      'The S-LoRA paper reports up to 4 times the throughput [measured].',
+      'It has been held to a second port of the same Python, written separately, on 6,400 [measured] drawn cases for each runner.',
+      'The model has 28 layers [measured] in its config.',
+    ]) {
+      expect([sentence, codes(sentence)]).toEqual([sentence, []])
+    }
+  })
+
+  test("the model of a sentence is the course's only where the words say so, and a quote of the model's table is refused with both ways out", () => {
+    // "The model" as the LLM, after "of", and a network port that gives a number, are not the course's model.
+    expect(codes('The tokenizer of the model counts 32,000 entries [measured] in its config at the pin.')).toEqual([])
+    expect(codes('The README says the port gives 8000 by default [measured].')).toEqual([])
+    // The price of letting a network port give a number: write 'the course's port'.
+    expect(codes('The port gave 86 graphs [measured] on that seed.')).toEqual([])
+    // A source's number that equals a cell of the model's table, in the same `##` part, is still refused: the gate reads words and
+    // cannot tell a source's 957 from the model's. The message says how to keep it [measured].
+    const part = [
+      "The table is one steady step. Printed by the course's model on 2026-11-08 at `b5fb81a`.",
+      '',
+      '| The phase | 70B on H100, µs [synthetic] | Batch [synthetic] |',
+      '|---|---|---|',
+      '| The CPU work | 957 | 24 |',
+      '',
+    ].join('\n')
+    for (const sentence of ['The pinned scheduler file is 957 lines [measured] at `4ba787e`.', 'vLLM caps the batch at 24 requests [measured] at `4ba787e`.']) {
+      const out = prose(`${part}\n${sentence}`).out
+      expect([sentence, out.map((d) => `${d.line} ${d.code}`)]).toEqual([sentence, ['7 model-number-measured']])
+      expect(out[0].message).toContain("or, if the number is a source's own and only equals the table's, name the source in another `##` part")
+    }
+    // The caption's own [measured] sentence gets its way out too.
+    const caption = prose("The server finishes 8.6 requests a second [measured]. Printed by the course's model on 2026-11-04 at `fd168df`.\n\n| Load [estimated] | p50, ms [synthetic] |\n|---|---|\n| 0.5 | 63 |").out
+    expect(caption.map((d) => d.code)).toEqual(['model-number-measured'])
+    expect(caption[0].message).toContain("or, if the number is a source's own, name the source in another `##` part")
+  })
+
+  test("a caption that names the model makes its own sentences, its table, a later table of the part and a sentence quoting the table the model's", () => {
+    const caption = "Every row uses the same server, which is 8.6 requests a second [measured]. Printed by the course's model on 2026-11-04 at `fd168df`."
+    expect(codes(`${caption}\n\n| Load [estimated] | p50, ms [synthetic] |\n|---|---|\n| 0.5 | 63 |`)).toEqual(['1 model-number-measured'])
+    const part = [
+      '## The same rule on two cards',
+      '',
+      "The table is one steady step. Printed by the course's model on 2026-11-08 at `b5fb81a`.",
+      '',
+      '| The phase | 70B on H100, µs [synthetic] | Small model, µs [synthetic] |',
+      '|---|---|---|',
+      '| The CPU work | 957 | 764 |',
+      '',
+      "Two things stand out. The GPU's idle time before a step is its CPU's work, row for row: 957 µs and 764 µs [measured].",
+      '',
+      'The same runs, read another way.',
+      '',
+      '| Load [estimated] | In flight, L [measured] |',
+      '|---|---|',
+      '| 0.5 | 16.7 |',
+    ].join('\n')
+    expect(codes(part)).toEqual(['9 model-number-measured', '13 model-number-measured'])
+    // A cell of the model's own table tagged [measured] is the table's error.
+    expect(codes(part.replace('| The CPU work | 957 | 764 |', '| The CPU work | 957 [measured] | 764 |')).map((code) => code.split(' ')[1])).toEqual(['model-number-measured', 'model-number-measured', 'model-number-measured'])
+    // A sentence of the part that names its own source and quotes none of the table's numbers stays [measured].
+    expect(codes(part.split('\n').slice(0, 7).join('\n') + '\n\nThe pinned file is 8,090 lines [measured].')).toEqual([])
+  })
+
+  test('a ## heading ends the part: a table under a caption of its own that does not name the model is read by its own words', () => {
+    const md = [
+      "Printed by the course's model on 2026-11-04 at `fd168df`.",
+      '',
+      '| Load [estimated] | Met, requests/s [synthetic] |',
+      '|---|---|',
+      '| 0.5 | 8.05 |',
+      '',
+      "## Little's law",
+      '',
+      'The lines of each file at a pin, 8.05 of them [measured].',
+      '',
+      '| File | Lines [measured] |',
+      '|---|---|',
+      '| core.py | 1,240 |',
+    ].join('\n')
+    expect(codes(md)).toEqual([])
+  })
+
+  test("each of the check's mutations of the lessons is refused, as the lesson stands with it", () => {
+    const mutations: [string, string][] = [
+      // 1. tr2 lesson 1: a header under its "Printed by the course's model" caption.
+      ['tr2.l1 header', "The table is one steady step. Printed by the course's model on 2026-11-08 at `b5fb81a`.\n\n| The step's phase | 70B on H100, µs [measured] | Small model, µs [synthetic] |\n|---|---|---|\n| `schedule` | 883 | 510 |"],
+      // 2. tr5a lesson 1: a sentence that names the course's model.
+      ['tr5a.l1 S', "The course's model keeps `S` of 2 [measured]: the newest page holds the state being updated."],
+      // 3. tr1 lesson 3: the lifecycle model's count.
+      ['tr1.l3 stages', "That is two stages [measured], counted in the course's lifecycle model on 2026-11-05 at `905b782`."],
+      // 4. tr2 lesson 1: the two idle times, after the model's table in the same part.
+      ['tr2.l1 idle', "Printed by the course's model on 2026-11-08 at `b5fb81a`.\n\n| The step's phase | 70B on H100, µs [synthetic] | Small model, µs [synthetic] |\n|---|---|---|\n| The GPU's idle time before the step | 957 | 764 |\n\nTwo things stand out. The GPU's idle time before a step is its CPU's work, row for row: 957 µs and 764 µs [measured]."],
+      // 5. tr8 lesson 1: a rate in the caption of the model's table.
+      ['tr8.l1 rate', "The open loop sends 1,500 requests [estimated] at half of what the server can finish, which is 8.6 requests a second [measured]. Printed by the course's model on 2026-11-04 at `fd168df`, with the seed `7`.\n\n| Harness | p99, ms [synthetic] |\n|---|---|\n| open | 140 |"],
+      // 6. tr6 lesson 5: the step loop's gap.
+      ['tr6.l5 gap', 'The overlapped gap is then 860 µs [derived], and the step loop measures 860 µs [measured], against 160 µs [measured] for the same grammar without drafts.'],
+      // 7. tr2 lesson 5: the model's count of the piecewise launch.
+      ['tr2.l5 count', 'The model counts it as 29 replays and 28 attention launches [measured], which is the second row of the figure above.'],
+      // 8. tr8 lesson 4: the second table of the goodput runs, whose caption names the model.
+      ['tr8.l4 law', "The same four runs of the course's model, read through the law, over their arrival windows and counting a request from its send.\n\n| Load, times capacity [estimated] | In flight, L [measured] | Throughput times mean latency [synthetic] | Residual [synthetic] |\n|---|---|---|---|\n| 0.5 | 16.7 | 16.4 | 1.8% |"],
+    ]
+    for (const [name, md] of mutations) expect([name, codes(md).map((code) => code.split(' ')[1])]).toEqual([name, ['model-number-measured']])
+  })
+})
+
 describe('the number gate: which digit runs need a tag', () => {
   /** A sentence and the numbers in it that the gate finds. */
   const table: [string, string[]][] = [
@@ -339,7 +483,7 @@ describe('the number gate: which digit runs need a tag', () => {
   test('the message names the numbers and the way out', () => {
     const [finding] = untaggedNumbers('It takes 300 µs and 12 steps.')
     expect(numberMessage(finding)).toBe(
-      'untagged numbers "300", "12" in "It takes 300 µs and 12 steps.": tag the sentence [measured], [derived], [estimated] or [unverified], replace the number with a {{claim:id}}, or put an identifier in backticks',
+      'untagged numbers "300", "12" in "It takes 300 µs and 12 steps.": tag the sentence [measured], [derived], [estimated], [synthetic] or [unverified], replace the number with a {{claim:id}}, or put an identifier in backticks',
     )
   })
 

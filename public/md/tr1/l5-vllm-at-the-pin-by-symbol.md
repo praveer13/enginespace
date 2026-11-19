@@ -38,7 +38,7 @@ The five add up to 12,779 lines [derived]. The lesson reads named symbols and no
 
 ## The path, by symbol
 
-Here is the whole path of one streamed request at one rank. The first column is the stage's id in the lifecycle model, and the last is the pinned line the stage was read from. The post's path had twenty-one stages [measured by the course's sim on 2026-11-05 at `905b782`], and this one has twenty-two. The difference is the queue that holds a launched batch.
+Here is the whole path of one streamed request at one rank. The first column is the stage's id in the lifecycle model, and the last is the pinned line the stage was read from. The post's path had twenty-one stages [synthetic], counted in the course's lifecycle model on 2026-11-05 at `905b782`, and this one has twenty-two. The difference is the queue that holds a launched batch.
 
 | Stage | What happens | Mechanism | Read it at |
 |---|---|---|---|

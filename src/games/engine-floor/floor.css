@@ -241,10 +241,17 @@
   position: absolute;
   z-index: 2;
   left: 2px;
-  translate: 0 -50%;
+  translate: 0 -35%;
   padding-right: 2px;
   background: var(--es-paper);
   font-size: var(--es-size-micro);
+  line-height: 1;
+}
+
+/* The word and the row numbers over and under it are each one line of their own size, so "now" stands clear of the current row's number
+   and of the next one's, at the desk's fitted rows too. */
+.es-lanes__now-word * {
+  line-height: 1;
 }
 
 .es-lanes__start-label {
@@ -280,7 +287,6 @@
   display: none;
   flex-direction: column;
   gap: var(--es-space-1);
-  width: min(18rem, calc(100% - 2rem));
   color: var(--es-text-2);
   font-family: var(--es-font-label);
   font-size: var(--es-size-caption);
@@ -310,11 +316,17 @@
   line-height: 1.2;
 }
 
-/* The hop: an arrow from one column to the other, its mechanism as a mark and a word over it. */
-/* In a phone's box the example is short, so it stands over the pinned dock with the request. */
+/* In a phone's box the example is short, so it stands over the pinned dock with the request. At a desk the box is as tall as the parts
+   list beside it, and the example runs down it as the path will: a hop to another process, then a hop inside that process's column. */
 .es-lanes[data-size='phone'] .es-lanes__spec-cols {
   height: 3.5rem;
 }
+
+.es-lanes[data-size='desk'] .es-lanes__spec-cols {
+  height: min(20rem, 46svh);
+}
+
+/* The hop: an arrow from one column to the other, its mechanism as a mark and a word over it. */
 
 .es-lanes__spec-hop {
   position: absolute;
@@ -343,6 +355,47 @@
   clip-path: polygon(0 0, 100% 50%, 0 100%);
 }
 
+.es-lanes[data-size='desk'] .es-lanes__spec-hop {
+  top: 32%;
+}
+
+/* The hop inside one column: down the second column from where the first hop lands, its mark and word at its left. */
+.es-lanes__spec-down {
+  position: absolute;
+  top: calc(32% + 4px);
+  left: calc(75% - 1px);
+  display: none;
+  height: 40%;
+  border-left: 2px solid var(--es-paper-ink);
+}
+
+.es-lanes[data-size='desk'] .es-lanes__spec-down {
+  display: block;
+}
+
+.es-lanes__spec-down::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: -6px;
+  width: 10px;
+  height: 8px;
+  background: var(--es-paper-ink);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+}
+
+.es-lanes__spec-down-word {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--es-paper-ink);
+  font-weight: 700;
+  translate: 0 -50%;
+}
+
 .es-lanes__rows {
   position: absolute;
   inset: 0;
@@ -369,6 +422,7 @@
   translate: 0 -50%;
   color: var(--es-text-3);
   font-size: var(--es-size-stamp);
+  line-height: 1;
 }
 
 .es-lanes__tag {
@@ -509,6 +563,11 @@
 .es-floor-link:focus-visible {
   outline: 3px solid var(--es-text-1);
   outline-offset: 2px;
+}
+
+/* A tile's ring is drawn inside its edge: the list's box, which scrolls, would cut a ring outside it down to its corners. */
+.es-floor-tile:focus-visible {
+  outline-offset: -3px;
 }
 
 .es-floor-facts {
@@ -1026,10 +1085,6 @@
   flex: none;
 }
 
-.es-floor-mode {
-  color: var(--es-text-2);
-  font-size: var(--es-size-note);
-}
 
 /*
  * On a phone the dock is pinned to the foot and holds the decision over one readout line (REDESIGN §3.6): the filter chips in one row that
@@ -1246,6 +1301,30 @@
   [data-floor-lanes] .es-lanes__scroll {
     overscroll-behavior: auto;
   }
+
+  /* At the result the drawing takes the whole path's height, so the path laid and the verdict under it are read together, and only the
+     page scrolls (the finish review: two rows of the path on screen with the result). */
+  .es-frame:is([data-placement='page'], [data-placement='embed'])[data-game='engine-floor'][data-phase='result'] .es-frame__view {
+    max-height: none;
+  }
+
+  .es-frame .es-lanes[data-floor-lanes][data-done] {
+    height: auto;
+  }
+
+  .es-frame .es-lanes[data-floor-lanes][data-done] .es-lanes__scroll {
+    flex: none;
+  }
+
+  /* The three tiles in the pinned dock stop on a tile's edge, so a scroll never leaves half a tile at the list's top. */
+  .es-floor-tiles {
+    scroll-snap-type: y mandatory;
+    scroll-padding-block: 2px;
+  }
+
+  .es-floor-tiles__item {
+    scroll-snap-align: start;
+  }
 }
 
 
@@ -1263,7 +1342,8 @@
     overflow: visible;
   }
 
-  .es-frame[data-game='engine-floor'][data-phase='play'] > .es-frame__body > .es-frame__dock > .es-frame__readout {
+  /* Not while the first run's parts are read with the page: the list ends whole above the readout (the frame's rule, frame.css). */
+  .es-frame[data-game='engine-floor'][data-phase='play']:not([data-intro]) > .es-frame__body > .es-frame__dock > .es-frame__readout {
     position: sticky;
     bottom: 0;
     z-index: 2;
@@ -1331,10 +1411,37 @@
   }
 }
 
-/* On a phone the readout's four counts are cells, each parted from the next by a rule, so no count runs into the next one's word. */
+/* The list is read with the page, so the field and the processes to filter by stand at the screen's top over it, as the drawing does beside
+   it: no scroll of the page cuts them (the finish review: the field and the tabs cut at the top). Under 600 px of height nothing is sticky. */
+@media (min-width: 64rem) and (min-height: 600px) {
+  /* A stage the keyboard reaches is scrolled clear of the filters pinned at the screen's top (WCAG 2.4.11). The filters stand 149 px tall
+     (two rows of process chips) or 189 px (three) on every level and at every width from 1024 to 1920 px [measured 2026-11-19 at b2435ba],
+     so the stage's scroll margin of 12.5rem (200 px) clears the taller. The margin is the stage's, not the page's, so a filter control that
+     takes focus does not move the page. */
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-tile {
+    scroll-margin-top: 12.5rem;
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-filters {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin-inline: calc(var(--es-space-4) * -1);
+    padding: var(--es-space-2) var(--es-space-4);
+    border-bottom: 1px solid var(--es-paper-rule);
+    background: var(--es-paper);
+  }
+}
+
+/* On a phone the readout's four counts are cells, each parted from the next by a rule, so no count runs into the next one's word; where a
+   delta beside a number leaves its word no room, the word goes under the number rather than into the next cell. */
 @media (max-width: 63.999rem) {
   .es-floor-strip__list {
     gap: 0;
+  }
+
+  .es-floor-strip__item:has(.es-floor-strip__delta) {
+    flex-wrap: wrap;
   }
 
   .es-floor-strip__item + .es-floor-strip__item {

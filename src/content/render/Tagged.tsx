@@ -6,7 +6,7 @@ import type { ReactNode } from 'react'
  * tag is hidden text for a screen reader, as a tagged number in the lesson's prose is (Prose.tsx).
  */
 
-const TAG = /\s*\[(measured|derived|estimated|unverified)\]/g
+const TAG = /\s*\[(measured|derived|estimated|synthetic|unverified)\]/g
 /** The last number in a run of text, with what comes before it and after it. */
 const LAST_NUMBER = /^([\s\S]*?)(\d(?:[\d,.]*\d)?%?)(\D*)$/
 

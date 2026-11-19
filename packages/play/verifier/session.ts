@@ -118,11 +118,11 @@ export function verifierReduce(s: VerifierState, a: VerifierAction): VerifierSta
           need(s.committed, 'commit a prediction first')
           break
         case 'exact':
-          need(weightTotal(s) > 0, 'the recipe is empty: give a dish some weight')
+          need(weightTotal(s) > 0, 'the weights are all zero: give a token some weight')
           break
         case 'greedy-ngram':
           need(s.judged !== null, 'answer the temperature-0 question first')
-          need(weightTotal(s) > 0, 'the recipe is empty: give a dish some weight')
+          need(weightTotal(s) > 0, 'the weights are all zero: give a token some weight')
           break
         case 'mutants':
           need(s.labels.every((label) => label !== null), 'name the bug in every card first')

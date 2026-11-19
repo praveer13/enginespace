@@ -12,7 +12,7 @@
  * repo), `writeOutputs` (the compiler's writer), `mkdtempSync`, `tempDir` or `project(` (a scratch project that the test then builds in).
  * A path passed to `output(result, '...')` or held in a constant is the name of an in-memory output, which is not a read, and is not
  * matched. The rule cannot see which file a test file reads that another file wrote, so it does not call that right: it only requires the
- * file to have a producer of its own. a run of each such file alone from an export of the commit is the proof for the rest.
+ * file to have a producer of its own. A run of each such file alone from an export of the commit is the proof for the rest.
  */
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'

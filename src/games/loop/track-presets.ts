@@ -1,13 +1,16 @@
 /*
- * The 3D time track's six cameras (REDESIGN §2.9): a button each, and `C` to cycle them. Pure, with no three in it, so the game's page holds
+ * The 3D time track's five cameras (REDESIGN §2.9): a button each, and `C` to cycle them. Pure, with no three in it, so the game's page holds
  * the buttons and the key before the 3D chunk loads, and a test can project through them.
  *
  *   Lifted      Side, tilted back about the time axis: time still runs left to right, and the slots recede in depth. The opening shot.
  *   Side        orthographic, face on to the plate: exactly the 2D diagram, a tick at the 2D diagram's x, pixel for pixel (P7).
- *   Along time  from past now, low, looking back along the time axis: the run recedes into the past, and a bubble is a valley.
- *   Top         straight down on the whole plate, in perspective, so the slabs' sides show round their tops.
+ *   Top         down on the whole plate, square to the box, in perspective, so the slabs' fronts show under their tops.
  *   Compare     static batching, continuous batching and async scheduling stacked on one axis (track-layout.ts), lifted.
  *   Scale       64 slots for 160 steps, the whole run in one lifted view.
+ *
+ * REDESIGN §2.9 named a sixth, Along time: from past now, looking back along the time axis. Looking along time lays the label column out as
+ * one receding line, so the lanes' names pile on one another at every angle that shows the run receding, and a camera whose lanes cannot be
+ * named does not show the diagram. It was withdrawn at the finish review (2026-11-18); Lifted shows the run receding with every lane named.
  *
  * Each framing is computed for the model on the plate and the canvas it is drawn in: the plate is laid out at the canvas's width, so the
  * framings follow it. Every angle and margin is [estimated], set by eye at 1440 and 390.
@@ -15,13 +18,12 @@
 import type { CameraPreset } from '@/scene/camera-rig'
 import { PX, type FlatModel } from '@/scene/flat-track'
 
-export type TrackCameraId = 'lifted' | 'side' | 'along' | 'top' | 'compare' | 'scale'
+export type TrackCameraId = 'lifted' | 'side' | 'top' | 'compare' | 'scale'
 
 /** The cameras in the order `C` steps through them, with their buttons' words. */
 export const TRACK_CAMERAS: readonly { readonly id: TrackCameraId; readonly label: string }[] = [
   { id: 'lifted', label: 'Lifted' },
   { id: 'side', label: 'Side' },
-  { id: 'along', label: 'Along time' },
   { id: 'top', label: 'Top' },
   { id: 'compare', label: 'Compare' },
   { id: 'scale', label: 'Scale' },
@@ -91,8 +93,8 @@ function lifted(x0: number, x1: number, z0: number, z1: number, canvas: Canvas, 
 }
 
 /**
- * The six framings for a model in a canvas of this size. `nowX` is now's x on the plate, which a track wider than its canvas keeps in view.
- * Compare and Scale frame the model passed for them; the other four the learner's.
+ * The five framings for a model in a canvas of this size. `nowX` is now's x on the plate, which a track wider than its canvas keeps in view.
+ * Compare and Scale frame the model passed for them; the other three the learner's.
  */
 export function trackPresets(model: FlatModel, canvas: Canvas, nowX: number): CameraPreset[] {
   const label = (id: TrackCameraId) => cameraLabel(id)
@@ -117,38 +119,27 @@ export function trackPresets(model: FlatModel, canvas: Canvas, nowX: number): Ca
 
   const narrow = canvas.width < 560
   // The margin keeps the near edge's last tick and its number in the canvas: the tilt draws the near edge wider than the far one.
-  const lift = lifted(wide.x0, wide.x1, z0, z1, canvas, narrow ? LIFT_NARROW_DEG : LIFT_DEG, 'lifted', label('lifted'), 1.2)
+  const lift = lifted(wide.x0, wide.x1, z0, z1, canvas, narrow ? LIFT_NARROW_DEG : LIFT_DEG, 'lifted', label('lifted'), 1.16)
 
-  // Along time: from past now and a little toward the viewer, low, looking back toward the run's start.
+  // Top: high over the plate and a little in front of it, never to one side, so the plate stands square to the box (time left to right, as
+  // in every view) and the slabs' fronts show under their tops. Held to the whole plate, with room for the axis's numbers at its foot.
   const depth = (z1 - z0) / PX
   const zc = (z0 + z1) / 2 / PX
-  const nowW = Math.min(nowX, all.x1) / PX
-  const along: CameraPreset = {
-    id: 'along',
-    label: label('along'),
-    shot: 'follow',
-    projection: 'perspective',
-    fov: 34,
-    position: [nowW + 1.6 + depth * 0.4, 1.1 + depth * 0.55, zc + depth * 0.9],
-    target: [Math.max(all.x0 / PX, nowW - 3.2), 0, zc],
-  }
-
-  // Top: high over the plate, a little to the right and in front, so the slabs' sides show round their tops.
   const tw = (all.x1 - all.x0) / PX
   const topTarget: [number, number, number] = [(all.x0 + all.x1) / 2 / PX, 0, zc]
-  const high = fitDistance(tw, depth, aspect, 1.12)
+  const high = fitDistance(tw, depth * 1.08, aspect, 1.1)
   const top: CameraPreset = {
     id: 'top',
     label: label('top'),
     shot: 'top',
     projection: 'perspective',
     fov: FOV,
-    position: [topTarget[0] + high * 0.12, high * 0.97, topTarget[2] + high * 0.2],
+    position: [topTarget[0], high * 0.99, topTarget[2] + high * 0.14],
     target: topTarget,
   }
 
   const compare = lifted(all.x0, all.x1, z0, z1, canvas, 26, 'compare', label('compare'), 1.16)
   const scale = lifted(all.x0, all.x1, z0, z1, canvas, 30, 'scale', label('scale'), 1.16)
-  const byId: Record<TrackCameraId, CameraPreset> = { lifted: lift, side, along, top, compare, scale }
+  const byId: Record<TrackCameraId, CameraPreset> = { lifted: lift, side, top, compare, scale }
   return TRACK_CAMERAS.map((camera) => byId[camera.id])
 }

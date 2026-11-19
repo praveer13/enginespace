@@ -247,12 +247,12 @@ The one colour code, shown in every diagram's legend. Each slot has a fill, an e
 - **Edge** (edge): hairlines, control borders, dimension lines and dashed outlines, at 3:1.
 - **Text** (text-1, text-2, text-3): primary, secondary and quiet text. text-1 is also the focus ring and a callout's disc.
 - **Scene light** (light-ambient): the cool white of the 3D model's sky and key light. It colours no surface.
-- **Label slip** (slip, slip-ink): the pale slip and its ink words that the broken benchmark's log sheet draws its order labels on.
+- **Label slip** (slip, slip-ink): a pale slip and its ink words for a label that needs one. Nothing in the app draws it now: the broken benchmark's sheets use the plain label, and only the retired Request path drawing's tests paint with it.
 
 ### Named Rules
 **The One Marker Rule.** Amber means now. It has three carriers and no others: the control to act on now, the "now" cursor on a diagram, and the current-position mark in the rail and on the course track. The header's Continue is an outline wherever the page has a move in hand, and an intro's callouts are ink discs.
 
-**The Ink Focus Rule.** The focus ring is 3 px of text-1 at a 2 px offset, with a paper halo. It is never amber, so focus is not mistaken for now, and it reads against the amber button's own edge.
+**The Ink Focus Rule.** The focus ring is 3 px of text-1 at a 2 px offset, with a paper halo. It is never amber, so focus is not mistaken for now, and it reads against the amber button's own edge. Where focus is sent so that reading starts there, not to a control: a verdict or a result takes the ring at a 6 px offset, clear of its words, and a page or a game's whole section takes none.
 
 **The Colour Is State Rule.** A code colour appears only where the model's state is drawn, and always with its glyph or hatch.
 
@@ -288,7 +288,7 @@ The shell's main column holds an 80rem maximum with a 1rem gutter on a phone and
 
 A lesson is a head (breadcrumb, title, promise), then the section rail beside one sheet of paper from 64rem; the reading measure sits inside the sheet and an instrument takes the sheet's full width. Below 64rem the rail folds to a strip under the header and the way on moves to a bar at the foot. From 80rem wide and 44rem tall, Read's parts gain a 24rem dock beside them.
 
-Every game sits in one instrument frame: a title strip (title, role line, level menu, the views and the tools), the goal line between two hairlines, the diagram with its dock beside it, a foot strip, and the title block. From 64rem the diagram and the dock share one row at one height, between 26rem and 44rem, sized so the diagram's current region, the current control and the readout are on the first screen together; a long list of options scrolls inside the dock. Narrower, they stack, and the dock is pinned to the foot over one readout line. An intro's callout discs stand in a gutter at the diagram's left, level with the parts they name.
+Every game sits in one instrument frame: a title strip (title, role line, level menu, the views and the tools), the goal line between two hairlines, the diagram with its dock beside it, a foot strip, and the title block. From 64rem the diagram and the dock share one row at one height, between 26rem and 44rem, sized so the diagram's current region, the current control and the readout are on the first screen together; a long list of options scrolls inside the dock, and where a dock has more below, its last line fades into the paper under the words "More below" until the end of the scroll. Narrower, they stack, and the dock is pinned to the foot over one readout line. An intro's callout discs stand in a gutter at the diagram's left, level with the parts they name; a part with no disc on the drawing keeps a plain numeral. A form too long for the dock, as the broken benchmark's report is on a phone, is read with the page at its content height, and only the readout stands at the screen's foot. At a desk of 1440 x 900 that report sets its eleven flaws in two columns and stands whole on the first screen, with the readout under it; on a shorter desk its last rows are reached by the page's scroll.
 
 ### Named Rules
 **The Short Viewport Rule.** Under 600 px of viewport height nothing is sticky or pinned. An instrument's dock on a narrow screen is pinned only from 700 px.
@@ -312,9 +312,9 @@ Depth is paper on a flat ground. There are two shadows and no more, each with an
 
 Paper is cut square (0px): sheets, diagrams, fields, notes, the readout strip. Small parts take 2px: a stamp, a chip, a page cell, a section list segment. Controls take 3px: buttons, switches, menus, a popover's trigger. Dots, discs and pills are round. The shoulder (8px) and pan (10px) steps are declared and drawn by nothing.
 
-Inside a diagram the graticule runs in paper-rule where there is a value axis to read against: on a timing diagram a rule on every tick of the time axis and one at the top of each row. A page map is plain paper, because its cells are its grid and a second one would be neither the cells' nor an axis. An interval is marked as an engineering drawing marks it, with end ticks and its value; an idle stretch or an empty slot is a dashed hollow box with its word in it; a fill that would read as its neighbour takes a hatch. A label on a drawing sits on a slip of paper so no line crosses its words. Icons and category glyphs are drawn SVG on one 24-unit grid with one stroke weight, inheriting currentColor.
+Inside a diagram the graticule runs in paper-rule where there is a value axis to read against: on a timing diagram a rule on every tick of the time axis and one at the top of each row. A page map is plain paper, because its cells are its grid and a second one would be neither the cells' nor an axis. An interval is marked as an engineering drawing marks it, with end ticks and its value; an idle stretch or an empty slot is a dashed hollow box with its word in it; a fill that would read as its neighbour takes a hatch (a sync slab beside the now line, a cached page). A label on a drawing sits on a slip of paper so no line crosses its words. Icons and category glyphs are drawn SVG on one 24-unit grid with one stroke weight, inheriting currentColor.
 
-The 3D scenes are a model of the same diagram: matte, flat-shaded solids in the code's colours on a pale base engraved with the graticule, lit by one directional light and a hemisphere. Idle and empty are dashed wire outlines, and "now" is a thin amber sheet with its edge. A game offers 3D only where depth shows something the diagram cannot, and a phone opens in the diagram.
+The 3D scenes are a model of the same diagram: matte, flat-shaded solids in the code's colours on a pale base engraved with the graticule, lit by one directional light and a hemisphere. Idle and empty are dashed wire outlines, and "now" is a thin amber sheet with its edge. Each scene carries its diagram's own legend and glyphs, and every word and number stays DOM. The step loop stands the reference run behind the learner's on one clock, under five cameras (Lifted, Side, Top, Compare and Scale). On the rejection sampler's skylines an output standing over p is a solid collar on its bar, carried up by a riser of hollow dashes. A game offers 3D only where depth shows something the diagram cannot, and a phone opens in the diagram.
 
 ## Components
 
@@ -333,7 +333,7 @@ Sheet is a plain paper panel with a title in Atkinson Hyperlegible 700, no hole 
 A readout sets its number in the mono face with tabular figures, its unit at 0.8em and its tag as a quiet word under a dotted line; only "unverified" takes the second ink. A change's delta is DeltaChip, a small well beside the number that holds for a second. ReadoutStrip is terms and values on one paper strip, a hairline between rows, with one provenance stamp at its head.
 
 ### Label and stamp
-Label is the plain label: Atkinson Hyperlegible 700 in sentence case, still and unlit, with a slot's glyph when it names a category. Provenance is the Stamp: a small bordered word (0.75rem, 700, tracked 0.04em, 2 px corners) in secondary text, which opens the tag legend. Inside a sentence a tag is a dotted underline, never a chip.
+Label is the plain label: Atkinson Hyperlegible 700 in sentence case, on a chart's sheets too, still and unlit, with a slot's glyph when it names a category. Provenance is the Stamp: a small bordered word (0.75rem, 700, tracked 0.04em, 2 px corners) in secondary text, which opens the tag legend. Inside a sentence a tag is a dotted underline, never a chip.
 
 ### Inputs
 - **Field**: a plain label over a paper slip with a 2 px foot line at 3:1; a number field types in the mono face and is never spun.

@@ -104,8 +104,8 @@ describe('the frame stands in the order of REDESIGN §2.6, with the switch and t
     expect(dock.indexOf('data-bench-rule')).toBeGreaterThan(0)
     expect(dock.indexOf('data-bench-rule')).toBeLessThan(dock.indexOf('Your p99 (ms)'))
     const rule = text(dock.slice(dock.indexOf('data-bench-rule'), dock.indexOf('Your p99 (ms)')))
-    expect(RANGE_RULE.percent).toBe(NUMBER_TOLERANCE_PERMILLE / 10)
-    expect(RANGE_RULE.width).toBe(INTERVAL_WIDTH_FACTOR)
+    // The line is built from the judge's own constants, and the form prints it whole.
+    expect(rule).toContain(RANGE_RULE)
     expect(rule).toContain(`within ${NUMBER_TOLERANCE_PERMILLE / 10}%`)
     expect(rule).toContain(`at most ${INTERVAL_WIDTH_FACTOR} times as wide as its bootstrap interval`)
   })
@@ -225,10 +225,10 @@ describe('the chart is the diagram', () => {
     expect(markup).toContain('aria-label="Histogram.')
   })
 
-  test('says the report\'s claim with its tag once, and the setup and the counts off the log', () => {
+  test('says the report\'s claim, and the setup and the counts off the log, and leaves the one stamp to the readout strip', () => {
     const words = text(markup)
     expect(words).toContain('Reported p99 time to first token')
-    expect(count(markup, /data-word="synthetic"/g)).toBe(1)
+    expect(count(markup, /data-word="synthetic"/g)).toBe(0)
     expect(markup).toContain('data-line="timer"')
     expect(words).toContain('Counted off the log')
     expect(markup).toContain('data-line="late"')
@@ -327,7 +327,8 @@ describe('the report form', () => {
     const markup = render(h(Controls, { run: fakeRun(stateOf('due', 0, [{ t: 'flaw', flaw: 'none' }])) }))
     expect(text(markup)).toContain('To file it: write a p99 and a range that holds it.')
     expect(text(markup)).not.toContain('name a flaw')
-    expect(text(markup)).toContain(FLAW_FACTS.none.means)
+    // The line under the list reads the marked row's meaning, from a capital: the name is the row's, over it.
+    expect(text(markup)).toContain(`${FLAW_FACTS.none.means.replace(/^./, (first) => first.toUpperCase())}.`)
   })
 
   test('has no digit in the names of the flaws, which are a list of names', () => {
@@ -342,9 +343,10 @@ describe('the report form', () => {
     expect(text(markup)).toContain('None filed yet.')
   })
 
-  test('says that every report is filed once none is left', () => {
+  test('draws nothing once every report is filed: the run is over, and the frame shows the result in the dock\'s place', () => {
     const done = fakeRun(play('due', 0, rightAnswer).state)
-    expect(render(h(Controls, { run: done }))).toContain('Every report is filed.')
+    expect(done.view.done).toBe(true)
+    expect(render(h(Controls, { run: done }))).toBe('')
   })
 })
 
@@ -401,7 +403,7 @@ describe('the report is the claim on trial, and not the answer', () => {
     const built = caseOf(slot)
     const markup = render(h('div', null, h(Claim, { scene: built.scene, caseNo: 1, cases: 1 }), h(Setup, { scene: built.scene })))
     const words = text(markup)
-    expect(count(markup, /data-word="synthetic"/g)).toBe(1)
+    expect(count(markup, /data-word="synthetic"/g)).toBe(0)
     for (const fact of Object.values(FLAW_FACTS)) {
       expect([flaw, words.includes(fact.term)]).toEqual([flaw, false])
       expect([flaw, words.toLowerCase().includes(fact.phrase.toLowerCase())]).toEqual([flaw, false])
@@ -523,13 +525,14 @@ describe('the result reads the grade', () => {
     const ruling = fakeRun(done.state).view.rulings?.[0]
     if (ruling === undefined) throw new Error('no ruling')
     const exhibits = render(h(Exhibits, { ruling, tools }))
-    expect(exhibits).toMatch(/<text[^>]*>THE CORRECTED RUN<\/text>/)
-    expect(exhibits).toMatch(/<text[^>]*>YOUR LOG, AROUND ITS LONGEST WAIT<\/text>/)
+    expect(exhibits).toMatch(/<text[^>]*>The corrected run<\/text>/)
+    expect(exhibits).toMatch(/<text[^>]*>Your log, around its longest wait<\/text>/)
     expect(exhibits).toMatch(/<path d="[^"]+" stroke="var\(--es-paper-ink-2\)"[^>]*stroke-dasharray/)
     expect(text(exhibits)).toContain("Each red dash is a request's wait between its due tick and its sent tick, and the report's timer, started at the send, counted none of it.")
     expect(text(exhibits)).toMatch(/Request \d{4} waited [\d,.]+ ms/)
     expect(exhibits).not.toContain('var(--es-marker)')
-    expect(count(exhibits, /data-word="synthetic"/g)).toBe(2)
+    // One stamp per instrument: the readout strip beside the exhibits carries it, and the exhibits none.
+    expect(count(exhibits, /data-word="synthetic"/g)).toBe(0)
   })
 
   test('the flags that would have made it admissible are three ledgers of claims', () => {

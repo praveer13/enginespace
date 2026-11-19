@@ -196,6 +196,32 @@ test.describe('a keyboard-only walk', () => {
   })
 })
 
+test.describe('the swimlane on a phone', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('every hop reads its mechanism word, a hop inside one column in its slot at the arrow\'s left, clear of the row numbers', async ({ page }) => {
+    await open(page, 'nano')
+    await commit(page, 0)
+    const path = reference('nano')
+    await lay(page, path)
+    await expect(rows(page)).toHaveCount(path.length)
+    const tags = await page.locator('[data-floor-lanes] [data-lane-row]').evaluateAll((all) =>
+      all.map((row) => {
+        const word = row.querySelector<HTMLElement>('.es-lanes__tag-word')
+        const box = word?.getBoundingClientRect()
+        const no = row.querySelector('.es-lanes__no')?.getBoundingClientRect()
+        return {
+          word: word?.textContent ?? '',
+          shown: word !== null && getComputedStyle(word).display !== 'none' && (box?.width ?? 0) > 8,
+          clear: box === undefined || no === undefined || box.left >= no.right,
+        }
+      }),
+    )
+    expect(tags.filter((tag) => !tag.shown || !tag.clear)).toEqual([])
+    expect(tags.map((tag) => tag.word)).toEqual(expect.arrayContaining(['call', 'queue', 'copy', 'launch', 'sync']))
+  })
+})
+
 test.describe('the swimlane', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 

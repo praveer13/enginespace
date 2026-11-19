@@ -5,10 +5,13 @@
  *   - every page stands in its cell for its whole life: a page never moves, whatever the night does;
  *   - a page's state is a form as well as a colour: free hollow, in use solid, cached hatched, shared dotted, an adapter's grooved;
  *   - a selected page fans into the layers of its KV group, the padding layers last and hollow, and the page itself stays where it is;
- *   - a selected request shows a thread from its tile to each page of its block table, and a selected page a thread from each holder;
+ *   - a request shows a thread from its tile to each page of its block table, none across its name, and its page nearest the front fans
+ *     (so the scene opens on both things depth shows); a selected page shows a thread from each holder;
+ *   - every page carries the 2D cell's glyph for its state, so the legend under the scene is the 2D view's own;
  *   - the amber ring falls on what the open ask may take, and on nothing else;
  *   - every word is a label (DOM), in the engine's terms, and the scene imports nothing from src/scene/props;
- *   - the three cameras hold the whole sheet at every pool size, at 1440 and at 390 px.
+ *   - the three cameras frame the batch, the rack, the queue and the level's tallest fan, and fill the box, at every pool size and at every
+ *     canvas the 3D view is offered in (a phone gets no 3D switch).
  */
 import { describe, expect, test } from 'bun:test'
 import { existsSync, readFileSync } from 'node:fs'
@@ -21,10 +24,11 @@ import { findBanned } from '@/copy/banned'
 import { framingFor } from '@/scene/camera-rig'
 import { morphModel, PX } from '@/scene/flat-track'
 import { MARK_FORMS } from '@/scene/marks'
-import { pageForm, pageRole, PAGE, PAGE_TOP, SHOTS, SLOT, THREAD, WAIT, WELL, fanOf, geometryOf, pageBox, presetsFor, rackOf, slotBox, threadedRequest, type Canvas } from '@/games/pool/scene-layout'
+import { pageForm, pageRole, PAGE, PAGE_TOP, SHOTS, SLOT, THREAD, WAIT, WELL, fanOf, fanRoom, fanTop, framePoints, geometryOf, headPage, pageBox, presetsFor, rackOf, slotBox, threadedRequest, type Canvas } from '@/games/pool/scene-layout'
 import { POOL_CAMERAS } from '@/games/pool/scene-presets'
 import { tableFor } from '@/games/pool/focus'
 import * as glyphWords from '@/games/pool/glyphs'
+import { stateGlyph } from '@/games/pool/glyphs'
 import * as stageWords from '@/games/pool/select-words'
 import * as pageWords from '@/games/pool/words'
 import { playThrough, practiceOf } from './pool-support'
@@ -36,6 +40,8 @@ const code = (file: string) => read(file).replace(/\/\*[\s\S]*?\*\//g, '').repla
 const view = (state: PoolState): PoolView => poolSession.view(state)
 const night = (id: PoolLevelId): PoolState[] => playThrough(practiceOf(id), house).states
 const NONE = { station: null, chosen: [], pointed: [], pick: null } as const
+/** The threads of a model: every ink that is not straight up (the fan has no stem, and nothing else stands straight up). */
+const threadsOf = <T extends { x0: number; x1: number; z0: number; z1: number }>(inks: readonly T[]): T[] => inks.filter((ink) => ink.x0 !== ink.x1 || ink.z0 !== ink.z1)
 
 /** The pool sizes the levels have: their practice seeds, and the whole manager's three models. */
 const POOLS = [44, 64, 96, 104, 112, 160, 208, 288]
@@ -204,8 +210,10 @@ describe('a selected page fans into the layers it serves', () => {
     }
     // Its words: how many layers, and how many of them padding, as one label.
     expect(rack.model.labels.find((label) => label.id === 'fan/words')?.text).toBe(`${group.layers} layers + ${group.padLayers} padding`)
-    // A stem joins the page to its top layer.
-    expect(rack.model.inks.some((ink) => ink.x0 === ink.x1 && ink.z0 === ink.z1 && ink.y1 !== undefined && ink.y1 > PAGE_TOP)).toBe(true)
+    // No stem stands beside the fan (it read as a stray thread), and no layer throws a contact shadow on the cells under it (the Flat Paper
+    // Rule): the first layer rises out of the page itself.
+    expect(rack.model.inks.some((ink) => ink.x0 === ink.x1 && ink.z0 === ink.z1 && ink.y1 !== undefined && ink.y1 > PAGE_TOP)).toBe(false)
+    expect(rack.model.boxes.filter((box) => box.id.startsWith('fan/')).every((box) => box.shadow === false)).toBe(true)
   })
 
   test('the move opens the layers: halfway, they are between the page and where they rest, and at its end they are where they rest', () => {
@@ -254,11 +262,12 @@ describe('threads run from a request\'s block table to its pages', () => {
     const pages = tableFor(busy, req, null).flat()
     expect(pages.length).toBeGreaterThan(1)
     expect(rack.request).toBe(req)
-    expect(rack.model.inks).toHaveLength(pages.length * THREAD.pieces)
+    const inks = threadsOf(rack.model.inks)
+    expect(inks).toHaveLength(pages.length * THREAD.pieces)
     const g = rack.geometry
     const tile = slotBox(g, busy.running.indexOf(req))
     for (let i = 0; i < pages.length; i++) {
-      const pieces = rack.model.inks.slice(i * THREAD.pieces, (i + 1) * THREAD.pieces)
+      const pieces = inks.slice(i * THREAD.pieces, (i + 1) * THREAD.pieces)
       const first = pieces[0]
       const last = pieces[pieces.length - 1]
       expect(first.x0).toBeGreaterThanOrEqual(tile.x0)
@@ -278,8 +287,8 @@ describe('threads run from a request\'s block table to its pages', () => {
 
   test('One KV group keeps that group\'s threads alone', () => {
     const req = busy.running[0]
-    const whole = rackOf(busy, { ...NONE, pick: { kind: 'request', id: req } }).model.inks.length
-    const counts = busy.stations.map((_, g) => rackOf(busy, { ...NONE, station: g, pick: { kind: 'request', id: req } }).model.inks.length)
+    const whole = threadsOf(rackOf(busy, { ...NONE, pick: { kind: 'request', id: req } }).model.inks).length
+    const counts = busy.stations.map((_, g) => threadsOf(rackOf(busy, { ...NONE, station: g, pick: { kind: 'request', id: req } }).model.inks).length)
     expect(counts.reduce((a, b) => a + b, 0)).toBe(whole)
     expect(Math.min(...counts)).toBeLessThan(whole)
   })
@@ -328,7 +337,8 @@ describe('the queue and the batch', () => {
   test("a request's tile can be picked, and so can a page that holds something; nothing else can", () => {
     const v = view(night('two-kinds')[6])
     const model = rackOf(v, NONE).model
-    const picks = model.boxes.filter((box) => box.pick !== undefined).map((box) => box.pick as string)
+    // The fan's layers take a pick on their page; the pages and the tiles are counted here.
+    const picks = model.boxes.filter((box) => box.pick !== undefined && !box.id.startsWith('fan/')).map((box) => box.pick as string)
     // A free page is an empty cell's wire, with nothing in it to pick.
     const held = v.pans.filter((page) => page.state !== 'free').length
     expect(picks.filter((pick) => pick.startsWith('page:'))).toHaveLength(held)
@@ -374,10 +384,13 @@ describe('every word is DOM', () => {
     expect(sources[1]).not.toMatch(/from 'three'/)
   })
 
-  test('the scene is a flat model on the kit: a Stage3D that says what is selected, and a key to the forms, in DOM', () => {
-    expect(sources[3]).toMatch(/data-pool-key/)
+  test('the scene is a flat model on the kit: a panel that says what is selected, in DOM, and under it the 2D view\'s own legend', () => {
     expect(sources[3]).toMatch(/data-pool-fan/)
-    for (const words of ['hollow: free', 'solid: in use', 'hatched: cached', 'dotted: a prefix hit waits on it']) expect(sources[3]).toContain(words)
+    // One legend: the panel draws no key of its own, and the page puts the diagram's legend under the 3D view as under the 2D one.
+    expect(sources[3]).not.toMatch(/data-pool-key|es-pool3d-swatch/)
+    const game = code('src/games/pool/Game.tsx')
+    const legend = game.slice(game.indexOf('legend={'), game.indexOf('dock={'))
+    expect(legend.match(/<PoolLegend view=\{run\.view\} \/>/g)).toHaveLength(2)
   })
 })
 
@@ -398,69 +411,264 @@ describe("the selection panel's words are the page's", () => {
 })
 
 describe('the cameras: front, one KV group, from above', () => {
+  // The canvases the 3D view is offered in: /play/pool at a desk, the same below 64rem with the dock under it (768 px wide, the narrowest
+  // window that has a 3D switch), and a lesson's column. A phone has no 3D switch (e2e/pool-scene.spec.ts holds that at 390 px).
   const CANVASES: readonly Canvas[] = [
-    { width: 870, height: 557 },
-    { width: 356, height: 464 },
+    { width: 782, height: 382 },
+    { width: 736, height: 374 },
+    { width: 645, height: 557 },
   ]
+  const cameraFor = (preset: ReturnType<typeof presetsFor>[number], canvas: Canvas) => {
+    const framing = framingFor(preset, canvas.width)
+    const camera = new PerspectiveCamera(framing.fov, canvas.width / canvas.height, 0.05, 200)
+    camera.position.set(...framing.position)
+    camera.up.set(0, 1, 0)
+    camera.lookAt(...framing.target)
+    camera.updateProjectionMatrix()
+    camera.updateMatrixWorld()
+    return (x: number, y: number, z: number) => {
+      const v = new Vector3(x, y, z).project(camera)
+      return { x: ((v.x + 1) / 2) * canvas.width, y: ((1 - v.y) / 2) * canvas.height }
+    }
+  }
+  const ROOM = fanTop(40) + 22
 
   test("the page's plates and the scene's presets are the same three, in the same order", () => {
-    expect(presetsFor({ x0: 0, x1: 600, z0: 0, z1: 600 }, CANVASES[0]).map((preset) => preset.id)).toEqual(POOL_CAMERAS.map((camera) => camera.id))
+    expect(presetsFor(geometryOf(44, 16, 3), CANVASES[0], ROOM).map((preset) => preset.id)).toEqual(POOL_CAMERAS.map((camera) => camera.id))
     expect([...SHOTS]).toEqual(POOL_CAMERAS.map((camera) => camera.id))
     expect(POOL_CAMERAS.map((camera) => camera.label)).toEqual(['Front of the page pool', 'One KV group', 'From above'])
   })
 
   for (const canvas of CANVASES) {
-    test(`at ${canvas.width} by ${canvas.height} px, every preset holds the whole sheet and the batch's tiles, at every pool size`, () => {
+    test(`at ${canvas.width} by ${canvas.height} px, every preset holds the batch, the rack, the queue and the tallest fan, and fills the box, at every pool size`, () => {
       for (const pages of POOLS) {
         const g = geometryOf(pages, 16, 4)
-        const bounds = { x0: 0, x1: g.width, z0: 0, z1: g.depth }
-        for (const preset of presetsFor(bounds, canvas)) {
-          const framing = framingFor(preset, canvas.width)
-          const camera = new PerspectiveCamera(framing.fov, canvas.width / canvas.height, 0.05, 200)
-          camera.position.set(...framing.position)
-          camera.up.set(0, 1, 0)
-          camera.lookAt(...framing.target)
-          camera.updateProjectionMatrix()
-          camera.updateMatrixWorld()
-          const at = (x: number, y: number, z: number) => {
-            const v = new Vector3(x / PX, y / PX, z / PX).project(camera)
-            return { x: ((v.x + 1) / 2) * canvas.width, y: ((1 - v.y) / 2) * canvas.height }
-          }
-          for (const [x, z] of [[0, 0], [g.width, 0], [0, g.depth], [g.width, g.depth]]) {
-            const p = at(x, 0, z)
-            expect(p.x, `${preset.id} ${pages} ${x},${z}`).toBeGreaterThanOrEqual(0)
+        for (const preset of presetsFor(g, canvas, ROOM)) {
+          const at = cameraFor(preset, canvas)
+          const shown = framePoints(g, ROOM).map(([x, y, z]) => at(x, y, z))
+          for (const p of shown) {
+            expect(p.x, `${preset.id} ${pages}`).toBeGreaterThanOrEqual(0)
             expect(p.x).toBeLessThanOrEqual(canvas.width)
             expect(p.y).toBeGreaterThanOrEqual(0)
             expect(p.y).toBeLessThanOrEqual(canvas.height)
           }
+          // It fills the box: across or down, the drawing spans nine tenths of it or more, and stands in its middle.
+          const xs = shown.map((p) => p.x)
+          const ys = shown.map((p) => p.y)
+          const wide = (Math.max(...xs) - Math.min(...xs)) / canvas.width
+          const tall = (Math.max(...ys) - Math.min(...ys)) / canvas.height
+          expect(Math.max(wide, tall), `${preset.id} ${pages} fills ${wide.toFixed(2)} x ${tall.toFixed(2)}`).toBeGreaterThanOrEqual(0.9)
+          expect(Math.abs((Math.max(...xs) + Math.min(...xs)) / 2 - canvas.width / 2)).toBeLessThan(canvas.width * 0.02)
+          expect(Math.abs((Math.max(...ys) + Math.min(...ys)) / 2 - canvas.height / 2)).toBeLessThan(canvas.height * 0.02)
         }
       }
     })
   }
 
-  test('on a phone a page of the largest pool that the front shot shows is 6 px or more across, and of the usual ones 12 px', () => {
+  test('the frame is the level\'s: it holds the tallest fan the level has, and no decision moves it', () => {
+    for (const id of ['two-kinds', 'same-size'] as const) {
+      const states = night(id).map(view)
+      const room = fanRoom(states[0])
+      for (const v of states) expect(fanRoom(v)).toBe(room)
+      const most = Math.max(...states[0].stations.map((group) => group.layers + group.padLayers))
+      expect(room).toBeGreaterThan(fanTop(most))
+    }
+  })
+
+  test('in the narrowest canvas, a page of the largest pool that the front shot shows is 8 px or more across, and of the usual ones 20 px', () => {
     const canvas = CANVASES[1]
     const size = (pages: number) => {
       const g = geometryOf(pages, 16, 4)
-      const front = presetsFor({ x0: 0, x1: g.width, z0: 0, z1: g.depth }, canvas)[0]
-      const framing = framingFor(front, canvas.width)
-      const camera = new PerspectiveCamera(framing.fov, canvas.width / canvas.height, 0.05, 200)
-      camera.position.set(...framing.position)
-      camera.up.set(0, 1, 0)
-      camera.lookAt(...framing.target)
-      camera.updateProjectionMatrix()
-      camera.updateMatrixWorld()
-      const a = new Vector3(g.width / 2 / 1 / PX, PAGE_TOP / PX, g.depth / 2 / PX).project(camera)
-      const b = new Vector3((g.width / 2 + PAGE.size) / PX, PAGE_TOP / PX, g.depth / 2 / PX).project(camera)
-      return Math.abs(b.x - a.x) * canvas.width * 0.5
+      const at = cameraFor(presetsFor(g, canvas, ROOM)[0], canvas)
+      const a = at(g.width / 2 / PX, PAGE_TOP / PX, g.rack.z1 / PX)
+      const b = at((g.width / 2 + PAGE.size) / PX, PAGE_TOP / PX, g.rack.z1 / PX)
+      return Math.abs(b.x - a.x)
     }
-    expect(size(44)).toBeGreaterThanOrEqual(12)
-    expect(size(288)).toBeGreaterThanOrEqual(6)
+    expect(size(44)).toBeGreaterThanOrEqual(20)
+    expect(size(288)).toBeGreaterThanOrEqual(8)
   })
 
   test('a fan of the most layers a level has stands within the frame in the front shot', () => {
     const v = view(night('same-size')[0])
     expect(Math.max(...v.stations.map((group) => group.layers + group.padLayers))).toBeLessThanOrEqual(40)
+  })
+})
+
+describe("what depth shows, without a click: the request admitted last threads its pages, and one of them stands open", () => {
+  const states = night('two-kinds').map(view)
+  const busy = states.find((v) => v.running.length >= 2 && v.stations.length > 1) as PoolView
+
+  // Of a request's pages, the first in its table's order among those in the frontmost row it holds.
+  const nearest = (req: number, station: number | null) => {
+    const pages = tableFor(busy, req, station).flat()
+    const row = Math.max(...pages.map((page) => Math.floor(page.id / busy.cols)))
+    return pages.find((page) => Math.floor(page.id / busy.cols) === row)
+  }
+
+  test('with nothing selected, the last request\'s page nearest the front fans; a request selected fans its own; a page selected fans itself', () => {
+    const last = busy.running[busy.running.length - 1]
+    const head = nearest(last, null) as PoolView['pans'][number]
+    expect(headPage(busy, last, null)).toBe(head.id)
+    expect(rackOf(busy, NONE).fan?.page).toBe(head.id)
+    const first = busy.running[0]
+    expect(rackOf(busy, { ...NONE, pick: { kind: 'request', id: first } }).fan?.page).toBe(nearest(first, null)?.id)
+    const other = busy.pans.find((page) => page.station !== null && page.id !== head.id) as PoolView['pans'][number]
+    expect(rackOf(busy, { ...NONE, pick: { kind: 'page', id: other.id } }).fan?.page).toBe(other.id)
+    // One KV group: the first page the request holds in the group shown.
+    for (let g = 0; g < busy.stations.length; g++) {
+      expect(rackOf(busy, { ...NONE, station: g }).fan?.page ?? null).toBe(nearest(last, g)?.id ?? null)
+    }
+    // Nothing on the line, nothing open.
+    expect(rackOf(states[0], NONE).fan).toBeNull()
+  })
+
+  test('the fan opens again when a selection takes it over, even on the same page', () => {
+    const last = busy.running[busy.running.length - 1]
+    const head = headPage(busy, last, null) as number
+    expect(rackOf(busy, { ...NONE, pick: { kind: 'page', id: head } }).moment).not.toBe(rackOf(busy, NONE).moment)
+  })
+
+  test("a fan steps toward the middle of the rack, so its layers stay over the rack and clear of the region names at its left", () => {
+    for (const v of states.filter((candidate) => candidate.pans.some((page) => page.station !== null))) {
+      for (const page of v.pans.filter((candidate) => candidate.station !== null)) {
+        const rack = rackOf(v, { ...NONE, pick: { kind: 'page', id: page.id } })
+        const layers = rack.model.boxes.filter((box) => box.id.startsWith('fan/'))
+        const at = pageBox(rack.geometry, page.id)
+        expect((layers[0].x0 + layers[0].x1) / 2).toBeCloseTo((at.x0 + at.x1) / 2)
+        for (const box of layers) {
+          expect(box.x0).toBeGreaterThanOrEqual(rack.geometry.rack.x0 - PAGE.size)
+          expect(box.x1).toBeLessThanOrEqual(rack.geometry.rack.x1 + PAGE.size)
+        }
+        // Its words stand over its top layer.
+        const words = rack.model.labels.find((label) => label.id === 'fan/words')
+        expect(words?.place).toBe('above')
+        expect(words?.at[1]).toBeGreaterThanOrEqual(Math.max(...layers.map((box) => (box.y0 ?? 0) + box.height)))
+      }
+    }
+  })
+
+  test("no thread crosses a request's name: the name stands over its tile's far edge, every thread leaves the near edge, and an arch rises with the run toward the front, never with the run across", () => {
+    for (const v of states.filter((candidate) => candidate.running.length > 0)) {
+      for (const req of v.running) {
+        const rack = rackOf(v, { ...NONE, pick: { kind: 'request', id: req } })
+        const tile = slotBox(rack.geometry, v.running.indexOf(req))
+        const name = rack.model.labels.find((label) => label.id === `chip/${req}`)
+        expect(name?.place).toBe('above')
+        expect(name?.at).toEqual([(tile.x0 + tile.x1) / 2, SLOT.height, tile.z0])
+        const threads = threadsOf(rack.model.inks)
+        for (let i = 0; i < threads.length; i += THREAD.pieces) {
+          const first = threads[i]
+          expect(first.z0).toBe(tile.z1)
+          // The arch is the run toward the front's share: a thread to the far side of the rack rises no higher than one straight ahead.
+          const last = threads[i + THREAD.pieces - 1]
+          const top = Math.max(...threads.slice(i, i + THREAD.pieces).map((piece) => piece.y ?? 0))
+          expect(top).toBeLessThanOrEqual(Math.max(SLOT.height, PAGE_TOP) + THREAD.arch + THREAD.perPx * (last.z1 - first.z0) + 1e-6)
+        }
+      }
+    }
+  })
+})
+
+describe('every label can be read: none lies on another, on a tile, or under a thread, from the front shot', () => {
+  // The label boxes on the screen, from the label layer's places (src/scene/labels.ts) and the label styles' sizes (pool3d.css) [estimated:
+  // 6.6 px a character for the label face, 7.2 for the fan's mono words on their paper slip, 15 px a line].
+  type Box = readonly [number, number, number, number]
+  const hit = (a: Box, b: Box) => a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3]
+  const CANVASES: readonly Canvas[] = [
+    { width: 782, height: 382 },
+    { width: 782, height: 294 },
+    { width: 736, height: 374 },
+    { width: 645, height: 557 },
+  ]
+
+  for (const id of ['one-group', 'two-kinds', 'evict', 'same-size', 'state', 'adapters', 'manager'] as const) {
+    test(`${id}: the opening shot and every page of the back row selected, at every canvas`, () => {
+      const states = night(id).map(view)
+      const first = states[0]
+      const g = geometryOf(first.pans.length, first.cols, first.cap)
+      for (const canvas of CANVASES) {
+        const framing = framingFor(presetsFor(g, canvas, fanRoom(first))[0], canvas.width)
+        const camera = new PerspectiveCamera(framing.fov, canvas.width / canvas.height, 0.05, 200)
+        camera.position.set(...framing.position)
+        camera.lookAt(...framing.target)
+        camera.updateProjectionMatrix()
+        camera.updateMatrixWorld()
+        const at = (x: number, y: number, z: number): [number, number] => {
+          const p = new Vector3(x / PX, y / PX, z / PX).project(camera)
+          return [((p.x + 1) / 2) * canvas.width, ((1 - p.y) / 2) * canvas.height]
+        }
+        const boxOf = (label: { at: readonly number[]; text: string; place?: string; kind: string }): Box => {
+          const [x, y] = at(label.at[0], label.at[1], label.at[2])
+          const w = label.text.length * (label.kind === 'dim' ? 7.2 : 6.6) + (label.kind === 'dim' ? 8 : 0)
+          const h = 15
+          if (label.place === 'right') return [x + 6, y - h / 2, x + 6 + w, y + h / 2]
+          if (label.place === 'left') return [x - 6 - w, y - h / 2, x - 6, y + h / 2]
+          if (label.place === 'above') return [x - w / 2, y - 6 - h, x + w / 2, y - 6]
+          return [x - w / 2, y - h / 2, x + w / 2, y + h / 2]
+        }
+        const picks = [null, ...first.pans.filter((page) => page.id < first.cols).map((page) => ({ kind: 'page' as const, id: page.id }))]
+        states.forEach((v, s) => {
+          if (s % 3 !== 0) return
+          for (const pick of picks) {
+            if (pick !== null && v.pans[pick.id].station === null) continue
+            const where = `${canvas.width}x${canvas.height}, state ${s}, ${pick === null ? 'nothing selected' : `page ${pick.id + 1}`}`
+            const model = rackOf(v, { ...NONE, pick }).model
+            const boxes = model.labels.map((label) => [label.id, boxOf(label)] as const)
+            for (const [label, box] of boxes) {
+              expect(box[1], `${where}: ${label} under the box's top`).toBeGreaterThanOrEqual(0)
+              expect(box[3], `${where}: ${label} over the box's foot`).toBeLessThanOrEqual(canvas.height)
+            }
+            for (let a = 0; a < boxes.length; a++) for (let b = a + 1; b < boxes.length; b++) expect(hit(boxes[a][1], boxes[b][1]), `${where}: ${boxes[a][0]} on ${boxes[b][0]}`).toBe(false)
+            const fan = boxes.find(([label]) => label === 'fan/words')
+            if (fan !== undefined) {
+              expect(fan[1][1], `${where}: the fan's words in the box`).toBeGreaterThanOrEqual(0)
+              v.running.forEach((_, i) => {
+                const tile = slotBox(g, i)
+                const corners = [at(tile.x0, SLOT.height, tile.z0), at(tile.x1, SLOT.height, tile.z0), at(tile.x0, SLOT.height, tile.z1), at(tile.x1, SLOT.height, tile.z1)]
+                const box: Box = [Math.min(...corners.map((p) => p[0])), Math.min(...corners.map((p) => p[1])), Math.max(...corners.map((p) => p[0])), Math.max(...corners.map((p) => p[1]))]
+                expect(hit(fan[1], box), `${where}: the fan's words on tile ${i + 1}`).toBe(false)
+              })
+            }
+            for (const [label, box] of boxes.filter(([label]) => label.startsWith('chip/'))) {
+              for (const ink of model.inks) {
+                for (const t of [0, 0.25, 0.5, 0.75, 1]) {
+                  const [x, y] = at(ink.x0 + (ink.x1 - ink.x0) * t, (ink.y ?? 0) + ((ink.y1 ?? ink.y ?? 0) - (ink.y ?? 0)) * t, ink.z0 + (ink.z1 - ink.z0) * t)
+                  expect(x > box[0] && x < box[2] && y > box[1] && y < box[3], `${where}: a thread through ${label}`).toBe(false)
+                }
+              }
+            }
+          }
+        })
+      }
+    })
+  }
+})
+
+describe("every page carries the 2D cell's glyph", () => {
+  test('one glyph a page, the shape the 2D diagram and its legend give its state, on its top, or a free page\'s ring on its cell\'s floor', () => {
+    for (const id of ['adapters', 'evict'] as const) {
+      for (const state of night(id)) {
+        const v = view(state)
+        const rack = rackOf(v, NONE)
+        expect(rack.glyphs).toHaveLength(v.pans.length)
+        for (const glyph of rack.glyphs) {
+          const page = v.pans[glyph.id]
+          expect(glyph.shape).toBe(stateGlyph(page.state))
+          const at = pageBox(rack.geometry, page.id)
+          expect(glyph.x).toBeCloseTo((at.x0 + at.x1) / 2)
+          expect(glyph.z).toBeCloseTo((at.z0 + at.z1) / 2)
+          expect(glyph.y).toBeGreaterThan(page.state === 'free' ? WELL.height : PAGE_TOP)
+          expect(glyph.size).toBeLessThan(PAGE.size)
+        }
+      }
+    }
+    // A page chosen to be evicted carries the evicted glyph, as its 2D cell does.
+    const state = night('evict').find((candidate) => view(candidate).ask?.kind === 'evict') as PoolState
+    const v = view(state)
+    const ask = v.ask
+    if (ask?.kind !== 'evict') throw new Error('an eviction is open')
+    const glyph = rackOf(v, { ...NONE, chosen: [ask.candidates[0]] }).glyphs.find((candidate) => candidate.id === ask.candidates[0])
+    expect(glyph?.shape).toBe(stateGlyph('evicted'))
   })
 })
 

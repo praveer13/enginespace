@@ -18,6 +18,9 @@ export const readoutName = (unit: string): ReturnType<typeof readoutUnit> => (un
 /** A unit as the learner reads it: the readout's name for it, or what the lesson writes when the readout has none. */
 export const unitName = (unit: string): string => readoutName(unit) ?? unit
 
+/** A unit's name for one of it: "1 stage", "1 boundary"; a unit that is not a plural noun ("µs", "ms") is left as it is. */
+export const one = (name: string): string => (/[a-z]{2,}ies$/.test(name) ? `${name.slice(0, -3)}y` : /[a-z]{2,}[^su]s$/.test(name) ? name.slice(0, -1) : name)
+
 /** Reads a number in a unit from a slip: the number alone, or followed by the unit as the page prints it or as the lesson writes it (`380 µs`, `380 us`, `15 %`). */
 export function readNumber(text: string, unit: string): number | null {
   const printed = unitName(unit)

@@ -46,13 +46,11 @@ export type Paint =
   | 'paper-rule'
   | 'marker'
   | 'marker-edge'
-  | 'slip'
-  | 'slip-ink'
 
 /** The roles above, as a list, for the test that checks them against the design system. */
-export const PAINTS: readonly Paint[] = ['surface-2', 'edge', 'paper', 'paper-ink', 'paper-ink-2', 'paper-rule', 'marker', 'marker-edge', 'slip', 'slip-ink']
+export const PAINTS: readonly Paint[] = ['surface-2', 'edge', 'paper', 'paper-ink', 'paper-ink-2', 'paper-rule', 'marker', 'marker-edge']
 
-/** The faces the drawing sets text in: the printer's dots for ticks and numbers, marker on masking tape for names. */
+/** The faces the drawing sets text in: the numeric face for ticks and numbers, the label face (bold, sentence case) for names, as every diagram names its parts. */
 export type Face = 'numeric' | 'label'
 
 interface Style {
@@ -209,9 +207,13 @@ interface HistogramGeometry {
   readonly textSize: number
 }
 
+/**
+ * A phone's histogram is drawn to its width and kept short: the whole ruler, the flags and the cut stand over the switch on one screen with
+ * the pinned dock under them (P5), where a sheet as tall as the phone showed only its top.
+ */
 const HISTOGRAM: Readonly<Record<Orientation, HistogramGeometry>> = {
   landscape: { width: 560, height: 350, top: 52, bottom: 322, ruler: 52, sx0: 60, sx1: 290, hx0: 302, hx1: 470, gx: 478, dot: 2.3, textSize: 11 },
-  portrait: { width: 360, height: 560, top: 52, bottom: 524, ruler: 44, sx0: 50, sx1: 168, hx0: 176, hx1: 262, gx: 268, dot: 2.2, textSize: 10 },
+  portrait: { width: 360, height: 206, top: 50, bottom: 192, ruler: 44, sx0: 50, sx1: 190, hx0: 198, hx1: 272, gx: 278, dot: 2, textSize: 10 },
 }
 
 /** The fewest bins of the ruler a sheet shows, so that a log whose times are close still has a ruler to read. */
@@ -265,10 +267,10 @@ export function layoutHistogram(o: HistogramOptions): Sheet {
   const cut = Math.max(0, Math.min(o.cut, n - 1))
 
   // The flags, and so the ruler: it is cut to the log's own range, with the flags in it.
-  const flagged: { us: Us; paint: Paint; dash?: string; name: string }[] = [{ us: o.claimUs, paint: 'paper-ink-2', dash: '6 3', name: 'REPORTED' }]
-  if (o.p99Us !== undefined && o.p99Us !== null) flagged.push({ us: o.p99Us, paint: 'paper-ink', name: 'MEASURED' })
-  if (o.correctedUs !== undefined && o.correctedUs !== null) flagged.push({ us: o.correctedUs, paint: 'paper-ink', name: 'CORRECTED' })
-  if (o.yoursUs !== undefined && o.yoursUs !== null) flagged.push({ us: o.yoursUs, paint: 'edge', dash: '2 3', name: 'YOURS' })
+  const flagged: { us: Us; paint: Paint; dash?: string; name: string }[] = [{ us: o.claimUs, paint: 'paper-ink-2', dash: '6 3', name: 'reported' }]
+  if (o.p99Us !== undefined && o.p99Us !== null) flagged.push({ us: o.p99Us, paint: 'paper-ink', name: 'measured' })
+  if (o.correctedUs !== undefined && o.correctedUs !== null) flagged.push({ us: o.correctedUs, paint: 'paper-ink', name: 'corrected' })
+  if (o.yoursUs !== undefined && o.yoursUs !== null) flagged.push({ us: o.yoursUs, paint: 'edge', dash: '2 3', name: 'yours' })
   const { lowBin, highBin } = rulerOf([...latencies.map(placeOf), ...flagged.map((flag) => placeOf(flag.us))], bins)
   const span = highBin - lowBin
   const pitch = (g.bottom - g.top) / span
@@ -337,7 +339,7 @@ export function layoutHistogram(o: HistogramOptions): Sheet {
   const flags: Mark[] = []
   if (cut > 0) {
     const x = g.sx0 + (cut / n) * (g.sx1 - g.sx0)
-    flags.push(line(x, g.top - 6, x, g.bottom, { stroke: 'edge', width: 1.25, dash: '4 3' }), ...tapeLabel(x + 3, g.top - 24, 'CUT', 11))
+    flags.push(line(x, g.top - 6, x, g.bottom, { stroke: 'edge', width: 1.25, dash: '4 3' }), ...tapeLabel(x + 3, g.top - 24, 'cut', 11))
   }
   // The flags run across the dots and the stacks to the margin, where their names are stuck on tape, each at its own height and none on another.
   let floor = g.top - 4
@@ -359,7 +361,7 @@ export function layoutHistogram(o: HistogramOptions): Sheet {
   }
 
   // The name of the sheet.
-  layers.push({ part: 'name', marks: tapeLabel(orientation === 'landscape' ? 44 : 38, 5, o.caption ?? 'TIME TO FIRST TOKEN', 11) })
+  layers.push({ part: 'name', marks: tapeLabel(orientation === 'landscape' ? 44 : 38, 5, o.caption ?? 'Time to first token', 11) })
 
   return {
     orientation,
@@ -465,7 +467,7 @@ export function layoutTimeline(o: TimelineOptions): Sheet {
   const rules: string[] = []
   for (let k = 0; k <= g.slips; k += 4) rules.push(`M${g.x0} ${num(g.top + k * pitch)}H${g.x1}`)
   layers.push({ part: 'grid', marks: [path(rules.join(''), { stroke: 'paper-rule', width: 0.5 }), path(grid.join(''), { stroke: 'paper-rule', width: 0.75 })] })
-  layers.push({ part: 'ruler', marks: [text(g.label, g.top - 9, 'SECONDS', g.textSize - 1, 'end', 'paper-ink', 'numeric'), ...ticks] })
+  layers.push({ part: 'ruler', marks: [text(g.label, g.top - 9, 'seconds', g.textSize - 1, 'end', 'paper-ink', 'numeric'), ...ticks] })
 
   const present = o.selected === null ? -1 : o.selected - first
   if (present >= 0 && present < shown.length) {
@@ -519,16 +521,16 @@ export function layoutTimeline(o: TimelineOptions): Sheet {
   // What the marks are, written beside the marks themselves on tape at the sheet's foot.
   const y = g.bottom + 14
   const key: Mark[] = [
-    ...tapeLabel(g.x0 - 8, y, 'DUE', 10),
+    ...tapeLabel(g.x0 - 8, y, 'due', 10),
     rect(g.x0 + 28, y + 3, 3, 12, { fill: 'paper', stroke: 'paper-ink', width: 1 }),
-    ...tapeLabel(g.x0 + 40, y, 'SENT', 10),
+    ...tapeLabel(g.x0 + 40, y, 'sent', 10),
     rect(g.x0 + 82, y + 3, 3, 12, { fill: 'paper-ink' }),
-    ...tapeLabel(g.x0 + 96, y, 'WAIT NEVER TIMED', 10),
+    ...tapeLabel(g.x0 + 96, y, 'wait never timed', 10),
     line(g.x0 + 210, y + 9, g.x0 + 232, y + 9, { stroke: 'paper-ink-2', width: 2, dash: '2.5 2' }),
   ]
   layers.push({ part: 'key', marks: key })
 
-  layers.push({ part: 'name', marks: tapeLabel(orientation === 'landscape' ? 44 : 38, 5, o.caption ?? 'EACH REQUEST, DUE TO DONE', 11) })
+  layers.push({ part: 'name', marks: tapeLabel(orientation === 'landscape' ? 44 : 38, 5, o.caption ?? 'Each request, due to done', 11) })
 
   return {
     orientation,
@@ -585,7 +587,7 @@ function markNode(mark: Mark, soft: string): SvgNode {
     case 'text':
       return {
         tag: 'text',
-        attrs: { x: mark.x, y: mark.y, fill: paint(mark.fill), fontFamily: FACE[mark.face], fontSize: mark.size, textAnchor: mark.anchor },
+        attrs: { x: mark.x, y: mark.y, fill: paint(mark.fill), fontFamily: FACE[mark.face], fontSize: mark.size, textAnchor: mark.anchor, ...(mark.face === 'label' ? { fontWeight: 700 } : {}) },
         children: [mark.text],
       }
   }

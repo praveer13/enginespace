@@ -143,6 +143,34 @@ test.describe('the length and position of each screen (REDESIGN 5.2)', () => {
   test.describe('at 1440 x 900', () => {
     test.use({ viewport: { width: 1440, height: 900 } })
 
+    // REDESIGN P4, name then ask: the Request path's first run names its processes and a hop on a worked example, so the example is drawn whole
+    // in the diagram's box, in the first viewport, while the parts are named (the finish review saw it cut to one node on a 120 px strip).
+    test('the Request path\'s first run draws its worked example: two processes, a hop between them and a call down one column', async ({ page }) => {
+      await open(page, '/play/engine-floor?level=nano')
+      await quiet(page)
+      const example = page.locator('[data-floor-specimen]')
+      await expect(example).toBeVisible()
+      const boxes = await page.evaluate(() => {
+        const rect = (node: Element | null) => {
+          const r = node?.getBoundingClientRect()
+          return r === undefined ? null : { top: r.top, bottom: r.bottom, left: r.left, right: r.right, height: r.height }
+        }
+        return {
+          diagram: rect(document.querySelector('[data-game="engine-floor"] .es-frame__diagram')),
+          columns: [...document.querySelectorAll('[data-floor-specimen] .es-lanes__spec-col')].map(rect),
+          hop: rect(document.querySelector('[data-spec-hop]')),
+          down: rect(document.querySelector('[data-spec-down]')),
+        }
+      })
+      expect(boxes.columns, 'the two process columns').toHaveLength(2)
+      for (const part of [...boxes.columns, boxes.hop, boxes.down]) {
+        expect(part?.height ?? 0, 'a part of the example is drawn').toBeGreaterThan(0)
+        expect(part?.bottom ?? Infinity, 'inside the diagram').toBeLessThanOrEqual((boxes.diagram?.bottom ?? 0) + 1)
+        expect(part?.bottom ?? Infinity, 'inside the first viewport').toBeLessThanOrEqual(900)
+      }
+      for (const column of boxes.columns) expect(column?.height ?? 0, 'a process column runs down the box').toBeGreaterThanOrEqual(200)
+    })
+
     test('the front page is at most 2,000 px long', async ({ page, context }) => {
       await withSettings(context, { view3d: false })
       await open(page, '/')

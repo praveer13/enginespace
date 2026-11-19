@@ -34,6 +34,25 @@ const useWideFrame = () =>
     () => true,
   )
 
+/*
+ * Which of the listed parts have a disc on the drawing, per frame: the callouts write it as they place their discs, and the coach strip
+ * reads it, so a row whose part has no disc (it is not drawn on this screen, or is out of view) does not wear one either. The rule is the
+ * frame's: no game can claim a disc it did not draw.
+ */
+const drawnIn = new WeakMap<Element, string>()
+const drawnWatchers = new Set<() => void>()
+let drawnVersion = 0
+function publishDrawn(frame: Element, drawn: string): void {
+  if (drawnIn.get(frame) === drawn) return
+  drawnIn.set(frame, drawn)
+  drawnVersion += 1
+  for (const watcher of drawnWatchers) watcher()
+}
+const watchDrawn = (change: () => void) => {
+  drawnWatchers.add(change)
+  return () => void drawnWatchers.delete(change)
+}
+
 export interface IntroCoachProps {
   title: string
   step: IntroStep
@@ -76,11 +95,14 @@ export function IntroCoach({ title, step, parts, replay, look, ask, askLead, ski
   const walking = step === 'parts' && !wide && partAt < parts.length - 1
 
   // Next moved the learner on: the step's heading takes focus, so a keyboard and a screen reader start reading the new step at its top. At
-  // the ask, focus goes on to the ask's own field under the strip, in view.
-  const pressed = useRef(false)
+  // the ask, focus goes on to the ask's own field under the strip, in view. On a phone's walk through the parts, Next stays in hand: the
+  // strip's title is said to a reader only there, so focus on it would be a ring nobody sees, and Enter would walk no further. The list says
+  // each part it shows, as a carousel's slides do (a polite live region).
+  const pressed = useRef<'walk' | 'step' | null>(null)
   useEffect(() => {
-    if (!pressed.current) return
-    pressed.current = false
+    const how = pressed.current
+    pressed.current = null
+    if (how !== 'step') return
     const field = step === 'ask' ? root.current?.parentElement?.querySelector<HTMLElement>('input:not(:disabled), textarea, select') : null
     if (field !== null && field !== undefined) {
       field.focus({ preventScroll: true })
@@ -91,10 +113,24 @@ export function IntroCoach({ title, step, parts, replay, look, ask, askLead, ski
   }, [step, partAt])
 
   const next = () => {
-    pressed.current = true
+    pressed.current = walking ? 'walk' : 'step'
     if (walking) onPartAt(partAt + 1)
     else onNext()
   }
+
+  // A row keeps its disc only where the drawing has one with its number.
+  const drawnTick = useSyncExternalStore(
+    watchDrawn,
+    () => drawnVersion,
+    () => 0,
+  )
+  useLayoutEffect(() => {
+    const frame = root.current?.closest('[data-game]')
+    const drawn = frame === null || frame === undefined ? undefined : drawnIn.get(frame)
+    if (drawn === undefined) return
+    const at = new Set(drawn.split(','))
+    root.current?.querySelectorAll('.es-intro__parts > .es-parts__item').forEach((row, index) => row.toggleAttribute('data-undrawn', !at.has(String(index))))
+  }, [drawnTick, step, parts])
 
   const nextButton = (label: string) => (
     <Marker kind="ring" word="now" className="es-intro__ring">
@@ -111,17 +147,19 @@ export function IntroCoach({ title, step, parts, replay, look, ask, askLead, ski
       body = (
         <>
           {replay || parts.length === 1 ? <p className="es-intro__lead">{replay ? 'Every part this level draws, the ones you have not met first.' : 'One part is new on this level.'}</p> : null}
-          <PartsList
-            parts={parts.map((part) => ({
-              id: part.id,
-              name: part.name,
-              code: part.code,
-              sentence: part.sentence,
-              isNew: replay ? part.isNew : undefined,
-            }))}
-            label={`Parts of the ${title}`}
-            className="es-intro__parts"
-          />
+          <div aria-live={wide ? undefined : 'polite'}>
+            <PartsList
+              parts={parts.map((part) => ({
+                id: part.id,
+                name: part.name,
+                code: part.code,
+                sentence: part.sentence,
+                isNew: replay ? part.isNew : undefined,
+              }))}
+              label={`Parts of the ${title}`}
+              className="es-intro__parts"
+            />
+          </div>
         </>
       )
       primary = nextButton('Next')
@@ -346,8 +384,22 @@ export function IntroCallouts({ host, parts, partAt }: { host: RefObject<HTMLEle
     })
     const spaced = spread(next)
     setPlaced((now) => (JSON.stringify(now) === JSON.stringify(spaced) ? now : spaced))
+    publishDrawn(frame, spaced.map((disc) => disc.n - 1).join(','))
   }
   useMeasured(host, measure, `${current}|${parts.map((part) => part.id).join(',')}`)
+
+  // On a phone, Next brings the part it names into view where the page has left it off the screen (a lesson's Run, scrolled by the
+  // learner): the part is whole in view while its words are read under it.
+  const named = useRef(current)
+  useEffect(() => {
+    if (named.current === current) return
+    named.current = current
+    const anchor = current === null ? undefined : parts[current]?.anchor
+    const target = anchor === undefined ? null : host.current?.querySelector(anchor)
+    if (target === null || target === undefined) return
+    const box = target.getBoundingClientRect()
+    if (box.top < 0 || box.bottom > window.innerHeight) target.scrollIntoView({ block: 'nearest' })
+  }, [current, parts, host])
   return (
     <div className="es-intro-callouts" aria-hidden="true" data-intro-callouts="">
       {placed.map(({ n, box }) => (

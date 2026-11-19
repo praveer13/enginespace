@@ -182,11 +182,11 @@ export const VERDICT_WORDS: readonly StateWord[] = [
 
 /** How a number is known (ARCHITECTURE's tags, and the course's synthetic worlds), and what a part with no engine source says. */
 export const PROVENANCE_WORDS: readonly StateWord[] = [
-  { word: 'measured', means: 'Read or measured from a named source, on a stated date.' },
+  { word: 'measured', means: "Measured on a machine or read from a source; never the model's." },
   { word: 'derived', means: 'Arithmetic on numbers that carry their own tags.' },
   { word: 'estimated', means: 'A judgment or a design target, not a measurement.' },
   { word: 'unverified', means: 'Not yet checked against a primary source; never load-bearing.' },
-  { word: 'synthetic', means: "A number of the course's invented world, claiming nothing real." },
+  { word: 'synthetic', means: "Printed by the course's own model; says nothing about a real GPU." },
   { word: 'model object', means: 'Drawn by the course model, with no engine source behind it.' },
   { word: 'Not published yet', means: 'What an unbuilt module, game or lab says instead of a date.' },
 ]

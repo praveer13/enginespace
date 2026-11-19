@@ -734,55 +734,18 @@
     overflow: visible;
   }
 
-  .es-step-control__dome {
-    stroke: var(--es-text-1);
-    stroke-width: 1.25;
-  }
-
-  .es-step-control__chrome-hi,
-  .es-step-control__chrome-mid,
-  .es-step-control__chrome-lo {
-    stop-color: var(--es-surface-1);
-  }
-
-  .es-step-control__shine {
-    display: none;
-  }
-
-  .es-step-control__base {
+  .es-step-control__arrow,
+  .es-step-control__stop {
     fill: var(--es-text-1);
-  }
-
-  .es-step-control__plunger,
-  .es-step-control__knob {
-    fill: var(--es-surface-2);
     stroke: var(--es-text-1);
-    stroke-width: 1.25;
+    stroke-width: 2;
+    stroke-linejoin: round;
     transition: transform var(--es-dur-quick) var(--es-ease-settle);
   }
 
-  .es-step-control__waves {
-    fill: none;
-    stroke: var(--es-edge);
-    stroke-width: 2;
-    stroke-linecap: round;
-    opacity: 0;
-    transform-box: view-box;
-    transform-origin: 32px 30px;
-  }
-
-  .es-step-control__body {
-    transform-box: view-box;
-    transform-origin: 32px 46px;
-  }
-
-  /* One step: the plunger goes down and comes back, on the step's duration. */
-  .es-step-control__body[data-struck] {
+  /* One step: the mark goes on by 3 px and comes back, on the step's duration. */
+  .es-step-control__mark[data-struck] {
     animation: es-step-control-strike var(--es-dur-step) var(--es-ease-strike) both;
-  }
-
-  .es-step-control__waves[data-struck] {
-    animation: es-step-control-ring calc(var(--es-dur-step) * 2) var(--es-ease-settle) both;
   }
 
   @keyframes es-step-control-strike {
@@ -790,22 +753,10 @@
       transform: none;
     }
     40% {
-      transform: translateY(2px);
+      transform: translateX(3px);
     }
     100% {
       transform: none;
-    }
-  }
-
-  @keyframes es-step-control-ring {
-    0% {
-      opacity: 0;
-    }
-    30% {
-      opacity: 1;
-    }
-    100% {
-      opacity: 0;
     }
   }
 
@@ -817,8 +768,8 @@
     background-color: var(--es-surface-2);
   }
 
-  .es-step-control__button:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) :is(.es-step-control__knob, .es-step-control__plunger) {
-    transform: translateY(3px);
+  .es-step-control__button:is(:active, [data-force='active']):not(:disabled, [aria-disabled='true']) .es-step-control__arrow {
+    transform: translateX(3px);
   }
 
   .es-step-control__button:is(:focus-visible, [data-force='focus']) {
@@ -832,8 +783,9 @@
     cursor: not-allowed;
   }
 
-  .es-step-control[data-state='disabled'] .es-step-control__dome {
+  .es-step-control[data-state='disabled'] :is(.es-step-control__arrow, .es-step-control__stop) {
     fill: var(--es-surface-2);
+    stroke: var(--es-text-2);
     stroke-dasharray: 3 2;
   }
 
@@ -1552,19 +1504,6 @@
     justify-items: start;
     gap: var(--es-space-2);
     margin-block: var(--es-space-4);
-  }
-
-  .es-way__aside {
-    margin: 0;
-    color: var(--es-text-2);
-    font-size: var(--es-size-note);
-  }
-
-  .es-way__last {
-    max-width: 66ch;
-    margin: 0;
-    color: var(--es-text-1);
-    line-height: 1.5;
   }
 
   .es-header__next-word {

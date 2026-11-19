@@ -36,6 +36,14 @@ describe('activityRows', () => {
     expect(rows[1].what).toMatch(/^Played /)
   })
 
+  test('names what a question asked about when the page can say it', () => {
+    const events = [at('item', 'i1', { ref: 'item:gen/tr2.bubble-width/async-off' }), at('item', 'i2', { ref: 'item:gen/nowhere/none' })]
+    const itemName = (family: string, variant: string) => (family === 'tr2.bubble-width' && variant === 'async-off' ? 'The gap with async scheduling off' : undefined)
+    const rows = activityRows(events, { lessons: LESSONS, levelName: names, itemName })
+    expect(rows.find((row) => row.id === 'i1')?.what).toBe('Answered a question: The gap with async scheduling off')
+    expect(rows.find((row) => row.id === 'i2')?.what).toBe('Answered a question')
+  })
+
   test('says a pass at part weight as a pass in practice, and a pass at full weight as passed', () => {
     const rows = activityRows(
       [at('item', 'a', { ok: true, provenance: 'practice' }), at('item', 'b', { ok: true, provenance: 'unseen', at: '2026-11-04T10:30:00.000Z' })],

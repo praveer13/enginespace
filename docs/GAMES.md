@@ -253,7 +253,7 @@ The first five role lines are REDESIGN §2.6's. The four games still to be built
 
 - **The present:** the running batch, the step in flight with async scheduling on, and the step being scheduled.
 - **The diagram** (§3, "3D scene"): a CPU lane and a GPU lane along time. The CPU lane is the engine core thread's work: `schedule`, `prepare` and `launch`, then `sync` and `sample`. The GPU lane holds each step's forward, as long as its cost and as wide as the batch. The running batch has a fixed number of batch slots, with the waiting queue beside it. With async scheduling on, a second batch is the step in flight. Each step carries one cell per slot: an output token (solid), an empty slot (open, a wasted slot-step), a ghost token (hollow) and, in TR2, padding (marked). Gaps on the GPU lane are bubbles. Eager kernel launches draw as a comb, one tooth per call, and a CUDA graph replay as one short slab; TR2's capture sizes are a ladder beside the batch. TR6's grammar mask is a row on the CPU side.
-- **Views:** **Along time** (Establish; the front page opens here), **Side** (Compare, orthographic: steps as lengths, bubbles as gaps; `first-4-par` ends here with three runs stacked) and **Top** (straight down on the batch, where empty slots are easy to count).
+- **Views:** **Lifted** (Establish; the 3D scene's default), **Side** (orthographic: steps as lengths, bubbles as gaps) and **Top** (square to the box, on the learner's run alone, where empty slots are easy to count). **Along time**, which this design first named, is withdrawn (§3, "Cameras").
 - **Legible at 390 px:** each cell's shape; the bubbles; request numbers as DOM labels; and the readouts, all DOM: output tokens, ghost tokens, padding, busy and idle ticks (or µs), launches and eager steps.
 
 #### Request path (`engine-floor`)
@@ -559,7 +559,7 @@ Proposed pass bars (ASSESSMENT.md decides):
 The 3D view is the timing diagram laid flat on a plate and lifted into depth (R-T18; R-T19 gave it the step loop's `Scene3D.tsx`). It is drawn from the same pure lane layouts as the 2D view (`packages/play/loop/lanes.ts`, and `full/lanes.ts` in µs), so every mark is the 2D view's mark. A kit part, `FlatTrack`, draws it, and no prop is involved.
 
 - **Objects.** x is the diagram's x (time) and z is its y (the rows); y is up, and one world unit is 100 px.
-  - The plate is pale paper engraved with the graticule: minor lines per tick, major lines per axis tick, and a rule between rows.
+  - The plate is pale paper engraved with the graticule: minor lines per tick, major lines per axis tick, and a rule between rows. On the demo levels and the front page, Lifted and Compare draw two bands on one plate and one clock: the reference run behind, "Reference run", and the learner's in front, "Your run", with one now sheet through both. The reference is drawn to the window's end, or only to now while a guess about the run ahead is open. The waiting queue is not drawn in the scene (the dock's admit controls are its one drawing in 3D). Each row name carries its 2D glyph, and the 2D legend stands at the top of the 3D box.
   - The waiting queue is a row of paper chips. The CPU row holds the engine core thread's calls as blue slabs, and a sync is a yellow one.
   - Each batch slot is a row. A live slot's output token is a green slab, and a ghost token is hatched green. An empty slot is a dashed wire.
   - Idle is a dashed box with a dimension line and its value. On the full levels a graph replay is one slab, eager launches are a comb of thin ticks on a spine, padding is hatched and stands proud, and the mask is a row.
@@ -568,8 +568,8 @@ The 3D view is the timing diagram laid flat on a plate and lifted into depth (R-
 - **Cameras** (`track-presets.ts`; `C` cycles them in this order):
   - **Lifted** (the default when 3D is on) is Side turned 36° about the time axis, 24° on a canvas under 560 px, so slots recede.
   - **Side** is orthographic and face-on, `canvas.height / 100` units high: the 2D diagram, pixel for pixel.
-  - **Along time** looks from past now back down the axis.
-  - **Top** looks from high above, a little to the right, so the slabs' sides show and empty slots are easy to count.
+  - **Top** looks straight down, square to the box, fitted to the whole plate, and shows the learner's run alone as Side does, so the lane names stand clear at its scale.
+  - **Along time**, which this design named between Side and Top, is withdrawn: looking along the time axis projects the label column as one receding line, so the lane names pile at every angle that shows time receding, and Lifted already shows the run receding with every lane named (wave R's polish, 2026-11-18; the owner can restore it).
   - **Compare** is lifted 26° over three bands, static batching, continuous batching and async scheduling. **Scale** is lifted 30° over 64 slots and 160 steps. Both draw the model's own run on a synthetic night, labelled so, and neither is played.
 - **Motion.** A step is a cut. The one authored move is Compare's, the bands settling into place in 640 ms on the kit's ease, and under reduced motion it is drawn at its end.
 - **Must stay legible at 390 px:** each slot's token shape, the idle boxes with their values, request numbers and the readouts, all DOM. On a canvas under 560 px the slab and idle words hide and the state table carries them.
@@ -1119,7 +1119,7 @@ You cannot save recomputed tokens without using the intersection rule, which is 
   - **Selection** lives in the page, not the scene: by a pick, by the request buttons or by a page-number field under the camera buttons (`Select3D.tsx`, a lazy chunk), so the scene is never the only way to choose.
 - **Axes.** Physical page (the rack); group and layer (the fan and the threads); token position (the slot tile's blocks).
 - **Materials.** The marks material only: matte, flat-shaded forms on contact shadows with baked occlusion, dashed wires for empty slots, and token-role colours. No texture, environment map, lamp, haze or bloom.
-- **Cameras** (`scene-presets.ts`, `C` cycles): **Front** of the page pool (Establish), **One KV group** and **From above** (the rack as a grid). The scene is fitted to the measured canvas, and a phone gets its own framing.
+- **Cameras** (`scene-presets.ts`, `C` cycles): **Front** of the page pool (Establish), **One KV group** and **From above** (the rack as a grid). Each is fitted to the content it must hold (the batch with its names, the rack, the queue and the room the level's tallest fan needs) on the measured canvas, and a phone is offered no 3D. The page nearest the front of the request showing opens into its layers without a click, and the fan casts no shadow. At level start, in a wide box, the rack is still width-bound (about 560 px of a 780 px box, measured 2026-11-18).
 - **Motion.** The fan opens in the kit's 640 ms move, and under reduced motion it is drawn at its end. Nothing else moves: a page changes state where it sits, and lines draw.
 - **Legible at 390 px:** each page's form and glyph, the free queue's order (DOM) and the counts. The scene prints only the request numbers; the words are on the page beside it (`select-words.ts`).
 
@@ -1355,10 +1355,10 @@ The output is distributed exactly as p, "without changing the distribution" (Lev
   - target p is a solid blue bar, and the draft's q is a yellow hatched one;
   - where a level prints the decomposition, the accepted base min(p, q) is green and solid, and the residual (p − q)+ is a red groove;
   - a drafted token is a dot on its bar, and the walk stops at the first rejection, with later rows drawn as outlines.
-- **The output** is a thin dark ring on the target bar at the output's height. As draws accumulate it settles onto p in one 640 ms move, the scene's one authored move, drawn at its end under reduced motion. A hundred rounds move it once.
-- **With γ** one bar for each position is cut at alpha, and the ring marks how far the walk reaches.
+- **The output** is a solid dark collar, square on the target bar's axis, at the output's height. Where it stands over p, a riser of hollow dashes carries the bar up to it, at a weight every camera keeps. As draws accumulate it settles onto p in one 640 ms move, the scene's one authored move, drawn at its end under reduced motion. A hundred rounds move it once. A token with no p and nothing put out has no collar.
+- **With γ** the 2D view cuts one bar for each position at alpha and marks how far the walk reaches. The level has one position, so it offers no 3D (a one-row scene is the bar chart in perspective).
 - **Axes.** Token (across), probability (height), draft position (depth).
-- **Materials.** The marks material: matte, flat-shaded forms on contact shadows, token-role colours, no texture, no glow. The numbers, the token numbers and the row names are DOM labels; on a phone the row names become 1, 2, 3 and +, and the counts of several rows wait for room.
+- **Materials.** The marks material: matte, flat-shaded forms on contact shadows, token-role colours, no texture, no glow. The numbers, the token numbers and the row names are DOM labels, placed in rank order from the shot's own projection: a count that would land on another label, on a nearer row's bar or off the canvas is not printed (its value stays in the value scale at the front row's right and in State as a table). A phone is offered no 3D, and neither is a one-position level.
 - **Cameras** (`scene-shots.ts`, `C` cycles): **Over the run** (Establish), **One draft position** (Focus) and **From the side**. Each is fitted to the plate and the measured canvas.
 - **Legible:** which bar a drop hit, the total variation distance (DOM, exact) and each token's output against p in the mirror.
 

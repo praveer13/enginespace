@@ -16,7 +16,7 @@ One engine step is five calls on one thread, and the GPU can sit idle between tw
 
 ## One thread, one loop
 
-kernelspace T5.L7 taught continuous batching as the scheduler's loop, and that view is silent about time. This lesson takes the engine's view, the one the level showed. It follows one step through the code that runs it at the pin, vLLM v0.33.0, and says which calls touch the GPU and which wait for it.
+In the level the GPU lane went empty whenever the CPU lane was busy, until async scheduling overlapped the two. This part follows the CPU lane's thread through one step of vLLM v0.33.0: which calls touch the GPU, and which wait for it. kernelspace T5.L7 taught the same loop without a clock.
 
 kernelspace T0.L6 told you that vLLM's V0 loop spent visible milliseconds an iteration in Python, and that the V1 rewrite exists because flame graphs showed the plateau. **a Python scheduler tax** [measured] V1 set out to fix it, and its guide lists near-zero CPU overhead among its aims. **near-zero CPU overhead** [measured] A step still has a CPU part, and the GPU still waits for it unless something hides it.
 
@@ -26,12 +26,25 @@ Between a request's arrival and its token's departure the engine core schedules,
 
 ## Five calls and a wait
 
-`EngineCore.step` is short enough to read whole. At the pin it makes five calls, and the wait for the GPU is inside the fourth. **schedule, launch, mask, wait, sample, update** [measured]
+`EngineCore.step` is 31 lines [measured] at the pin, and [these lines hold its first four calls](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L677-L686), the fourth a wait and a sample, with `...` for the lines cut.
+
+```python
+# vllm/v1/engine/core.py, lines 677 to 686 at v0.33.0
+scheduler_output = self.scheduler.schedule(self._should_throttle_prefills())
+future = self.model_executor.execute_model(scheduler_output, non_block=True)
+grammar_output = self.scheduler.get_grammar_bitmask(scheduler_output)
+...
+    model_output = future.result()
+    if model_output is None:
+        model_output = self.model_executor.sample_tokens(grammar_output)
+```
+
+The fifth call, `update_from_output`, follows a drain of aborts. **schedule, launch, mask, wait, sample, update** [measured]
 
 1. `scheduler.schedule()` chooses which requests run and how many tokens each gets, out of one token budget. The next lesson takes it apart. It is CPU work and it waits for nothing.
 2. `model_executor.execute_model(scheduler_output, non_block=True)` runs the first half of the step in the model runner. The runner brings its request state up to date, prepares the step's inputs and launches the forward, and the call returns a future as soon as the launch is queued, without waiting for the GPU. **state first, then the inputs** [measured] The forward then runs on the GPU, and the engine core's thread is free again while it does.
 3. `scheduler.get_grammar_bitmask(scheduler_output)` builds the structured-output mask on the CPU, while the forward is running. For a step with no grammar there is nothing to build. **computed while the forward runs** [measured]
-4. `future.result()` hands back what `execute_model` returned, and in MRV2 that is no output yet: the runner has launched the forward and kept its state for a second call, so `step` goes on to `model_executor.sample_tokens(grammar_output)`. **execute_model, then sample_tokens** [measured] **sample_tokens when the result is empty** [measured] That call applies the mask, samples the next token of every request and copies the ids to the host, and the engine core does not go on until the copy has landed. **get_output() before it returns** [measured] **copy_event.synchronize()** [measured] The copy waits for the forward on the GPU's own streams, so it cannot land before the forward has ended, and that is the wait for the forward. **a copy stream that waits for the main stream** [measured]
+4. The fourth call is the step's one wait for the GPU. `future.result()` hands back what `execute_model` returned. In MRV2 that is no output yet, because the runner has launched the forward and kept its state for a second call. **execute_model, then sample_tokens** [measured] So `step` goes on to `model_executor.sample_tokens(grammar_output)`. **sample_tokens when the result is empty** [measured] That call applies the mask, samples the next token of every request and copies the ids to the host. The engine core does not go on until the copy has landed. **get_output() before it returns** [measured] **copy_event.synchronize()** [measured] The copy waits for the forward on the GPU's own streams, so it cannot land before the forward has ended, and that is the wait for the forward. **a copy stream that waits for the main stream** [measured]
 5. `scheduler.update_from_output(...)` appends the new tokens to their requests, checks for stops, frees what finished and builds the outputs. Aborts that arrived during the forward are taken just before it. **aborts_queue** [measured]
 
 Check what a call does and what it waits for before you go on.
@@ -64,7 +77,7 @@ When the next step cannot start until this one has been read, every microsecond 
 
 > **Idle is not the same as waiting.** A GPU that is idle because there is nothing to run and a GPU that is idle because the CPU has not finished the next call look the same on a lane. The first is a quiet server. The second is the bubble, and only the second is the engine's to fix. Check what the CPU lane is doing before you call a gap a bubble.
 
-The level you ran, `first-3-gap`, has the same rule in a world of synthetic ticks. A step plans for 2 ticks, runs the forward for 4 and reads for 1 [estimated], so without overlap it takes 7 ticks [derived] and the GPU is busy for 4 of them. **7 ticks** [derived] That is the answer to your guess. In the level each bubble is a dashed box on the GPU lane, and turning async scheduling on is what shrinks it.
+The level you ran, `first-3-gap`, has the same rule in a world of synthetic ticks. A step plans for 2 ticks, runs the forward for 4 and reads for 1 [estimated], so without overlap it takes 7 ticks [derived] and the GPU is busy for 4 of them. **7 ticks** [derived] The three numbers are arbitrary: others would change the share, not the rule. That share is the answer to your guess. In the level each bubble is a dashed box on the GPU lane, and turning async scheduling on is what shrinks it.
 
 Check what a bubble is before you go on.
 
@@ -72,9 +85,9 @@ Check what a bubble is before you go on.
 
 ## The same rule on two real-sized cards
 
-The levels after the first four run the step loop in microseconds on two cost cards. `70B on H100` takes its forward from kernelspace's S5 fit, with S5's host term on the CPU lane, and the small model is a napkin on a `24 GB` card, synthetic. The table is one steady step of the `async` level's practice run, with every batch slot full and every row a decode, and the next call written after the forward. Read on 2026-11-08 at `b5fb81a`.
+The levels after the first four run the step loop in microseconds on two cost cards. `70B on H100` takes its forward from kernelspace's S5 fit, with S5's host term on the CPU lane, and the small model is a napkin on a `24 GB` card, synthetic. The table is one steady step of the `async` level's practice run, with every batch slot full and every row a decode, and the next call written after the forward. Printed by the course's model on 2026-11-08 at `b5fb81a`.
 
-| The step's phase | 70B on H100, µs [measured] | Small model, µs [measured] |
+| The step's phase | 70B on H100, µs [synthetic] | Small model, µs [synthetic] |
 |---|---|---|
 | `schedule` | 883 | 510 |
 | `prepare` | 24 | 24 |
@@ -87,7 +100,7 @@ The levels after the first four run the step loop in microseconds on two cost ca
 
 The host phases are the model's [estimated] presets. The `schedule` row of the `70B on H100` card is the host card's base phase and S5's host term for each of the twelve rows, which is **61.1 us** [measured] per running sequence per step, so the card has no `sample` row of its own. On the small card the host card prices the per-sequence work itself, in the `sample` row.
 
-Two things stand out. The GPU's idle time before a step is its CPU's work, row for row: 957 µs and 764 µs [measured]. That is the arithmetic of your prediction, on bigger numbers. And the same CPU part is a very different bubble. The big model's forward is long, so its GPU is busy for 92.6% [derived] of the clock even with nothing overlapped. The small model's forward is barely longer than the CPU's work, so its GPU is busy for 61.6% [derived]. This is why "host overhead" is a small model's complaint, and a small batch's: the CPU part does not shrink with the model, and the forward does.
+Two things stand out. The GPU's idle time before a step is its CPU's work, row for row: 957 µs and 764 µs [synthetic]. That is the arithmetic of your prediction, on bigger numbers. And a similar CPU part is a very different bubble on the two cards, which also differ in their GPU and in where the host card prices the per-sequence work. So read them as two cases, not as the effect of size alone. The big model's forward is long, so its GPU is busy for 92.6% [derived] of the clock even with nothing overlapped. The small model's forward is barely longer than the CPU's work, so its GPU is busy for 61.6% [derived]. This is why "host overhead" is a small model's complaint, and a small batch's: the CPU part does not shrink with the model, and the forward does.
 
 ## What a profiler shows, and a number to leave alone
 

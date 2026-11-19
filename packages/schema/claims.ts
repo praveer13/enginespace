@@ -20,6 +20,14 @@ import { claimIdSchema, lockKeySchema } from './refs'
 /** How a claim's number is known (A§0, A§4.4). The prose gate checks these tags too. */
 export const CLAIM_TAGS = ['measured', 'derived', 'estimated', 'unverified'] as const
 
+/**
+ * The tags that an author writes after a number in prose: the four of a claim and `synthetic`, a number that the course's own seeded
+ * model printed (a claim of the invented world says `synthetic: true` instead, and keeps one of the four). `measured` is never a model's
+ * number: it is read or measured on a real thing, and a model's output is `synthetic` however exactly its test recomputes it.
+ */
+export const PROSE_TAGS = [...CLAIM_TAGS, 'synthetic'] as const
+export type ProseTag = (typeof PROSE_TAGS)[number]
+
 export const claimSourceSchema = z.strictObject({
   url: httpsUrl,
   title: nonBlank,

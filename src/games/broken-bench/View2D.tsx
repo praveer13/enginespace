@@ -170,7 +170,7 @@ export function View2D({ run, desk, moment, exhibits }: View2DProps) {
             ))}
           </div>
         </div>
-        <div className="es-bench-sheetbox" data-sheet={view.tab}>
+        <div className="es-bench-sheetbox" data-sheet={view.tab} data-callout-in="">
           {view.tab === 'rows' ? (
             <Suspense fallback={<p role="status">Reading the log…</p>}>
               <Log scene={scene} desk={desk} tools={LOG_TOOLS} />

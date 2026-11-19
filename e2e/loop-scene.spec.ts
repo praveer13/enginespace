@@ -2,8 +2,8 @@
  * The step loop's 3D scene, the time track (R-T18; REDESIGN §2.8, §2.9), in Playwright's Chromium, through `/play/loop`:
  *
  *   - a whole night of first-4-par draws in at most 100 calls, at T1 and at T2, read from the scene's own `renderer.info` (A§11.1);
- *   - `V` swaps 2D and 3D and keeps the levers; `C` and the buttons reach all six cameras;
- *   - a waiting request picked in the scene is admitted, as its chip in the dock admits it;
+ *   - `V` swaps 2D and 3D and keeps the levers; `C` and the buttons reach all five cameras;
+ *   - the waiting queue is drawn once, in the dock, and a chip admitted there shows on the plate;
  *   - the capture is not blank at T1 and at T2, where the contact shadows and baked occlusion are all the depth there is;
  *   - all text is DOM over the canvas;
  *   - Compare stacks three schedulers, and Scale draws more than 10,000 instances in the kit's budget of 10 calls;
@@ -105,7 +105,7 @@ const bellCount = (page: Page) => page.locator('[data-loop-readout] [data-readou
 const overlap = (page: Page) => page.getByRole('switch', { name: /Async scheduling/ })
 const camera = (page: Page) => page.getByRole('group', { name: 'Camera' })
 const labels = (page: Page) => stage(page).locator('.es-labels')
-const CAMERAS = ['Lifted', 'Side', 'Along time', 'Top', 'Compare', 'Scale']
+const CAMERAS = ['Lifted', 'Side', 'Top', 'Compare', 'Scale']
 
 /**
  * Opens a level on a device of the tier given. The diagram is the default view since R-T17 (REDESIGN §2.9), so where the tier draws 3D the
@@ -159,7 +159,7 @@ async function choose(page: Page, name: string) {
   await expect(stage(page).locator(`[data-track-camera="${CAMERAS_ID[name]}"]`)).toHaveCount(1)
 }
 
-const CAMERAS_ID: Record<string, string> = { Lifted: 'lifted', Side: 'side', 'Along time': 'along', Top: 'top', Compare: 'compare', Scale: 'scale' }
+const CAMERAS_ID: Record<string, string> = { Lifted: 'lifted', Side: 'side', Top: 'top', Compare: 'compare', Scale: 'scale' }
 
 test.describe('the draw-call budget at the practice seed (A§11.1)', () => {
   for (const tier of [1, 2]) {
@@ -215,7 +215,7 @@ test.describe('the views and the cameras (A§6.8)', () => {
     await expect(labels(page).getByText('now', { exact: true })).toHaveCount(1)
   })
 
-  test('`C` cycles all six cameras from Lifted, and each button reaches its own', async ({ page }) => {
+  test('`C` cycles all five cameras from Lifted, and each button reaches its own', async ({ page }) => {
     test.setTimeout(180_000)
     await open(page, 'first-2-slot', 2)
     await settle(page)
@@ -235,14 +235,12 @@ test.describe('the views and the cameras (A§6.8)', () => {
   })
 })
 
-test.describe('picks (A§6.8): a pick on the scene is the same action as its DOM control', () => {
-  test('tapping R1\'s chip on the plate admits it into a batch slot', async ({ page }) => {
+test.describe('the queue is drawn once (A§6.8): in 3D the dock holds it, and the scene shows what a tap on it did', () => {
+  test('the plate draws no chip, and admitting R1 from the dock fills slot 1 on the plate', async ({ page }) => {
     await open(page, 'first-1-fill', 2)
     await settle(page)
-    // The chip's word is DOM over the chip's top face, and the label layer lets the pointer through to the canvas.
-    const word = await labels(page).locator('.es-track-label--chip', { hasText: /^R1$/ }).boundingBox()
-    if (!word) throw new Error('R1 is not on the plate')
-    await page.mouse.click(word.x + word.width / 2, word.y + word.height / 2)
+    await expect(labels(page).locator('.es-track-label--chip')).toHaveCount(0)
+    await page.locator('[data-loop-controls] ul button:not([disabled])', { hasText: /^R1$/ }).click()
     await expect(page.locator('[data-live="line"]')).toContainText('Request R1 admitted into slot 1.')
     await settle(page)
     await expect(labels(page).locator('.es-track-label--row', { hasText: 'slot 1 · R1' })).toHaveCount(1)
@@ -278,6 +276,12 @@ test.describe('the picture', () => {
     for (const slot of [1, 2, 3, 4]) await expect(labels(page).locator('.es-track-label--row', { hasText: new RegExp(`^slot ${slot} · R${slot}$`) })).toHaveCount(1)
     await expect(labels(page).locator('.es-track-label--axis', { hasText: 'synthetic ticks' })).toHaveCount(1)
     await expect(labels(page).locator('.es-track-label--now')).toHaveText('now')
+    // The colour code is a form as well as a colour, as in the 2D view: each row's name carries its glyph, and the legend stands over the plate.
+    await expect(labels(page).locator('.es-track-label--row', { hasText: 'CPU · engine core thread' }).locator('svg[data-glyph="circle"]')).toHaveCount(1)
+    await expect(labels(page).locator('.es-track-label--row', { hasText: /^slot 1 · R1$/ }).locator('svg[data-glyph="hexagon"]')).toHaveCount(1)
+    await expect(stage(page).locator('.es-track3d__legend ul.es-legend[aria-label="Legend: step loop"]')).toBeVisible()
+    // The reference run stands behind the learner's, each named.
+    for (const name of ['Reference run', 'Your run']) await expect(labels(page).locator('.es-track-label--band', { hasText: name })).toHaveCount(1)
     await expect(stage(page).locator('.es-stage__scene')).toHaveAttribute('aria-hidden', 'true')
     expect(await stage(page).locator('canvas').evaluate((canvas) => canvas.textContent)).toBe('')
   })
@@ -290,7 +294,9 @@ test.describe('Compare and Scale: the model\'s own runs', () => {
     await choose(page, 'Compare')
     await settle(page)
     for (const name of ['Static batching', 'Continuous batching', 'Async scheduling']) await expect(labels(page).locator('.es-track-label--band', { hasText: name })).toHaveCount(1)
-    await expect(labels(page).locator('.es-track-label--caption')).toContainText('synthetic ticks')
+    // Its unit stands at the last band's axis in the label column, inside the box, as on every other camera.
+    await expect(labels(page).locator('.es-track-label--axis', { hasText: 'synthetic ticks' })).toHaveCount(1)
+    await expect(labels(page).locator('.es-track-label--caption')).toHaveCount(0)
     await expect(labels(page).locator('.es-track-label--now')).toHaveCount(3)
   })
 

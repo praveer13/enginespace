@@ -281,9 +281,21 @@ button.es-lanes__chip:disabled {
   stroke: var(--es-cat-blue-edge);
 }
 
+/* A sync is hatched in its edge over its yellow, so it never reads as one mark with now's amber line, which stands at its end: the two are
+   parted by form, not by a gap (a fill that would read as its neighbour takes a hatch). Where no diagram on the page defines the hatch, the
+   plain yellow. */
 .es-lanes__slab[data-call='sync'] {
-  fill: var(--es-lane-sync);
+  fill: url(#es-lanes-sync) var(--es-lane-sync);
   stroke: var(--es-cat-yellow-edge);
+}
+
+.es-lanes__sync {
+  fill: var(--es-lane-sync);
+}
+
+.es-lanes__sync-hatch {
+  stroke: var(--es-cat-yellow-edge);
+  stroke-width: 1.5;
 }
 
 .es-lanes__slab-text[data-on='blue'] {
@@ -338,8 +350,20 @@ button.es-lanes__chip:disabled {
 }
 
 .es-lanes__dim {
+  fill: none;
   stroke: var(--es-edge);
   stroke-width: 1;
+}
+
+/* The reference run, under the learner's own: outlines in the edge's ink, which the learner's slabs fill as the steps run. */
+.es-lanes__ref {
+  fill: none;
+  stroke: var(--es-edge);
+  stroke-width: 1.5;
+}
+
+.es-lanes__ref-text {
+  fill: var(--es-text-2);
 }
 
 .es-lanes__dim-text {
@@ -622,7 +646,7 @@ button.es-lanes__chip:disabled {
 
 .es-loopdebrief__verdict:focus-visible {
   outline: 3px solid var(--es-text-1);
-  outline-offset: 2px;
+  outline-offset: 6px;
 }
 
 .es-loopdebrief__sentence {

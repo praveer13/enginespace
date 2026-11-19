@@ -51,7 +51,7 @@ export function FrontPage() {
       <div className="es-front-first">
         <div className="es-front-intro">
           <h1 className="es-front-title">{HERO.headline}</h1>
-          {returning === null ? <FirstVisit index={index} /> : <Back returning={returning} primary={!touched} />}
+          {returning === null ? <FirstVisit index={index} /> : <Back returning={returning} primary={!touched} index={index} />}
         </div>
         <Instrument returning={returning !== null} course={course} onTouched={onTouched} />
         {returning === null && short !== null ? (
@@ -65,28 +65,40 @@ export function FrontPage() {
   )
 }
 
-/** The left column on a first visit: what this is, that the panel is live, the course's size, and the way past the demo. */
+/** The left column on a first visit: what this is and what it takes as read, that the panel is live, the course's size, and the way past
+ * the demo. */
 function FirstVisit({ index }: { index: ContentIndex | null }) {
+  return (
+    <>
+      <p className="es-front-lede es-front-desk">
+        {HERO.lede} {HERO.assumes}
+      </p>
+      <p className="es-front-live es-front-desk">{HERO.live}</p>
+      <p className="es-front-lede es-front-phone">{HERO.short}</p>
+      <Course index={index} link={HERO.skip} />
+    </>
+  )
+}
+
+/** At a desk, under the left column's words: the course's range and hours by lane, from the course index, and a link to Course. */
+function Course({ index, link }: { index: ContentIndex | null; link: string }) {
   const hours = courseHours(index)
   return (
     <>
-      <p className="es-front-lede es-front-desk">{HERO.lede}</p>
-      <p className="es-front-live es-front-desk">{HERO.live}</p>
-      <p className="es-front-lede es-front-phone">{HERO.short}</p>
       {hours === null ? null : (
         <p className="es-front-range es-front-desk" data-course-hours="">
           {`${HERO.range} · ${formatReadout(hours.total, decimalsOf(hours.total))} ${HERO.hours}, ${HERO.estimated}: ${hours.lanes.map((lane) => `${formatReadout(lane.hours, decimalsOf(lane.hours))} ${lane.words}`).join(', ')}`}
         </p>
       )}
       <p className="es-front-skip es-front-desk">
-        <TextLink to="/map">{HERO.skip}</TextLink>
+        <TextLink to="/map">{link}</TextLink>
       </p>
     </>
   )
 }
 
-/** The left column for a returning learner: where they left off, and Continue, amber until the demo is touched. */
-function Back({ returning, primary }: { returning: Returning; primary: boolean }) {
+/** The left column for a returning learner: where they left off, and Continue, amber until the demo is touched; then the course's size. */
+function Back({ returning, primary, index }: { returning: Returning; primary: boolean; index: ContentIndex | null }) {
   return (
     <div className="es-front-back" data-front-back="">
       <p className="es-front-lede">
@@ -104,6 +116,7 @@ function Back({ returning, primary }: { returning: Returning; primary: boolean }
       </p>
       <ContinueLink target={returning.pointer} emphasis={primary ? 'primary' : 'outline'} className="es-front-back__continue" />
       <p className="es-front-live es-front-desk">{RETURNING.demo}</p>
+      <Course index={index} link={HERO.course} />
     </div>
   )
 }

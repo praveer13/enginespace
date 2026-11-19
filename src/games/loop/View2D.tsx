@@ -1,11 +1,10 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode, type RefObject } from 'react'
 import { requestName } from '@es/play/loop/copy'
 import { loopPart } from '@es/play/loop/parts'
-import { DOCK, fitGeometry, FRAME_DESK, FRAME_PHONE, LANE_WORDS, laneLayout, type LaneGeometry, type LaneLayout, type LaneSlab } from '@es/play/loop/lanes'
+import { DOCK, fitGeometry, FRAME_DESK, FRAME_PHONE, LANE_WORDS, laneLayout, type LaneGeometry, type LaneLayout, type LaneSlab, type LaneSource } from '@es/play/loop/lanes'
 import type { LoopView } from '@es/play/loop/types'
 import { SLOT_MARKS, type Slot } from '@/design/code'
 import { Glyph } from '@/design/components/Glyph'
-import { Legend } from '@/design/components/Legend'
 import { Marker } from '@/design/components/Marker'
 import { tickAnchor, wholeAxisLeft } from './axis'
 import type { LoopRunCore } from './types'
@@ -20,7 +19,9 @@ import './loop.css'
  *   - the CPU row, the engine core thread, with its `schedule` and `sync` calls as labelled slabs;
  *   - one GPU row per batch slot, whose label holds the request in it (or a dashed "empty"), and on which every forward draws the request's
  *     token, a ghost token or an empty slot;
- *   - idle as dashed boxes over the GPU rows, each closed one with a dimension line and its value ("bubble 3 ticks");
+ *   - idle as dashed boxes over the GPU rows, each closed one with a dimension line and its value over it ("bubble 3 ticks");
+ *   - where the page passes it, the reference run of the same level and seed, drawn under the learner's run as outlines: the run to beat,
+ *     there from the first paint, which each step fills;
  *   - the now cursor at the CPU's clock, and the axis in synthetic ticks.
  *
  * The label column is DOM, and each part's name opens its popover (its sentence and its source). The track is an SVG in a box of its own:
@@ -120,13 +121,15 @@ export interface LanesProps {
   fit?: 'wide' | 'narrow'
   /** A node laid on a part's label (the first run's callout discs), by the part's id. */
   callouts?: Partial<Record<CalloutPart, ReactNode>>
+  /** The reference run of the same level and seed, drawn as outlines under the learner's own; `ahead` false hides what lies past now. */
+  reference?: { view: LaneSource; ahead: boolean }
 }
 
 /** The parts of the diagram a page may lay a callout on: the queue's name, the first slot's holder, the CPU row's name and a GPU row's. */
 export type CalloutPart = 'waiting' | 'slot' | 'cpu' | 'gpu'
 
 /** The step loop's timing diagram. */
-export function Lanes({ view, size = 'page', onAdmit, ring = null, focusAfter, geometry: pair = FRAME_PAIR, fit, callouts = {} }: LanesProps) {
+export function Lanes({ view, size = 'page', onAdmit, ring = null, focusAfter, geometry: pair = FRAME_PAIR, fit, callouts = {}, reference }: LanesProps) {
   const [box, measured] = useWidth(size === 'dock' ? DOCK.width : pair.wide.width)
   const boxWidth = fit === undefined ? measured : fit === 'wide' ? pair.wide.width : pair.narrow.width
   const base: LaneGeometry = size === 'dock' ? DOCK : boxWidth < NARROW ? pair.narrow : pair.wide
@@ -137,9 +140,11 @@ export function Lanes({ view, size = 'page', onAdmit, ring = null, focusAfter, g
   const pad = narrow ? PAD_NARROW : PAD
   const room = Math.max(boxWidth - pad * 2, base.labelWidth + 1)
   const geometry = useMemo(() => fitGeometry(base, room), [base, room])
-  const layout = useMemo(() => laneLayout(view, geometry), [view, geometry])
-  const track = useRef<HTMLDivElement>(null)
+  // The reference on the learner's clock, so its window and rows are the learner's: only its slabs are drawn.
+  const outlines = reference && laneLayout({ ...reference.view, clockUs: view.clockUs, waiting: [] }, geometry).slabs.filter((slab) => slab.use !== 'empty' && (reference.ahead || slab.endUs <= view.clockUs))
   const scrolls = geometry.width > room + 1
+  const layout = useMemo(() => laneLayout(view, geometry, scrolls ? room - geometry.labelWidth : undefined), [view, geometry, room, scrolls])
+  const track = useRef<HTMLDivElement>(null)
 
   // Keep now in view: after every change, the track is scrolled so that now stands a little past the middle of what shows.
   useLayoutEffect(() => {
@@ -171,7 +176,7 @@ export function Lanes({ view, size = 'page', onAdmit, ring = null, focusAfter, g
           // A track that scrolls is a region the keyboard can reach, so its arrows scroll it (WCAG 2.1.1).
           {...(scrolls ? { role: 'region', 'aria-label': 'Time track', tabIndex: 0 } : {})}
         >
-          <Track layout={layout} />
+          <Track layout={layout} outlines={outlines} />
         </div>
       </div>
     </figure>
@@ -386,8 +391,11 @@ function RowLabels({ layout, interactive, narrow, callouts }: { layout: LaneLayo
   )
 }
 
-/** The time track, as SVG: the graticule, the slabs, the idle boxes and their dimension lines, now, and the axis. */
-function Track({ layout }: { layout: LaneLayout }) {
+/** What names the reference's outlines, in its first one ahead of now on the first slot's row: the longest that fits. */
+const REF_WORDS = ['reference run', 'reference']
+
+/** The time track, as SVG: the graticule, the reference's outlines, the slabs, the idle boxes and their dimension lines, now, and the axis. */
+function Track({ layout, outlines = [] }: { layout: LaneLayout; outlines?: readonly LaneSlab[] }) {
   const { scale, geometry: g } = layout
   const y0 = g.queueHeight + g.queueGap - HEAD
   const height = layout.height - y0
@@ -403,6 +411,12 @@ function Track({ layout }: { layout: LaneLayout }) {
         <pattern id="es-lanes-ghost" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
           <line className="es-lanes__hatch" x1="0" y1="0" x2="0" y2="6" />
         </pattern>
+        {/* A sync is hatched, so its yellow never reads as one mark with now's amber line beside it (a fill that would read as its
+            neighbour takes a hatch). */}
+        <pattern id="es-lanes-sync" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+          <rect className="es-lanes__sync" width="4" height="4" />
+          <line className="es-lanes__sync-hatch" x1="1" x2="1" y2="4" />
+        </pattern>
       </defs>
       <g data-lanes-graticule="">
         {minor.map((x) => (
@@ -415,6 +429,22 @@ function Track({ layout }: { layout: LaneLayout }) {
           <line key={row.id} className="es-lanes__rule" x1={scale.x} x2={scale.x + scale.width} y1={row.y} y2={row.y} />
         ))}
         <line className="es-lanes__rule" x1={scale.x} x2={scale.x + scale.width} y1={lanesBottom} y2={lanesBottom} />
+      </g>
+      <g data-lanes-reference="">
+        {outlines.map((slab) => {
+          const named = slab === outlines.find((one) => one.row === 'slot-0' && one.startUs >= layout.now.t)
+          const words = named ? REF_WORDS.find((candidate) => fits(candidate, slab.width)) : undefined
+          return (
+            <g key={slab.id}>
+              <rect className="es-lanes__ref" data-ref-slab={slab.id} x={slab.x + 0.5} y={slab.y + (slab.row === 'cpu' ? 0 : 2) + 0.5} width={Math.max(0, slab.width - 1)} height={Math.max(0, slab.height - (slab.row === 'cpu' ? 0 : 4) - 1)} />
+              {words === undefined ? null : (
+                <text className="es-lanes__ref-text" x={slab.x + 5} y={slab.y + slab.height / 2} dominantBaseline="central">
+                  {words}
+                </text>
+              )}
+            </g>
+          )
+        })}
       </g>
       <g data-lanes-slabs="">
         {layout.slabs.map((slab) => {
@@ -488,51 +518,20 @@ function Track({ layout }: { layout: LaneLayout }) {
 }
 
 /**
- * A dimension line, as an engineering drawing marks an interval (REDESIGN §2.8): end ticks at its two edges, the line between them broken
- * for its value, and the value written in the gap with no box round it.
+ * A dimension line, as an engineering drawing marks an interval (REDESIGN §2.8): end ticks at its two edges, the line whole between them,
+ * and its value over the line, with no box round it.
  */
 function Dimension({ id, x0, x1, y, label, short, value }: { id: string; x0: number; x1: number; y: number; label: string; short: string; value: string }) {
-  const width = x1 - x0
-  // The whole words where they fit inside the interval, else the ticks, else the number alone.
-  const words = [label, short].find((candidate) => fits(candidate, width - 4)) ?? value
-  const half = (words.length * 6.5) / 2 + 3
-  const mid = x0 + width / 2
   const a = x0 + 2
   const b = x1 - 2
-  const broken = mid - half > a + 2 && mid + half < b - 2
   return (
     <g data-lane-dim={id}>
-      {broken ? (
-        <>
-          <line className="es-lanes__dim" x1={a} x2={mid - half} y1={y} y2={y} />
-          <line className="es-lanes__dim" x1={mid + half} x2={b} y1={y} y2={y} />
-        </>
-      ) : (
-        <line className="es-lanes__dim" x1={a} x2={b} y1={y} y2={y} />
-      )}
-      <line className="es-lanes__dim" x1={a} x2={a} y1={y - 7} y2={y + 7} />
-      <line className="es-lanes__dim" x1={b} x2={b} y1={y - 7} y2={y + 7} />
-      <text className="es-lanes__dim-text" x={mid} y={broken ? y : y - 9} textAnchor="middle" dominantBaseline="central" data-dim-value="">
-        {words}
+      <path className="es-lanes__dim" d={`M${a} ${y - 7}v14M${a} ${y}H${b}M${b} ${y - 7}v14`} />
+      <text className="es-lanes__dim-text" x={(a + b) / 2} y={y - 5} textAnchor="middle" data-dim-value="">
+        {/* The whole words where they fit over the interval, else the ticks, else the number alone. */}
+        {[label, short].find((candidate) => fits(candidate, x1 - x0 - 4)) ?? value}
       </text>
     </g>
-  )
-}
-
-/** The legend under the diagram: the code's colours as they are used here, and the marker. */
-export function LoopLegend() {
-  return (
-    <Legend
-      className="es-lanes__legend"
-      label="Legend: step loop"
-      entries={[
-        { slot: 'blue', word: 'CPU work: schedule' },
-        { slot: 'yellow', word: 'sync: tokens read back' },
-        { slot: 'green', word: 'GPU work: a forward, a token per slot' },
-        { slot: 'white', word: 'idle, or an empty slot' },
-      ]}
-      now="the CPU’s clock"
-    />
   )
 }
 

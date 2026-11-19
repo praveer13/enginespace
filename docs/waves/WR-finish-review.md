@@ -1,6 +1,6 @@
 # The finish review, as the reviewer returned it
 
-impeccable's finish review of wave R's finished build ran three times, each on captures of the built site at 1440 x 900 and 390 x 844. This page keeps what the reviewer returned, so that no verdict is softened or summed into a better one in `docs/waves/WR-report.md` §6.2 or under D-062. Round 1 and round 2 are copied as returned, with the paths of the machine that ran them cut to the folder under it. Round 2b is copied from the reviewer's report as it reached the record: the end of its fidelity table was cut off there, and what follows `TYPE` in it is not on the page.
+impeccable's finish review of wave R's finished build ran three times on wave R's own branch and a fourth time on the polish that stacks on it (wave-r2), each on captures of the built site at 1440 x 900 and 390 x 844. This page keeps what the reviewer returned, so that no verdict is softened or summed into a better one in `docs/waves/WR-report.md` §6.2 or under D-062. Round 1 and round 2 are copied as returned, with the paths of the machine that ran them cut to the folder under it. Round 3, which followed the polish on wave-r2, is copied as returned, at the end of this page. Round 2b is copied from the reviewer's report as it reached the record: the end of its fidelity table was cut off there, and what follows `TYPE` in it is not on the page.
 
 The capture names (`front-first-paint-390.png` and the rest) name images that are not in the repository.
 
@@ -411,3 +411,185 @@ Pass, with one disclosure. PRODUCT.md and DESIGN.md exist; DESIGN.md names the b
 ### Fidelity
 
 No approved comp. The reviewer judged against REDESIGN.md 2.8, 2.9, 3.1, 3.2 and principles P4 and P5. Its table begins "TYPE | match | Big Shoulders Display in sentence case on page, lesson and game titles; a hyperlegible text face; mono tabular numerals. The embedded game title now sits a step under the lesson h1 (tr5a-l1" and the rest of it did not reach the record.
+
+## Round 3, the review that followed the polish on wave-r2, on the tip `936f7cd` (disposition: fix)
+
+This round judged the polish branch `wave-r2` at `936f7cd` (the merge of the Broken benchmark task, the eighth of the polish round's first batch). Its captures were of `936f7cd`; the worktree it ran in stood at `991beb5`, four commits later (authoring rules and the simulation-numbers fix), and nothing after `936f7cd` was under review. The fix batch that answered it (`p09`, merged at `deb11d8`) came after this verdict; `docs/waves/WR-report.md` section 7 says what it closed. The text below is as the reviewer returned it, with one cut: its line naming the folder of captures on the machine that ran it is replaced by this sentence, as in rounds 1 and 2.
+
+Disposition: fix
+
+### Per surface
+
+#### Front page (`/`), 1440 and 390
+
+Verdict: Holds at both sizes. Goal, reference run, one-row dock and phone callouts are all in; what is left is finish.
+
+Open findings:
+- 1440 front-demo2-dimension-diagram-1440.png, front-demo2-dimension-3d-1440.png: after Next demo level a 3 px ink ring boxes the whole Step loop panel, so the panel reads as a different component state.
+- 1440 front-after-step-3d-1440.png: the ink ring round the result hugs 'Passed.' and the paragraph with no inset; the text touches the ring's left edge and the block reads as a text field.
+- 1440 front-first-paint-1440.png: a first visit opens in Diagram, while REDESIGN 2.9 gives 3D Lifted as the front page's default on a capable desktop (the same browser opens a returning learner in 3D by itself, front-returning-3d-1440.png). If section 3.1 was amended to open the intro in Diagram, cite it; otherwise the first sight the owner asked to 'catch attention' is the flat one.
+- 1440 front-first-paint-1440.png: the left column is empty from about y 660 to 850 beside the panel (the page continues below; small).
+- Scored as closed from round 2b: phone callouts stand in a gutter beside the lane glyphs (front-first-paint-390.png); the goal line shows the number to beat at 390; the reference run is drawn before the first move; Step, Undo and Auto-step share one row; 'now' is clear of the queue and the queue is drawn once in 3D; the sync slab is hatched and parted from the now line (front-after-step-2d-390.png); the '3 ticks' dimension and 'idle' are whole in both views.
+
+#### TR1 lesson 1 (`/m/tr1/l1-five-mechanisms`), 1440 and 390
+
+Verdict: Close. The run, the result and the read all hold; one wrong word and one contract miss stay open.
+
+Open findings:
+- 1440 and 390 tr1-l1-run-intro-1440.png, tr1-l1-run-intro-390.png: the committed guess reads 'Locked in: 1 stages. It does not change now.' (src/content/render/Predict.tsx line 169). The rail and the lesson record now read '1 stage'; this string was missed.
+- 1440 tr1-l1-top-1440.png: still no instrument edge in the first viewport (primer, code block, then the top of Guess 1 of 2 at y 795). REDESIGN 3.4 puts the instrument's first control inside the first viewport. Report p06 left this for the owner with a recommendation; it is an owner decision, and it is still open.
+- Scored as closed: hop labels read whole at 390 with the whole path and the result on one screen (tr1-l1-after-run-390.png); the five rules are numbered and 'One process' is whole in the Your-run dock (tr1-l1-read-midway-1440.png); the embedded intro draws the example with discs 1, 2 and 4 on it and one amber ring (tr1-l1-run-intro-1440.png); the record reads 'guess 1 stage' (tr1-l1-keep-1440.png).
+- Not shown by any capture: lesson-to-lesson navigation; every lesson capture is a direct load.
+
+#### TR5a lesson 1 (`/m/tr5a/l1-why-one-model-needs-several-kv-caches`), 1440 and 390
+
+Verdict: Near. Intro, result and inner sheets are right; the phone's mid-level rest position loses the pool.
+
+Open findings:
+- 390 tr5a-l1-game-midlevel-390.png: at the page's own scroll (y 1144) the pool is cut to its last row and a half under the lesson bar while the admit options and readout are on screen, and the lower 55 percent of the viewport is footer matter (Undo, the model line, State as a table). Round 2b saw the pool whole here.
+- 1440 tr5a-l1-game-midlevel-1440.png: the readout's fifth cell ('preemptions') wraps alone to a second row in the lesson's narrower dock.
+- Scored as closed: the intro panel no longer covers the pool at 390 (tr5a-l1-game-intro-390.png; Next is now below the fold at the #run anchor, which is ordinary flow); the parts list is not sliced and disc 2 stands on a page (tr5a-l1-game-intro-1440.png); the inner sheets carry a hairline and no shadow (tr5a-l1-game-result-1440.png); the breadcrumb is one line at 390 (tr5a-l1-top-390.png).
+
+#### Step loop (`/play/loop`), 2D and 3D, 1440 and 390
+
+Verdict: 2D holds at both sizes and is still the strongest instrument. 3D earns its box at Lifted, Side and Compare; Along time, Top and Scale are not finished.
+
+Open findings:
+- 1440 loop-3d-camera-along-time-1440.png: lane labels pile onto one another ('Reference run' over 'CPU' over 'slot 1'; 'Your run' over 'CPU, engine core thread' over 'slot 1, R1'), the top third of the box is bare and the axis shows only 0 and 2.
+- 1440 loop-3d-camera-top-1440.png: the plate is turned about 35 degrees and cropped at the top and the foot; 'slot 1' is cut by the legend, and the axis runs off the box at 16. A Top view of a timing diagram should be square to the box.
+- 1440 loop-3d-camera-scale-1440.png: the 'CPU, engine core thread' label is overprinted by the CPU bars, and the 64 by 160 field is a moire of green with no slot or step readable; only the caption carries the point.
+- 1440 every loop-3d-* capture: a pale frame about 7 px wide stands round the whole page column (x 105 to 1335, from y 78), absent on the other games.
+- 1440 loop-3d-midlevel-1440.png, loop-3d-opening-shot-1440.png: the dock is blank paper from about y 430 to 700, and the practice note ('Practice: fixed numbers, undo allowed...') is set a step larger than the same note on the other games.
+- 1440 loop-result-1440.png: the ink ring hugs 'Passed.' with no inset.
+- Scored as closed: 'now' is clear of the queue, the queue is drawn once, and the Lifted scene fills its box with the reference run above your run; Compare shows the three policies stacked with the gaps closing (loop-3d-camera-compare-1440.png; 'Continuous batching' touches its first bars, small); the phone axis reads 0, 5, 10, 15 whole and the queue shows '+2' (loop-intro-390.png, loop-midlevel-2d-390.png); the level 1 table lists only Clock and Output tokens; the intro's stray now mark is gone.
+
+#### KV page pool (`/play/pool`), 2D and 3D, 1440 and 390
+
+Verdict: Holds in 2D at both sizes. The 3D is the same diagram and is now lettered and keyed like it, but it is still small in its box.
+
+Open findings:
+- 1440 pool-3d-opening-shot-1440.png: the pool plate is about 575 by 95 px in a 780 by 295 box, with bare ground above, below and around; report p03 itself gives about 60 percent down. An empty rack this small does not earn the box at level start.
+- 1440 pool-3d-midlevel-1440.png: a thread crosses the '8 layers' slip, and a short stray thread stub stands left of the pool at about x 280.
+- 1440 pool-3d-camera-from-above-1440.png: the 'R1' label touches the box's top edge, and the opened page's fan throws a blurred dark smear over the cells beneath it (Flat Paper Rule: matte solids, one shadow for a sheet).
+- 1440 pool-3d-opening-shot-1440.png: the first admit row is cut through its box by the More below bar.
+- Scored as closed: three admit options whole with 'Admit none this step' in the header row at 390 (pool-midlevel-2d-390.png); no graticule behind the cells and disc 2 on a page (pool-intro-1440.png, pool-midlevel-2d-1440.png); the 3D legend uses the circle, diamond and hexagon glyphs; threads clear the 'R1' label.
+
+#### Rejection sampler (`/play/verifier`), 2D and 3D, 1440 and 390
+
+Verdict: 2D holds at both sizes and is still the best drawing of the set. The chain's 3D is now readable from Over the run before a draw; after a draw the collars are still loose.
+
+Open findings:
+- 1440 verifier-3d-midlevel-chain-1440.png: black collar frames float tilted and detached (above the 23 bar in the back row, beside the 4 at the right of the third row, the 11 above and to the right of token 5 in front); the legend says 'dashed up to it', and no dash is visible at this camera.
+- 1440 verifier-3d-camera-from-the-side-1440.png, verifier-3d-camera-one-draft-position-1440.png: four or more flat frames hang in the air with no riser to a bar, and read as stray artefacts.
+- 1440 verifier-3d-midlevel-chain-1440.png: the middle rows (about x 460 to 620, y 380 to 440) are still crowded: collars, pale tops, the '21' tag on a collar, and tags of one row standing at the feet of the row behind.
+- 1440 verifier-intro-1440.png: part 5's heading ('Residual, (p - q)+') is still cut through its letters by the More below bar.
+- 1440 and 390 verifier-midlevel-2d-1440.png, verifier-intro-390.png: the 2D bars still have no printed value scale (report p04 left it because its brief froze 2D); each bar carries its value, so this is a ceiling point and not a defect.
+- Scored as closed: 'Run again' and 'New numbers' are whole at the phone's rest scroll (verifier-result-390.png); the collar, the accepted part and the pale grooved residual are in the legend row; a value scale (0, 16, 32) stands at the 3D scene's right; the phone readout's values share a baseline; the graticule is gone.
+
+#### Request path (`/play/engine-floor`), 2D only, 1440 and 390
+
+Verdict: Play and result hold at both sizes and the phone path now reads its mechanism words. The 1440 intro has gone backwards. Fix.
+
+Open findings:
+- 1440 floor-intro-1440.png: the diagram sheet is a strip about 120 px tall (the request node and the now line) over roughly 500 px of bare ground; no example is drawn, and parts 2, 3 and 4 have nothing on the drawing. Report p06's own after-capture (review-wr/polish/p06-request-path-tr1/after-floor-intro-1440.png) shows the example drawn with discs 2 and 4, and the lesson embed (tr1-l1-run-intro-1440.png) and the phone (floor-intro-390.png) still draw it. It was lost at the standalone 1440 frame between p06 and the reviewed tip.
+- 390 floor-midlevel-2d-390.png: in the readout, 'copies' runs into the next cell's 0 when the delta chips show; at the result (floor-result-390.png) 'copies' touches its divider.
+- 390 floor-midlevel-2d-390.png: the focus ring on a stage row is clipped by the list's scroller to two corner marks.
+- 1440 floor-midlevel-2d-1440.png: the filter field and tabs are whole and pinned, but the list's top row ('IPC, socket stream_output') is sliced through its first line under them; the page rests at y 521 with the title and the goal off-screen; blank paper from row 04 to the legend.
+- 1440 floor-result-1440.png: the ink ring hugs 'Finished (practice)' with no inset.
+- Scored as closed: same-column hop labels have their slot and read whole (floor-midlevel-2d-390.png, floor-result-390.png); legend and first stage row whole at 390; one amber ring in the intro and no stray now mark; the swimlane spans about 65 percent of its sheet at the result.
+
+#### Broken benchmark (`/play/broken-bench`), 2D only, 1440 and 390
+
+Verdict: Much better: action, state and result share the screen at 1440 and at both results. The phone's report form is still a peephole, and the charts are the least designed drawing on the site.
+
+Open findings:
+- 390 bench-midlevel-2d-390.png, bench-focus-primary-390.png: the Report form is a window about 130 px tall between the legend and the readout: two flaw rows, a third cut by More below, and neither the three number fields nor File the report on screen. In the focus capture the 'Report form' heading is sliced by the legend. The chart is whole now, so state is on screen; the action is not.
+- 1440 bench-midlevel-2d-1440.png: the flaw list shows three rows in an inner scroller (the third cut by More below) while about 170 px of paper stands blank under the chart in the same viewport.
+- 1440 bench-intro-1440.png, bench-result-1440.png and 390 bench-result-390.png: chart lettering is about 6 to 8 px ('cut', 'reported', 'measured', the bin counts; on 'Your log, around its longest wait' the row numbers and the key 'due, sent, wait never timed' cannot be read), and each chart uses a little over half its sheet's width.
+- 1440 bench-intro-1440.png, bench-result-1440.png: figures in prose and in the reported p99 are set in the mono face, so points and commas take a full cell: '90 . 1', '1 , 000', '21 , 155 ms', '5 , 073 . 6 ms'.
+- 1440 bench-result-1440.png: the dock's last paragraph ('Coordinated omission means a timer started at the send, so') is cut by the readout with no More below cue; the ink ring hugs 'Passed' with no inset.
+- 1440 bench-intro-1440.png: the wait between due and sent, the one quantity this game is about, is a dashed rule in the key and has no dimension line on the chart, where the Step loop's idle gap has one.
+- Scored as closed: the phone chart is whole with its axis (bench-midlevel-2d-390.png); at 1440 the three fields, the range rule and File the report are in view; the readout is whole at both results; discs 1, 2 and 4 stand on their parts and 3 and 5 are plain numerals where nothing is drawn yet; one stamp; the verdict is in the bold text face; the tan labels and corner circles are gone.
+
+#### Course (`/map`), 1440 and 390
+
+Verdict: Holds. Clear.
+
+Open findings:
+- None open. TR0's title is grey and not underlined (course-map-first-1440.png), and the returning Course opens with 'Last time: you ran Request path, nano-vllm (passed in practice) and made 2 guesses in TR1 lesson 1. Next: read why, then 3 questions.' (course-map-returning-390.png), which round 2b could not see.
+
+### Material fixes
+
+1. Request path, 1440, floor-intro-1440.png (P4, name then ask; round 2b fix 5): the standalone intro draws one node and the now line on a 120 px strip over about 500 px of bare ground, and parts 2, 3 and 4 have nothing drawn. Restore the worked example (two processes, an IPC hop, a call in one column) that p06's after-capture, the lesson embed (tr1-l1-run-intro-1440.png) and the phone (floor-intro-390.png) all show, and hold it with a test at 1440 x 900.
+2. Broken benchmark, 390 and 1440, bench-midlevel-2d-390.png, bench-focus-primary-390.png, bench-midlevel-2d-1440.png (P5; round 2b fix 1): on a phone the Report form is a 130 px inner window with two flaw rows, no number field and no File the report, and its heading is sliced by the legend. Let the form take its content height in the page's own scroll under the chart, as the other docks do. At 1440 give the flaw list its full height in place of a three-row scroller beside 170 px of blank paper.
+3. Step loop 3D, 1440, loop-3d-camera-along-time-1440.png, loop-3d-camera-top-1440.png, loop-3d-camera-scale-1440.png (REDESIGN 2.9; round 2b fix 6): Along time piles its lane labels onto one another and leaves a third of the box bare; Top is turned about 35 degrees and cropped with 'slot 1' cut by the legend; Scale overprints the CPU label and shows a moire. Frame each named camera to the box with its labels laid clear, or withdraw the camera. Same captures: remove the pale frame round the page column.
+4. Rejection sampler 3D, 1440, verifier-3d-midlevel-chain-1440.png, verifier-3d-camera-from-the-side-1440.png, verifier-3d-camera-one-draft-position-1440.png (REDESIGN 2.9; round 2b fix 6): collar frames still float tilted and detached from their bars, with no riser visible. Seat each collar square on its bar's axis, draw the dashed riser at a weight the camera keeps, and drop tags at the cameras that cannot hold them.
+5. KV page pool 3D, 1440, pool-3d-opening-shot-1440.png, pool-3d-midlevel-1440.png, pool-3d-camera-from-above-1440.png (REDESIGN 2.9, Flat Paper Rule; round 2b fix 6): the plate is about 575 by 95 px in a 780 by 295 box at level start. Fit the camera to the rack or shorten the box to the scene; keep threads off the '8 layers' slip, remove the stray thread stub at the pool's left, clear 'R1' from the box's top edge, and take the blurred shadow off the opened page.
+6. TR1 lesson 1 and TR5a lesson 1 (truth; REDESIGN 3.4; round 2b fixes 7 and 8): tr1-l1-run-intro-1440.png and tr1-l1-run-intro-390.png read 'Locked in: 1 stages.' (src/content/render/Predict.tsx line 169); tr1-l1-top-1440.png still has no instrument edge in the first viewport, left for the owner by p06, so put the recommendation to the owner and record the answer; tr5a-l1-game-midlevel-390.png rests with the pool cut to a row and a half under the lesson bar.
+7. Dock and readout residue (P5; round 2b fixes 2 and 3): Request path 390 floor-midlevel-2d-390.png ('copies' runs into the next cell's 0 beside a delta chip; the focus ring is clipped to corner marks); Request path 1440 floor-midlevel-2d-1440.png (the list's top row sliced under the pinned tabs); Rejection sampler 1440 verifier-intro-1440.png (part 5's heading cut through by More below); TR5a lesson 1 1440 tr5a-l1-game-midlevel-1440.png (one readout cell wraps alone); Broken benchmark 1440 bench-result-1440.png (last paragraph cut with no cue).
+8. Finish that still reads as a default chart (craft floor: type, browser surfaces; Ink Focus Rule): Broken benchmark 1440 and 390 bench-intro-1440.png, bench-result-1440.png, bench-result-390.png (chart lettering at 6 to 8 px, charts on half their sheet, mono points and commas floating in '90 . 1' and '5 , 073 . 6 ms', no dimension line on the due-to-sent wait); every result at 1440 (bench-result-1440.png, loop-result-1440.png, floor-result-1440.png, tr5a-l1-game-result-1440.png, front-after-step-3d-1440.png) where the ink ring hugs the verdict with no inset; front page 1440 front-demo2-dimension-diagram-1440.png where the ring boxes the whole panel.
+
+### Report
+
+disposition: fix
+
+Inputs and limits. Check 0 passes for every capture I opened: right viewport size, the content the list claims, no blank regions. About 62 of the 102 files were opened. Not opened: design-* (4), every *-focus-primary-* except bench-focus-primary-390, header-focus-continue-*, front-focus-main-control-*, front-returning-2d-*, front-after-step-2d-1440, front-demo2-dimension-diagram-390, course-map-first-390, course-map-returning-1440, loop-result-390, pool-result-*, pool-focus-*, verifier-result-1440, verifier-focus-*, bench-intro and bench-result beyond those cited, tr1-l1-keep-390, tr1-l1-prediction-revealed-*, tr1-l1-read-midway-390, tr1-l1-top-390, tr5a-l1-top-1440, tr5a-l1-game-result-390, tr5a-l1-read-source-popover-*, manifest.jsonl. The eight polish reports were read by search only (their 'left' lines and p06's intro lines), REDESIGN.md by section (2.9, 5.4, part of 3.4), DESIGN.md by its named rules, PRODUCT.md and the surface briefs not beyond the front brief's seed lines. No pixel tooling on this machine (no PIL), so colour is judged by eye. Motion cannot be judged from stills. The captures are of 936f7cd; the worktree's HEAD is 991beb5, four commits later (authoring rules and 'fix-sim-numbers' merges), and nothing after 936f7cd is under review. The detector's 13 findings are all advisory font sizes off the DESIGN.md ramp; none is a floor item.
+
+#### Round 2b's eight material fixes, scored against these captures
+
+1. Broken benchmark, action, state and result on one screen: PARTIAL. Done at 1440 (bench-midlevel-2d-1440.png: three fields, the range rule and File the report in view, readout whole) and at both results (bench-result-1440.png, bench-result-390.png: readout whole); the phone chart is whole (bench-midlevel-2d-390.png). Not done: on a phone the Report form is a 130 px window with two flaw rows and no field or filing control (bench-midlevel-2d-390.png, bench-focus-primary-390.png).
+2. Remaining dock slices: DONE, with residue carried into fix 7. Done: floor-midlevel-2d-390.png (legend and first row whole), pool-midlevel-2d-390.png (three options whole, Admit none in the header), verifier-result-390.png (secondary row whole), tr5a-l1-game-intro-1440.png and verifier-intro-390.png (list not sliced), tr5a-l1-game-intro-390.png (panel off the pool), floor-midlevel-2d-1440.png (filter and tabs whole). Residue: verifier-intro-1440.png (part 5's heading cut by More below), floor-midlevel-2d-1440.png (the list's top row sliced under the pinned tabs).
+3. Hop labels at 390, touching readout cells, 'One proce...': PARTIAL. Hop labels are whole (floor-midlevel-2d-390.png, floor-result-390.png, tr1-l1-after-run-390.png) and 'One process' is whole (tr1-l1-read-midway-1440.png). The readout has dividers now, but 'copies' still runs into the next cell's 0 beside a delta chip (floor-midlevel-2d-390.png).
+4. One Marker Rule in the intros: DONE. One amber ring (Next) and the now line in floor-intro-390.png and tr1-l1-run-intro-1440.png; the request node is ink; the now mark between Next and Skip intro is gone from loop, pool, sampler, benchmark and Request path intros; the sync slab is hatched and stands apart from the now line (front-after-step-2d-390.png, loop-result-1440.png).
+5. Callout placement: PARTIAL. Done on the front page at 390 (gutter beside the glyphs), the benchmark (discs on the switch, the claim and the histogram; plain numerals where nothing is drawn), the pool and TR5a (disc 2 on a page). Not done: floor-intro-1440.png, where the example the discs stood on is no longer drawn.
+6. 3D reads as the same diagram and earns its box: PARTIAL. Step loop: done at Lifted, Side and Compare ('now' clear, queue once, box filled, reference run over your run); Along time, Top and Scale, captured for the first time, are not finished. Sampler: tags and the legend are fixed, a value scale is added; collars still float. Pool: glyph legend and thread clearance done; the scene is still small in its box.
+7. First viewport and name-then-ask: PARTIAL. Done: every phone goal line shows the number to beat (front-first-paint-390.png, loop-intro-390.png, floor-intro-390.png, verifier-intro-390.png, bench-intro-390.png, pool-midlevel-2d-390.png); the front page has Auto-step on the dock row and the reference run drawn before the first move. Not done: tr1-l1-top-1440.png has no instrument edge in the first viewport (left for the owner by p06).
+8. Finish and truth, small: PARTIAL. Done: '1 stage' in the rail and the record, the five rules numbered, TR0 not underlined, the phone axis whole, 'Ghost tokens' and 'Bubble' gone from level 1, the benchmark's tan labels, corner circles, display-face verdict and extra stamps gone, no shadow on sheets inside the lesson sheet, no stray graticule on the pool or the sampler. Not done: 'Locked in: 1 stages.' (tr1-l1-run-intro-1440.png, tr1-l1-run-intro-390.png).
+
+#### persistence
+
+Pass, with the same disclosure as round 2b and one new one. PRODUCT.md and DESIGN.md exist; DESIGN.md names the built world (surface-0 #e9ece6, One Marker, Ink Focus, Flat Paper, Quiet Provenance, Short Viewport). Code-led build, so no state.json, spec.json, mocks or diff are owed. Seed: 'impeccable concept-seed --check-seed none' exits 1 here ('none means the roll was skipped'). The front brief records that no roll was dealt for Data Book, that this was put to the owner at the look gate, and that the owner chose Data Book with it; I do not list it as a fix. New: the reviewed tip (936f7cd) is four commits behind the worktree HEAD (991beb5).
+
+#### fidelity
+
+No approved comp. Judged against DESIGN.md's named rules and REDESIGN 2.8, 2.9, 3.4 and P4, P5.
+- TYPE: match. A condensed display face in sentence case on page, game and lesson titles, a hyperlegible text face, mono figures with a slashed zero. One defect inside the match: mono points and commas in prose and in the benchmark's large figure ('90 . 1', '5 , 073 . 6 ms').
+- MATERIAL: match. Flat paper, hairlines, hatching for cached and sync, matte flat-shaded solids in 3D; no bevel, emboss or imitation material anywhere. One exception: the blurred shadow under the opened page in pool-3d-camera-from-above-1440.png.
+- GROUND: match by eye to the named #e9ece6, a pale cool grey-green with whiter sheets on it; no drift toward warm cream seen. Not sampled (no pixel tooling).
+- One Marker Rule: match. Amber stands only on the control to act on, the now cursor and its ring, and the position marks; focus is ink.
+- Quiet Provenance Rule: match. One stamp per instrument in every capture opened.
+- Flat Paper Rule: match, bar the pool shadow above.
+- P5, action, state and result on one screen: match at every result at both sizes and at 1440 mid-level; contradicted on the benchmark at 390 mid-level; weakened at tr5a-l1-game-midlevel-390.png.
+- P4, name then ask: match on six of seven intros; contradicted at floor-intro-1440.png, where three of five named parts are not drawn.
+- REDESIGN 2.9, Step loop cameras: Lifted, Side, Compare match; Along time, Top, Scale are present and unfinished.
+- REDESIGN 2.9, pool rack, fan and threads: match in kind, under-scaled in its box.
+- REDESIGN 2.9, sampler skylines by draft position: match before a draw; the output collar 'settling onto p' is contradicted by collars that float off their bars.
+- REDESIGN 3.4, instrument's first control in the first viewport: missing on TR1 lesson 1 at 1440 (owner decision pending).
+- REDESIGN 2.9, front page default view 3D Lifted on a capable desktop: a first visit opens in Diagram (front-first-paint-1440.png). Adaptation only if 3.1 as amended says so; uncited in this packet.
+- 5.4 keep-list moments seen in stills: the benchmark's 90.1 ms against 5,073.6 ms (bench-result-1440.png), the sampler's draws, yours against the reference (loop-result-1440.png), Compare's closing gaps. The pool's eviction costs were not in any capture I opened.
+- Floor: no kicker, gradient text, side stripe over 1 px, hard offset shadow, glyph icon set or system display face seen. The 'State as a table' disclosure triangle looks like the browser's own marker; check it.
+
+#### ceiling
+
+The world is a data book, and what it leaves unused is mostly the book's own lettering and measure:
+- Printed scales and dimension lines. The dimension line appears once (the Step loop's idle gap). The benchmark's wait between due and sent, the pool's prefix hit and the sampler's overlap are each the quantity their game is about, and none is dimensioned on the drawing; the sampler's 2D bars have no scale.
+- Figures at display scale. Only the benchmark's reported p99 is set large; every other readout is one small size, so no instrument has a number that looks like its answer.
+- Plate lettering. Chart and diagram heads are a small bold text face, and on the benchmark they shrink to 6 to 8 px; the display face never reaches a drawing.
+- The sheet as a composed plate. Several sheets print on half their paper (benchmark charts, the Request path mid-level and result, the Step loop's dock in 3D, the pool's 3D opening), which is where the result still reads as a default chart dropped on a page and not a drawn plate.
+- Depth. Three of the Step loop's six cameras and the pool's opening shot do not yet show anything the diagram does not, or show it less clearly.
+- Motion: not judged.
+
+#### material_fixes
+
+1. Request path 1440, floor-intro-1440.png: restore the worked example at the standalone frame; three named parts are undrawn (P4).
+2. Broken benchmark 390 and 1440, bench-midlevel-2d-390.png, bench-focus-primary-390.png, bench-midlevel-2d-1440.png: give the Report form its content height; on a phone it is a 130 px window (P5).
+3. Step loop 3D 1440, loop-3d-camera-along-time-1440.png, loop-3d-camera-top-1440.png, loop-3d-camera-scale-1440.png: frame and letter the three cameras or withdraw them; remove the pale page frame (2.9).
+4. Rejection sampler 3D 1440, verifier-3d-midlevel-chain-1440.png, verifier-3d-camera-from-the-side-1440.png, verifier-3d-camera-one-draft-position-1440.png: seat the collars and show their risers (2.9).
+5. KV page pool 3D 1440, pool-3d-opening-shot-1440.png, pool-3d-midlevel-1440.png, pool-3d-camera-from-above-1440.png: fit the scene to its box; clear the label, thread and shadow faults (2.9, Flat Paper).
+6. TR1 lesson 1 and TR5a lesson 1, tr1-l1-run-intro-1440.png, tr1-l1-run-intro-390.png, tr1-l1-top-1440.png, tr5a-l1-game-midlevel-390.png: 'Locked in: 1 stages.'; the instrument edge decision for the owner (3.4); the phone's mid-level rest position.
+7. Dock and readout residue, floor-midlevel-2d-390.png, floor-midlevel-2d-1440.png, verifier-intro-1440.png, tr5a-l1-game-midlevel-1440.png, bench-result-1440.png (P5).
+8. Finish, bench-intro-1440.png, bench-result-1440.png, bench-result-390.png, loop-result-1440.png, floor-result-1440.png, front-demo2-dimension-diagram-1440.png: benchmark chart lettering and scale, floating mono punctuation, the verdict's focus ring with no inset, the ring round the whole front panel.
+
+#### keep
+
+The 2D instruments exactly as they stand (the Step loop's timing diagram with its reference run and hatched sync, the pool's hatched page grid, the sampler's bars, the Request path's lettered swimlane), with amber spent only on now and one quiet stamp per instrument; fix around them, not through them.

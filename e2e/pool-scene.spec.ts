@@ -472,7 +472,7 @@ test.describe('the picture (R-T41)', () => {
     })
   }
 
-  test('all text is DOM: the labels name the regions and the requests, the key names the forms, and the canvas carries no text', async ({ page }) => {
+  test('all text is DOM: the labels name the regions and the requests, the legend is the 2D view\'s, and the canvas carries no text', async ({ page }) => {
     test.setTimeout(120_000)
     const { states } = nightOfHouse('two-kinds')
     await open(page, 'two-kinds', 2)
@@ -483,8 +483,12 @@ test.describe('the picture (R-T41)', () => {
     await expect(labels.filter({ hasText: 'Waiting queue' })).toHaveCount(1)
     const first = poolSession.view(states[0])
     for (const id of first.waiting.slice(0, 3)) await expect(labels.filter({ hasText: `R${id + 1}` })).toHaveCount(1)
-    await expect(page.locator('[data-pool-key]')).toContainText('hollow: free')
-    await expect(page.locator('[data-pool-key]')).toContainText('dotted: a prefix hit waits on it')
+    // One legend: under the 3D view it is the 2D view's own, glyph for glyph, as the scene draws each page's glyph on its top.
+    const legend = game(page).locator('[data-pool-legend]')
+    await expect(legend).toHaveCount(1)
+    await expect(legend.getByRole('list', { name: "Legend: a page's state" })).toContainText('free')
+    await expect(legend).toContainText('a prefix hit waits on it')
+    await expect(legend.locator('svg[data-glyph="ring"]')).toHaveCount(1)
     await admitSome(page, 'two-kinds', 3)
     await pageInput(page).fill('1')
     await settle(page)

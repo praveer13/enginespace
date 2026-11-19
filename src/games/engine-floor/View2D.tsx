@@ -279,7 +279,14 @@ export function Swimlane({ view, size = 'frame', tools = null }: SwimlaneProps) 
   }
 
   return (
-    <div className="es-lanes" data-floor-lanes="" data-size={dock ? 'dock' : box !== null && box.width < 480 ? 'phone' : 'desk'} data-sealed={view.sealed || undefined} data-columns={lanes.columns.length}>
+    <div
+      className="es-lanes"
+      data-floor-lanes=""
+      data-size={dock ? 'dock' : box !== null && box.width < 480 ? 'phone' : 'desk'}
+      data-sealed={view.sealed || undefined}
+      data-done={view.done || undefined}
+      data-columns={lanes.columns.length}
+    >
       {/* The heads stand over the box and move sideways with it, and never over a row, so no row's name is ever under them. */}
       <div className="es-lanes__headbox" style={{ height: g.head }} aria-hidden="true">
           <div ref={head} className="es-lanes__head" style={{ width: lanes.width, height: g.head }} data-lane-head="">
@@ -354,7 +361,12 @@ export function Swimlane({ view, size = 'frame', tools = null }: SwimlaneProps) 
               columns and one hop between them, so the parts list's processes and hop are drawn where its discs mark them. It is not this
               path and names none of its processes, so it gives no count away (REDESIGN §3.6), and it goes with the intro (floor.css). */}
           {dock || view.prediction !== null || lanes.columns.length > 0 ? null : (
-            <div className="es-lanes__specimen" style={{ left: lanes.start.x - 4, top: lanes.start.y - g.head + g.row }} aria-hidden="true" data-floor-specimen="">
+            <div
+              className="es-lanes__specimen"
+              style={{ left: lanes.start.x - 4, top: lanes.start.y - g.head + g.row, width: Math.min(288, lanes.width - (lanes.start.x - 4) - g.pad) }}
+              aria-hidden="true"
+              data-floor-specimen=""
+            >
               <span className="es-lanes__spec-title">An example, not this path</span>
               <span className="es-lanes__spec-cols">
                 <span className="es-lanes__spec-col" data-spec-proc="">
@@ -364,6 +376,13 @@ export function Swimlane({ view, size = 'frame', tools = null }: SwimlaneProps) 
                 <span className="es-lanes__spec-hop" data-spec-hop="">
                   <HandoffGlyph mechanism="ipc" className="es-lanes__tag-glyph" />
                   IPC
+                </span>
+                {/* At a desk the box is tall: the example goes on down its time axis, with a hop inside one column, its word at its left. */}
+                <span className="es-lanes__spec-down" data-spec-down="">
+                  <span className="es-lanes__spec-down-word">
+                    <HandoffGlyph mechanism="call" className="es-lanes__tag-glyph" />
+                    call
+                  </span>
                 </span>
               </span>
             </div>

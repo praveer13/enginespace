@@ -64,6 +64,27 @@ export default function GameEmbed({ block, scope, at, rev, title, autoFocus = tr
     return () => watch.disconnect()
   }, [autoFocus])
 
+  // On a phone the game's dock follows its drawing while the first run names the parts, and the page goes down with it; when the intro
+  // ends the dock is pinned to the foot, so the drawing's top comes back under the lesson's bar and the drawing, the decision and the
+  // readout share the screen (P5). It only ever moves the page back up.
+  useEffect(() => {
+    const element = box.current
+    if (element === null) return
+    const watch = new MutationObserver((changes) => {
+      for (const change of changes) {
+        const frame = change.target as HTMLElement
+        if (change.oldValue === null || frame.hasAttribute('data-intro')) continue
+        const drawing = frame.querySelector('[data-frame-diagram]')
+        const dock = frame.querySelector('.es-frame__dock')
+        if (drawing === null || dock === null || getComputedStyle(dock).position !== 'sticky') continue
+        const from = drawing.getBoundingClientRect().top - (parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop) || 0)
+        if (from < 0) window.scrollBy(0, from)
+      }
+    })
+    watch.observe(element, { attributes: true, attributeFilter: ['data-intro'], attributeOldValue: true, subtree: true })
+    return () => watch.disconnect()
+  }, [])
+
   const game = resolveGame(block.id)
   if (game.kind === 'unknown') {
     // GAME_TASKS and the registry hold every game of the roster between them (tests/content/pending.test.ts), so this is never drawn.

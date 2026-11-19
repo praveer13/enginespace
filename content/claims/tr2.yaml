@@ -695,6 +695,75 @@
   ttlDays: 90
 
 
+# Lesson 5's opening says over what range decode is bandwidth-bound, in kernelspace's words, and its first part sets a figure that the book "Modern
+# GPU Programming For MLSys" reports for one launch beside the model's per-kernel launch cost. Both were read on 2026-11-18: kernelspace with `git show`
+# at d478f91, and the book's appendix as a saved page, read as text and never run. Nothing of the book's prose is quoted: its licence was not found,
+# so the claim quotes the one table cell that holds the figure.
+
+- id: loop.kernelspace.decode-intensity
+  value: 1
+  unit: FLOP/byte
+  text: kernelspace's T4.L3 puts the arithmetic intensity of decode at batch 1 at about 1 FLOP per byte, from 2 FLOPs per parameter per token over 2 bytes per FP16 weight.
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/public/lessons-md/t4.l3.md#L61
+    title: kernelspace public/lessons-md/t4.l3.md, T4.L3, The Roofline Model, the numbers to keep (at d478f91)
+    quote: 'decode AI @ b=1 (2 FLOPs per parameter per token ÷ 2 bytes per FP16 weight. The wall.)'
+    accessed: 2026-11-18
+  verifiedAt: 2026-11-18
+  ttlDays: 365
+
+- id: loop.kernelspace.batch-lever
+  value: N
+  text: kernelspace's T4.L3 says that a batch of N sequences multiplies the arithmetic intensity of decode by N, because the batch shares each read of the weights.
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/public/lessons-md/t4.l3.md#L63
+    title: kernelspace public/lessons-md/t4.l3.md, T4.L3, The Roofline Model, the numbers to keep (at d478f91)
+    quote: 'Batching N sequences multiplies decode AI by N — weights amortized across the batch.'
+    accessed: 2026-11-18
+  verifiedAt: 2026-11-18
+  ttlDays: 365
+
+- id: loop.kernelspace.h100-ridge
+  value: 295
+  unit: FLOP/byte
+  text: kernelspace's T4.L3 puts the ridge of an H100 at FP16, its peak FLOP/s over its memory bandwidth, at about 295 FLOP per byte, from about 990 TFLOP/s and 3.35 TB/s.
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/public/lessons-md/t4.l3.md#L28
+    title: kernelspace public/lessons-md/t4.l3.md, T4.L3, The Roofline Model, the three numbers and one division (at d478f91)
+    quote: '~990 TFLOPS / 3.35 TB/s ≈ 295 FLOP/byte'
+    accessed: 2026-11-18
+  verifiedAt: 2026-11-18
+  ttlDays: 365
+
+- id: loop.kernelspace.decode-plus-kv
+  value: 'weights, plus KV'
+  text: kernelspace's T4.L3 works out the intensity of decode from the reads of the weights, and names the reads of the KV cache only as an addition to them.
+  tag: measured
+  source:
+    url: https://github.com/praveer13/kernelspace/blob/d478f91a0af590f03fcfd76ee73149fa70b28e51/public/lessons-md/t4.l3.md#L69
+    title: kernelspace public/lessons-md/t4.l3.md, T4.L3, The Roofline Model, the two case studies that run T5 (at d478f91)
+    quote: '`~16 GB` of weight reads (plus KV)'
+    accessed: 2026-11-18
+  verifiedAt: 2026-11-18
+  ttlDays: 365
+
+- id: mlc-book.gemm-launch-api
+  value: 50.717
+  unit: µs
+  text: The book Modern GPU Programming For MLSys reports that, in one traced run of a GEMM and a ReLU through PyTorch on one B200, the host's launch API call for the GEMM kernel took 50.717 µs. It is the authors' figure from one run under Nsight Systems, and the course has not reproduced it.
+  tag: unverified
+  source:
+    url: https://mlc.ai/modern-gpu-programming-for-mlsys/appendix/benchmarking_gpu_kernels.html
+    title: 'Modern GPU Programming For MLSys (MLC), appendix Measuring and Analyzing GPU Kernel Performance, section Locate the Most Expensive Kernel in the Timeline, the table of each kernel''s API time, the BF16 GEMM row'
+    quote: '50.717 μs'
+    accessed: 2026-11-18
+  verifiedAt: 2026-11-18
+  ttlDays: 365
+
+
 # --- Lesson 6: dispatch keys -------------------------------------------------------------------------------------------------------------
 
 - id: vllm.cudagraph.backend-fa3

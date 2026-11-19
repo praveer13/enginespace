@@ -102,13 +102,13 @@ describe('the drawing paints with the design system\'s roles', () => {
 })
 
 describe('what the drawing writes', () => {
-  test('is the ticks of a ruler, an order\'s number and names on tape, and not a count or a time: no mark is a figure of the report', () => {
+  test('is the ticks of a ruler, an order\'s number and names in sentence case, and not a count or a time: no mark is a figure of the report', () => {
     for (const { name, sheet } of everySheet()) {
       for (const mark of marksOf(sheet)) {
         if (mark.kind !== 'text') continue
         const text = mark.text
         const ok =
-          /^[A-Z][A-Z .,'-]*$/.test(text) || // names on tape: REPORTED, MEASURED, CUT, SECONDS, EACH REQUEST, DUE TO DONE
+          /^[A-Z]?[a-z .,'-]+$/.test(text) || // names, in sentence case as every diagram's labels: reported, measured, cut, seconds, Each request, due to done
           /^\d{4}$/.test(text) || // an order's number
           /^\d+(\.\d+)? (ms|s)$/.test(text) || // a ruler's edge on the histogram
           /^\d+(\.\d+)?$/.test(text) // a tick in seconds on the timeline, or a stack's tally
@@ -117,10 +117,10 @@ describe('what the drawing writes', () => {
     }
   })
 
-  test('puts a stack\'s tally in the printer\'s face, a name in marker, and nothing else in either', () => {
+  test('puts a stack\'s tally in the numeric face, a name in the label face, and nothing else in either', () => {
     for (const mark of marksOf(histogramOf(scenes[3], 'landscape'))) {
       if (mark.kind !== 'text') continue
-      expect(mark.face).toBe(/^[A-Z][A-Z .]*$/.test(mark.text) && !/^\d/.test(mark.text) ? 'label' : 'numeric')
+      expect(mark.face).toBe(/^[A-Z]?[a-z .]+$/.test(mark.text) ? 'label' : 'numeric')
     }
   })
 
@@ -139,10 +139,10 @@ describe('the histogram', () => {
         .filter((mark): mark is Extract<Mark, { kind: 'text' }> => mark.kind === 'text')
         .map((mark) => mark.text)
         .sort()
-    expect(names(histogramOf(scene, 'landscape', { p99Us: null, cut: 0 }))).toEqual(['REPORTED'])
-    expect(names(histogramOf(scene, 'landscape', { cut: 0 }))).toEqual(['MEASURED', 'REPORTED'])
-    expect(names(histogramOf(scene, 'landscape', { cut: 0, correctedUs: 500_000, yoursUs: 700_000 }))).toEqual(['CORRECTED', 'MEASURED', 'REPORTED', 'YOURS'])
-    expect(names(histogramOf(scene, 'portrait', { cut: 12 }))).toEqual(['CUT', 'MEASURED', 'REPORTED'])
+    expect(names(histogramOf(scene, 'landscape', { p99Us: null, cut: 0 }))).toEqual(['reported'])
+    expect(names(histogramOf(scene, 'landscape', { cut: 0 }))).toEqual(['measured', 'reported'])
+    expect(names(histogramOf(scene, 'landscape', { cut: 0, correctedUs: 500_000, yoursUs: 700_000 }))).toEqual(['corrected', 'measured', 'reported', 'yours'])
+    expect(names(histogramOf(scene, 'portrait', { cut: 12 }))).toEqual(['cut', 'measured', 'reported'])
   })
 
   test('never lays one flag\'s tape on another\'s, however close the numbers, and keeps every tape inside the sheet', () => {
@@ -154,9 +154,9 @@ describe('the histogram', () => {
         const tapes: { name: string; y: number; h: number }[] = []
         flags.forEach((mark, i) => {
           const next = flags[i + 1]
-          if (mark.kind === 'rect' && mark.fill === 'paper' && next?.kind === 'text' && next.face === 'label' && next.text !== 'CUT') tapes.push({ name: next.text, y: mark.y, h: mark.h })
+          if (mark.kind === 'rect' && mark.fill === 'paper' && next?.kind === 'text' && next.face === 'label' && next.text !== 'cut') tapes.push({ name: next.text, y: mark.y, h: mark.h })
         })
-        expect(tapes.map((tape) => tape.name).sort()).toEqual(['CORRECTED', 'MEASURED', 'REPORTED', 'YOURS'])
+        expect(tapes.map((tape) => tape.name).sort()).toEqual(['corrected', 'measured', 'reported', 'yours'])
         tapes.sort((a, b) => a.y - b.y)
         for (let i = 0; i < tapes.length; i++) {
           expect([orientation, gap, tapes[i].name, tapes[i].y >= 0 && tapes[i].y + tapes[i].h <= sheet.height]).toEqual([orientation, gap, tapes[i].name, true])
@@ -179,8 +179,8 @@ describe('the histogram', () => {
     expect(squares(solid[0].d)).toBe(scene.rows.length - cut)
     const flags = marksOf(sheet, 'flags')
     expect(flags.some((mark) => mark.kind === 'line' && mark.dash === '4 3')).toBe(true)
-    expect(flags.some((mark) => mark.kind === 'text' && mark.text === 'CUT')).toBe(true)
-    expect(marksOf(histogramOf(scene, 'landscape', { cut: 0 }), 'flags').some((mark) => mark.kind === 'text' && mark.text === 'CUT')).toBe(false)
+    expect(flags.some((mark) => mark.kind === 'text' && mark.text === 'cut')).toBe(true)
+    expect(marksOf(histogramOf(scene, 'landscape', { cut: 0 }), 'flags').some((mark) => mark.kind === 'text' && mark.text === 'cut')).toBe(false)
   })
 
   test('thins a long log to MAX_DOTS dots but never loses the slow ones, which a p99 is about', () => {
@@ -263,15 +263,15 @@ describe('the timeline', () => {
     })
     expect(wait.from).toBe(Math.max(0, wait.id - WAIT_LEAD))
     for (const orientation of ORIENTATIONS) {
-      const sheet = layoutTimeline({ orientation, rows: co.rows, selected: null, from: wait.from, caption: 'YOUR LOG, AROUND ITS LONGEST WAIT' })
+      const sheet = layoutTimeline({ orientation, rows: co.rows, selected: null, from: wait.from, caption: 'Your log, around its longest wait' })
       const ids = marksOf(sheet, 'hits').map((mark) => (mark.kind === 'rect' ? mark.row : undefined))
       expect(ids[0]).toBe(Math.min(wait.from, co.rows.length - 32))
       expect(ids).toContain(wait.id)
       expect(sheet.layers.some((layer) => layer.part === 'present')).toBe(false)
-      expect(marksOf(sheet, 'name').some((mark) => mark.kind === 'text' && mark.text === 'YOUR LOG, AROUND ITS LONGEST WAIT')).toBe(true)
+      expect(marksOf(sheet, 'name').some((mark) => mark.kind === 'text' && mark.text === 'Your log, around its longest wait')).toBe(true)
       // The key names the red wait in both orientations, beside the due and sent ticks.
       const key = marksOf(sheet, 'key').flatMap((mark) => (mark.kind === 'text' ? [mark.text] : []))
-      expect([orientation, key]).toEqual([orientation, ['DUE', 'SENT', 'WAIT NEVER TIMED']])
+      expect([orientation, key]).toEqual([orientation, ['due', 'sent', 'wait never timed']])
     }
   })
 

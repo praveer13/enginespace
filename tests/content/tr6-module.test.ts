@@ -576,7 +576,7 @@ describe('lesson 2: the rule on a pair of three tokens, and what each wrong rule
 })
 
 describe('lesson 3: the pooling rule, the level of the lab, the noise of a sample and what each check sees', () => {
-  const MEASURED_AT = /measured by the course's sim on 2026-11-05 at `([0-9a-f]{7,40})`/
+  const MEASURED_AT = /printed by the course's model on 2026-11-05 at `([0-9a-f]{7,40})`/
 
   test('the example of the pooling rule: nine tokens, 1,000 draws, four pooled, one ruled out, five bins and four degrees of freedom', () => {
     const { df, bins, pooledTokens, pooledExpected, ruledOut } = poolExample()
@@ -636,6 +636,8 @@ describe('lesson 3: the pooling rule, the level of the lab, the noise of a sampl
   test('the boundary-inclusive member on three bands: the chi-square check sees it only through a leak', () => {
     const rows = leakRows(100)
     const { dense, sparse, fine } = rows
+    mentions('tr6.l3', 'the caption', "The course's model runs the boundary-inclusive member on three kinds of target, 100 trials [estimated] each")
+    mentions('tr6.l3', 'the header', '| Target [estimated] | Trials with a token that p rules out and q proposes, of 100 [synthetic] | The chi-square check rejects it, of 100 [synthetic] | The enumeration flags it, of 100 [synthetic] |')
     mentions('tr6.l3', 'the dense band', `| Six tokens on a grid of 1/64, the level's band | ${dense.leakable} | ${dense.chi} | ${dense.enumeration} |`)
     mentions('tr6.l3', 'the sparse band', `| Sixteen tokens, with the target possible on three to six | ${sparse.leakable} | ${sparse.chi} | ${sparse.enumeration} |`)
     mentions('tr6.l3', 'the fine band', `| Sixty-four tokens, with weights down to 1/65,536 | ${fine.leakable} | ${fine.chi} | ${fine.enumeration} |`)
@@ -646,15 +648,15 @@ describe('lesson 3: the pooling rule, the level of the lab, the noise of a sampl
     const without = 3 * 100 - (dense.leakable + sparse.leakable + fine.leakable)
     expect([dense.chiWithoutLeak, sparse.chiWithoutLeak, fine.chiWithoutLeak]).toEqual([0, 0, 0])
     expect(dense.enumerationWithoutLeak + sparse.enumerationWithoutLeak + fine.enumerationWithoutLeak).toBe(without)
-    mentions('tr6.l3', 'the rejections', `Every one of the ${rejections} rejections [derived] is in a trial that has such a token. In the ${without} trials [derived] that have none, the chi-square check rejects 0 [measured] and the enumeration flags ${without} [measured].`)
-    mentions('tr6.l3', 'a quarter', 'In the level\'s band a quarter of the trials [measured] do')
+    mentions('tr6.l3', 'the rejections', `Every one of the ${rejections} rejections [derived] is in a trial that has such a token. In the ${without} trials [derived] that have none, the chi-square check rejects 0 [synthetic] and the enumeration flags ${without} [synthetic].`)
+    mentions('tr6.l3', 'a quarter', 'In the level\'s band a quarter of the trials [synthetic] do')
     expect(dense.leakable).toBe(25)
   })
 
   test('a leak that comes once in 65,536 rounds shows on two seeds of 20,000 about 46 times in 100', () => {
     const { expected, shown } = leakShownByTwoSeeds()
     expect([expected.toFixed(2), Math.round(shown * 100)]).toEqual(['0.61', 46])
-    mentions('tr6.l3', 'the share shown', 'two seeds show a given leak only about 46 times in 100 [derived], which is why 9 of those 25 [measured] were rejected')
+    mentions('tr6.l3', 'the share shown', 'two seeds show a given leak only about 46 times in 100 [derived], which is why 9 of those 25 [synthetic] were rejected')
     mentions('tr6.l3', 'the sparse band', 'at least ten tokens [derived] that the target rules out, so 20,000 rounds leak about three times [derived] on each seed')
     expect((10 * 20_000) / 65_536).toBeCloseTo(3.05, 2)
   })
@@ -746,7 +748,7 @@ describe('lesson 5: the mask against the forward', () => {
     mentions('tr6.l5', 'async, heavy', 'The heavy chain is 880 µs [derived], and 880 − 500 = 380 µs [derived] is what does not fit.')
     // Once the fill outlasts the forward, the overlapped and the async gaps are one number.
     expect(timeline('overlap', heavy).gapUs).toBe(timeline('async', heavy).gapUs)
-    mentions('tr6.l5', 'the tie', 'overlapped and async give the same gap, `P + R + M − F`, which is 380 µs [measured] in both')
+    mentions('tr6.l5', 'the tie', 'overlapped and async give the same gap, `P + R + M − F`, which is 380 µs [synthetic] in both')
   })
 
   test('speculation lengthens the card: four drafts make 60 rows and a fill of 1,200 µs, and the overlapped gap goes from 160 to 860 µs', () => {
@@ -755,7 +757,7 @@ describe('lesson 5: the mask against the forward', () => {
     expect([plain.gapUs, spec.fillUs, spec.gapUs, timeline('async', light, 4).gapUs]).toEqual([160, 1200, 860, 860])
     mentions('tr6.l5', 'the rows', 'A request that drafts 4 tokens [estimated] needs 5 rows [derived] where a plain one needs 1.')
     mentions('tr6.l5', 'the fill', 'now fill 12 × 5 × 20 = 1,200 µs [derived]')
-    mentions('tr6.l5', 'the gap', '`100 + 60 + (1,200 − 500)` = 860 µs [derived], and the step loop measures 860 µs [measured], against 160 µs [measured] for the same grammar without drafts')
+    mentions('tr6.l5', 'the gap', '`100 + 60 + (1,200 − 500)` = 860 µs [derived], and the step loop gives 860 µs [synthetic], against 160 µs [synthetic] for the same grammar without drafts')
   })
 
   test('the figure is the step loop\'s own picture: rebuilt here, it is the file byte for byte', () => {

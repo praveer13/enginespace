@@ -129,7 +129,8 @@ describe('/m/tr2/l0-sample, the lesson template (REDESIGN §2.5)', () => {
   test('links: a kernelspace lesson goes out to kernelspace, a route is the router’s, and the breadcrumb names the module by its title', () => {
     expect(html).toContain('href="https://kernelspace.naigap.com/lesson/t5.l7"')
     expect(html).toContain('<a class="es-link" href="/map" data-discover="true">the course map</a>')
-    expect(html).toContain('<a class="es-link" href="/m/tr2" data-discover="true">TR2 The step loop</a>')
+    // The module's code stands in the crumb on a phone, and its title stays in the link for a screen reader.
+    expect(html).toContain('<a class="es-link" href="/m/tr2" data-discover="true">TR2<span class="es-lesson__crumb-name"> The step loop</span></a>')
     expect(html).toContain('Builds on ')
   })
 

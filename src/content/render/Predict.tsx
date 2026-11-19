@@ -15,7 +15,7 @@ import { useEvidence } from '@/evidence/useEvidence'
 import { commitPrediction, phaseOf, restorePrediction, revealPrediction, usePrediction } from './predicted'
 import type { Commitment, Phase, Revealed } from './predicted'
 import { latestSeq, useBlockRun } from './runs'
-import { optionText, readSlip, unitName } from './slip'
+import { one, optionText, readSlip, unitName } from './slip'
 import { SurePlates } from './Sure'
 import type { Slip } from './slip'
 import { Tagged } from './Tagged'
@@ -119,7 +119,7 @@ const rounded = (value: number): number => Number(value.toFixed(2))
 
 /** A figure in a unit: "260 pages". */
 function figureText(value: number, unit: string): string {
-  const shown = unitName(unit)
+  const shown = value === 1 ? one(unitName(unit)) : unitName(unit)
   return `${formatReadout(value, decimals(value))}${shown === '%' ? '' : ' '}${shown}`
 }
 

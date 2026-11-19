@@ -142,7 +142,7 @@ describe('the exact residual is exact', () => {
 
   test('an empty recipe is refused when a plate can be sent back, and a recipe that is not whole numbers is refused', () => {
     const [{ p, q }] = pairs(1)
-    expect(() => outputExact(p, q, 'min-ratio', { kind: 'weights', w: [0, 0, 0, 0, 0, 0] })).toThrow('nowhere to be re-plated')
+    expect(() => outputExact(p, q, 'min-ratio', { kind: 'weights', w: [0, 0, 0, 0, 0, 0] })).toThrow('nowhere to be resampled')
     expect(() => outputExact(p, q, 'min-ratio', { kind: 'weights', w: [1, 1, 1, 1, 1] })).toThrow('one weight for each')
     expect(() => outputExact(p, q, 'min-ratio', { kind: 'weights', w: [1, 1, 1, 1, 1, -1] })).toThrow('non-negative')
     expect(() => outputExact(p, { weights: q.weights, total: 7 }, 'min-ratio', { kind: 'excess' })).toThrow('share one total')

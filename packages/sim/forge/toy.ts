@@ -34,7 +34,7 @@ export interface RotationModel {
 }
 
 export function createRotation(capacity: number): RotationModel {
-  if (!Number.isInteger(capacity) || capacity < 1 || capacity > MAX_CAPACITY) throw new RangeError(`a rotation holds 1 to ${MAX_CAPACITY} keys, got ${capacity}`)
+  if (!Number.isInteger(capacity) || capacity < 1 || capacity > MAX_CAPACITY) throw new RangeError(`an eviction queue holds 1 to ${MAX_CAPACITY} keys, got ${capacity}`)
   /** The front is the next to dump. */
   const keys: number[] = []
   return {

@@ -480,24 +480,27 @@ describe(`the claims of ${CLAIMS_FILE}`, () => {
   const OTHERS: readonly RegExp[] = [
     /^https:\/\/github\.com\/NVIDIA\/TensorRT-LLM\/blob\/b96ba434e8a05e2ab52d2082bd8d70b1d844739b\/[^#]+#L\d+(?:-L\d+)?$/,
     /^https:\/\/github\.com\/praveer13\/kernelspace\/blob\/d478f91[0-9a-f]{33}\/[^#]+#L\d+(?:-L\d+)?$/,
+    // The book "Modern GPU Programming For MLSys", read as a page: its measuring appendix, for one figure that its authors report.
+    /^https:\/\/mlc\.ai\/modern-gpu-programming-for-mlsys\/appendix\/benchmarking_gpu_kernels\.html$/,
   ]
   /** The two posts, which are read as pages and not at a line. */
   const POSTS: readonly RegExp[] = [/^https:\/\/vllm\.ai\/blog\/2026-03-24-mrv2$/, /^https:\/\/lmsys\.org\/blog\/2026-08-17-advanced-cuda-graph\/$/]
   const isPost = (url: string): boolean => POSTS.some((pattern) => pattern.test(url))
 
-  test('are many, and each is measured, except the three that someone else measured on their own hardware', () => {
+  test('are many, and each is measured, except the four that someone else measured on their own hardware', () => {
     expect(mine.length).toBeGreaterThanOrEqual(55)
     expect(mine.filter((claim) => claim.tag !== 'measured').map((claim) => `${claim.id} ${claim.tag}`)).toEqual([
       'vllm.mrv2.blog-gain unverified',
       'vllm.mrv2.blog-spec-tpot unverified',
       'trtllm.cudagraph.padding-gain unverified',
+      'mlc-book.gemm-launch-api unverified',
     ])
   })
 
-  test("begin their ids with their engine, or with loop when kernelspace's is the source", () => {
+  test("begin their ids with their engine, with loop when kernelspace's is the source, or with mlc-book for the book", () => {
     for (const claim of mine) {
       const prefix = claim.id.split('.')[0]
-      expect([claim.id, ['vllm', 'sglang', 'mini-sglang', 'trtllm', 'loop'].includes(prefix)]).toEqual([claim.id, true])
+      expect([claim.id, ['vllm', 'sglang', 'mini-sglang', 'trtllm', 'loop', 'mlc-book'].includes(prefix)]).toEqual([claim.id, true])
       if (claim.pin !== undefined) expect([claim.id, claim.id.startsWith(`${claim.pin}.`)]).toEqual([claim.id, true])
     }
   })
@@ -510,7 +513,7 @@ describe(`the claims of ${CLAIMS_FILE}`, () => {
         expect([claim.id, ENGINES.some((pattern) => pattern.test(url)) || isPost(url)]).toEqual([claim.id, true])
       } else {
         expect([claim.id, OTHERS.some((pattern) => pattern.test(url))]).toEqual([claim.id, true])
-        expect([claim.id, claim.id.startsWith('trtllm.') || claim.id.startsWith('loop.')]).toEqual([claim.id, true])
+        expect([claim.id, claim.id.startsWith('trtllm.') || claim.id.startsWith('loop.') || claim.id.startsWith('mlc-book.')]).toEqual([claim.id, true])
       }
     }
   })
@@ -614,9 +617,47 @@ describe('lesson 1: one step, and what the GPU waits for', () => {
     // The idle time before a step is the CPU's work of the step before it, row for row, when nothing overlaps.
     expect([big.bubbleUs, small.bubbleUs]).toEqual([big.cpuUs, small.cpuUs])
     expect([big.rows, small.rows]).toEqual([12, 12])
-    mentions('tr2.l1', 'the busy shares', `${fmt(big.cpuUs)} µs and ${fmt(small.cpuUs)} µs [measured]`)
+    mentions('tr2.l1', 'the busy shares', `${fmt(big.cpuUs)} µs and ${fmt(small.cpuUs)} µs [synthetic]`)
     mentions('tr2.l1', 'the busy share of the big card', `busy for ${fmt((100 * big.forwardUs) / (big.forwardUs + big.cpuUs), 1)}% [derived]`)
     mentions('tr2.l1', 'the busy share of the small card', `busy for ${fmt((100 * small.forwardUs) / (small.forwardUs + small.cpuUs), 1)}% [derived]`)
+  })
+
+  test('the Read opens on what the level showed, and the back-reference to kernelspace follows it', () => {
+    const text = lessonOf('tr2.l1').text
+    const read = text.slice(text.indexOf('## One thread, one loop') + '## One thread, one loop'.length).trim()
+    expect(read.startsWith('In the level the GPU lane went empty whenever the CPU lane was busy')).toBe(true)
+    const paragraph = read.slice(0, read.indexOf('\n\n'))
+    expect(paragraph.indexOf('{{ks:T5.L7}}')).toBeGreaterThan(paragraph.indexOf('In the level'))
+  })
+
+  test("EngineCore.step's first four calls are shown by TR1's convention: a block headed with its file, its lines and the pin, `...` for the lines cut, and the line before it links the same lines", () => {
+    const text = lessonOf('tr2.l1').text
+    const blocks = [...text.matchAll(/```python\n# (\S+), lines (\d+) to (\d+) at (\S+)\n([\s\S]*?)```/g)]
+    expect(blocks.length).toBe(1)
+    const [whole, file, first, last, pin, body] = blocks[0]
+    expect([file, Number(first), Number(last), pin]).toEqual(['vllm/v1/engine/core.py', 677, 686, 'v0.33.0'])
+    // The file's lines from the first call to the end of the fourth, set back by the method's indent, with the `with` block's head cut to `...`.
+    const lines = body.replace(/\n$/, '').split('\n')
+    expect(lines[0]).toBe('scheduler_output = self.scheduler.schedule(self._should_throttle_prefills())')
+    expect(lines[lines.length - 1]).toBe('        model_output = self.model_executor.sample_tokens(grammar_output)')
+    expect(lines.filter((line) => line === '...').length).toBe(1)
+    expect(lines.filter((line) => line !== '...').length).toBe(6)
+    const before = text.slice(0, text.indexOf(whole)).trimEnd().split('\n').pop() ?? ''
+    expect(before).toContain(`(https://github.com/vllm-project/vllm/blob/${pin}/${file}#L${first}-L${last})`)
+    expect(before).toContain('`EngineCore.step` is 31 lines [measured] at the pin')
+    // The link says what the block holds: four calls, the fourth of them the wait and the sample, so five call lines.
+    expect(before).toContain('[these lines hold its first four calls](')
+    expect(before).toContain('the fourth a wait and a sample')
+    // The first four calls of the list are the block's, in the block's order, and the line after the block names the fifth.
+    const after = text.slice(text.indexOf(whole) + whole.length).trim().split('\n')[0]
+    expect(after).toContain('The fifth call, `update_from_output`, follows a drain of aborts. {{claim:vllm.step.order}}')
+    const at = ['self.scheduler.schedule(', 'self.model_executor.execute_model(', 'self.scheduler.get_grammar_bitmask(', 'future.result()', 'self.model_executor.sample_tokens('].map((call) => body.indexOf(call))
+    expect([at.every((index) => index >= 0), [...at].sort((a, b) => a - b)]).toEqual([true, at])
+  })
+
+  test('an arbitrary number says so in the next sentence, and a comparison of the two cards names what else differs between them', () => {
+    mentions('tr2.l1', 'the ticks are arbitrary', "{{claim:loop.world.step-ticks-serial}} The three numbers are arbitrary: others would change the share, not the rule.")
+    mentions('tr2.l1', 'the confound', 'which also differ in their GPU and in where the host card prices the per-sequence work. So read them as two cases, not as the effect of size alone.')
   })
 })
 
@@ -636,7 +677,7 @@ describe('lesson 2: one token budget', () => {
     expect(steps[1].promptTokens).toBe(PREDICTIONS['tr2.l2.p1'].reference())
     mentions('tr2.l2', 'the arithmetic', `take ${fmt(steps[1].decodeRows)} tokens [derived], so the prompt gets what is left, ${fmt(steps[1].promptTokens)} tokens [derived], and the ${fmt(BUDGET.prompt - steps[1].promptTokens)} [derived] that remain go in the next step`)
     mentions('tr2.l2', 'the idle budget', `leaves ${fmt(BUDGET.budget - steps[2].tokens)} tokens [derived] of its budget unused`)
-    mentions('tr2.l2', 'the cost of a chunk', `${fmt(steps[1].forwardUs)} µs [measured], where a decode-only step is ${fmt(steps[0].forwardUs)} µs [measured]`)
+    mentions('tr2.l2', 'the cost of a chunk', `${fmt(steps[1].forwardUs)} µs [synthetic], where a decode-only step is ${fmt(steps[0].forwardUs)} µs [synthetic]`)
   })
 
   test("the same command on two GPUs: the offline class's budget on a 4090 against the server's, and a quarter of the budget and of the sequences", () => {
@@ -685,7 +726,7 @@ describe('lesson 3: async scheduling closes the bubble, and costs a token', () =
 
   test('the nine fires of the small card that still have a dark stretch: all admit a ticket, seven are launched one by one, two in pieces', () => {
     const dark = darkFires('small')
-    mentions('tr2.l3', 'nine of the fires', `${dark.length} of its ${small.on.fires} steps [measured] still have a bubble before them`)
+    mentions('tr2.l3', 'nine of the fires', `${dark.length} of its ${small.on.fires} steps [synthetic] still have a bubble before them`)
     expect(dark.every((fire) => fire.admits > 0)).toBe(true)
     expect(dark.filter((fire) => fire.mode === 'NONE').length).toBe(7)
     expect(dark.filter((fire) => fire.mode === 'PIECEWISE').length).toBe(2)
@@ -693,10 +734,10 @@ describe('lesson 3: async scheduling closes the bubble, and costs a token', () =
     const launch = comb().eagerLaunchUs
     const forwards = dark.map((fire) => fire.forwardUs)
     const about = Math.round(forwards.reduce((a, b) => a + b, 0) / forwards.length / 10) * 10
-    mentions('tr2.l3', 'the launch and the forward', `the launch alone takes ${fmt(launch)} µs [measured] against a forward of about ${fmt(about)} µs [measured]`)
+    mentions('tr2.l3', 'the launch and the forward', `the launch alone takes ${fmt(launch)} µs [synthetic] against a forward of about ${fmt(about)} µs [synthetic]`)
     const pieces = dark.filter((fire) => fire.mode === 'PIECEWISE').map((fire) => fire.bubbleUs)
     const short = Math.round(pieces.reduce((a, b) => a + b, 0) / pieces.length / 50) * 50
-    mentions('tr2.l3', 'the pieces', `fall short by about ${fmt(short)} µs [measured]`)
+    mentions('tr2.l3', 'the pieces', `fall short by about ${fmt(short)} µs [synthetic]`)
     expect(launch).toBeGreaterThan(about)
   })
 
@@ -751,9 +792,9 @@ describe('lesson 5: CUDA graphs', () => {
 
   test('the comb: 336 calls and 2,016 µs eagerly, 57 calls in pieces, 1 call as one graph, against a forward of 1,225 µs', () => {
     mentions('tr2.l5', 'the comb', `A step then makes ${fmt(c.eagerCalls)} calls [derived] and spends ${fmt(c.eagerLaunchUs)} µs [derived] of CPU time launching`)
-    mentions('tr2.l5', 'the forward', `${fmt(steadyFire('small').forwardUs)} µs [measured], from the \`async\` level's practice run`)
-    mentions('tr2.l5', 'the calls', `For the small model's 28 layers that is ${fmt(c.piecewiseCalls)} calls [measured], where an eager launch makes ${fmt(c.eagerCalls)} and a full graph makes 1 [measured]`)
-    mentions('tr2.l5', 'the pieces', `The model counts it as ${c.layers + 1} replays and ${c.piecewiseCalls - c.layers - 1} attention launches [measured]`)
+    mentions('tr2.l5', 'the forward', `${fmt(steadyFire('small').forwardUs)} µs [synthetic], from the \`async\` level's practice run`)
+    mentions('tr2.l5', 'the calls', `For the small model's 28 layers that is ${fmt(c.piecewiseCalls)} calls [synthetic], where an eager launch makes ${fmt(c.eagerCalls)} and a full graph makes 1 [synthetic]`)
+    mentions('tr2.l5', 'the pieces', `The model counts it as ${c.layers + 1} replays and ${c.piecewiseCalls - c.layers - 1} attention launches [synthetic]`)
     expect([c.piecewiseCalls, c.fullLaunchUs]).toEqual([57, 30])
   })
 
@@ -776,13 +817,34 @@ describe('lesson 5: CUDA graphs', () => {
     mentions('tr2.l5', 'idle', `| The GPU's idle time while the CPU worked, µs | ${fmt(night.eager.bubbleUs)} | ${fmt(night.graphs.bubbleUs)} |`)
     const cut = (before: number, after: number): string => fmt((100 * (before - after)) / before, 1)
     mentions('tr2.l5', 'the cuts', `removes ${cut(night.eager.bubbleUs, night.graphs.bubbleUs)}% [derived] of the bubbles, ${cut(night.eager.tpotP50Us, night.graphs.tpotP50Us)}% [derived] of the median token and ${cut(night.eager.clockUs, night.graphs.clockUs)}% [derived] of the run`)
-    mentions('tr2.l5', 'what remains', `The ${fmt(night.graphs.bubbleUs)} µs [measured] that remain are the nine steps of the third lesson`)
+    mentions('tr2.l5', 'what remains', `The ${fmt(night.graphs.bubbleUs)} µs [synthetic] that remain are the nine steps of the third lesson`)
     const sizes = sizesNight()
     mentions('tr2.l5', 'naive molds', `| vLLM's own list cut to three | ${sizes.naiveMolds.join(', ')} | ${fmt(sizes.naiveCost)} |`)
     mentions('tr2.l5', 'best molds', `| The best three | ${sizes.houseMolds.join(', ')} | ${fmt(sizes.houseCost)} |`)
     expect([sizes.batches.length, Math.min(...sizes.batches), Math.max(...sizes.batches), sizes.molds]).toEqual([40, 7, 11, 3])
     expect(sizes.uncapturedByNaive).toBe(40)
-    mentions('tr2.l5', 'the histogram', `drawn from a histogram whose batches are ${Math.min(...sizes.batches)} to ${Math.max(...sizes.batches)} rows [measured]`)
+    mentions('tr2.l5', 'the histogram', `drawn from a histogram whose batches are ${Math.min(...sizes.batches)} to ${Math.max(...sizes.batches)} rows [synthetic]`)
+  })
+
+  test("says over what batches decode is bandwidth-bound, in kernelspace's numbers, and no more than they say", () => {
+    // T4.L3 gives decode about 1 FLOP a byte at batch 1, N times that for a batch of N, and an H100 ridge of about 295 at FP16, from the weights.
+    const claim = (id: string) => result.claims.find((record) => record.claim.id === id)?.claim
+    expect([claim('loop.kernelspace.decode-intensity')?.value, claim('loop.kernelspace.h100-ridge')?.value]).toEqual([1, 295])
+    mentions('tr2.l5', 'the range', '{{ks:T4.L3}} told you that decode is bandwidth-bound. By its numbers that holds while the batch stays well below about 295 requests [derived] for FP16 weights on an H100, counting the weights alone.')
+    for (const id of ['decode-intensity', 'batch-lever', 'h100-ridge', 'decode-plus-kv']) mentions('tr2.l5', id, `{{claim:loop.kernelspace.${id}}}`)
+  })
+
+  test("says what the model's 6 µs is, and sets one launch call that the book's authors report beside it as theirs, unverified", () => {
+    mentions('tr2.l5', 'the quantity', "The 6 µs [estimated] is the engine thread's time for one kernel in a run of launches, from the start of its launch to the start of the next.")
+    mentions('tr2.l5', 'the book', '50.717 µs [unverified] for the host\'s launch API call of one GEMM kernel')
+    mentions('tr2.l5', 'one traced call', 'One traced launch call can take several times longer.')
+    mentions('tr2.l5', 'the section', 'in the appendix on measuring a kernel, under “Locate the Most Expensive Kernel in the Timeline”, read on 2026-11-18.')
+    mentions('tr2.l5', 'the learner settles it', 'your own capture in TR3 is what settles the figure for your machine')
+    const book = result.claims.find((record) => record.claim.id === 'mlc-book.gemm-launch-api')?.claim
+    expect([book?.value, book?.tag, book?.source?.accessed]).toEqual([50.717, 'unverified', '2026-11-18'])
+    // The figure comes after the guess, which asks for the model's own launch cost.
+    const text = lessonOf('tr2.l5').text
+    expect(text.indexOf('{{claim:mlc-book.gemm-launch-api}}')).toBeGreaterThan(text.indexOf('id: tr2.l5.p1'))
   })
 })
 
@@ -843,9 +905,9 @@ describe('lesson 6: dispatch keys, modes and memory', () => {
     for (const row of graphCounts()) mentions('tr2.l6', row.mode, `| \`${row.mode}\` | ${row.graphs} | ${fmt(row.mib, 1)} |`)
     const withLora = graphCounts(true).find((row) => row.mode === 'FULL_AND_PIECEWISE')!
     expect(withLora.graphs).toBe(2 * graphCounts().find((row) => row.mode === 'FULL_AND_PIECEWISE')!.graphs)
-    mentions('tr2.l6', 'doubling', `doubles the graphs, from ${graphCounts().find((row) => row.mode === 'FULL_AND_PIECEWISE')!.graphs} [measured] to ${withLora.graphs} [measured] in \`FULL_AND_PIECEWISE\``)
+    mentions('tr2.l6', 'doubling', `doubles the graphs, from ${graphCounts().find((row) => row.mode === 'FULL_AND_PIECEWISE')!.graphs} [synthetic] to ${withLora.graphs} [synthetic] in \`FULL_AND_PIECEWISE\``)
     const all = defaultGraphs()
-    mentions('tr2.l6', 'the default list', `captures ${all.graphs} graphs [measured], which the model prices at ${fmt(all.mib)} MiB [estimated]`)
+    mentions('tr2.l6', 'the default list', `captures ${all.graphs} graphs [synthetic], which the model prices at ${fmt(all.mib)} MiB [estimated]`)
   })
 
   test('the memory: 8 MiB and 16 KiB a graph, and the KV cache with the graphs ignored and taken off first', () => {
@@ -868,9 +930,9 @@ describe('lesson 6: dispatch keys, modes and memory', () => {
     const close = closePractice()
     expect(CLOSE_PRACTICE_SEED).toBe(16)
     expect([close.card, close.rail, close.budget]).toEqual(['small', 8, 128])
-    mentions('tr2.l6', 'the night', `on ${close.rail} batch slots [measured] with a budget of ${close.budget} tokens [measured], and the room is ${fmt(close.graphRoomMiB, 3)} MiB [measured]`)
-    mentions('tr2.l6', 'the naive night', `loses ${close.naiveDarkPercent}% [measured] of its clock to bubbles: ${fmt(close.naiveDarkUs)} µs [measured] of ${fmt(close.naiveClockUs)} µs [measured]`)
-    mentions('tr2.l6', 'the house', `\`FULL\` graphs at the sizes ${close.houseSizes.join(' and ')} [measured]. Its run takes ${fmt(close.houseClockUs)} µs [measured] with no bubble, and its two graphs take ${fmt(close.graphRoomMiB, 3)} MiB [derived], the whole room`)
+    mentions('tr2.l6', 'the night', `on ${close.rail} batch slots [synthetic] with a budget of ${close.budget} tokens [synthetic], and the room is ${fmt(close.graphRoomMiB, 3)} MiB [synthetic]`)
+    mentions('tr2.l6', 'the naive night', `loses ${close.naiveDarkPercent}% [synthetic] of its clock to bubbles: ${fmt(close.naiveDarkUs)} µs [synthetic] of ${fmt(close.naiveClockUs)} µs [synthetic]`)
+    mentions('tr2.l6', 'the house', `\`FULL\` graphs at the sizes ${close.houseSizes.join(' and ')} [synthetic]. Its run takes ${fmt(close.houseClockUs)} µs [synthetic] with no bubble, and its two graphs take ${fmt(close.graphRoomMiB, 3)} MiB [derived], the whole room`)
     expect([close.houseMode, close.houseDarkUs, close.houseLevers.async, close.houseLevers.inputIds, close.houseLevers.runner]).toEqual(['FULL', 0, true, 'device', 'mrv2'])
     expect([close.naiveLevers.async, close.naiveLevers.inputIds, close.naiveLevers.runner, close.naiveLevers.graphMode]).toEqual([false, 'host', 'v1', 'NONE'])
     const refused = closeRefusals()
@@ -878,7 +940,7 @@ describe('lesson 6: dispatch keys, modes and memory', () => {
     expect(Object.values(refused.defaultSizesRefused)).toEqual([true, true, true, true])
     expect(refused.defaultModeAtHouseSizesRefused).toBe(true)
     mentions('tr2.l6', 'the default sizes', `vLLM's default sizes for those ${close.rail} slots are ${refused.defaultSizes.slice(0, 4).join(', ')} and ${refused.defaultSizes[4]} [derived], and the engine refuses to start in each of the four modes that use graphs`)
-    mentions('tr2.l6', 'the hand ids', `the run is served and has ${refused.handIdsViolations} dependency violations [measured]`)
+    mentions('tr2.l6', 'the hand ids', `the run is served and has ${refused.handIdsViolations} dependency violations [synthetic]`)
     expect(refused.handIdsViolations).toBeGreaterThan(0)
   })
 })
@@ -938,13 +1000,13 @@ describe('the figures', () => {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 describe('the commit that the numbers name', () => {
-  /** The day and the commit that each "Read on <day> at `<commit>`" names, once each. */
+  /** The day and the commit that each "Printed by the course's model on <day> at `<commit>`" names, once each. */
   const named = [...new Set(lessons.flatMap((l) => [...l.text.matchAll(/(\d{4}-\d{2}-\d{2}) at `([0-9a-f]{7,40})`/g)].map((m) => `${m[1]} ${m[2]}`)))]
   const cited = named.map((pair) => pair.split(' ')[1])
 
   test('the lessons that print the course\'s own measurements name one commit, in code, and the day', () => {
     expect(named.length).toBe(1)
-    for (const id of ['tr2.l1', 'tr2.l2', 'tr2.l3', 'tr2.l4', 'tr2.l5', 'tr2.l6', 'tr2.l7']) expect([id, /[Rr]ead on \d{4}-\d{2}-\d{2} at `[0-9a-f]{7,40}`/.test(lessonOf(id).text)]).toEqual([id, true])
+    for (const id of ['tr2.l1', 'tr2.l2', 'tr2.l3', 'tr2.l4', 'tr2.l5', 'tr2.l6', 'tr2.l7']) expect([id, /[Pp]rinted by the course's model on \d{4}-\d{2}-\d{2} at `[0-9a-f]{7,40}`/.test(lessonOf(id).text)]).toEqual([id, true])
   })
 
   test('it is a commit of this repository, when the history is here to say so', () => {

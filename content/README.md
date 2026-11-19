@@ -52,7 +52,7 @@ A lesson opens in one of three ways, and a test holds each of the 27 built lesso
 | **B. Primer, then run** | 61 to 200 words, then guesses and the game, before the first `##` | The words render under "Before you run": the three to six facts the level needs, as a list or a small table, taken from the lesson's own prose. No new claim. |
 | **C. Read first** | The first game is after the first `##`, or there is none | The lesson opens on Read. Its first part ends in something to do within 450 words: a guess with a reveal, or a one-question checkpoint. |
 
-The seven rules, for every lesson of the course:
+The twelve rules. Rules 1 to 7 hold for every lesson. Rules 8 to 12 were adopted on 2026-11-18 and hold for lessons written from that day on. The built lessons were written before them and are not held to them. The owner asked on that day for small edits to some of them, and no other edit to a built lesson follows from these rules until the owner asks. Rules 8 to 12 shape how a lesson is written once its opener and parts are chosen; the compiler has no warning for them, so the author and the reviewer hold them:
 
 1. Choose the opener by one question: can a reader who has finished the earlier lessons finish this level from its parts list, its goal line and at most 200 words? If yes, A or B. If no, C.
 2. A setup states the question. A primer states facts the level needs. Neither explains the answer. Every engine term the level's controls and prompts use is in the level's parts list or in the setup or primer (`tests/content/vocabulary.test.ts`).
@@ -61,6 +61,35 @@ The seven rules, for every lesson of the course:
 5. No kitchen sentence, no build-log id: no task, decision or design-document section in prose.
 6. After moving a block, re-read the prose for words that assume the old order ("above", "below", "you just", "the level that follows").
 7. Moving blocks changes a lesson's `rev`, so earlier evidence for it shows "re-check". Nothing is lost.
+8. **Open on what the last lesson left undone.** The first sentence of Read says what the last lesson left the reader unable to do or, in a lesson with a Run, what they just ran in it; a lesson with no Run has only the first. A back-reference to kernelspace comes after that, never first. In an A or B lesson the setup or primer keeps rules 1 and 2 and its word limit: it may name what is left open in one clause, and never states the answer. A module's first lesson that opens on Read has no last lesson, so it opens on the one thing the module is for that the reader cannot yet do. Example, from the Read of `tr2` lesson 3, which has a Run and opens on the last lesson: "The last lesson ended on a gap. With nothing overlapped, the GPU idles for all of the CPU's work, because the next step cannot be prepared until this one has been read."
+9. **Say what changed, and what did not.** A module's first lesson names three or four things to ask of every lesson after it, as a short list under the first `##` of its Read, each a few words. Every later lesson repeats those words as the first column of one small Markdown table in Read, after the lesson's Run and after any guess a row would answer, with a column for the last lesson and one for this one; "unchanged" is a legal cell, and there is no new block type. Head the first column "Asked of every lesson", since on the lesson page a "question" is an item of the Test. Where a lesson has a run, the run shows the effect of what the lesson adds; with a run or without, no lesson builds a thing whose effect only a later lesson shows. A module whose lessons are separate subjects, and not successive states of one mechanism, says so in its design and carries no table unless the owner asks for one. Example, for a lesson on CUDA graphs after one on async scheduling:
+
+   ```text
+   | Asked of every lesson | Last lesson | This lesson |
+   |---|---|---|
+   | Who plans the next step | the CPU, during the step | unchanged |
+   | What the CPU launches | each kernel of the step | one graph for the step |
+   | What the GPU runs | the forward's kernels | the same kernels, on a batch padded to a captured size |
+   ```
+
+10. **Make the comparison honest.** A table that sets two times side by side has a column for what else changed between them and a column for the bound the numbers are read against, in the engine's own words ("the bytes read over the memory bandwidth", "the GPU-busy time of the step"). A cell the course has no number for is a dash, never a number made up to fill it; a derived or estimated number keeps its tag ("Numbers", below). In prose, the sentence that makes a comparison names what else differs. The copy guard (`src/copy/banned.ts`) bans "a floor" and "floors of" among others, so write "the floor", "its floor" or the bound's own name. Example, for two GPU captures of one step, graphs off and graphs on; the dash is a capture the course has not made:
+
+    ```text
+    | Run | Time per step [measured] | What else changed | Bound it is read against [derived] |
+    |---|---|---|---|
+    | graphs off | the lesson's number | nothing: the base run | the GPU-busy time of the step |
+    | graphs on | — | padding to a captured size | the same, on the padded batch |
+    ```
+
+    The sentence beside it reads "Graphs on also pads the batch, so the gain is not the launch cost alone."
+11. **Write one form per module.** A relation is one line in which every term is something the learner measures or counts in the module's game or lab (TR8: a latency as two waits; TR3: a step as three categories). Where a module has one, write it once, in at most a line, set in a fenced code block marked `text`, and keep its words in the module's later lessons, goal lines and question stems; a module with none says so in its design and writes no form. `tr8` lesson 1 sets one, `from due = (sent - due) + (first token - sent)`, and no later lesson repeats it yet. TR3's form belongs at `tr3.l4` with the level `attribute`. The built course uses two words for the stretch in which the GPU idles while the CPU prepares the next step: "bubble", the lessons' coined word (`src/copy/terms.ts`), and "CPU gap", in the Trace attribution game, the trace model, two built texts (the warning card of `tr2` lesson 5 and the `tr6` module page) and the course's second outcome (PRODUCT.md). The owner settles which TR3's form uses, in `src/copy/terms.ts` and `docs/GAMES.md` §2.6, before the game's goal lines (W2-T20) or TR3's lessons (W2-T24) are written. The form is not written here.
+12. **Keep four sentence rules.**
+    - Say what the lesson's change, or the one thing the lesson adds, does not buy yet. "A graph takes the CPU's launch work off the step. It does not make a kernel inside it shorter."
+    - Say that an arbitrary number is arbitrary, in the next sentence. "A step plans for 2 ticks, runs the forward for 4 and reads for 1 [estimated]. The three numbers were picked to make the sum easy, and none of them is an engine's."
+    - One fact to a sentence, the point first, and each claim mark after the full stop of the sentence it supports. A claim that supplies a number the sentence needs stays where the number is, and a card keeps its own rule ("A card", below).
+    - Do not list in prose what a table can carry. Three backends, each with a GPU, an instruction and a default, are a table of three rows and three columns, not a paragraph.
+
+Rules 8 to 12 were adopted after a reading of "Modern GPU Programming For MLSys" whose byline is MLC Community (https://mlc.ai/modern-gpu-programming-for-mlsys/). The book's front page calls it open source and names no licence, and the course found no licence file on 2026-11-18, so nothing of its text, figures, listings or exercises is reproduced here, and every example above is the course's own.
 
 The compiler warns about the rules it can see, and never fails on one. Each warning prints `file:line`:
 
@@ -119,11 +148,18 @@ A family is a `Gen` in `packages/play/items/` (ARCHITECTURE §8.2), registered i
 
 ## Numbers
 
-Every number is a claim or carries a tag (ARCHITECTURE §4.4). In prose, a digit run needs one of `[measured]`, `[derived]`, `[estimated]` or `[unverified]` in its sentence, written before the full stop. In a table, a tag in a column's header tags the column. The tag is the word in brackets and nothing else: the source and the date belong in a claim.
+Every number is a claim or carries a tag (ARCHITECTURE §4.4). In prose, a digit run needs one of `[measured]`, `[derived]`, `[estimated]`, `[synthetic]` or `[unverified]` in its sentence, written before the full stop. In a table, a tag in a column's header tags the column. The tag is the word in brackets and nothing else: the source and the date belong in a claim.
 
 A number does not need a tag in code, inside a reference, in an identifier (`H100`, `p99`, `tr2.l3`, `v0.33.0`, `§4.2`), or in an ISO date. Anything else does, including a version without its `v`, a size with its unit (`80GB`) and a year. When a number is a fact about an engine, make it a claim, give it a source with the source's own words, and cite it.
 
-A number that the course's own simulator gives is [measured], and its sentence or its table's caption says on what day and at which commit it was read. A test recomputes it from the generator and holds the lesson's text to the result, so that a change to the generator that moves the number fails on the lesson that printed it. `tests/content/tr8-module.test.ts` and `tests/content/tr8-demos.ts` are the pattern, and `tests/content/tr6-module.test.ts` adds the two other things a module can owe: a prediction's reference answer, which a content file never stores (`PREDICTIONS` in `tests/content/tr6-demos.ts`), and a figure drawn from a model. The date and the commit go in the text and never inside the brackets, which hold the tag and nothing else.
+What each tag means for a learner:
+- `[measured]` is a run on a real machine, or a source that was read (a file at a pin, a release feed, a paper's figure, a count a script made over the repository), with its date. The number is someone's observation, never the course's model's output.
+- `[derived]` is arithmetic on tagged numbers.
+- `[estimated]` is a judgment or a design target.
+- `[synthetic]` is a number that the course's own model printed: its simulator, its step loop, its port of an engine's rules. It says nothing about a real GPU.
+- `[unverified]` was not checked against a primary source.
+
+A number that the course's own simulator gives is `[synthetic]`, and its sentence or its table's caption says on what day and at which commit it was printed ("Printed by the course's model on 2026-11-08 at `b5fb81a`.", the line above the table). `verify:numbers` refuses a `[measured]` tag where the course's model is the source: in a sentence that names it ("the course's sim", "the course's own world", "the step loop gives", "the model counts"), in the caption of a table that names it and in that table's cells, in a later table of the same `##` part, and in a later sentence of the part that quotes a number of that table. It holds a card's body, a prediction's prompt, a figure's alt text and the front matter to the sentence rule. A number that someone else measured and the course quotes (a paper's figure, an upstream README's example, a book's table) is a claim with its source, never `[synthetic]`, and the sentence says whose run it was. It keeps its claim's tag, and its sentence says that the course has not reproduced the run. The course does not yet tag such a run one way: `tr2` tags it `[unverified]` (the book's launch figure in lesson 5, the vLLM post's gains), and `tr5a` and `tr8` tag the S-LoRA paper's and the wrk2 README's figures `[measured]`, as sources that were read. Until the owner settles it (O-21), a new quote of someone else's run is `[unverified]`. A test recomputes each number of the model from its generator and holds the lesson's text to the result, so that a change to the generator that moves the number fails on the lesson that printed it. A module's test also holds the header row of every model table, tags included, because the gate reads words and cannot know where a number came from (`tests/content/tr6-module.test.ts` does this for lesson 3). `tests/content/tr8-module.test.ts` and `tests/content/tr8-demos.ts` are the pattern, and `tests/content/tr6-module.test.ts` adds the two other things a module can owe: a prediction's reference answer, which a content file never stores (`PREDICTIONS` in `tests/content/tr6-demos.ts`), and a figure drawn from a model. The date and the commit go in the text and never inside the brackets, which hold the tag and nothing else.
 
 ## Claims
 

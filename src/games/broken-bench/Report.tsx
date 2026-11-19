@@ -1,6 +1,5 @@
 import { useId } from 'react'
 import type { SceneView } from '@es/play/broken-bench/types'
-import { Stamp } from '@/design/components/Stamp'
 import { formatReadout } from '@/design/format'
 import { noteLines, setupLines, type FormLine } from './Setup'
 
@@ -8,7 +7,8 @@ import { noteLines, setupLines, type FormLine } from './Setup'
  * The report on trial (GAMES.md §11 "Cases"), beside the chart, in two parts: the claim, which comes first on every width, and the setup the
  * harness was given with what anyone can count off the log. The claim is set large, since it is the thing on trial; the setup is the
  * report's own flags; the counts are facts of the log, and none of them is the number the reference will find. It is DOM, independent of the
- * sheets, and the claim carries the one stamp that says every figure on the report is synthetic (REDESIGN §2.8, the Quiet Provenance Rule).
+ * sheets. The instrument's one stamp, which says every figure on it is synthetic, is the readout strip's (REDESIGN §2.8, the Quiet Provenance
+ * Rule).
  */
 
 function Lines({ lines, label }: { lines: readonly FormLine[]; label: string }) {
@@ -36,12 +36,9 @@ export function Claim({ scene, caseNo, cases }: ReportProps) {
   const heading = useId()
   return (
     <section className="es-bench-claim" aria-labelledby={heading} data-bench-report="">
-      <div className="es-bench-claim__head">
-        <h3 id={heading} className="es-bench-claim__what">
-          {cases === 1 ? 'Reported p99 time to first token' : `Report ${caseNo} of ${cases}: reported p99 time to first token`}
-        </h3>
-        <Stamp word="synthetic" />
-      </div>
+      <h3 id={heading} className="es-bench-claim__what">
+        {cases === 1 ? 'Reported p99 time to first token' : `Report ${caseNo} of ${cases}: reported p99 time to first token`}
+      </h3>
       <p className="es-bench-claim__value" data-bench-claim="">
         <span className="font-numeric">{formatReadout(claim.valueUs / 1000, 1)}</span> <span className="es-bench-claim__unit">ms</span>
       </p>

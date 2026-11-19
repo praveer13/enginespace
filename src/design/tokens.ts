@@ -10,7 +10,8 @@
  * The roles: a flat ground and surfaces 0-3, paper with its two inks and its graticule, the marker (amber, with its
  * edge) for now alone, ink for focus, and six fills with their glyphs as the one colour code. Lane, memory, probability
  * and status roles point at that code: nothing gets a colour of its own. Role names are the system's contract, apart from the roles that were kitchen words
- * (marker, marker-edge, slip, slip-ink, light-ambient, dur-step, radius-control, size-control, font-readout); the label slip and the ambient light are used by the broken benchmark's sheet and by the 3D view.
+ * (marker, marker-edge, slip, slip-ink, light-ambient, dur-step, radius-control, size-control, font-readout); the ambient light is the 3D view's, and
+ * nothing in the app draws the label slip now (DESIGN.md, Label slip).
  *
  * Pure data and pure functions, with no DOM: tailwind.config.ts (Node) and the tests import it too.
  */
@@ -62,8 +63,9 @@ const COLORS = {
   // The marker: amber means now, and only now (the One Marker Rule).
   marker: hex('material', '#ffb547', 'The marker: amber means now. The control to act on now, the "now" cursor, and the current position in a lesson\'s section list.'),
   'marker-edge': hex('material', '#9a3d00', "The marker's edge: amber never stands alone, it always comes with this edge, a shape and a word."),
-  // Used outside the type system's own roles: the broken benchmark's log sheet draws its label slips, and the 3D view takes its sky from the ambient light.
-  slip: hex('material', '#e6d6ad', 'A label slip on the broken benchmark\'s log sheet.'),
+  // Outside the type system's own roles: the 3D view takes its sky from the ambient light. Nothing in the app draws the label slip now: the broken
+  // benchmark's sheets use the plain label, and only the retired Request path drawing's tests paint with it.
+  slip: hex('material', '#e6d6ad', 'A pale slip for a label that needs one. Nothing in the app draws it now.'),
   'slip-ink': hex('material', '#1a1a1c', 'The words on a label slip.'),
   'light-ambient': hex('material', '#eef4f8', "The cool white of the 3D view's sky and key light. It colours no surface."),
 

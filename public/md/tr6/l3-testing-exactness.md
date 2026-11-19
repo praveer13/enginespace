@@ -48,9 +48,9 @@ The lab makes the other choice, and states it. Each seed draws 20,000 rounds [es
 
 ## What power looks like
 
-The lab's bestiary holds six wrong samplers, each a copy of the exact one with a single change. Run both kinds of check on them: the chi-square check, as the lab runs it, and an enumeration of the accept step, which tries every coin of every token and counts how many it keeps. Each row is 50 trials [estimated], and a trial draws a fresh target and draft from the band on which the member differs from the exact sampler. The numbers were measured by the course's sim on 2026-11-05 at `f4c2395`.
+The lab's bestiary holds six wrong samplers, each a copy of the exact one with a single change. Run both kinds of check on them: the chi-square check, as the lab runs it, and an enumeration of the accept step, which tries every coin of every token and counts how many it keeps. Each row is 50 trials [estimated], and a trial draws a fresh target and draft from the band on which the member differs from the exact sampler. The numbers were printed by the course's model on 2026-11-05 at `f4c2395`.
 
-| Sampler | The chi-square check rejects it, of 50 trials [measured] | The enumeration flags it, of 50 trials [measured] |
+| Sampler | The chi-square check rejects it, of 50 trials [synthetic] | The enumeration flags it, of 50 trials [synthetic] |
 |---|---|---|
 | The exact sampler | 0 | 0 |
 | Accept when p > q, with no coin | 50 | 50 |
@@ -78,19 +78,19 @@ What does see it is the other kind of check. The accept step is small enough to 
 
 ## Where a sample does see it
 
-The sample is not blind to this bug on every target, and the next table is the reason to know why. It runs the boundary-inclusive member on three kinds of target, 100 trials [estimated] each, and counts the trials in which the target rules out a token that the draft still proposes.
+The sample is not blind to this bug on every target, and the next table is the reason to know why. The course's model runs the boundary-inclusive member on three kinds of target, 100 trials [estimated] each, and counts the trials in which the target rules out a token that the draft still proposes.
 
-| Target [estimated] | Trials with a token that p rules out and q proposes, of 100 [measured] | The chi-square check rejects it, of 100 [measured] | The enumeration flags it, of 100 [measured] |
+| Target [estimated] | Trials with a token that p rules out and q proposes, of 100 [synthetic] | The chi-square check rejects it, of 100 [synthetic] | The enumeration flags it, of 100 [synthetic] |
 |---|---|---|---|
 | Six tokens on a grid of 1/64, the level's band | 25 | 9 | 100 |
 | Sixteen tokens, with the target possible on three to six | 100 | 100 | 100 |
 | Sixty-four tokens, with weights down to 1/65,536 | 3 | 1 | 100 |
 
-Every one of the 110 rejections [derived] is in a trial that has such a token. In the 172 trials [derived] that have none, the chi-square check rejects 0 [measured] and the enumeration flags 172 [measured]. The sample never sees the shift of one coin. It sees a leak. A token with `p(x) = 0` has the coin zero among its q(x) coins, and `0 <= 0` keeps it, so the draft is accepted and a token comes out that the target forbids. That chance does not depend on q(x): the token is proposed with probability q(x) ÷ 65,536 and then kept with probability 1 ÷ q(x), so it leaks once in 65,536 rounds [derived]. The statistic for a forbidden token is infinite.
+Every one of the 110 rejections [derived] is in a trial that has such a token. In the 172 trials [derived] that have none, the chi-square check rejects 0 [synthetic] and the enumeration flags 172 [synthetic]. The sample never sees the shift of one coin. It sees a leak. A token with `p(x) = 0` has the coin zero among its q(x) coins, and `0 <= 0` keeps it, so the draft is accepted and a token comes out that the target forbids. That chance does not depend on q(x): the token is proposed with probability q(x) ÷ 65,536 and then kept with probability 1 ÷ q(x), so it leaks once in 65,536 rounds [derived]. The statistic for a forbidden token is infinite.
 
 > **Practice.** Items from the generator family `tr6.exactness-test`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
-A leak needs a forbidden token that the draft proposes, and a target that has been through top-k or top-p has plenty of them, because vLLM applies those constraints to the target's logits before it verifies. **temperature, top-k and top-p on the target logits** [measured] The sparse band is built like that. Its draft proposes at least ten tokens [derived] that the target rules out, so 20,000 rounds leak about three times [derived] on each seed, and every trial shows it. A dense target has one now and then. In the level's band a quarter of the trials [measured] do, and two seeds show a given leak only about 46 times in 100 [derived], which is why 9 of those 25 [measured] were rejected. On the finest band a forbidden token is rare, and the sample all but never sees the bug.
+A leak needs a forbidden token that the draft proposes, and a target that has been through top-k or top-p has plenty of them, because vLLM applies those constraints to the target's logits before it verifies. **temperature, top-k and top-p on the target logits** [measured] The sparse band is built like that. Its draft proposes at least ten tokens [derived] that the target rules out, so 20,000 rounds leak about three times [derived] on each seed, and every trial shows it. A dense target has one now and then. In the level's band a quarter of the trials [synthetic] do, and two seeds show a given leak only about 46 times in 100 [derived], which is why 9 of those 25 [synthetic] were rejected. On the finest band a forbidden token is rare, and the sample all but never sees the bug.
 
 > **The A/B test you size before you run it.** An experiment is sized before it runs. You fix the false-positive rate you can live with and the smallest effect worth finding, and the arithmetic gives the sample you need. A sampler's chi-square check is sized the same way. The level is the false-fail rate of a seed, and the draws are the sample.
 >

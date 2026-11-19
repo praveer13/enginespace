@@ -183,6 +183,7 @@
       "slip": {
         "role": "neutral",
         "displayName": "Label slip",
+        "note": "Nothing in the app draws it now; the broken benchmark's sheets use the plain label.",
         "canonical": "#e6d6ad",
         "oklch": "oklch(87.9% 0.057 89.2)",
         "tonalRamp": [
@@ -797,7 +798,6 @@
         "step-loop": [
           "Lifted",
           "Side",
-          "Along time",
           "Top",
           "Compare",
           "Scale"
@@ -808,7 +808,7 @@
         "T1": "a phone or a small machine: no shadow-casting lights",
         "T2": "everything else"
       },
-      "rule": "3D is a model of the same diagram, offered only where depth shows something the diagram cannot; a phone opens in the diagram."
+      "rule": "3D is a model of the same diagram, offered only where depth shows something the diagram cannot; a phone opens in the diagram. Each scene carries its diagram's own legend and glyphs, and every word and number stays DOM."
     }
   },
   "components": [
@@ -929,7 +929,7 @@
       },
       {
         "name": "The Ink Focus Rule",
-        "body": "The focus ring is 3 px of text-1 at a 2 px offset, with a paper halo. It is never amber, so focus is not mistaken for now, and it reads against the amber button's own edge.",
+        "body": "The focus ring is 3 px of text-1 at a 2 px offset, with a paper halo. It is never amber, so focus is not mistaken for now, and it reads against the amber button's own edge. Where focus is sent so that reading starts there, not to a control: a verdict or a result takes the ring at a 6 px offset, clear of its words, and a page or a game's whole section takes none.",
         "section": "colors"
       },
       {

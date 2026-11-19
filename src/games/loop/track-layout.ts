@@ -4,7 +4,8 @@
  *
  * The diagram is laid flat on a base plate, in its own pixels (flat-track.ts): x is the diagram's x, z its y, so the Side camera, looking
  * straight down on the plate, draws every tick where the 2D diagram draws it (P7). On it:
- *   - the waiting queue's chips, paper tiles a pick admits;
+ *   - no waiting queue: in 3D the dock holds it, so it is drawn once (its row stays, empty, so Side still matches the 2D view);
+ *   - on the demo levels, the reference run of the same level and seed, behind the learner's run on the same clock (demoTrack);
  *   - the CPU row's calls, blue slabs (a sync yellow), and one slab per batch slot per step on the GPU rows: green for a token, hatched
  *     green for a ghost token, and a dashed wire outline for a slot the GPU paid for and nothing used;
  *   - idle as dashed wire outlines over the slot rows, each closed one with a dimension line and its value;
@@ -19,7 +20,7 @@
 import type { Us } from '@es/sim/core'
 import type { StepLoopRun } from '@es/sim/steploop'
 import { requestName } from '@es/play/loop/copy'
-import { FRAME_DESK, FRAME_PHONE, fitGeometry, LANE_WORDS, laneLayout, type LaneGeometry, type LaneLayout, type LaneSource } from '@es/play/loop/lanes'
+import { FRAME_DESK, FRAME_PHONE, fitGeometry, LANE_WORDS, laneLayout, windowStart, type LaneGeometry, type LaneLayout, type LaneSource } from '@es/play/loop/lanes'
 import type { FireView, PlaceView } from '@es/play/loop/types'
 import { EMPTY_MODEL, type FlatBox, type FlatLabel, type FlatModel, type FlatSegment } from '@/scene/flat-track'
 import { LONG_NIGHT_FIRES, specimenRun } from '@/scene/specimen-layout'
@@ -37,6 +38,8 @@ export const PAD = { desk: 12, phone: 8 } as const
 export const NARROW = 560
 /** The rise over the lanes that the now cursor's word takes, in px: the 2D view's head room. */
 const HEAD = 14
+/** How far a dimension's value and an idle box's word stand off the dimension line, in px of the plate [estimated, set by eye in Lifted]. */
+const DIM_CLEAR = 4
 
 /** Whether words fit a width: the 2D view's rule [estimated: 6.5 px a character and a margin]. */
 const fits = (words: string, width: number): boolean => words.length * 6.5 + 8 <= width
@@ -51,8 +54,6 @@ export interface DiagramOptions {
   readonly z?: number
   /** A prefix for every id, so two diagrams on one plate keep theirs apart. */
   readonly prefix?: string
-  /** Draw the waiting queue's chips. */
-  readonly queue?: boolean
   /** Name the rows in the label column. */
   readonly rowLabels?: boolean
   /** The short row names, for a narrow label column. */
@@ -76,15 +77,8 @@ export function diagramModel(layout: LaneLayout, options: DiagramOptions = {}): 
   const lanesTop = g.queueHeight + g.queueGap
   const axisY = layout.axis.y
 
-  // The waiting queue: a paper tile per chip, which a pick admits, and the row's name.
-  if (options.queue !== false) {
-    if (options.rowLabels !== false) labels.push({ id: `${p}row/queue`, at: [ox + 4, 0, oz + g.queueHeight / 2], text: LANE_WORDS.queue, kind: 'row', place: 'right' })
-    for (const chip of layout.queue.chips) {
-      const h = Math.min(chip.height, 48)
-      boxes.push({ id: `${p}chip/${chip.req}`, x0: ox + chip.x, x1: ox + chip.x + chip.width, z0: oz + chip.y + (chip.height - h) / 2, z1: oz + chip.y + (chip.height + h) / 2, height: RISE.chip, role: 'paper', form: 'solid', pick: `req:${chip.req}` })
-      labels.push({ id: `${p}chip/${chip.req}`, at: [ox + chip.x + chip.width / 2, RISE.chip, oz + chip.y + chip.height / 2], text: chip.label, kind: 'chip' })
-    }
-  }
+  // The waiting queue is not drawn: in 3D the dock holds it, as the chips a tap admits, so it is drawn once (the row stays, empty, so the
+  // Side camera still puts every row where the 2D view does).
 
   // The graticule: a line on every tick wide enough to show one, the axis's labelled ticks, and a rule at the top of each row.
   if (scale.pxPerTick >= 6) for (let t = Math.ceil(scale.start); t <= scale.end; t++) rules.push({ x0: ox + scale.x + (t - scale.start) * scale.pxPerTick, z0: oz + lanesTop - HEAD, x1: ox + scale.x + (t - scale.start) * scale.pxPerTick, z1: oz + axisY })
@@ -133,15 +127,17 @@ export function diagramModel(layout: LaneLayout, options: DiagramOptions = {}): 
     const x1 = ox + box.x + box.width - 1
     if (x1 <= x0) continue
     wires.push({ id: `${p}${box.id}`, x0, x1, z0: oz + box.y + 1, z1: oz + box.y + box.height - 1, height: RISE.wire, role: 'lane-idle', form: 'hollow' })
-    // The word stands inside the gap, on the paper under the box's top, so no dashed edge runs through it.
-    if (fits(LANE_WORDS.idle, box.width)) labels.push({ id: `${p}${box.id}`, at: [(x0 + x1) / 2, 0, oz + box.y + 14], text: LANE_WORDS.idle, kind: 'idle', place: 'center' })
+    // The word stands in the middle of the gap, under its dimension line where it has one: far from the rows above and below, so no slab
+    // of the CPU row, which stands taller and nearer the camera's eye, can cover it.
+    if (fits(LANE_WORDS.idle, box.width)) labels.push({ id: `${p}${box.id}`, at: [(x0 + x1) / 2, RISE.wire, oz + box.y + box.height / 2 + DIM_CLEAR], text: LANE_WORDS.idle, kind: 'idle', place: 'below' })
   }
   for (const dim of layout.dims) {
     const z = oz + dim.y
     const x0 = ox + dim.x0
     const x1 = ox + dim.x1
     inks.push({ x0, z0: z, x1, z1: z, y: RISE.wire }, { x0, z0: z - 5, x1: x0, z1: z + 5, y: RISE.wire }, { x0: x1, z0: z - 5, x1, z1: z + 5, y: RISE.wire })
-    labels.push({ id: `${p}${dim.id}`, at: [(x0 + x1) / 2, RISE.wire, z - 3], text: fits(dim.label, x1 - x0) ? dim.label : LANE_WORDS.ticks(dim.ticks), kind: 'dim', place: 'above' })
+    // The value over the line, clear of it, as an engineering drawing writes it: the line shows whole between its end ticks under the value.
+    labels.push({ id: `${p}${dim.id}`, at: [(x0 + x1) / 2, RISE.wire, z - DIM_CLEAR], text: fits(dim.label, x1 - x0 - 8) ? dim.label : LANE_WORDS.ticks(dim.ticks), kind: 'dim', place: 'above' })
   }
 
   // The axis: its line, a tick and a number at each step, and its unit in the label column.
@@ -212,69 +208,106 @@ export function trackGeometry(canvasWidth: number): { geometry: LaneGeometry; pa
   return { geometry: fitGeometry(base, Math.max(canvasWidth - pad * 2, base.labelWidth + 1)), pad, narrow }
 }
 
+/** What a demo track is laid out for: the canvas's height and the lift it is seen at, and whether the reference is drawn past now. */
+export interface DemoFrame {
+  /** The canvas's height, in px: the reference band takes the depth the canvas has left over the learner's run. */
+  readonly height?: number
+  /** The camera's lift, in degrees from straight down: the plate's depth shows foreshortened by its cosine. */
+  readonly lift?: number
+  /** Draw the reference to the window's end, ahead of now. False while a guess about the run ahead is open. */
+  readonly ahead?: boolean
+}
+
+/** The band names' row over each run, in px [estimated, set by eye in Lifted]. */
+const BAND_HEAD = 30
+/** The clear paper between the reference band's foot and the learner's band's name, in px [estimated]. */
+const REF_GAP = 10
+/** The least depth of either run's band, in px: a CPU row and four slots still read as rows [estimated]. */
+const REF_LEAST = 104
+/** The row over both runs that holds the now word alone, in px: no run's name stands under it, whatever tick now is at [estimated]. */
+const NOW_HEAD = 18
+/** The least depth of a band's CPU row, in px: its name's line [estimated]. */
+const LEAST_CPU = 24
+/** How much deeper than the 2D view's lanes a band may grow in a tall box [estimated]. */
+const TALLEST = 1.6
+/** The share of the canvas's height the plate's depth is laid out for, seen at the lift: the camera's margins take the rest [estimated, set by eye in Lifted]. */
+const FILL = 1.2
+/** The least depth on screen of a slot row whose name may take two lines, in px [estimated]. */
+const SHORT_ROW = 30
+/** The least depth on screen of a reference row that carries its name, in px [estimated: a caption's line]. */
+const REF_ROW_LABEL = 17
+/** The reference band's axis: a bottom rule only, since the learner's axis below carries the numbers for both. */
+const REF_AXIS = 4
+
+/** The names of the two runs on one clock, and the reference's rows in the narrow column's words. */
+export const BAND_WORDS = { reference: 'Reference run', yours: 'Your run', referenceShort: 'Reference', yoursShort: 'Yours' } as const
+
 /**
  * The learner's run on the demo levels as the 3D track: the 2D view's diagram, at the 2D view's geometry for a canvas this wide.
  *
- * With `reference`, the reference run's tokens up to the learner's now stand on the same plate as ink outlines (REDESIGN §2.6, "you against
- * the reference, drawn"): where the learner matched a token, their slab stands there and no outline is drawn; where the learner left a slot
- * empty or a step late, an outline a little taller than a slab stands in the gap, over the dashed idle box. That is the job depth does here.
+ * With `reference`, the reference run of the same level and seed stands on the same plate behind the learner's, on the same clock: the same
+ * window and the same x for every tick, so the now sheet runs through both, and a slot the learner left empty is a dashed hole in front of the
+ * reference's slab (REDESIGN §1, item 9: "the reference run is drawn under the learner's own"). That is the job depth does here. The band
+ * takes the depth the canvas has left, so the two runs fill the box at the Lifted camera. Without it (the Side camera), the track is the 2D
+ * diagram alone.
  */
-export function demoTrack(source: LaneSource, canvasWidth: number, reference?: LaneSource): FlatModel {
+export function demoTrack(source: LaneSource, canvasWidth: number, reference?: LaneSource, frame: DemoFrame = {}): FlatModel {
   const { geometry, pad, narrow } = trackGeometry(canvasWidth)
-  const layout = laneLayout(source, geometry)
-  const marks = diagramModel(layout, { x: pad, z: pad, narrow })
-  const outlines = reference === undefined ? [] : referenceOutlines(laneLayout(referenceUntil(reference, source.clockUs), geometry), layout, pad)
-  return {
-    ...marks,
-    inks: [...marks.inks, ...outlines],
-    labels: outlines.length === 0 ? marks.labels : [...marks.labels, { id: 'reference', at: [marks.bounds.x0, 0, marks.bounds.z1 + pad * 2], text: REFERENCE_WORDS, kind: 'caption', place: 'right', minWidth: NARROW }],
-    plates: platesOf(marks.bounds, pad),
+  if (reference === undefined) {
+    const layout = laneLayout(source, geometry)
+    const marks = diagramModel(layout, { x: pad, z: pad, narrow })
+    const head = pad + geometry.queueHeight + geometry.queueGap - HEAD - BAND_HEAD / 2
+    const own = { ...marks, labels: marks.labels.filter((label) => label.kind !== 'now'), plates: platesOf(marks.bounds, pad) }
+    return withNow(own, pad + layout.now.x, head, pad + layout.now.y1)
   }
-}
 
-/** What the outlines are, in the caption under the plate. */
-export const REFERENCE_WORDS = 'Outlines: the reference run’s tokens by now'
+  // The depth the canvas holds at this lift, shared by the two runs: the learner's a little deeper, each between the least that reads and
+  // the 2D view's own depth. Each run's rows shrink to fit their band, as the lanes fit any box.
+  const cos = Math.cos(((frame.lift ?? 36) * Math.PI) / 180)
+  const height = frame.height ?? canvasWidth * 0.62
+  const fixed = pad * 2 + NOW_HEAD + BAND_HEAD * 2 + REF_GAP + geometry.axisHeight * 2 + HEAD
+  const room = Math.max(0, (height * FILL) / cos - fixed)
+  const most = FRAME_DESK.lanesHeight * TALLEST
+  const lanes = Math.round(Math.max(REF_LEAST, Math.min(most, room * 0.56)))
+  const depth = Math.round(Math.max(REF_LEAST, Math.min(lanes, room - lanes)))
+  const band = (lanesHeight: number, axisHeight: number): LaneGeometry => ({ ...geometry, queueHeight: 0, queueGap: 0, lanesHeight, cpuHeight: Math.max(LEAST_CPU, Math.round((lanesHeight * FRAME_DESK.cpuHeight) / FRAME_DESK.lanesHeight)), axisHeight })
 
-/** The reference run as far as the learner's now: its forwards and calls cut at that clock, with nothing waiting and nothing to admit. */
-export function referenceUntil(reference: LaneSource, untilUs: Us): LaneSource {
-  return {
-    ...reference,
-    clockUs: untilUs,
-    waiting: [],
-    cpu: [],
-    fires: reference.fires.filter((fire) => fire.startUs < untilUs).map((fire) => ({ ...fire, endUs: Math.min(fire.endUs, untilUs) })),
-  }
+  // The reference, on the learner's window: cut at the window's end, or at now while a guess about the run ahead is open.
+  const start = windowStart(source.clockUs, geometry.windowTicks)
+  const until = frame.ahead === false ? source.clockUs : start + geometry.windowTicks
+  const cut = <T extends { readonly startUs: Us; readonly endUs: Us }>(spans: readonly T[]): T[] => spans.filter((span) => span.startUs < until).map((span) => ({ ...span, endUs: Math.min(span.endUs, until) }))
+  const refLayout = laneLayout({ ...reference, clockUs: source.clockUs, waiting: [], fires: cut(reference.fires), cpu: cut(reference.cpu) }, band(depth, REF_AXIS))
+  const refTop = pad + NOW_HEAD + BAND_HEAD
+  const ref = diagramModel(refLayout, { x: pad, z: refTop, prefix: 'ref/', rowLabels: false })
+  const yourHead = refTop + refLayout.height + REF_GAP + BAND_HEAD / 2
+  const layout = laneLayout(source, band(lanes, geometry.axisHeight))
+  // Rows too shallow on screen for a name over two lines take the narrow column's words.
+  const marks = diagramModel(layout, { x: pad, z: yourHead + BAND_HEAD / 2, narrow: narrow || (layout.rows[1]?.height ?? 0) * cos < SHORT_ROW })
+
+  const rowWords = (row: (typeof refLayout.rows)[number]) => (row.lane === 'cpu' ? LANE_WORDS.cpuShort : LANE_WORDS.slot(row.slot ?? 0))
+  const refLabels: FlatLabel[] = refLayout.rows
+    .filter((row) => row.height * cos >= REF_ROW_LABEL)
+    .map((row) => ({ id: `ref/row/${row.id}`, at: [pad + 4, 0, refTop + row.y + row.height / 2], text: rowWords(row), kind: 'row', place: 'right' }))
+  const names: FlatLabel[] = [
+    { id: 'band/reference', at: [pad + 4, 0, pad + NOW_HEAD + BAND_HEAD / 2], text: narrow ? BAND_WORDS.referenceShort : BAND_WORDS.reference, kind: 'band', place: 'right' },
+    { id: 'band/yours', at: [pad + 4, 0, yourHead], text: narrow ? BAND_WORDS.yoursShort : BAND_WORDS.yours, kind: 'band', place: 'right' },
+  ]
+  const joined = joinModels([{ ...marks, cursors: [] }, { ...ref, inks: [], cursors: [], labels: [] }])
+  const bounds = { ...joined.bounds, z0: pad }
+  const labels = [...names, ...refLabels, ...marks.labels.filter((label) => label.kind !== 'now')]
+  return withNow({ ...joined, labels, bounds, plates: platesOf(bounds, pad) }, pad + layout.now.x, pad + NOW_HEAD / 2, yourHead + BAND_HEAD / 2 + layout.now.y1)
 }
 
 /**
- * How the reference's outlines stand apart from the learner's own marks [estimated, set by eye in Lifted]: a few px taller than a token's
- * slab, so an outline never lies on the dashed idle box drawn in the same gap at a slab's height, and inset a little more than a slab.
+ * The now sheet, from the head row it stands in down through every lane under it, and its word in that row to its right, where no mark is
+ * drawn: no waiting request, no slab and no row's name can stand under the word.
  */
-const OUTLINE = { rise: RISE.slot + 5, inset: 3 } as const
-
-/**
- * The reference's tokens the learner has not matched, as outlines: the four edges of a box's top, taller than a slab, and its foot's near
- * edge, in the ink's solid line, where the dashed idle box is a wire at a slab's height. A token the learner matched (a token of theirs on the
- * same row over the same ticks) is left out: their slab already stands there.
- */
-function referenceOutlines(layout: LaneLayout, own: LaneLayout, pad: number): FlatSegment[] {
-  const out: FlatSegment[] = []
-  const y = OUTLINE.rise
-  const mine = own.slabs.filter((slab) => slab.row !== 'cpu' && slab.use === 'token')
-  for (const slab of layout.slabs) {
-    if (slab.row === 'cpu' || slab.use !== 'token') continue
-    const matched = mine.some((m) => m.row === slab.row && Math.min(m.x + m.width, slab.x + slab.width) - Math.max(m.x, slab.x) >= slab.width / 2)
-    if (matched) continue
-    const x0 = pad + slab.x + OUTLINE.inset
-    const x1 = pad + slab.x + slab.width - OUTLINE.inset
-    const inset = Math.min(2, slab.height / 6) + OUTLINE.inset
-    const z0 = pad + slab.y + inset
-    const z1 = pad + slab.y + slab.height - inset
-    if (x1 <= x0 || z1 <= z0) continue
-    out.push({ x0, z0, x1, z1: z0, y }, { x0: x1, z0, x1, z1, y }, { x0: x1, z0: z1, x1: x0, z1, y }, { x0, z0: z1, x1: x0, z1: z0, y })
-    out.push({ x0, z0: z1, x1, z1, y: 0.5 })
+function withNow(model: FlatModel, x: number, head: number, bottom: number): FlatModel {
+  return {
+    ...model,
+    cursors: [{ id: 'now', x, z0: head - 8, z1: bottom, height: RISE.cursor }],
+    labels: [...model.labels, { id: 'now', at: [x + 3, RISE.cursor, head], text: LANE_WORDS.now, kind: 'now', place: 'right' }],
   }
-  return out
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -314,13 +347,14 @@ function compareRun(band: (typeof COMPARE_BANDS)[number]): StepLoopRun {
 
 /**
  * One of Compare's bands: its name in the label column, and its marks with no words of their own, so three bands read at a glance; the
- * last band carries the axis's numbers for all three. The dashed idle boxes are what the eye compares.
+ * last band carries the axis's numbers and its unit, "synthetic ticks", for all three, in the label column as on every other camera (a caption
+ * under the plate fell outside the box and was never seen). The dashed idle boxes are what the eye compares.
  */
 function bandModel(run: StepLoopRun, index: number, prefix: string, name: string, axis: boolean): FlatModel {
   const layout = laneLayout(runSource(run, 4, COMPARE_TICKS), COMPARE_GEOMETRY)
   const z = PAD.desk + index * (layout.height + BAND_GAP)
-  const marks = diagramModel(layout, { x: PAD.desk, z, prefix, queue: false, rowLabels: false })
-  const kept = marks.labels.filter((label) => label.kind === 'now' || (axis && label.kind === 'tick'))
+  const marks = diagramModel(layout, { x: PAD.desk, z, prefix, rowLabels: axis })
+  const kept = marks.labels.filter((label) => label.kind === 'now' || (axis && (label.kind === 'tick' || label.kind === 'axis')))
   return { ...marks, inks: marks.inks.slice(-1 - layout.axis.ticks.length), labels: [{ id: `${prefix}name`, at: [PAD.desk + 4, 0, z + COMPARE_GEOMETRY.queueGap + COMPARE_GEOMETRY.lanesHeight / 2 - 6], text: name, kind: 'band', place: 'right' }, ...kept] }
 }
 
@@ -335,7 +369,7 @@ export function compareTrack(): { model: FlatModel; from: FlatModel } {
   const before = bandModel(runs[1], last, `${COMPARE_BANDS[last].id}/`, COMPARE_BANDS[last].name, true)
   const plate = (models: readonly FlatModel[]): FlatModel => {
     const joined = joinModels(models)
-    return { ...joined, plates: platesOf(joined.bounds, PAD.desk), labels: [...joined.labels, caption(joined.bounds, 'Compare: the same requests under three schedulers · synthetic ticks')] }
+    return { ...joined, plates: platesOf(joined.bounds, PAD.desk) }
   }
   return { model: plate(bands), from: plate([...bands.slice(0, last), before]) }
 }
@@ -354,7 +388,7 @@ export function scaleTrack(): FlatModel {
   const pxPerTick = 1.1
   const geometry: LaneGeometry = { ...FRAME_DESK, width: 180 + Math.round(ticks * pxPerTick), windowTicks: ticks, queueHeight: 0, queueGap: 24, lanesHeight: 48 + SCALE_SLOTS * 12 + 24, cpuHeight: 48, slotHeight: 12, axisHeight: 24, axisLabelGap: 80 }
   const layout = laneLayout(runSource(run, SCALE_SLOTS, until), geometry)
-  const marks = diagramModel(layout, { x: PAD.desk, z: PAD.desk, prefix: 'scale/', queue: false, rowLabels: false, tight: true })
+  const marks = diagramModel(layout, { x: PAD.desk, z: PAD.desk, prefix: 'scale/', rowLabels: false, tight: true })
   const end = PAD.desk + layout.now.x + 48
   const inside = (x: number) => x <= end
   const slotsBottom = PAD.desk + layout.axis.y
@@ -363,12 +397,12 @@ export function scaleTrack(): FlatModel {
     ...marks,
     rules: marks.rules.filter((rule) => inside(rule.x0)).map((rule) => ({ ...rule, x1: Math.min(rule.x1, end) })),
     inks: marks.inks.filter((ink) => inside(ink.x0)).map((ink) => ({ ...ink, x1: Math.min(ink.x1, end) })),
-    // At this size a slab's word does not fit: the CPU row and the last slot are named, and the axis keeps its numbers.
-    // At this size the contact shadows would only darken the paper between the slabs: the slabs stand on their baked occlusion alone.
+    // At this size a slab's word does not fit: the CPU row and the last slot are named, in the label column's room, and the axis keeps its
+    // numbers. The contact shadows would only darken the paper between the slabs: the slabs stand on their baked occlusion alone.
     boxes: marks.boxes.map((box) => ({ ...box, shadow: false })),
     labels: [
       ...marks.labels.filter((label) => (label.kind === 'tick' && inside(label.at[0])) || label.kind === 'now'),
-      { id: 'scale/row/cpu', at: [PAD.desk + 4, 0, PAD.desk + (layout.rows[0]?.y ?? 0) + 24], text: LANE_WORDS.cpu, kind: 'row', place: 'right' },
+      { id: 'scale/row/cpu', at: [PAD.desk + 4, 0, PAD.desk + (layout.rows[0]?.y ?? 0) + 24], text: LANE_WORDS.cpuShort, kind: 'row', place: 'right' },
       { id: 'scale/row/last', at: [PAD.desk + 4, 0, slotsBottom - 8], text: LANE_WORDS.slot(SCALE_SLOTS - 1), kind: 'row', place: 'right' },
       caption(bounds, `Scale: ${SCALE_SLOTS} slots for ${SCALE_STEPS} steps · synthetic ticks`),
     ],
