@@ -80,17 +80,10 @@ export const BENCH_COPY: Readonly<Record<BenchLevelId, BenchCopy>> = {
 
 /**
  * The range rule, printed above the report form before anything is filed (REDESIGN §2.6: "Broken benchmark shows its range rule before
- * filing"). The bars are the judge's own constants, so the sentence cannot say a number the judge does not use: `percent` is the p99's
- * tolerance and `width` the multiple of the reference's bootstrap interval a range may span.
+ * filing"). The bars are the judge's own constants, so the sentence cannot say a number the judge does not use: the p99's tolerance, and
+ * the multiple of the reference's bootstrap interval a range may span. One line of two clauses, so it takes two lines at a desk's dock.
  */
-export const RANGE_RULE = {
-  percent: NUMBER_TOLERANCE_PERMILLE / 10,
-  width: INTERVAL_WIDTH_FACTOR,
-  p99: 'Your p99 stands when it is within',
-  p99After: 'of the recomputed p99.',
-  range: 'Your range stands when it holds the recomputed p99 and is at most',
-  rangeAfter: 'as wide as its bootstrap interval.',
-} as const
+export const RANGE_RULE = `p99 within ${NUMBER_TOLERANCE_PERMILLE / 10}% of the recomputed p99; range holds it, at most ${INTERVAL_WIDTH_FACTOR} times as wide as its bootstrap interval.`
 
 /** A part of the diagram, as the parts list names it (REDESIGN §2.6): an id, the engine's name and one sentence. All of them are the course's model. */
 export interface BenchPart {

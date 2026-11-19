@@ -294,7 +294,9 @@ test.describe('Compare and Scale: the model\'s own runs', () => {
     await choose(page, 'Compare')
     await settle(page)
     for (const name of ['Static batching', 'Continuous batching', 'Async scheduling']) await expect(labels(page).locator('.es-track-label--band', { hasText: name })).toHaveCount(1)
-    await expect(labels(page).locator('.es-track-label--caption')).toContainText('synthetic ticks')
+    // Its unit stands at the last band's axis in the label column, inside the box, as on every other camera.
+    await expect(labels(page).locator('.es-track-label--axis', { hasText: 'synthetic ticks' })).toHaveCount(1)
+    await expect(labels(page).locator('.es-track-label--caption')).toHaveCount(0)
     await expect(labels(page).locator('.es-track-label--now')).toHaveCount(3)
   })
 

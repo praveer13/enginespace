@@ -30,7 +30,9 @@
   min-width: 0;
 }
 
-.es-bench-chart__head {
+/* The chart's switch and its sheets; the report form's title, and how many reports are filed at its right. */
+.es-bench-chart__head,
+.es-bench-form__head {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-start;
@@ -66,13 +68,9 @@
 }
 
 /* The legend's longer words, where the row has room for them. */
-.es-bench-legend__more {
-  display: none;
-}
-
-@media (min-width: 48rem) {
+@media (max-width: 47.999rem) {
   .es-bench-legend__more {
-    display: inline;
+    display: none;
   }
 }
 
@@ -113,6 +111,20 @@
   .es-bench-setupbox {
     grid-column: 2;
     grid-row: 2;
+  }
+
+  /* The eleven flaws in two columns, read down the first and then the second (the order of the arrow keys), so the whole list, the range
+     rule, the fields and File the report stand over the readout on the first screen (P5). */
+  .es-frame[data-placement='page'] .es-bench-flaws__list {
+    grid: repeat(6, auto) / auto-flow minmax(0, 1fr);
+  }
+
+  .es-frame[data-placement='page'] .es-bench-flaws__option:nth-child(n + 7) {
+    border-left: 1px solid var(--es-paper-rule);
+  }
+
+  .es-frame[data-placement='page'][data-game='broken-bench'] .es-frame__dock-main {
+    padding-block: var(--es-space-2);
   }
 
   .es-frame[data-placement='page'][data-game='broken-bench'][data-phase='play'] :is(.es-frame__surface, .es-bench-board) {
@@ -197,6 +209,7 @@
 }
 
 .es-bench-cut {
+  order: 3;
   margin-top: var(--es-space-2);
 }
 
@@ -204,16 +217,13 @@
   max-width: 9rem;
 }
 
-.es-bench-cut {
-  order: 3;
-}
-
 .es-bench-setup {
   min-width: 0;
   outline: none;
 }
 
-.es-bench-setup:focus-visible {
+.es-bench-setup:focus-visible,
+.es-bench-dock__title:focus-visible {
   outline: 3px solid var(--es-text-1);
   outline-offset: 2px;
 }
@@ -347,11 +357,6 @@
   line-height: 1.25;
 }
 
-.es-bench-dock__title:focus-visible {
-  outline: 3px solid var(--es-text-1);
-  outline-offset: 2px;
-}
-
 .es-bench-dock__progress,
 .es-bench-dock__held {
   margin: 0;
@@ -372,15 +377,8 @@
   border: 0;
 }
 
-.es-bench-flaws > legend {
-  padding: 0;
-  font-size: var(--es-size-note);
-  font-weight: 700;
-}
-
 .es-bench-flaws__list {
-  display: flex;
-  flex-direction: column;
+  display: grid;
   margin-top: var(--es-space-1);
   border: 1px solid var(--es-paper-rule);
 }
@@ -392,6 +390,7 @@
   gap: var(--es-space-2);
   min-height: 2.25rem;
   padding: 0.25rem var(--es-space-2);
+  line-height: 1.25;
   border-bottom: 1px solid color-mix(in srgb, var(--es-paper-rule) 60%, transparent);
   font-size: var(--es-size-note);
   cursor: pointer;
@@ -405,8 +404,6 @@
   width: 100%;
   height: 100%;
   margin: 0;
-  clip: auto;
-  clip-path: none;
   opacity: 0;
   cursor: pointer;
 }
@@ -445,7 +442,7 @@
 }
 
 .es-bench-flaws__means {
-  min-height: 2.6em;
+  min-height: 2.8em;
   margin: var(--es-space-1) 0 0;
   color: var(--es-text-2);
   font-size: var(--es-size-caption);
@@ -473,13 +470,20 @@
   width: 100%;
 }
 
+/* Beside File the report: what is still missing, or what is wrong with a figure. */
+.es-bench-form__problem,
+.es-bench-form__missing {
+  flex: 1 1 10rem;
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+}
+
 .es-bench-form__problem {
   display: flex;
   align-items: center;
   gap: var(--es-space-1);
-  margin: 0;
   color: var(--es-paper-ink-2);
-  font-size: var(--es-size-caption);
 }
 
 .es-bench-form__file {
@@ -487,12 +491,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--es-space-2) var(--es-space-3);
-}
-
-.es-bench-form__missing {
-  margin: 0;
-  color: var(--es-text-2);
-  font-size: var(--es-size-caption);
 }
 
 /* ------------------------------------------------------------------------------------------------ the readout strip */
@@ -506,11 +504,10 @@
   gap: var(--es-space-1) var(--es-space-2);
 }
 
+/* Each number keeps its whole width: where the four and the stamp do not fit one line, the stamp goes under them. */
 .es-bench-strip__list {
   flex: 1 1 12rem;
-  min-width: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  display: flex;
   gap: 0 var(--es-space-3);
   margin: 0;
   padding-top: 1.125rem;
@@ -518,8 +515,14 @@
 
 .es-bench-strip__item {
   display: flex;
-  min-width: 0;
+  flex: 1 1 0;
   flex-direction: column-reverse;
+}
+
+/* A hairline between two numbers, so a count of reports reads as one ("1 of 1"), never run into the next. */
+.es-bench-strip__item + .es-bench-strip__item {
+  padding-left: var(--es-space-2);
+  border-left: 1px solid var(--es-paper-rule);
 }
 
 .es-bench-strip__label {

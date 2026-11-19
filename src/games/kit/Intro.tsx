@@ -95,11 +95,14 @@ export function IntroCoach({ title, step, parts, replay, look, ask, askLead, ski
   const walking = step === 'parts' && !wide && partAt < parts.length - 1
 
   // Next moved the learner on: the step's heading takes focus, so a keyboard and a screen reader start reading the new step at its top. At
-  // the ask, focus goes on to the ask's own field under the strip, in view.
-  const pressed = useRef(false)
+  // the ask, focus goes on to the ask's own field under the strip, in view. On a phone's walk through the parts, Next stays in hand: the
+  // strip's title is said to a reader only there, so focus on it would be a ring nobody sees, and Enter would walk no further. The list says
+  // each part it shows, as a carousel's slides do (a polite live region).
+  const pressed = useRef<'walk' | 'step' | null>(null)
   useEffect(() => {
-    if (!pressed.current) return
-    pressed.current = false
+    const how = pressed.current
+    pressed.current = null
+    if (how !== 'step') return
     const field = step === 'ask' ? root.current?.parentElement?.querySelector<HTMLElement>('input:not(:disabled), textarea, select') : null
     if (field !== null && field !== undefined) {
       field.focus({ preventScroll: true })
@@ -110,7 +113,7 @@ export function IntroCoach({ title, step, parts, replay, look, ask, askLead, ski
   }, [step, partAt])
 
   const next = () => {
-    pressed.current = true
+    pressed.current = walking ? 'walk' : 'step'
     if (walking) onPartAt(partAt + 1)
     else onNext()
   }
@@ -144,17 +147,19 @@ export function IntroCoach({ title, step, parts, replay, look, ask, askLead, ski
       body = (
         <>
           {replay || parts.length === 1 ? <p className="es-intro__lead">{replay ? 'Every part this level draws, the ones you have not met first.' : 'One part is new on this level.'}</p> : null}
-          <PartsList
-            parts={parts.map((part) => ({
-              id: part.id,
-              name: part.name,
-              code: part.code,
-              sentence: part.sentence,
-              isNew: replay ? part.isNew : undefined,
-            }))}
-            label={`Parts of the ${title}`}
-            className="es-intro__parts"
-          />
+          <div aria-live={wide ? undefined : 'polite'}>
+            <PartsList
+              parts={parts.map((part) => ({
+                id: part.id,
+                name: part.name,
+                code: part.code,
+                sentence: part.sentence,
+                isNew: replay ? part.isNew : undefined,
+              }))}
+              label={`Parts of the ${title}`}
+              className="es-intro__parts"
+            />
+          </div>
         </>
       )
       primary = nextButton('Next')

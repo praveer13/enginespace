@@ -162,7 +162,9 @@ describe('Compare: static, continuous and async, and the gaps close', () => {
     expect(COMPARE_BANDS.map((band) => band.name)).toEqual(['Static batching', 'Continuous batching', 'Async scheduling'])
     for (const band of COMPARE_BANDS) expect(model.labels.some((label) => label.kind === 'band' && label.text === band.name)).toBe(true)
     expect(model.cursors).toHaveLength(3)
-    expect(model.labels.some((label) => label.kind === 'caption' && /synthetic/.test(label.text))).toBe(true)
+    // The unit stands in the label column at the last band's axis, as on every other camera, and no caption falls outside the box.
+    expect(model.labels.filter((label) => label.kind === 'axis').map((label) => label.text)).toEqual(['synthetic ticks'])
+    expect(model.labels.some((label) => label.kind === 'caption')).toBe(false)
   })
 
   test('async scheduling closes the gaps that continuous batching leaves, and the move starts from continuous batching', () => {

@@ -201,8 +201,13 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     setShown(readShown(game.id))
     setIntro(null)
   }
-  /** A dispatched action tells the intro what the learner did: the ask's own answer moves it on, and any real move ends it. */
+  /**
+   * A dispatched action tells the intro what the learner did: the ask's own answer moves it on, and any real move ends it, also one made
+   * while the ledger is still read and the strip has not come up (it would come up over a run already under way, and on a phone take the
+   * dock from under the learner's hand).
+   */
   const tellIntro = (signal: { moved: boolean; askOpen: boolean }) => {
+    if (intro?.checking && signal.moved) endIntro()
     if (intro === null || intro.checking) return
     const after = introAfter(intro.steps, intro.at, signal)
     if (after === null) endIntro()

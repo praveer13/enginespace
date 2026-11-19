@@ -95,6 +95,21 @@ async function open(page: Page, level: string) {
   await page.evaluate(() => document.fonts.ready)
 }
 
+/**
+ * Ends the first run's intro as a keyboard learner does: Skip intro, and Enter. A first visit opens the level with its intro, and on a phone
+ * the dock holds the intro alone while it names the parts, so the level's own controls come up once it ends. The frame says an intro is due
+ * (`data-intro` on the game) before its strip arrives with its chunk and the ledger's answer: this waits for the strip, or for the frame to
+ * say that no intro is due (a level whose parts were all met), so no walk acts on a dock that is about to change under it.
+ */
+async function endIntro(page: Page) {
+  const skip = page.locator('.es-intro [data-intro-skip]')
+  await expect.poll(async () => (await skip.count()) > 0 || (await game(page).getAttribute('data-intro')) === null, { timeout: BOOT }).toBe(true)
+  if ((await skip.count()) === 0) return
+  await skip.focus()
+  await page.keyboard.press('Enter')
+  await expect(page.locator('.es-intro')).toHaveCount(0)
+}
+
 /** Presses Tab until the focused control is named like `name`, and fails after `limit` presses. */
 async function tabTo(page: Page, name: RegExp, limit = 30) {
   for (let i = 0; i < limit; i++) {
@@ -130,6 +145,7 @@ async function playToTheEnd(page: Page) {
 test.describe('a keyboard-only walk', () => {
   test('reaches the requests by Tab, admits them with Enter, and focus follows to the next request and then to Step', async ({ page }) => {
     await open(page, 'first-1-fill')
+    await endIntro(page)
     await tabTo(page, /^Admit request R1 into a batch slot$/)
     for (const next of ['R2', 'R3', 'R4']) {
       await page.keyboard.press('Enter')
@@ -194,6 +210,7 @@ test.describe('a keyboard-only walk', () => {
     const titles = ['Refill a slot', 'Close a bubble', 'Both levers']
     for (const [index, title] of ['Fill the batch', ...titles].entries()) {
       await expect(page.locator('[data-game="loop"] .es-level')).toContainText(`Level ${index + 1} of 9 · ${title} · practice`)
+      await endIntro(page)
       if (index >= 2) await page.getByRole('switch').focus().then(() => page.keyboard.press('Space'))
       await playToTheEnd(page)
       await expect(result(page)).toBeVisible()
@@ -228,6 +245,9 @@ test.describe('the first run (REDESIGN §2.6)', () => {
   test('level 3: a guess in the view only, whose reveal is the run\'s own numbers; nothing is dispatched for it', async ({ page }) => {
     await open(page, 'first-3-gap')
     await expect(page.locator('[data-loop-opening]')).toHaveText('This run starts at step 3, with 8 tokens already out.')
+    // The parts first: on a phone the dock walks them one at a time, and the guess comes up under the strip once they are named.
+    await expect(page.locator('.es-intro[data-intro="parts"]')).toBeVisible({ timeout: BOOT })
+    for (let i = 0; i < 6 && (await page.locator('.es-intro[data-intro="parts"]').count()) > 0; i++) await page.locator('[data-intro-next]').click()
     const guess = page.locator('[data-loop-guess]')
     await expect(guess).toContainText('Of the next 7 ticks, for how many is the GPU busy?')
     await guess.getByRole('textbox').fill('5')
@@ -243,6 +263,7 @@ test.describe('reduced motion', () => {
 
   test('nothing animates, Auto is off until asked for, and the game plays and pauses at a decision', async ({ page }) => {
     await open(page, 'first-4-par')
+    await endIntro(page)
     expect(await page.evaluate(() => matchMedia('(prefers-reduced-motion: reduce)').matches)).toBe(true)
     await expect(page.getByRole('button', { name: 'Auto' })).toHaveAttribute('aria-pressed', 'false')
     for (let i = 0; i < 4; i++) {
@@ -278,6 +299,7 @@ test.describe('the page keeps to its origin', () => {
       if (/content security policy|refused to/i.test(message.text())) refused.push(message.text())
     })
     await open(page, 'first-2-slot')
+    await endIntro(page)
     await playToTheEnd(page)
     await expect(result(page)).toBeVisible()
     expect(away).toEqual([])
@@ -320,6 +342,7 @@ test.describe('determinism and the diagram', () => {
 
   test('the diagram is the pure lane layout: the page draws the slabs, the idle boxes, the dimensions and the rows lanes.ts lays out', async ({ page }) => {
     await open(page, 'first-3-gap')
+    await endIntro(page)
     await bell(page).click()
     await expect(page.locator('[data-live="line"]')).toContainText('Step 3 ran')
     const view = loopView(step(initState(buildLevel('first-3-gap', 1))))
@@ -394,6 +417,7 @@ test.describe('the demo levels say nothing in the kitchen\'s words', () => {
       test.setTimeout(120_000)
       await open(page, level)
       expect(await bannedOn(page), 'at the start').toEqual([])
+      await endIntro(page)
       await playToTheEnd(page)
       await expect(result(page)).toBeVisible()
       expect(await bannedOn(page), 'at the result').toEqual([])
