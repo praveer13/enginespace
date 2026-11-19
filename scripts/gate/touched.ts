@@ -21,6 +21,16 @@
  *   front    src/front/                              front
  *   walkers  e2e/support/walks.ts, e2e/levels.ts, e2e/walks.spec.ts    the nightly walks of every game
  *   spec     e2e/<name>.spec.ts                      that spec
+ *
+ * The lab rows (W2b-T43) are not browser steps but commands, and a path can be in a lab row and in a row above (src/receipts/ is both):
+ *   grader   labs/grader/, labs/gpu/, labs/envs/, labs/references/, course.lock.json, packages/schema/, schemas/, src/receipts/, packages/verify/,
+ *            tests/verify/, tests/fixtures/{grader,references,receipts}/
+ *                                                    uv lock --check, the grader's unittest, its selftest, pack-kit --check, verify:schema,
+ *                                                    verify:vectors and the bestiary and fixtures tests
+ *   forge    labs/forge/, src/forge/, packages/sim/forge/, tests/fixtures/forge/
+ *                                                    cargo test of the reference, and verify:labs
+ * `labs/envs/relock.sh --check` needs the network: the plan lists it under `notRun`, and labs.yml on the pull request is its evidence.
+ * The uv commands run with UV_OFFLINE=1, UV_PYTHON_DOWNLOADS=never and an installed interpreter that run.ts picks (the Python step of `Command.uv`).
  */
 import { WALKED } from '../../e2e/levels'
 
@@ -47,8 +57,24 @@ export interface Step {
   readonly why: readonly string[]
 }
 
+/** One command of a lab row, run from the repository root. */
+export interface Command {
+  /** A short name for the report. */
+  readonly id: string
+  readonly argv: readonly string[]
+  /** Environment added to the caller's. */
+  readonly env?: Readonly<Record<string, string>>
+  /** The command is uv's: run.ts gives it an offline environment and an installed interpreter. */
+  readonly uv?: boolean
+  readonly why: readonly string[]
+}
+
 export interface Plan {
   readonly steps: readonly Step[]
+  /** The lab checks, in the order they run. */
+  readonly commands: readonly Command[]
+  /** The checks that this gate cannot run, and where their evidence is. */
+  readonly notRun: readonly string[]
   /** The changed paths that map to nothing. */
   readonly unmapped: readonly string[]
   /** Notes for the report, such as "every level of every game is the task's own to run". */
@@ -59,6 +85,30 @@ const LESSON_GAME_SPECS = ['lesson-games', 'lesson-games-scene', 'lesson-predict
 const KIT_PREFIXES = ['src/games/kit/', 'src/design/']
 const KIT_FILES = ['src/pages/Game.tsx', 'src/games/registry.ts']
 const WALKER_FILES = ['e2e/support/walks.ts', 'e2e/levels.ts', 'e2e/walks.spec.ts']
+
+const GRADER_PREFIXES = [
+  'labs/grader/', 'labs/gpu/', 'labs/envs/', 'labs/references/', 'packages/schema/', 'schemas/', 'src/receipts/', 'packages/verify/', 'tests/verify/',
+  'tests/fixtures/grader/', 'tests/fixtures/references/', 'tests/fixtures/receipts/',
+]
+const GRADER_FILES = ['course.lock.json']
+const FORGE_PREFIXES = ['labs/forge/', 'src/forge/', 'packages/sim/forge/', 'tests/fixtures/forge/']
+
+/** The grader row's commands, in the order labs.yml runs them. */
+export const GRADER_COMMANDS: readonly Omit<Command, 'why'>[] = [
+  { id: 'uv lock', argv: ['uv', 'lock', '--check', '--project', 'labs/grader'], uv: true },
+  { id: 'grader unittest', argv: ['uv', 'run', '--project', 'labs/grader', 'python', '-m', 'unittest'], uv: true },
+  { id: 'grader selftest', argv: ['uv', 'run', '--project', 'labs/grader', 'enginespace', 'selftest', '--no-suite'], uv: true },
+  { id: 'pack-kit', argv: ['bun', 'scripts/pack-kit.ts', '--check'] },
+  { id: 'verify:schema', argv: ['bun', 'run', 'verify:schema'] },
+  { id: 'verify:vectors', argv: ['bun', 'run', 'verify:vectors'] },
+  { id: 'bestiary and fixtures', argv: ['bun', 'test', 'tests/verify/bestiary.test.ts', 'tests/verify/fixtures.test.ts'] },
+]
+/** The forge row's commands. */
+export const FORGE_COMMANDS: readonly Omit<Command, 'why'>[] = [
+  { id: 'cargo test', argv: ['cargo', 'test', '--manifest-path', 'labs/forge/Cargo.toml', '--workspace', '--features', 'reference'], env: { RUSTUP_AUTO_INSTALL: '0' } },
+  { id: 'verify:labs', argv: ['bun', 'run', 'verify:labs'], env: { RUSTUP_AUTO_INSTALL: '0' } },
+]
+export const RELOCK_NOT_RUN = 'labs/envs/relock.sh --check was not run: it needs the network. labs.yml on the wave\'s draft pull request is its evidence.'
 
 const under = (file: string, ...prefixes: readonly string[]) => prefixes.some((prefix) => file.startsWith(prefix))
 
@@ -100,6 +150,14 @@ export function plan(changed: readonly string[], specs: readonly string[]): Plan
     if (games.length > 0) why.set('nightly walks', (why.get('nightly walks') ?? new Set()).add(row))
   }
 
+  const graderWhy = new Set<string>()
+  const forgeWhy = new Set<string>()
+  for (const file of [...changed].sort()) {
+    if (under(file, ...GRADER_PREFIXES) || GRADER_FILES.includes(file)) graderWhy.add(file)
+    if (under(file, ...FORGE_PREFIXES)) forgeWhy.add(file)
+  }
+  const inLabRow = (file: string) => graderWhy.has(file) || forgeWhy.has(file)
+
   for (const file of [...changed].sort()) {
     const game = gameOf(file)
     if (game !== undefined) {
@@ -125,7 +183,7 @@ export function plan(changed: readonly string[], specs: readonly string[]): Plan
       walks('walkers', GAMES)
     } else if (/^e2e\/[^/]+\.spec\.ts$/.test(file) && have.has(file.slice('e2e/'.length, -'.spec.ts'.length))) {
       want('spec', [file.slice('e2e/'.length, -'.spec.ts'.length)])
-    } else unmapped.push(file)
+    } else if (!inLabRow(file)) unmapped.push(file)
   }
 
   const steps: Step[] = []
@@ -138,5 +196,13 @@ export function plan(changed: readonly string[], specs: readonly string[]): Plan
   if (nightlyGames.size > 0) {
     steps.push({ project: 'smoke', nightly: true, specs: ['walks'], grep: walkGrep([...nightlyGames]), why: reasons(['nightly walks']) })
   }
-  return { steps, unmapped, notes: [...new Set(notes)] }
+  const commands: Command[] = []
+  const notRun: string[] = []
+  const sample = (paths: ReadonlySet<string>) => [...paths].slice(0, 3).join(', ') + (paths.size > 3 ? `, and ${paths.size - 3} more` : '')
+  if (graderWhy.size > 0) {
+    for (const command of GRADER_COMMANDS) commands.push({ ...command, why: [`grader: ${sample(graderWhy)}`] })
+    notRun.push(RELOCK_NOT_RUN)
+  }
+  if (forgeWhy.size > 0) for (const command of FORGE_COMMANDS) commands.push({ ...command, why: [`forge: ${sample(forgeWhy)}`] })
+  return { steps, commands, notRun, unmapped, notes: [...new Set(notes)] }
 }

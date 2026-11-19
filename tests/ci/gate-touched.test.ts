@@ -3,11 +3,11 @@
  * decide a verdict. The plan is pure, so nothing here starts a browser.
  */
 import { describe, expect, test } from 'bun:test'
-import { readdirSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { WALKED } from '../../e2e/levels'
-import { clean, failures, keyOf } from '../../scripts/gate/run'
-import { GAMES, LAB_SPEC, plan, SMOKE_SPECS, walkGrep, type Step } from '../../scripts/gate/touched'
+import { clean, failures, keyOf, pickPython, PYTHONS, uvEnv } from '../../scripts/gate/run'
+import { FORGE_COMMANDS, GAMES, GRADER_COMMANDS, LAB_SPEC, plan, RELOCK_NOT_RUN, SMOKE_SPECS, walkGrep, type Step } from '../../scripts/gate/touched'
 import { read, root } from './support'
 
 const specs = readdirSync(path.join(root, 'e2e'))
@@ -120,6 +120,84 @@ describe('the mapping, one row a test', () => {
     const made = on('content/a.md', 'src/games/pool/a.ts')
     expect(step(made, 'features', false)?.specs).toEqual(['items', 'lesson-games', 'lesson-games-scene', 'lesson-predict', 'map', 'pool', 'pool-scene', 'titles', 'today'])
     expect(step(made, 'features', false)?.why).toEqual(['content', 'game pool'])
+  })
+})
+
+const ids = (made: ReturnType<typeof plan>) => made.commands.map((command) => command.id)
+const GRADER_IDS = ['uv lock', 'grader unittest', 'grader selftest', 'pack-kit', 'verify:schema', 'verify:vectors', 'bestiary and fixtures']
+const FORGE_IDS = ['cargo test', 'verify:labs']
+
+describe('the lab rows (W2b-T43)', () => {
+  const graderPaths = [
+    'labs/grader/tests/test_x.py', 'labs/gpu/a.py', 'labs/envs/vllm/uv.lock', 'labs/references/a.json', 'course.lock.json', 'packages/schema/a.ts', 'schemas/a.json',
+    'src/receipts/atlas.ts', 'packages/verify/a.ts', 'tests/verify/bestiary.test.ts', 'tests/fixtures/grader/a.json', 'tests/fixtures/references/a.json', 'tests/fixtures/receipts/a.json',
+  ]
+  for (const file of graderPaths) {
+    test(`${file} gives the grader's seven checks and says relock was not run`, () => {
+      const made = on(file)
+      expect(ids(made)).toEqual(GRADER_IDS)
+      expect(made.notRun).toEqual([RELOCK_NOT_RUN])
+      expect(made.unmapped).toEqual([])
+    })
+  }
+
+  test('the grader row\'s commands are the ones the task names, in labs.yml\'s order, and uv ones are marked', () => {
+    expect(GRADER_COMMANDS.map((command) => command.argv.join(' '))).toEqual([
+      'uv lock --check --project labs/grader',
+      'uv run --project labs/grader python -m unittest',
+      'uv run --project labs/grader enginespace selftest --no-suite',
+      'bun scripts/pack-kit.ts --check',
+      'bun run verify:schema',
+      'bun run verify:vectors',
+      'bun test tests/verify/bestiary.test.ts tests/verify/fixtures.test.ts',
+    ])
+    expect(GRADER_COMMANDS.filter((command) => command.uv).map((command) => command.id)).toEqual(['uv lock', 'grader unittest', 'grader selftest'])
+  })
+
+  for (const file of ['labs/forge/src/lib.rs', 'src/forge/host.ts', 'packages/sim/forge/a.ts', 'tests/fixtures/forge/a.wasm']) {
+    test(`${file} gives cargo test and verify:labs with RUSTUP_AUTO_INSTALL=0`, () => {
+      const made = on(file)
+      expect(ids(made)).toEqual(FORGE_IDS)
+      expect(made.commands.every((command) => command.env?.RUSTUP_AUTO_INSTALL === '0')).toBe(true)
+      expect(made.notRun).toEqual([])
+      expect(made.unmapped).toEqual([])
+    })
+  }
+
+  test('a forge path and a grader path together give both rows, and the browser rows still run', () => {
+    const made = on('src/receipts/a.ts', 'labs/forge/a.rs')
+    expect(ids(made)).toEqual([...GRADER_IDS, ...FORGE_IDS])
+    expect(step(made, 'features', false)?.specs).toEqual(['forge', 'forge-hybrid-kv', 'lab-kits', 'receipts', 'receipts-import', 'rejection-sampler'])
+  })
+
+  test('a path outside the lab rows gives no command', () => {
+    expect(on('src/games/pool/a.ts', 'content/a.md', 'docs/a.md').commands).toEqual([])
+    expect(on('labs/agent-kit/a.md').commands).toEqual([])
+  })
+
+  test('no path maps to a step that does not run: every script, package script and manifest a command names exists', () => {
+    const scripts = JSON.parse(read('package.json')).scripts as Record<string, string>
+    for (const { argv } of [...GRADER_COMMANDS, ...FORGE_COMMANDS]) {
+      if (argv[0] === 'bun' && argv[1] === 'run') expect([argv[2], argv[2] in scripts]).toEqual([argv[2], true])
+      for (const arg of argv) if (/\.(ts|toml)$/.test(arg) && !arg.startsWith('--')) expect([arg, existsSync(path.join(root, arg))]).toEqual([arg, true])
+    }
+    expect(existsSync(path.join(root, 'labs/grader/pyproject.toml'))).toBe(true)
+  })
+
+  test('labs.yml runs each of the commands, as written (pack-kit --check is the task\'s own addition and runs here)', () => {
+    const labs = read('.github/workflows/labs.yml')
+    for (const { argv } of [...GRADER_COMMANDS, ...FORGE_COMMANDS].filter((command) => command.id !== 'pack-kit')) expect([argv.join(' '), labs.includes(argv.join(' '))]).toEqual([argv.join(' '), true])
+  })
+
+  test('uv runs offline, never downloads, and names an interpreter inside requires-python', () => {
+    const env = uvEnv({ PATH: 'x', UV_OFFLINE: '0' }, '3.13')
+    expect(env).toMatchObject({ PATH: 'x', UV_OFFLINE: '1', UV_PYTHON_DOWNLOADS: 'never', UV_PYTHON: '3.13' })
+    const range = /requires-python = ">=(\d+)\.(\d+),<(\d+)\.(\d+)"/.exec(read('labs/grader/pyproject.toml'))
+    expect(range).not.toBeNull()
+    const [low, high] = [Number(range?.[2]), Number(range?.[4])]
+    for (const version of PYTHONS) expect(Number(version.split('.')[1]) >= low && Number(version.split('.')[1]) < high).toBe(true)
+    expect(PYTHONS[0]).toBe('3.13')
+    expect(typeof pickPython === 'function').toBe(true)
   })
 })
 
