@@ -1,6 +1,6 @@
 # enginespace: build tracker
 
-**Status:** proposed backlog. W0's 24 tasks and W1's 35 build tasks are built, and both waves merged into `main` on 2026-11-09 with PR #2 ([waves/W0-report.md](waves/W0-report.md), [waves/W1-report.md](waves/W1-report.md)). W1b's exit review turned their `[=]` markers `[x]`, but for the two tasks with a check that waits on the owner, W0-T25 (its first) and W1-T12 (its fourth), which keep `[=]`; W1's two owner tasks wait on the owner too. W1b, W1's carry-over, built its 15 tasks into `wave-1b`, which waits for the owner's merge ([waves/W1b-report.md](waves/W1b-report.md)). There `bun scripts/verify-kc.ts --final` passes, so W1-T38's open check holds and W1-T38 shows `[=]`. The other tasks show `[ ]`: a wave's exit review sets its markers. **Date:** 2026-11-03, markers updated 2026-11-09, W1b added 2026-11-09, wave R added 2026-11-15. **Source:** [ARCHITECTURE.md](ARCHITECTURE.md) (cited as A§n) and [DECISIONS.md](DECISIONS.md) (D-nnn, O-n). Credit rules come from `docs/ASSESSMENT.md`, written in parallel. The look was The Pass (D-047): W0-T05 applied its direction contract, and W0-T25 documented the built world in DESIGN.md. Wave R, the redesign of 2026-11-15, replaces it with Data Book (D-062, the owner's decision at the look gate on 2026-11-16) and makes the engine's term the only name (D-063); its section below carries `docs/waves/wr-tasks.json`.
+**Status:** proposed backlog. W0's 24 tasks and W1's 35 build tasks are built, and both waves merged into `main` on 2026-11-09 with PR #2 ([waves/W0-report.md](waves/W0-report.md), [waves/W1-report.md](waves/W1-report.md)). W1b's exit review turned their `[=]` markers `[x]`, but for the two tasks with a check that waits on the owner, W0-T25 (its first) and W1-T12 (its fourth), which keep `[=]`; W1's two owner tasks wait on the owner too. W1b, W1's carry-over, built its 15 tasks into `wave-1b`, which waits for the owner's merge ([waves/W1b-report.md](waves/W1b-report.md)). There `bun scripts/verify-kc.ts --final` passes, so W1-T38's open check holds and W1-T38 shows `[=]`. The other tasks show `[ ]`: a wave's exit review sets its markers. On 2026-11-19 the markers of the grader track (W2-T01 to W2-T11, W2-T13, W2-T19, W2-T28 and W2-T43) were set to the tree: `[x]` where every check is met by files, and `[~]` with a State line where one waits for the owner, a GPU or a later task, and wave 1 of the second plan was recorded as the W2b section. **Date:** 2026-11-03, markers updated 2026-11-09, W1b added 2026-11-09, wave R added 2026-11-15. **Source:** [ARCHITECTURE.md](ARCHITECTURE.md) (cited as A§n) and [DECISIONS.md](DECISIONS.md) (D-nnn, O-n). Credit rules come from `docs/ASSESSMENT.md`, written in parallel. The look was The Pass (D-047): W0-T05 applied its direction contract, and W0-T25 documented the built world in DESIGN.md. Wave R, the redesign of 2026-11-15, replaces it with Data Book (D-062, the owner's decision at the look gate on 2026-11-16) and makes the engine's term the only name (D-063); its section below carries `docs/waves/wr-tasks.json`.
 
 ## How to read this page
 
@@ -47,6 +47,14 @@ Paste this brief above the task text when dispatching a task. AGENTS.md (W0-T23)
     - `npm run lint`, `npm run typecheck`, `bun test`, `npm run build` and every `verify:*` the task touches pass;
     - the PR lists each acceptance check with its evidence;
     - you commit on the task branch, open a PR into the wave branch, and never merge.
+11. **Never lowered.**
+    - Never raise or add a bundle budget, and never change a threshold, a tolerance, a timeout, a retry or a skip of an existing test, a pacing or opener constant under `scripts/content/`, the blind-probe bound under `scripts/games/`, a constant of `tests/seeds.ts`, `MAX_PLAN_NUMEL` or a screenshot baseline, except for the change the task itself names.
+    - Never add an entry to `scripts/gate/known-red.json`; an entry only leaves it, by the rule of the task that fixes it.
+    - Where a task edits an expected count, the edit is named in the task and the count stays exact.
+12. **No quiet skip.** A new test that needs something the machine may lack (torch, a browser engine, the network) fails where that thing is expected (`CI=true`, or the named environment) and says so. It never skips there.
+13. **Paths stay private.** A commit, a report, a log and a pull request hold repository-relative paths only: no home-directory path, no scratch-directory path, no session id and no login name. Before a commit, grep the diff for them.
+14. **Toolchains.** Cargo and rustup run with `RUSTUP_AUTO_INSTALL=0`. Python runs only through `uv run --project`, with `UV_OFFLINE=1` and `UV_PYTHON_DOWNLOADS=never`.
+15. **Downloads.** An agent installs no wheel and downloads no model, bank or source tree without the owner's leave.
 
 ## Wave gates and the critical path
 
@@ -73,9 +81,10 @@ Paste this brief above the task text when dispatching a task. AGENTS.md (W0-T23)
 | W1 | The no-GPU modules (TR1, TR2, TR5a, TR6, TR8) and their games | 38 | 6 | 18 | 14 | 2 | 1 |
 | W1b | W1's carry-over: lessons that run W1's games, the item families, the scene kit, CI | 16 | 6 | 8 | 2 | 0 | 3 |
 | W2 | The GPU modules (TR0, TR3, TR4, TR5b, TR7), the local grader, and the GPU parts of TR1, TR6 and TR8 | 44 | 6 | 25 | 13 | 4 | 1 |
+| W2b | Wave 1 of the second plan: the gate, the defects, the tooling, TR0 (6 tasks on haiku) | 52 | 15 | 35 | 2 | 0 | 12 |
 | WR | The redesign: engine names, one way on, the lesson template, one game frame, Data Book (2 tasks on haiku) | 50 | 8 | 28 | 14 | 0 | 16 |
 | W3 | The capstone, polish and launch | 17 | 7 | 9 | 1 | 3 | 1 |
-| **Total** | | **189** | **39** | **102** | **48** | **9** | **24** |
+| **Total** | | **241** | **54** | **137** | **50** | **9** | **36** |
 
 The owner column counts tasks only the owner can do. It leaves out reviewing PRs and answering O-1 to O-11.
 
@@ -952,7 +961,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 
 ### The grader and receipts track (may start after W0-T24)
 
-#### [ ] W2-T01 · Schemas for receipts, bundles, challenges and traces; the vectors · M · sonnet · deps: W0-T07
+#### [x] W2-T01 · Schemas for receipts, bundles, challenges and traces; the vectors · M · sonnet · deps: W0-T07
 - **Goal:**
   - zod schemas for `receipt@1`, `bundle@1`, the challenge and `trace@1`.
   - `scripts/export-schemas.ts` writes them to `schemas/*.schema.json`.
@@ -962,7 +971,8 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   1. The export is deterministic, and a drift fails.
   2. The vectors cover seed 0, 0xffffffff, Unicode in canonical JSON, and floats.
 
-#### [ ] W2-T02 · Grader core · L · sonnet · deps: W2-T01
+#### [~] W2-T02 · Grader core · L · sonnet · deps: W2-T01
+- **State (2026-11-19):** built; open check: `selftest --gpu` is a stub and needs a GPU, closes with W2b-T37.
 - **Goal:** The `labs/grader` package (`uv_build==0.10.2`, `jsonschema==4.26.0`):
   - a CLI with `doctor` as a stub, `grade`, `receipt verify` and `selftest`;
   - the challenge codec, the RNG port, canonical JSON and hashing;
@@ -975,13 +985,14 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   3. `enginespace receipt verify` rejects a tampered artifact hash.
   4. `uv lock --check` is clean.
 
-#### [ ] W2-T03 · Fingerprint and privacy · M · sonnet · deps: W2-T02
+#### [x] W2-T03 · Fingerprint and privacy · M · sonnet · deps: W2-T02
 - **Goal:** `fingerprint.py` per A§9.5: NVML through `nvidia-ml-py` when it is present, an `nvidia-smi` CSV fallback, and torch; for engine labs, the effective engine configuration from the engine's log and configuration dump (runner, graph mode after downgrade, async scheduling, attention backend, `max_num_batched_tokens`, `max_num_seqs`; ASSESSMENT §5.6). Redaction, and `doctor` printing exactly the fields a receipt would record.
 - **Accept:**
   1. Tests use recorded `nvidia-smi` output and a fake NVML.
   2. A test seeds a hostname, user name, UUID, serial, absolute path and `HF_TOKEN` into the environment, and none appears in the output.
 
-#### [ ] W2-T04 · Engine environments · M · sonnet · deps: W2-T02, W1-T02
+#### [~] W2-T04 · Engine environments · M · sonnet · deps: W2-T02, W1-T02
+- **State (2026-11-19):** built; open check: the Dockerfile builds are the owner's smoke run, closes with W2-T12.
 - **Goal:** `labs/envs/{cpu,vllm,sglang,nano-vllm}`, each with:
   - a `pyproject.toml` and `uv.lock`;
   - a hashed `requirements.txt` from `uv export`;
@@ -992,20 +1003,21 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   2. `doctor` flags an off-pin vLLM in a fake environment, and an R570 driver against a CUDA 13 pin, in recorded `nvidia-smi` output.
   3. The Dockerfile builds are left to the owner's smoke run (W2-T12).
 
-#### [ ] W2-T05 · References manifest and `fetch` · S · sonnet · deps: W2-T02
+#### [x] W2-T05 · References manifest and `fetch` · S · sonnet · deps: W2-T02
 - **Goal:** A schema for `labs/references/manifest.json`, and `enginespace fetch` with SHA-256 checks, resume and a generic User-Agent (A§9.7).
 - **Accept:**
   1. A hash mismatch aborts and deletes the partial file (local file server).
   2. The User-Agent is `enginespace-grader/<version>` (test).
 
-#### [ ] W2-T06 · Challenge issuing and `/receipts` · M · sonnet · deps: W0-T11, W2-T01
+#### [x] W2-T06 · Challenge issuing and `/receipts` · M · sonnet · deps: W0-T11, W2-T01
 - **Goal:** `/receipts`: choose a lab and stage, issue a token (a `challenge` event), copy it, list receipts, and open a receipt's detail at `#<sha256>` (A§8.4).
 - **Accept:**
   1. Tokens decode with the shared codec.
   2. Expired and used tokens are shown as such.
   3. The page passes a keyboard walk and axe.
 
-#### [ ] W2-T07 · Receipt worker and import · M · sonnet · deps: W2-T06
+#### [~] W2-T07 · Receipt worker and import · M · sonnet · deps: W2-T06
+- **State (2026-11-19):** built; open check: the receipt event freezes the verdict (the open check below), closes with W2b-T23.
 - **Goal:** `receipt.worker` runs A§8.5's rules 1-6: caps (`DecompressionStream` with a byte counter), zod, artifact hashes, binding, grader identity against the published list, and pins. Import works by drop or by file picker, and the parsed receipt and its report are stored.
 - **Accept:**
   1. Oversized and zip-bomb fixtures abort with a message.
@@ -1014,7 +1026,8 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   4. An unknown grader build gives `gpu-unverified`.
 - **Open check (second review of W2's rest work, note 7, first half):** `src/receipts/keep.ts` (near line 54) freezes the verdict into the credited receipt event at import. A verdict is worked out when it is read (A§8.5 rule 10), so the event has to keep the receipt and its report and not the verdict. The receipts page reads it, so the redesign's rebuild of that page takes this with it.
 
-#### [ ] W2-T08 · Verification rules and the forged bestiary · L · sonnet · deps: W1-T08, W1-T31, W2-T07, W2-T09
+#### [~] W2-T08 · Verification rules and the forged bestiary · L · sonnet · deps: W1-T08, W1-T31, W2-T07, W2-T09
+- **State (2026-11-19):** built; open check: the open check below and the owner's real fixtures, closes with W2b-T24 and W2-T12.
 - **Goal:** `packages/verify` implements A§8.5's rules 7-10: re-checks, recomputation, physics floors and the verdict, with bounds printed. A generator builds forgeries from honest fixtures: synthetic ones until W2-T12, then the owner's.
 - **Accept:**
   1. Honest synthetic bundles pass.
@@ -1027,20 +1040,21 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
      - an unknown grader.
 - **Open check (second review of W2's rest work, note 7, second half):** `packages/verify/checks.ts` (near line 128): a claim in `performance.claimed` under a key that names no evidence artifact is shown as recomputed. It has to be shown as a claim with nothing behind it, or fail. The receipts page shows it, so the redesign's rebuild of that page takes this with it.
 
-#### [ ] W2-T09 · Hardware atlas claims · M · sonnet · deps: W0-T08
+#### [x] W2-T09 · Hardware atlas claims · M · sonnet · deps: W0-T08
 - **Goal:** `content/claims/hardware/*.yaml` for the GPUs learners rent or own: RTX 4090, RTX 5090, L4, L40S, A100 40/80 GB, H100 PCIe and SXM, H200 (a Modal `gpu="H100"` request may land on one, sglang C4), and RTX PRO 6000 where it is rentable. Each records memory bandwidth, dense peak by precision and capacity. The physics floors use them, keyed by the device name the fingerprint reports.
 - **Accept:**
   1. `verify:claims` passes.
   2. Every value quotes the vendor's datasheet, with an accessed date.
   3. Derived values recompute.
 
-#### [ ] W2-T10 · Kit packer, grader wheel and manifest · S · sonnet · deps: W1-T11, W2-T02, W2-T04
+#### [x] W2-T10 · Kit packer, grader wheel and manifest · S · sonnet · deps: W1-T11, W2-T02, W2-T04
 - **Goal:** Pack the GPU kit zip (grader, environments, GPU labs, runners, references manifest) and the grader wheel into `public/labs/` with a SHA-256 manifest. Publish the list of grader versions and their `sourceSha256` values for the site (A§9.3).
 - **Accept:**
   1. The zips are reproducible.
   2. The site's published-grader list matches the wheel's computed source hash.
 
-#### [ ] W2-T11 · Rented-GPU runners · M · sonnet · deps: W2-T04
+#### [~] W2-T11 · Rented-GPU runners · M · sonnet · deps: W2-T04
+- **State (2026-11-19):** built; open check: the runners' docs wait for a rented GPU run, closes with W2-T12.
 - **Goal:** `labs/runners/{runpod.md,lambda.md,modal_app.py}`. Check that each Dockerfile's base is an official image at the pinned tag, and record the result as a dated claim.
 - **Accept:**
   1. The docs can be followed by copy and paste.
@@ -1055,7 +1069,8 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 
 ### TR0: PyTorch and Triton reading
 
-#### [ ] W2-T13 · Sim: the tensor model · M · sonnet · deps: W0-T12
+#### [~] W2-T13 · Sim: the tensor model · M · sonnet · deps: W0-T12
+- **State (2026-11-19):** built; open check: the torch vectors come from a build that is not the `cpu` environment's own (the open check below), closes with W2-T13.
 - **Goal:** A§5.8's tensor rules and grid coverage.
 - **Accept:**
   1. The rules agree with PyTorch on a committed fixture set, generated once with CPU torch, with the torch version recorded.
@@ -1086,7 +1101,8 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   - The browser re-checks against the bank once W2-T17 lands.
   - Under wave R's lab rules (REDESIGN.md §2.7 and §3.9) the lab's title is "Build ...", its page is the numbered procedure (download, edit the named file, build, drop the file, the checks), and its check labels and catches sentences are in engine terms from the start. No check id, plan or seed is a kitchen word.
 - **Accept:**
-  1. The reference solution passes in the nightly `labs.yml` job (CPU).
+  1. The reference solution passes in the `labs.yml` CPU job on the wave's pull request, and in the weights job on a dispatch.
+     - Why (2026-11-19): `labs.yml` has no schedule, and the nightly workflow is off until the owner turns it on (D-052), so no nightly `labs.yml` job runs.
   2. A perturbed solution, with a wrong RMSNorm epsilon, fails.
   3. The lab's page is the numbered procedure, and its title and check labels carry no kitchen word.
 
@@ -1094,14 +1110,16 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 - **Goal:** Produce the bank of argmax ids at positions whose margin passes the threshold, using HF fp32 on CPU. Publish it under `public/references/tr0/` with its SHA-256 and a manifest entry.
 - **Accept:** The browser re-check passes on the reference solution's receipt.
 
-#### [ ] W2-T18 · TR0 content · L · sonnet · deps: W2-T14, W2-T15, W2-T16
+#### [ ] W2-T18 · TR0 content · L · sonnet · deps: W2-T14, W2-T16
+- **Note (2026-11-19):** the dep on W2-T15 is removed. The module's lessons need the pure model, the 2D view and the lab, and none needs the 3D scene; W2-T15 is built only if W2b-T26 finds a camera worth building, and the module must not wait for a task that may never start.
 - **Goal:** TR0's module and lessons: PyTorch for the Rust-first learner, and reading Triton with `TRITON_INTERPRET=1`. Triton's program model is recapped from Kernels' KN4 in under an hour (catalog §4). Written to the authoring rules of REDESIGN.md §2.5 (and `content/README.md`) from the start: an opener chosen by rule 1, guesses that each get a reveal, a Test that closes the file, and engine terms only (`src/copy/terms.ts`). Each new lesson adds its row to the openers table, and `tests/content/openers.test.ts` and `tests/content/vocabulary.test.ts` hold it.
 - **Read:** REDESIGN.md §2.5 and §2.7; `content/README.md`.
 - **Accept:** The checks of W1-T15 pass, and each lesson has its row in the openers table and passes the openers and vocabulary tests.
 
 ### TR3: profile a real engine
 
-#### [ ] W2-T19 · Grader: trace export · L · sonnet · deps: W2-T02, W1-T08
+#### [~] W2-T19 · Grader: trace export · L · sonnet · deps: W2-T02, W1-T08
+- **State (2026-11-19):** built; open check: the nsys table names are [unverified] until a pinned nsys has read them, closes with W2-T21.
 - **Goal:** Convert torch-profiler Chrome JSON and nsys SQLite exports into `trace@1`, keeping correlation ids. Captures use `--cuda-graph-trace=node`, so graph replays show their kernels (vllm P1). The nsys table names are [unverified]: check them against the pinned nsys (2026.5.1, proposed) and record the version. Small fixture traces are committed.
 - **Accept:**
   1. The fixtures round-trip.
@@ -1179,7 +1197,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 
 ### TR5b: offload, connector and events
 
-#### [ ] W2-T28 · Sim: tiers, the connector contract and `kv-events@1` · M · sonnet · deps: W1-T21
+#### [x] W2-T28 · Sim: tiers, the connector contract and `kv-events@1` · M · sonnet · deps: W1-T21
 - **Goal:** `packages/sim/tiers` per A§5.8, with a reference consumer (D-034).
 - **Accept:**
   1. The consumer's view equals the truth after every op over 200 seeds.
@@ -1285,7 +1303,8 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   2. A card of each of the two kinds compiles, is drawn, and cites its claims as marks. `verify:claims` and `verify:content` pass.
   3. `PENDING` names no task for the three, and `tests/content/pending.test.ts` passes.
 
-#### [ ] W2-T43 · Predictions that no run answers yet · M · sonnet · deps: W1b-T02
+#### [x] W2-T43 · Predictions that no run answers yet · M · sonnet · deps: W1b-T02
+- **State (2026-11-19):** closed by R-T09.
 - **Goal:** W1b-T02 built the lesson's prediction box. It reveals a prediction against what the pure model reads from the run of the game block that follows it (A§1, I3; ASSESSMENT §4.7), and 22 of the 39 predictions have no such run. The question carries numbers of its own, round and made up, that no level of its game holds; or it asks for a measured fact about an engine's source; or its lesson has no game. Each is a row of `PLAN` in `packages/play/predictions/plan.ts` with its reason, and its ticket says that its reveal waits on this task. Give each a run to read, by the cheapest of three ways, and record the choice for the set in DECISIONS:
   1. The lesson's game takes the question's numbers: the level, or a variant of it that the lesson's block names, plays the scenario of the prompt, so that the run answers it (GAMES.md §2.2: each level's opening prediction is generated by the game's model).
   2. The prompt is rewritten around the numbers of the level that the lesson plays, and the figures of `tests/content/tr*-demos.ts` follow it.
@@ -1324,6 +1343,529 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   1. The report covers the verification threat model (A§8.6) against the bestiary's results, the budgets and the gates.
   2. O-10 is answered or carried over.
   3. The wave PR is open.
+
+## W2b: wave 1 of the second build plan (the gate, the defects a learner meets, the tooling, then TR0)
+
+**Why there is a W2b.** The first build ended with a site that works and a list of what it does not do well. Wave 1 of the second plan is built on `wave-2m1a`, and its pull request is stacked on the polish's. It has two halves. Wave 1a changes no page a learner has not met: the merge gate learns to run the nightly sweep's tests, the defects a learner meets today are fixed, and the tooling that the unwritten modules need is built. Wave 1b builds the receipts path, the lab page and TR0 ("PyTorch and Triton reading") end to end.
+
+**Models.** Opus has the tasks that set a pattern, the exit checks and the cold-reader checks; haiku has the mechanical ones; the rest are sonnet's (D-036).
+
+**Order.** A task lists its deps by id. Lane G's tasks (the grader, the kits, the receipts and the references manifest) merge one at a time, in the order of the plan. W2b-T38 and the tasks of waves 2 to 5 have no heading here until their wave starts.
+
+#### [=] W2b-T01 · Record wave 1 in the tracker, and set the stale markers to the tree · S · sonnet · deps: —
+- **Goal:** Write a W2b section into docs/TRACKER.md with a heading for each wave-1 task (W2b-T01 to T37 and T39 to T53) and none for a later wave. Set the markers of W2-T01 to T11, T13, T19, T28 and T43 to what the tree holds: [x] only when every check is met by files and none is the owner's or needs a GPU; otherwise [~] with a first body line 'State (2026-11-19): built; open check: <what>, closes with <task id>'. Known to need the second form: W2-T02 (selftest --gpu, W2b-T37), W2-T04 (Dockerfile builds, W2-T12), W2-T07 (W2b-T23), W2-T08 (W2b-T24 and W2-T12), W2-T11 (W2-T12), W2-T13 (its own open check), W2-T19 (nsys table names, W2-T21). Remove W2-T18's dep on W2-T15 with the reason. Reword W2-T16's first check from the nightly labs.yml job to the labs.yml CPU job on the wave's pull request and the weights job on a dispatch, with the reason (labs.yml has no schedule; the nightly is off, D-052). Correct line 1154's 'three questions' to four. Add to AGENTS.md, word for word as the tracker has them, the rules: never lowered, no quiet skip, paths stay private, RUSTUP_AUTO_INSTALL=0, and no wheel or model downloaded without the owner's leave.
+- **Files:** `docs/TRACKER.md`, `AGENTS.md`, `tests/ci/task-ids.test.ts`.
+- **Accept:**
+  1. bun test tests/docs/repo-docs.test.ts tests/content/pending.test.ts tests/play/roster.test.ts tests/content/roster.test.ts tests/kc/verify-kc.test.ts tests/ci/task-ids.test.ts passes
+  2. npm run verify:kc passes
+  3. A new test in tests/ci/task-ids.test.ts fails on any [x] task of W2 whose checks name the owner, a GPU or W2-T12
+  4. Every task named in GAME_TASKS, LAB_TASKS and PENDING of src/content/render/model.ts is still open in the tracker
+  5. The W2b section has no heading for a task of waves 2 to 5
+- **Browser tests:** none beyond G0
+
+#### [ ] W2b-T02 · The merge gate runs the features specs and the nightly-width walks of what a branch touches · M · sonnet · deps: W2b-T01
+- **Goal:** scripts/gate/touched.ts turns a branch's changed paths into the features specs, walk filters and steps the gate must run. scripts/gate/known-red.json records the base's failing set in two lists: red (eight features tests, five walks, two 320 px page checks, by file and title) and flaky (the keyboard-loop test 'Tab and Enter alone win Fill the batch' and the pool's same-size walk at 360 px). The gate runs touched specs and walks with --retries=0 on four pinned cores, re-runs a listed flaky test once and no other, and passes when no test fails that is not in red. An entry leaves a list only after five passes of five with --retries=0, in the branch that fixes it. Mapping: src/games/<g>/ or packages/play/<g>/ gives e2e/<g>*.spec.ts, lesson-games, lesson-games-scene, lesson-predict, keep-list and the nightly-width walks of <g>; src/games/kit/, src/design/, src/pages/Game.tsx or src/games/registry.ts gives one level of every game (SMOKE_LEVELS) at 360 and 1280 px, design-parts and screens, and the task that made the change runs every level itself; content/, src/content/ or scripts/content/ gives lesson-games, lesson-predict, items, map, titles, today; src/receipts/, packages/verify/ or src/workers/ gives receipts and receipts-import; src/forge/ or labs/forge/ gives forge, forge-hybrid-kv, rejection-sampler, lab-kits; src/trace/ or packages/sim/trace/ gives trace-view; src/front/ gives front. The gate does not edit playwright.config.ts. The orchestrator's merge script, outside the repository, calls touched.ts.
+- **Files:** `scripts/gate/touched.ts`, `scripts/gate/known-red.json`, `tests/ci/gate-touched.test.ts`.
+- **Accept:**
+  1. tests/ci/gate-touched.test.ts has one test per mapping row and passes
+  2. A scratch branch with one broken walker is refused; the refusal, filtered to repository-relative paths, is in the pull request
+  3. The gate's added wall time is measured on four pinned cores for a content-only branch, a one-game branch and a kit change, and reported against budgets of 10, 15 and 25 minutes [estimated]; where a budget is passed the task lists the slowest specs and stops for the orchestrator's decision
+  4. known-red.json's red list names exactly the fifteen tests that fail on the base, each with file and title, and its flaky list the two named tests
+- **Browser tests:** a dry run of the gate on the wave tip: the touched features specs and nightly-width walks with --retries=0
+
+#### [ ] W2b-T43 · The merge gate runs the lab checks a branch touches · S · sonnet · deps: W2b-T02
+- **Goal:** Extend scripts/gate/touched.ts. A change under labs/grader/, labs/gpu/, labs/envs/, labs/references/, course.lock.json, packages/schema/, schemas/, src/receipts/, packages/verify/, tests/verify/ or tests/fixtures/{grader,references,receipts}/ gives: uv lock --check --project labs/grader; uv run --project labs/grader python -m unittest; uv run --project labs/grader enginespace selftest --no-suite; bun scripts/pack-kit.ts --check; bun run verify:schema; bun run verify:vectors; bun test tests/verify/bestiary.test.ts tests/verify/fixtures.test.ts. A change under labs/forge/, src/forge/, packages/sim/forge/ or tests/fixtures/forge/ gives cargo test --manifest-path labs/forge/Cargo.toml --workspace --features reference and bun run verify:labs, with RUSTUP_AUTO_INSTALL=0. bash labs/envs/relock.sh --check needs the network: the gate prints that it did not run it, and labs.yml on the wave's draft pull request is its evidence.
+- **Files:** `scripts/gate/touched.ts`, `tests/ci/gate-touched.test.ts`.
+- **Accept:**
+  1. The grader steps run on this machine with UV_OFFLINE=1, UV_PYTHON_DOWNLOADS=never and UV_PYTHON set to an installed 3.13; if the grader's environment cannot be made without the network the task stops and reports
+  2. A scratch branch that breaks one grader unittest is refused
+  3. tests/ci/gate-touched.test.ts covers each new row
+  4. No path maps to a step that does not run
+- **Browser tests:** none
+
+#### [ ] W2b-T03 · The merge gate refuses a lowered bar, an unlisted baseline, a new skip and a leaked path · M · sonnet · deps: W2b-T02
+- **Goal:** scripts/gate/bars.ts diffs base to head over tests/, e2e/, labs/grader/tests/, playwright.config.ts, scripts/verify-*.ts, scripts/content/, scripts/games/, scripts/gate/known-red.json, tests/seeds.ts and packages/sim/tensor/plan.ts. It lists every changed number inside an expect; every changed timeout, retries or toBeCloseTo digit count; every removed expect; every changed named bound (PACING, OPENER_WORDS, the blind-probe bound and MIN_BLIND_SAMPLE, PR_SEEDS, NIGHTLY_SEEDS, MAX_SEEDS, MAX_PLAN_NUMEL, the compiler's page and index sizes); every added known-red entry; every added skip, fixme, todo, skipIf, skipUnless or importorskip, in existing and in new files; and every changed or added PNG under e2e/**/*-snapshots/. The merge script refuses the branch unless the orchestrator's allow-list for the task names the line. A PNG passes only when the allow-list names it, the pull request shows the diff image and the orchestrator has recorded the owner's look. scripts/gate/paths.ts refuses added lines or pull request text that hold a home-directory path, a user-directory path, a scratch-directory path or the login name, which is read from the environment at run time and written nowhere in the repository.
+- **Files:** `scripts/gate/bars.ts`, `scripts/gate/paths.ts`, `tests/ci/gate-bars.test.ts`, `tests/ci/gate-paths.test.ts`.
+- **Accept:**
+  1. Fixture diffs reproduce wave R's three cases ('> 40' to '> 20', six digits to one, a dropped assertion) as refusals
+  2. An allowed count edit passes
+  3. A re-blessed PNG, a new unittest.skipUnless, a raised PACING.between and an added known-red entry are each refused
+  4. A diff line that holds a home-directory path or a scratch-directory path is refused
+  5. A BUDGETS edit is still refused by the existing guard
+- **Browser tests:** none
+
+#### [ ] W2b-T04 · Request path: a pointer lay does not move the page (A1) · S · haiku · deps: W2b-T02
+- **Goal:** Apply the written fix: onLay takes a boolean, a click passes event.detail > 0, lay(id, index, byPointer) sets a ref so that the effect after a lay reveals the next stage only after a keyboard lay. The orchestrator copies the patch into the worktree as an untracked file; the task applies it and never cites where it came from. Add a test of twenty mouse lays, and bring WR-report 7.1 and 7.10 up to the fourth check with repository-relative paths only.
+- **Files:** `src/games/engine-floor/useFloorControls.ts`, `src/games/engine-floor/Controls.tsx`, `e2e/engine-floor.spec.ts`, `docs/waves/WR-report.md`.
+- **Accept:**
+  1. The page moves 0 px in 20 of 20 mouse lays at 1440 x 900 and at 1280 x 800
+  2. Twenty keyboard walks have no covered stop
+  3. The /play/engine-floor row of verify:bundle is reported and is under 200 KB
+  4. The diff holds no scratchpad path
+- **Browser tests:** features: e2e/engine-floor.spec.ts, e2e/engine-floor-map.spec.ts; nightly width: walks (engine-floor) at 360 and 1280 px
+
+#### [ ] W2b-T05 · Request path: after the first run's commit, focus is on the stage the intro points at (A2) · S · sonnet · deps: W2b-T04
+- **Goal:** First make the walk see the fault: commitBoundaries in e2e/support/walks.ts ends with walk.see(); commit that and show it failing. Then, after the commit of a first run, focus the ringed stage when the intro points at one, and otherwise reveal the focused stage after the ring's scroll.
+- **Files:** `e2e/support/walks.ts`, `src/games/engine-floor/useFloorControls.ts`, `src/games/engine-floor/Controls.tsx`.
+- **Accept:**
+  1. The walk change alone fails on the base, shown in the pull request
+  2. 2.5 s after the commit, on nano, mini, vllm and map at 1280 x 800, 1440 x 900 and 390 x 844, the focused stage is inside the list's box and uncovered
+  3. Enter lays the ringed stage
+  4. The /play/engine-floor row is reported
+- **Browser tests:** features: e2e/engine-floor.spec.ts; smoke: first-visit; nightly width: walks (engine-floor), all eight levels
+
+#### [ ] W2b-T06 · Request path: a click in the filter field does not move the page on a short desk (A3) · M · sonnet · deps: W2b-T05
+- **Goal:** At 1280 x 620 a click in the filter field moves the page (mini 11 px, map 39 px) and nobody has found why. Probe first and write the cause in the pull request before changing anything; then fix it in the sticky filters' CSS.
+- **Files:** `src/games/engine-floor/floor.css`, `e2e/engine-floor.spec.ts`.
+- **Accept:**
+  1. The cause is stated with its measurement before the fix commit
+  2. At 1280 x 620 and 1366 x 768 the filter stops move the page 0 px on mini and map
+  3. A typed letter and a Backspace at the page's foot leave the scroll position as it was
+  4. At 1440 x 900, 1280 x 800, 1920 x 1080 and 1024 x 768 the filter stops still move 0 px
+- **Browser tests:** features: e2e/engine-floor.spec.ts; nightly width: walks (engine-floor)
+
+#### [ ] W2b-T07 · Step loop: after the last step, focus is on the result (A4) · M · sonnet · deps: W2b-T02
+- **Goal:** The keyboard test 'Tab and Enter alone win Fill the batch' failed 6 of 40 runs because focus can land on a section and not on the result. Read the result's focus effect before touching the test, decide whether the product or the test is at fault, and fix that one. Add no retry.
+- **Files:** `src/games/loop/**`, `e2e/keyboard-loop.spec.ts`.
+- **Accept:**
+  1. The pull request says which was at fault, with the evidence
+  2. The test passes 40 of 40 runs with --retries=0 on four pinned cores and leaves the flaky list
+  3. The front-page row of verify:bundle is reported before and after and grows by at most 100 B; if the fix needs more the task stops and waits for W2b-T16
+- **Browser tests:** smoke: keyboard-loop; features: e2e/loop.spec.ts, e2e/loop-full.spec.ts; nightly width: walks (loop)
+
+#### [ ] W2b-T40 · `/play/:game` loads one game's record, so a new game costs the other game routes nothing · M · opus · deps: W2b-T02
+- **Goal:** Today src/pages/Game.tsx reaches the value GAMES through src/games/registry.ts, so every game's entry.ts is in every /play/<id> route, and /play/broken-bench has 115 B of room. Make the game page resolve an id through a loader of that one game's record; src/games/registry.ts no longer imports the value GAMES. The Games index, the Progress page's re-grading and scripts/pages/plan.ts keep reading GAMES. packages/play/index.ts and packages/play/keys.ts do not grow. This sets the pattern the four new games register by.
+- **Files:** `src/games/registry.ts`, `src/pages/Game.tsx`, `src/routes.tsx`, the lesson's game embed under src/content/render/, `scripts/verify-games.ts`, `tests/play/registry.test.ts`, `tests/build.test.ts`.
+- **Accept:**
+  1. First commit: the chunk list of the /play/broken-bench row as built, with what in it reads GAMES
+  2. verify:bundle rows before and after for the front page, /play, each /play/<id>, /m/:module/:lesson and /evidence; the front page's row does not grow
+  3. /play/broken-bench gains at least 1,500 B of room [estimated]; under 1,000 B the task reports what else the route carries and W2b-T08 runs
+  4. A test over the build's manifest holds that the Game page's static closure contains no game's entry.ts
+  5. The tab's title is set as the page mounts and e2e/titles.spec.ts passes unchanged; an unknown id still gives 'Game not found'
+  6. verify:games fails when the record loaders, the components and packages/play/registry.ts list different ids
+- **Browser tests:** smoke: walks, first-visit, network; features: e2e/titles.spec.ts, e2e/route-change.spec.ts, e2e/stale-chunk.spec.ts, e2e/lesson-games.spec.ts, e2e/broken-bench.spec.ts, e2e/engine-floor.spec.ts, e2e/loop.spec.ts, e2e/pool.spec.ts, e2e/verifier.spec.ts; nightly width: every level of all five games at 360 and 1280 px, run by the task and pasted
+
+#### [ ] W2b-T08 · Make room on the game routes: `src/design/parts.css` by component · M · sonnet · deps: W2b-T40
+- **Goal:** Runs only if W2b-T40 leaves under 1,000 B of room on /play/broken-bench, or if W2b-T09 or W2b-T10 stops for want of room; the orchestrator records the choice. Split src/design/parts.css (26,582 bytes in one sheet) into one sheet per component, each imported by the component that uses it. No rule changes.
+- **Files:** `src/design/parts.css`, `src/design/components/**`.
+- **Accept:**
+  1. verify:bundle rows before and after for the front page and every /play/* route
+  2. No screenshot baseline changes and none is re-blessed
+  3. verify:tokens passes
+- **Browser tests:** smoke: screens, screenshots; features: e2e/design-parts.spec.ts; nightly width: every level of all five games
+
+#### [ ] W2b-T09 · Broken benchmark: no field and no heading under the pinned readout (A5, and A6's wrap) · M · sonnet · deps: W2b-T40
+- **Goal:** On a desk shorter than about 860 px, with a flaw chosen, the number fields, the Setup heading or File the report stand under the pinned readout, and the court walk fails at 1280 px. Fix it with a scroll-margin on the fields, as the Request path's stages got, not with a page scroll-padding. Shorten the one meaning line that takes three lines at 390. The form's position at 390 stays as built.
+- **Files:** `src/games/broken-bench/**`, `packages/play/broken-bench/copy.ts`, `e2e/broken-bench.spec.ts`, `scripts/gate/known-red.json`.
+- **Accept:**
+  1. The court walk at 1280 px passes five of five with --retries=0 and leaves the red list
+  2. At 1440 x 800, 1366 x 768 and 1280 x 800, with a flaw chosen, the number fields and File the report are whole and uncovered (a geometry test)
+  3. Every meaning line takes two lines at 390
+  4. /play/broken-bench stays under 200 KB and its row is reported before and after
+- **Browser tests:** features: e2e/broken-bench.spec.ts; nightly width: walks (broken-bench)
+
+#### [ ] W2b-T10 · Phone, first run: the dock's controls do not show before the intro (A7) · M · sonnet · deps: W2b-T09
+- **Goal:** On a phone's first run of every game the dock's controls show for 0.5 to 0.8 s and then hide while the parts are walked. Hold the dock's controls until the frame knows whether an intro is due. This is a kit change on five routes with tight budgets: measure before writing.
+- **Files:** `src/games/kit/Frame.tsx`, `src/games/kit/Intro.tsx`, `e2e/first-visit.spec.ts`, `e2e/walks.spec.ts`.
+- **Accept:**
+  1. At 390 x 844, on the first run of each of the five games, a test records that no decision control was visible before the coach strip
+  2. verify:bundle rows for the front page and all five game routes, before and after
+  3. The front page's first paint grows by at most 100 B and every /play/<id> row stays under 200 KB; if the fix fits neither room the task stops with its measurements, and W2b-T08 runs or the item goes to the owner's list
+- **Browser tests:** smoke: first-visit, walks; nightly width: every level of all five games at 360 and 1280 px, run by the task and pasted
+
+#### [ ] W2b-T11 · 320 px: `/changes` fits its width, and TR2 lesson 2 passes axe (A8) · S · sonnet · deps: W2b-T02
+- **Goal:** Two nightly page checks are red at 320 px: /changes has text past the right edge, and /m/tr2/l2-one-token-budget has an axe violation that no report names. Read each first failure, then fix the page or the block. Edit no prose unless the violation is in the prose, and then list the edit.
+- **Files:** `src/pages/Changes.tsx`, the styles of /changes, the block axe names, `scripts/gate/known-red.json`.
+- **Accept:**
+  1. Both checks pass at 320 px five of five and leave the red list
+  2. The pull request names each cause
+- **Browser tests:** ES_E2E_NIGHTLY=1 smoke: a11y at 320 px for /changes and /m/tr2/l2-one-token-budget
+
+#### [ ] W2b-T12 · The lab-kits spec knows the three kinds of kit · S · haiku · deps: W2b-T02
+- **Goal:** e2e/lab-kits.spec.ts asserts every manifest entry is a forge lab and looks for a forge page row for each; public/labs/manifest.json now also lists the GPU kit and the grader wheel. Split the assertion by kind and give each kind its own page-row check. Delete no assertion.
+- **Files:** `e2e/lab-kits.spec.ts`, the page rows that link the GPU kit and the grader wheel, if they are missing, `scripts/gate/known-red.json`.
+- **Accept:**
+  1. The three tests at lines 81 and 87 pass and leave the red list
+  2. The count of expect calls in the spec has not gone down
+- **Browser tests:** features: e2e/lab-kits.spec.ts
+
+#### [ ] W2b-T13 · Name and fix the three failing design-parts tests and the settings tier test · M · sonnet · deps: W2b-T02
+- **Goal:** Three tests of e2e/design-parts.spec.ts and the test 'a quality cap lowers the tier the running scene draws at' of e2e/settings.spec.ts are red on the base and no report names their cause. Run them with the JSON reporter, name each with its first error, then fix the product where the product is wrong and the spec only where it asserts something the redesign removed, citing the REDESIGN section.
+- **Files:** `e2e/design-parts.spec.ts`, `e2e/settings.spec.ts`, the pages they test, `scripts/gate/known-red.json`.
+- **Accept:**
+  1. A JSON-reporter run names each failing test and its first error, in the pull request before any change
+  2. No skip is added and no assertion is removed without the REDESIGN section that removed its subject
+  3. All four pass five of five and leave the red list; if the settings test can pass only with a GPU, the task stops and the test stays listed with that reason for the owner
+- **Browser tests:** features: e2e/design-parts.spec.ts, e2e/settings.spec.ts
+
+#### [ ] W2b-T14 · Rejection sampler: the wrong-module spec, and the `greedy-ngram` and `mutants` walks · M · sonnet · deps: W2b-T05
+- **Goal:** Four nightly walks of the Rejection sampler fail (greedy-ngram and mutants, each at 360 and 1280 px) and so do the 'a wrong module' tests of e2e/rejection-sampler.spec.ts. Read each first failing assertion against the level's lanes and the committed fixture; fix the walker, the announcement or the stale fixture, whichever is wrong.
+- **Files:** `e2e/rejection-sampler.spec.ts`, `e2e/support/walks.ts`, `src/games/verifier/**`, `tests/fixtures/forge/**`, `scripts/gate/known-red.json`.
+- **Accept:**
+  1. The four walks pass at 360 and 1280 px, five runs of five with --retries=0
+  2. The spec's 'a wrong module' tests pass
+  3. All leave the red list; no timeout is lengthened
+- **Browser tests:** features: e2e/rejection-sampler.spec.ts, e2e/verifier.spec.ts; nightly width: walks (verifier)
+
+#### [ ] W2b-T15 · Two timing faults in tests: the pool's `same-size` walk at 360 px, and the graded `due` seed · S · sonnet · deps: W2b-T14
+- **Goal:** The pool's same-size walk at 360 px is the longest walk and failed 3 of 8 runs; shorten the walk, do not lengthen a timeout. The graded due test of e2e/lesson-games.spec.ts reads the seed before the lesson has set it; wait for the lesson to set it.
+- **Files:** `e2e/support/walks.ts`, `e2e/lesson-games.spec.ts`, `scripts/gate/known-red.json`.
+- **Accept:**
+  1. same-size at 360 px passes eight of eight with --retries=0 on four pinned cores and leaves the flaky list; if only a longer timeout would do it, the task stops and the question goes to the owner's list
+  2. The due test passes 20 of 20
+- **Browser tests:** features: e2e/lesson-games.spec.ts; nightly width: walks (pool)
+
+#### [ ] W2b-T45 · Remove the dead step control · S · haiku · deps: W2b-T07 (the same folder)
+- **Goal:** LoopStepControl in src/games/loop/ControlPieces.tsx is mounted nowhere. Delete it with its bell ref, and the dead .es-frame-labels rule if a grep still finds it. Rename no field that is in a golden vector or a state hash. It merges after W2b-T07, which edits the same folder.
+- **Files:** `src/games/loop/ControlPieces.tsx`, `src/design/components.css`.
+- **Accept:**
+  1. npm run lint and npm run typecheck pass
+  2. The front-page row and the /play/loop row of verify:bundle are reported and neither grows
+- **Browser tests:** smoke: walks; features: e2e/loop.spec.ts
+
+#### [ ] W2b-T16 · Front page: lesson rows leave the first paint · L · sonnet · deps: W2b-T02
+- **Goal:** The course index is in the front page's first paint and gains one row per lesson (about 49 B each); twenty-five lessons to come would cost about 1.2 KB against 350 B. The front page uses only the module rows, whether a module is published, and the course's first lesson. Keep those in index.json and move the lesson rows to a second generated file that pages load on demand. scripts/verify-bundle.ts is not edited.
+- **Files:** `packages/schema/compiled.ts`, `scripts/content/build.ts`, `src/content/load-lessons.ts`, `src/front/menu.ts`, `src/front/FrontPage.tsx`, `scripts/pages/front-shell.ts`, `src/pages/Lesson.tsx`, `src/pages/Module.tsx`, `src/pages/Evidence.tsx`, `src/pages/Map.tsx`, their tests.
+- **Accept:**
+  1. The front-page row of verify:bundle before and after; the gain is reported against about 1.3 KB [derived]; under 1 KB the task says where the rest of the index's bytes are
+  2. A test compiles a fixture course of 60 lessons and one of 6 and holds index.json to the same bytes apart from the first lesson's row
+  3. The front page's path table in the static HTML is unchanged
+  4. src/content/load.ts gains nothing; no baseline under e2e/screenshots.spec.ts-snapshots changes
+- **Browser tests:** features: e2e/front.spec.ts, e2e/map.spec.ts, e2e/titles.spec.ts, e2e/today.spec.ts; smoke: first-visit, screenshots
+
+#### [ ] W2b-T41 · The course's start is a key of `content/course.yaml` · S · sonnet · deps: W2b-T16
+- **Goal:** firstLesson() takes the first module that has a lesson, and tr0 is first in course.yaml, so publishing TR0 lesson 1 would move the front page's Start, the header's Continue with no events and the demo's closing line off TR1 lesson 1. Add start: tr1 to course.yaml; the compiler writes the start module's first lesson as the index's first lesson; firstLesson and nextStep read it. A lesson of a module that stands before the start in course order is never counted as an earlier lesson not finished, and rule 5 offers it only when no later lesson is left.
+- **Files:** `content/course.yaml`, `packages/schema/content.ts`, `scripts/content/build.ts`, `src/front/menu.ts`, `src/progress/next.ts`, `tests/front/way.test.ts`, `tests/progress/next.test.ts`.
+- **Accept:**
+  1. With a fixture course in which tr0 has lessons, the Start control, the header's Continue with no events and the demo's closing line name TR1 lesson 1
+  2. A fixture ledger with TR1 lessons 1 to 3 done shows no earlier lesson unfinished; with every lesson from TR1 on done, rule 5 offers TR0 lesson 1
+  3. No existing expectation is edited
+  4. The front-page row is reported and grows by at most 40 B [estimated]
+- **Browser tests:** smoke: first-visit; features: e2e/front.spec.ts, e2e/today.spec.ts, e2e/map.spec.ts
+
+#### [ ] W2b-T17 · Counts are derived, and each coming module has its row · M · sonnet · deps: W2b-T02
+- **Goal:** Replace the hard-coded counts (27 lessons, 39 predictions as 18 and 21, 42 game blocks) with a per-module table, tests/content/module-counts.ts, that already has rows for tr0, tr3, tr4, tr5b and tr7 at zero. Do the same for the module list of tests/kc/graph.test.ts and the has-3D list of tests/ci/e2e-coverage.test.ts. Every total is still asserted exactly, as the sum of the rows.
+- **Files:** `tests/content/module-counts.ts`, `tests/content/openers.test.ts`, `tests/content/map.test.ts`, `tests/content/sections.test.ts`, `tests/play/predictions.test.ts`, `e2e/lesson-games.spec.ts`, `tests/kc/graph.test.ts`, `tests/ci/e2e-coverage.test.ts`.
+- **Accept:**
+  1. Each total is asserted exactly as the sum of the rows, and the sums equal 27, 39 (18 and 21) and 42
+  2. The edited literals are the task's named allow-list for the bars guard, and it refuses any other changed number
+- **Browser tests:** features: e2e/lesson-games.spec.ts
+
+#### [ ] W2b-T18 · The module test kit, with the rule that every model table's header row is held · M · sonnet · deps: W2b-T02
+- **Goal:** Extract the checks a module test runs from tests/content/tr8-module.test.ts and tr6-module.test.ts into tests/content/module-kit.ts: compiles with zero diagnostics and no pacing allowance; every lesson has a Test of three questions with at least one numeric; minutes; KCs taught; titles follow the brief; game and item blocks name built levels and families; the claims rules; module equals course.yaml; the part that needs a laptop or a GPU is announced. Add the rule: the kit finds every Markdown table in a module's lessons and cards whose header or caption carries [synthetic], and fails unless the module's demos file holds that header row word for word, tags included, and recomputes its rows. Add one call to each of the five built module tests.
+- **Files:** `tests/content/module-kit.ts`, `tests/content/module-kit.test.ts`, `tests/content/tr1-module.test.ts`, `tests/content/tr2-module.test.ts`, `tests/content/tr5a-module.test.ts`, `tests/content/tr6-module.test.ts`, `tests/content/tr8-module.test.ts`, the five tests/content/tr*-demos.ts files, for a missing hold.
+- **Accept:**
+  1. A fixture lesson with an unheld model table fails the kit's own test
+  2. For each built module the pull request lists the model tables found and shows each one held; a missing hold is added as a test and no lesson is edited
+  3. The pacing allowance stays in the TR1, TR2 and TR5a tests and is listed for wave 4
+- **Browser tests:** none
+
+#### [ ] W2b-T19 · A module's outcomes live in its `module.md` · M · sonnet · deps: W2b-T41
+- **Goal:** Move OUTCOME_KCS out of src/map/outcomes.ts into each module.md's front matter, and give each planned module one outcome sentence in content/course.yaml. The compiler writes outcomes into the course map or the module's JSON, never into index.json, which is in the front page's first paint.
+- **Files:** `packages/schema/content.ts`, `scripts/content/build.ts`, `src/map/outcomes.ts`, `tests/map/outcomes.test.ts`, `content/modules/*/module.md`, `content/course.yaml`, `public/md/**`, `public/llms.txt`.
+- **Accept:**
+  1. /map shows the same outcome ticks for a fixture ledger before and after
+  2. TR2's fourth outcome keeps no KC and the pull request says so
+  3. The front-page row and index.json's size are reported before and after and neither grows
+  4. The /m/:module row is reported
+- **Browser tests:** features: e2e/map.spec.ts; smoke: walks (the module-page tests)
+
+#### [ ] W2b-T20 · Lesson template: the Test's pass rule stands with its questions, and an item block may name a `variant` · M · sonnet · deps: W2b-T19
+- **Goal:** The Test renders every prose block before its questions, so a pass rule sits away from the set it governs; render it beside the question set. Add an optional variant key to the item block, so a checkpoint can name the variant its part taught. Replace the two jargon labels of LEVEL_NAMES ('faded', 'new surface') with plain words, list every screen that shows them, and hold them in a test. The pass rule itself does not change, and no built lesson changes.
+- **Files:** `packages/schema/content.ts`, `scripts/content/directives.ts`, `src/content/render/**`, `src/items/**`, `packages/play/items/types.ts`, their tests.
+- **Accept:**
+  1. A fixture lesson's pass rule renders after its last prose and beside its question set
+  2. A block with variant draws only that variant and one without draws as before
+  3. tests/fixtures/items/vectors.json does not move
+  4. The lesson route row is reported
+- **Browser tests:** features: e2e/items.spec.ts, e2e/lesson-games.spec.ts, e2e/tr5a-items.spec.ts, e2e/today.spec.ts
+
+#### [ ] W2b-T22 · The compiler survives a file that vanishes between its walk and its read · M · sonnet · deps: W2-T42
+- **Goal:** When an editor saves by rename, a lesson file can vanish between the compiler's walk and its read, and the dev server stops. Retry the read once, then print a diagnostic and keep the server running. Narrow the plugin's tests: count every timer, inject the stat. Say in the options' comment that the plugin object is not to be shared between servers.
+- **Files:** `scripts/content/build.ts`, `scripts/content/vite-plugin.ts`, `tests/content/plugin.test.ts`.
+- **Accept:**
+  1. A test removes a lesson file between the walk and the read; the compiler retries once, then prints a diagnostic, and the dev server keeps running
+  2. The plugin's test counts every timer
+  3. The compiled output of the real course is byte for byte what it was
+- **Browser tests:** none
+
+#### [ ] W2b-T21 · A unit run leaves no temporary project behind · S · haiku · deps: W2b-T02
+- **Goal:** tempDir in tests/content/support.ts makes enginespace-<label>-* folders and removes them in an afterAll that may run for the first importing file only. Add a test that a run leaves none; if it fails, move the cleanup to a preload in bunfig.toml that runs once per process.
+- **Files:** `tests/content/support.ts`, `bunfig.toml`, `tests/ci/temp-clean.test.ts`.
+- **Accept:**
+  1. After a full four-shard run the temporary folder holds no enginespace-* directory made by the run
+  2. The four shards' times are reported and none grows by more than 5 percent
+- **Browser tests:** none
+
+#### [ ] W2b-T44 · Wave 1a exit check · S · opus · deps: all of wave 1a
+- **Goal:** Check wave 1a as a whole and hand it to the owner: a report under docs/waves/ with repository-relative paths only, and the pull request from wave-2m1a into wave-r2 marked ready and not merged. W2b-T08 is in the report as run or not run, with the reason.
+- **Files:** `docs/waves/W2m1a-report.md`.
+- **Accept:**
+  1. G0 passes on the tip
+  2. known-red.json holds only what the report lists, with a reason each
+  3. The bundle table is in the report, with the front-page and /play/broken-bench rows and the room each now has
+  4. A spot check of five tasks' evidence against their accept lines
+  5. ES_PROPERTY_SEEDS=10000 ES_HEAVY=1 bun test --parallel=2 --timeout 900000 and bun test tests/forge/rejection-sampler-rates.test.ts pass once on the tip
+  6. The report lists N4, N5 and N8 with the default wave 1b takes for each
+- **Browser tests:** ES_E2E_NIGHTLY=1 npx playwright test --project=smoke --project=features once on the tip, on four pinned cores; Firefox and WebKit are recorded as not run
+
+#### [ ] W2b-T23 · W2-T07's open check: a receipt event holds the receipt and the report, never the verdict · M · sonnet · deps: W2b-T43
+- **Goal:** receiptDraft in src/receipts/keep.ts writes ok, score, provenance and the per-check verdict into the credited receipt event at import. Store the receipt and the report and compute the verdict on read, so that a receipt imported before a bank exists is credited once the bank is added. This is a ledger schema change with a migration.
+- **Files:** `src/receipts/keep.ts`, `src/receipts/records.ts`, `packages/ledger/**`, `tests/receipts/**`, `tests/ledger/**`.
+- **Accept:**
+  1. The verdict is computed on read and stored nowhere
+  2. A ledger written in the old shape still reads (a migration test)
+  3. A receipt imported before a bank exists is credited after the bank is added, with no second import (a test with a synthetic bank that lives in the test)
+  4. The /receipts and receipt.worker rows are reported; the worker stays under 60 KB
+- **Browser tests:** features: e2e/receipts.spec.ts, e2e/receipts-import.spec.ts, e2e/ledger-conformance.spec.ts
+
+#### [ ] W2b-T24 · W2-T08's open check, and rule 7 reads `relabelled` · M · sonnet · deps: W2b-T43
+- **Goal:** A claim under a performance.claimed key that names no evidence artifact must be shown as a claim with nothing behind it, or fail (packages/verify/checks.ts near line 128). The three re-checks of packages/verify/rechecks.ts (identityTally, acceptanceCounts, argmaxBank) must read the parsed artifact's relabelled flag. Add the forgeries: a bare claim, and a relabelled outputs, counts and argmax artifact.
+- **Files:** `packages/verify/checks.ts`, `packages/verify/rechecks.ts`, `tests/verify/bestiary.ts`, `tests/verify/**`.
+- **Accept:**
+  1. Each new forgery fails its check, with the bound printed
+  2. The three honest synthetic bundles still pass
+  3. The receipt.worker row is reported and stays under 60 KB (4,161 B of room before)
+- **Browser tests:** features: e2e/receipts-import.spec.ts
+
+#### [ ] W2b-T25 · `fetch` does not print a symlinked home · S · haiku · deps: W2b-T43
+- **Goal:** shown() in labs/grader/src/enginespace_grader/fetch.py compares a path with Path.home() only, so a path under a symlinked home prints in full. Also compare with Path.home().resolve(). Then repack the kit.
+- **Files:** `labs/grader/src/enginespace_grader/fetch.py`, `labs/grader/tests/test_fetch.py`, `public/labs/**`, `src/receipts/graders.ts`.
+- **Accept:**
+  1. uv run --project labs/grader python -m unittest passes, with a test of a symlinked home
+  2. uv lock --check --project labs/grader passes
+  3. bun scripts/pack-kit.ts --check passes, and labs/grader/tests/test_published.py passes
+- **Browser tests:** features: e2e/lab-kits.spec.ts
+
+#### [ ] W2b-T47 · A grader lab's stage names the KCs it earns · M · sonnet · deps: W2b-T43
+- **Goal:** verify:kc takes a lab's graded reference only from packages/sim/forge/kcs.ts (forge labs), and src/progress/kcmap.ts gives a receipt:<stage> ref its lab's KCs. Add packages/verify/stage-kcs.ts, a table from stage id to KC ids; make verify:kc read a declared stage's checks as a graded reference named receipt:<stage>, and fail a row for a stage src/receipts/labs.ts does not list; make a receipt event earn its stage's KCs first, then its lab's.
+- **Files:** `packages/verify/stage-kcs.ts`, `scripts/verify-kc.ts`, `src/progress/kcmap.ts`, the module that builds KcSources, `tests/kc/verify-kc.test.ts`, `tests/progress/**`, `content/README.md`.
+- **Accept:**
+  1. With a fixture table, verify:kc accepts a KC whose only reference is a stage
+  2. A verified receipt event of that stage earns the KC; a receipt whose argmax-bank check fails for want of a bank earns nothing
+  3. A row for an unknown stage fails verify:kc
+  4. npm run verify:kc on the real tree gives the same result as before
+- **Browser tests:** none
+
+#### [ ] W2b-T30 · The lab page for the L and F lanes · M · opus · deps: W2b-T12, W2b-T23
+- **Goal:** No page exists for a graded lab: src/pages/Lab.tsx and src/forge/ForgeLabPage.tsx draw forge labs only. Build REDESIGN 3.9's numbered procedure for a graded lab: download the kit (file, size, hash), fetch the inputs, issue a challenge, edit the named file, run the grader, import the receipt, then the checks, each with its id, its label in the engine's terms and what it catches, then the Prove step. Each stage carries one state line from a fixed set: 'built; the course has not yet run this lab on the pinned weights', 'built; the course has not yet run this lab on a real engine', 'awaiting the course's reference bank', or verified. A command taken from a pin's documents and never run is marked [unverified]. Nine labs will use this page.
+- **Files:** src/labs/** (the graded-lab page, its copy table and descriptor type), `src/pages/Lab.tsx`, `src/unbuilt/copy.ts`, `tests/labs/**`.
+- **Accept:**
+  1. /labs/tr0.forward renders from a fixture descriptor in a server-render test
+  2. axe passes at 320, 360 and 1280 px
+  3. REDESIGN 5.2's per-screen checks for a lab hold
+  4. The /labs/:lab row is reported and is under 200 KB; the front-page row does not move
+  5. No number on the page stands without a tag, and no literal colour or font name sits outside src/design
+- **Browser tests:** features: e2e/lab-kits.spec.ts, e2e/receipts.spec.ts; smoke: a11y, screens
+
+#### [ ] W2b-T48 · TR0 lab: the grader module, its checks, the reference and the mutant · L · sonnet · deps: W2b-T27, W2b-T24, W2b-T25, W2-T13
+- **Goal:** Build labs/grader/src/enginespace_grader/labs/tr0_forward.py: three stages (one layer; the full forward at 1e-3 against Hugging Face fp32 on the same CPU; the cached path against a full recompute), the import guard that refuses transformers.models, and forward hooks that record shape, strides and dtype at five named points into the receipts of stages 2 and 3. Add checks/ with allclose, and the artifact for the five points to packages/schema and schemas/. Tests that need no torch run in the grader's environment. The reference solution, the wrong-epsilon mutant and the tests on a small random-weight model built from the pinned transformers (no weights downloaded) live under labs/grader/tests/cpu/, run in the labs.yml cpu job, and fail (never skip) when torch is missing and CI=true. Record the 1e-3 bar as [estimated] in a dated, proposed DECISIONS record; no task may change it.
+- **Files:** `labs/grader/src/enginespace_grader/labs/tr0_forward.py`, `labs/grader/src/enginespace_grader/checks/**`, `packages/schema/bundle.ts`, `schemas/**`, `labs/grader/tests/test_tr0_forward.py`, `labs/grader/tests/cpu/**`, `.github/workflows/labs.yml`, `tests/ci/workflows.test.ts`, `docs/DECISIONS.md`, `public/labs/**`, `src/receipts/graders.ts`.
+- **Accept:**
+  1. The grader's unittest in the grader's environment, uv lock --check, pack-kit --check and test_published.py pass here
+  2. bun run verify:schema and verify:vectors pass
+  3. The kit's member list holds no reference solution
+  4. Check ids and labels carry no word of src/copy/banned.ts
+  5. The tests under labs/grader/tests/cpu/ fail, and do not skip, when torch is missing and CI=true; the bars guard lists no skip guard in them
+  6. In the labs.yml cpu job the reference passes stages 1 to 3, the mutant fails stage 2, and the cache length equals the prefix length at every step; the orchestrator confirms that run before a dependent task merges
+  7. With N4 answered yes, the cpu tests also run here
+- **Browser tests:** none
+
+#### [ ] W2b-T49 · Triton 3.8.0 under the interpreter: which pinned kernels run on a CPU · M · sonnet · deps: W2b-T27, W2b-T48
+- **Goal:** TR0's seventh outcome is to step through a kernel on CPU with TRITON_INTERPRET=1, and the brief lets a kernel into lesson 4 only after it has been run on Triton 3.8.0. Add triton==3.8.0 (Linux) to labs/envs/cpu, relock, and write scripts/triton-interp/run.py: it reads each candidate MRV2 file at vLLM 4ba787ec into a temporary folder, runs each kernel under the interpreter on CPU tensors and prints ran or failed with the error's class. Write scripts/triton-interp/course_kernel.py, a kernel of the course's own of at most 40 lines over the grid the grid level's model describes. Run both in the cpu job, and record which kernels ran as claims. If N4 is refused, or unanswered when W2b-T52 is due, this task does not start, lesson 4 ships without the walk-through, and the outcome's removal is recorded as a proposed decision.
+- **Files:** `labs/envs/cpu/pyproject.toml`, `labs/envs/cpu/uv.lock`, `labs/envs/cpu/requirements.txt`, `docs/DECISIONS.md`, `scripts/triton-interp/run.py`, `scripts/triton-interp/course_kernel.py`, `.github/workflows/labs.yml`, `tests/ci/workflows.test.ts`, `content/claims/tr0.yaml`, `public/labs/**`, `src/receipts/graders.ts`.
+- **Accept:**
+  1. bash labs/envs/relock.sh --check and the cpu job are green on the draft pull request
+  2. The job's log names each candidate kernel as ran or failed, and the course's own kernel runs
+  3. No vLLM file is committed, and no request carried a name, an email or a token
+  4. bun run verify:claims passes; if the claims schema allows no claim for the course's own run, the task stops and reports
+  5. pack-kit --check and test_published.py pass after the repack
+- **Browser tests:** none
+
+#### [ ] W2b-T31 · The bank's generator, and the page's state while the bank is awaited · S · sonnet · deps: W2-T16
+- **Goal:** W2-T17 is the owner's: an fp32 CPU run of Hugging Face over the challenge's prompts, keeping argmax ids at positions whose margin passes a threshold. Build the generator in the lab's grader module with a test on the random-weight model, and a runbook at docs/owner/W2-T17-bank.md (the command, public/references/tr0/, the manifest entry, the BANKS entry). Publish no bank.
+- **Files:** `labs/grader/src/enginespace_grader/labs/tr0_forward.py`, `labs/grader/tests/cpu/**`, `docs/owner/W2-T17-bank.md`, `tests/verify/**`, `public/labs/**`, `src/receipts/graders.ts`.
+- **Accept:**
+  1. The generator is deterministic (two runs give the same bytes, in the cpu job)
+  2. With a synthetic bank that lives only in the test, the honest synthetic receipt passes argmax-bank and a receipt with one wrong id fails
+  3. BANKS in src/receipts/declared.ts is still empty and nothing is written under public/references/
+  4. pack-kit --check and test_published.py pass after the repack
+- **Browser tests:** features: e2e/receipts-import.spec.ts
+
+#### [ ] W2b-T50 · "Defend your receipt", and TR0's questions · M · opus · deps: W2-T16, W2b-T23, W2b-T42
+- **Goal:** Build the third kind of Prove-it (ASSESSMENT 7.2) for every L and F lab: after a verified import the browser asks seeded questions that only the receipt's raw artifacts answer, the learner answers before the browser shows the computation, and a pass writes a prove event with provenance proved. Build it once, with a question registry by lab, and write TR0's set over the five recorded points (a point's shape or strides). It reuses W2b-T42's attestation panel and 24-hour window, runs outside the receipt worker, and loads on demand.
+- **Files:** `src/receipts/defend/**`, `packages/sim/defend/tr0.ts`, `src/receipts/ReceiptDetail.tsx`, `src/labs/**`, `tests/receipts/defend.test.ts`, `tests/sim/defend-tr0.test.ts`, `e2e/receipts-import.spec.ts`.
+- **Accept:**
+  1. Two bundles with different recorded points give different keys for one seed
+  2. The learner's answer is taken before the computation is shown
+  3. A pass on a verified receipt writes a prove event with provenance proved; a synthetic or unverified receipt shows the flow at practice weight and earns nothing
+  4. A credited attempt opens the 24-hour window (a test with a set clock)
+  5. The step is a lazy chunk; the /receipts and /labs/:lab rows are reported; the receipt.worker row does not move
+  6. A stage 3 receipt can be defended while BANKS is empty
+- **Browser tests:** features: e2e/receipts.spec.ts, e2e/receipts-import.spec.ts; smoke: a11y
+
+#### [ ] W2b-T37 · `selftest --gpu`, and the intake of the owner's bundles · M · sonnet · deps: W2b-T25 (last in lane G's queue)
+- **Goal:** Build what the owner's GPU steps need and nothing that stands in for them: selftest --gpu, which fails clearly with no CUDA; scripts/fixtures-intake.ts, which hashes a bundle, sweeps it for a host name, user name, path or UUID, and appends an entry to tests/fixtures/receipts/manifest.json; and a runbook at docs/owner/W2-T12-smoke.md, which is not in the kit.
+- **Files:** `labs/grader/src/enginespace_grader/selftest.py`, `labs/grader/src/enginespace_grader/cli.py`, `labs/grader/tests/**`, `scripts/fixtures-intake.ts`, `tests/grader/**`, `docs/owner/W2-T12-smoke.md`, `public/labs/**`, `src/receipts/graders.ts`.
+- **Accept:**
+  1. With no CUDA, selftest --gpu exits non-zero and says why in one line (a test with the fake NVML covers the other path)
+  2. The intake refuses a bundle that holds a host name, on a throwaway bundle in a temporary folder
+  3. The committed tests/fixtures/receipts/manifest.json stays 'fixtures': []
+  4. The grader's unittest, pack-kit --check and test_published.py pass
+- **Browser tests:** none
+
+#### [ ] W2b-T42 · Prove mode for a graded level, in the frame · M · opus · deps: W2b-T10, W2b-T40
+- **Goal:** Build the second kind of Prove-it (ASSESSMENT 7.2): a module's graded level started in Prove mode, on fresh seeds, with the live readouts hidden. A lazy panel asks the learner to close their coding agent and records the attestation; a passed, attested run writes its play event with provenance proved; a failed attempt can be retried at once at practice weight; a credited one opens a 24-hour window. An entry of the play registry may name its Prove level. Turn it on for the Rejection sampler's exact level, the built game with the most route room; W2-T14 turns it on for Tensor views. The other four built games, the question that returns in Review after 30 days and module completion are wave 4's.
+- **Files:** `src/games/kit/Frame.tsx`, `src/prove/**`, `src/games/kit/record.ts`, `src/games/kit/useRecorder.ts`, `src/pages/Game.tsx`, `packages/play/types.ts`, `packages/play/verifier/entry.ts`, `tests/play/prove.test.ts`, `tests/progress/**`, `e2e/verifier.spec.ts`.
+- **Accept:**
+  1. Seeds are drawn when the Prove run starts, and the readout is hidden until the result
+  2. A passed, attested run is read as proved by src/progress/derive.ts; a failed one is not, and can be retried at once at practice weight
+  3. A credited attempt opens a 24-hour window (a test with a set clock)
+  4. The panel passes axe at 360 and 1280 px and holds no word of src/copy/banned.ts
+  5. verify:bundle rows before and after: the front page's is unchanged, and each of the five /play/<id> rows is under 200 KB
+- **Browser tests:** features: e2e/verifier.spec.ts; smoke: walks, a11y; nightly width: every level of all five games at 360 and 1280 px, run by the task and pasted
+
+#### [ ] W2b-T26 · TR0: the module's design, its KCs, and the game's design in the frame · M · opus · deps: W2b-T01, W2b-T17
+- **Goal:** Rewrite the TR0 brief for the redesign so no author copies a stale line, and decide what the lane's other tasks build. Write down, each with its reason: the role line 'You plan the reshape.'; the 2D diagram exactly (the shape and stride table beside the buffer strip, the stride-order thread in 2D, what a copy looks like in 2D); for each level its parts (at most five), goal line with its number, named moment, first move and pass-rule sentence; which moment goes on the keep-list; fewest as the Prove level; bands that keep every tensor at 256 elements or fewer; what the third dimension carries and, per camera, what it shows that the 2D does not (if no camera does, recommend cutting W2-T15); each lesson's opener by rule 1; the module page's sentences (TR0 helps before TR1 and locks nothing; the lessons are separate subjects with no 'what changed' table and no form); each prediction with its reveal kind; the lab's challenge-time prediction as prose, not a predict block; 'Exit check' as a lesson's last heading, with three questions, at least one numeric; lesson 4 in two shapes, with and without the interpreter walk-through. Add the nine TR0 KCs to the graph, each with planned: naming W2-T14, W2b-T29 or W2-T16.
+- **Files:** `curriculum/TR0-pytorch-for-rust.md`, `docs/GAMES.md`, `packages/play/roster.ts`, `content/kc/graph.yaml`, `tests/kc/graph.test.ts`.
+- **Accept:**
+  1. npm run verify:kc passes with the nine KCs, each planned: line naming a task of the tracker
+  2. tests/play/roster.test.ts and tests/content/roster.test.ts pass with the roster and GAMES.md 2.6 moved together
+  3. A script over the new sections finds no word of src/copy/banned.ts in the level, goal or part text; its output is in the pull request
+  4. Every decision listed in the goal is in the brief's 'Before you write' section with its reason
+- **Browser tests:** none
+
+#### [ ] W2b-T27 · TR0: the sources read at their pins, as claims · M · sonnet · deps: W2b-T26, W2b-T25
+- **Goal:** Read, each at its pin and with a generic User-Agent: PyTorch 2.14's documents for view, reshape, contiguous, expand and the calls that wait for the GPU; Triton 3.8.0's documents for the program model and TRITON_INTERPRET; the five MRV2 files' paths and line counts at vLLM 4ba787ec; Mini-SGLang's qwen3.py at 9a91cfaf; SGLang's python_bindings.rs at v0.5.23; config.json of a proposed Qwen3-0.6B revision. Write them as claims, add the pins to course.lock.json (the model revision as a proposal: commit and date), write the tensor card, and enter the model's files in labs/references/manifest.json with the hashes and sizes the hub's metadata gives, each [unverified] until the weights job hashes the fetched files. Repack, because the references manifest is in the kit.
+- **Files:** `course.lock.json`, `content/claims/tr0.yaml`, `content/cards/tensor.md`, `labs/references/manifest.json`, `public/labs/**`, `src/receipts/graders.ts`.
+- **Accept:**
+  1. bun run verify:claims, verify:pins and verify:content pass
+  2. For each claim the pull request lists the raw-file URL at the pinned commit and the line range, and states that the quote lies inside them; W2b-T34 checks again
+  3. A fact that could not be read is [unverified] and listed in the pull request; no later task may lean on it
+  4. The grader's unittest, uv lock --check, pack-kit --check and test_published.py pass
+  5. No request carried a name, an email or a token
+- **Browser tests:** none
+
+#### [ ] W2b-T46 · A script re-reads each claim's quote at its pin · M · sonnet · deps: W2b-T43
+- **Goal:** No gate checks that a claim's quote matches its source. Write scripts/claims/requote.ts: for the claims of the files it is given, fetch the source at its pinned commit as raw text with a generic User-Agent and no token, and say whether the quote lies inside the anchored lines: verified, moved, or could not be read. It stops at a rate limit and reports how many claims it covered. It needs the network, so it is not part of G0; the technical checks run it, and wave 4 adds it to the nightly's reports job.
+- **Files:** `scripts/claims/requote.ts`, `tests/claims/requote.test.ts`, package.json (a claims:requote script; no dependency added).
+- **Accept:**
+  1. The unit tests run against a server on 127.0.0.1 and reach nothing else
+  2. One run over the vLLM claims of content/claims/tr2.yaml, with its table in the pull request
+  3. The script reads no token from the environment and sends no name or email
+- **Browser tests:** none
+
+#### [ ] W2b-T28 · Tensor views: the pure session, its levels, bands, blind probes and copy · M · sonnet · deps: W2b-T27
+- **Goal:** Build packages/play/shape-shifter to the pool's pattern and W2b-T26's design: entry, types, engine, levels (views, stride-zero, three-d for practice; fewest and grid graded), bands, score, view, session, debrief, labels, copy and blind probes. Register only the probes in scripts/games/blind.ts. Do not touch packages/play/registry.ts: the game is not routed yet.
+- **Files:** `packages/play/shape-shifter/**`, scripts/games/blind.ts (only the lines that register this game's probes), `tests/play/shape-shifter-entry.test.ts`, `tests/play/shape-shifter-levels.test.ts`, `tests/play/shape-shifter-session.test.ts`, `tests/play/shape-shifter-debrief.test.ts`, `tests/play/shape-shifter-labels.test.ts`, `tests/copy/game-copy.test.ts`, `tests/copy/no-kitchen.test.ts`, packages/sim/tensor/index.ts (the two stale comments).
+- **Accept:**
+  1. On every band seed (count from tests/seeds.ts) the fewest ghost equals the model's optimum, the naive path costs at least one more copy, and the target is reachable in six operations
+  2. grid passes only on exact coverage with the least waste
+  3. Each graded level's blind probe is at or under the gate's bound
+  4. Practice seeds are pinned and tested; the state holds no display string; every pass-rule sentence is held to the bar its level computes
+  5. The checks are against packages/sim/tensor, not against the torch vectors
+- **Browser tests:** none (nothing is routed yet)
+
+#### [ ] W2b-T29 · TR0's four item families · M · sonnet · deps: W2b-T27
+- **Goal:** Build tr0.strides-of, tr0.view-or-copy, tr0.find-the-sync and tr0.grid-cover as Gen families, registered, with a face in the catalog and a lazy loader, golden vectors and a per-family test. Keys come from packages/sim/tensor, and for find-the-sync from a rule table whose every row is a claim. Each family draws at least one numeric variant.
+- **Files:** `packages/play/items/families/tr0/**`, `packages/play/items/registry.ts`, `packages/play/items/catalog.ts`, `src/items/families.ts`, `tests/play/items-strides-of.test.ts`, `tests/play/items-view-or-copy.test.ts`, `tests/play/items-find-the-sync.test.ts`, `tests/play/items-grid-cover.test.ts`, `tests/fixtures/items/vectors.json`, `content/kc/graph.yaml`.
+- **Accept:**
+  1. bun run verify:items passes
+  2. Each family's test re-derives every key from the numbers the item prints
+  3. bun test tests/items/catalog.test.ts tests/items/verify-items.test.ts tests/items/stems.test.ts passes
+  4. npm run verify:kc passes with these families' planned: lines removed and no other line touched
+  5. vectors.json is written by bun scripts/verify-items.ts --write and by nothing else
+- **Browser tests:** features: e2e/items.spec.ts, e2e/today.spec.ts
+
+#### [ ] W2b-T32 · TR0 lesson 1 and the module page · M · opus · deps: W2-T14, W2b-T29, and wave 1a's W2b-T16, W2b-T41, W2b-T17, W2b-T18, W2b-T19, W2b-T20, W2-T42
+- **Goal:** Write content/modules/tr0/module.md and lesson 1 ('PyTorch in Rust terms: storage, shape, strides, dtype, device') to the twelve authoring rules, with the module test made from the kit. The module page carries the lab's :::lab block and says only what is true when it merges; the section on which stage tests what is W2b-T51's. It has the Prove step in words, the sentence that TR0 helps before TR1 and locks nothing, and the sentence on rules 9 and 11.
+- **Files:** `content/modules/tr0/module.md`, `content/modules/tr0/lessons/l1-*.md`, `tests/content/openers-table.ts`, `tests/content/module-counts.ts`, `packages/play/predictions/plan.ts`, `packages/play/predictions/truth.ts`, `packages/play/predictions/commit-tr0.ts`, `packages/play/predictions/tr0.ts`, `tests/content/tr0-module.test.ts`, `tests/content/tr0-demos.ts`, `e2e/routes.ts`, `e2e/support/lessons.ts`, `e2e/lesson-games.spec.ts`, `public/md/tr0/**`, `public/llms.txt`.
+- **Accept:**
+  1. The kit's checks pass with zero diagnostics
+  2. bun test tests/content/openers.test.ts tests/content/vocabulary.test.ts passes
+  3. Every model number is [synthetic] with its day and commit, and its table's header row is held by the demos file
+  4. The Test holds three questions, at least one numeric
+  5. The front page's Start still names TR1 lesson 1
+  6. The front-page row is reported and grows by no more than the module row's own change; the lesson's JSON is under 40 KB
+  7. public/claims.json is not added to git
+- **Browser tests:** features: e2e/lesson-games.spec.ts, e2e/lesson-predict.spec.ts, e2e/map.spec.ts, e2e/titles.spec.ts, e2e/items.spec.ts, e2e/front.spec.ts; smoke: first-visit, a11y, screens; nightly: a11y at 320 px on /m/tr0 and the lesson's route; nightly width: walks (shape-shifter) for the lesson's levels
+
+#### [ ] W2b-T51 · TR0 lessons 2 and 3, and the module page's section on the laptop part · M · sonnet · deps: W2b-T32, W2-T16
+- **Goal:** Write lesson 2 ('Views, copies, and the syncs you cannot see', with the three-d level in 2D and a find-the-sync set) and lesson 3 ('nn.Module as a struct: Qwen3's forward in the pinned transformers', with the lab's Build row), to lesson 1's pattern. Add to the module page the section that says which stage of the lab tests what, that stage 2's bank is awaited, and that nothing on the page is a run of the learner's machine.
+- **Files:** `content/modules/tr0/lessons/l2-*.md`, `content/modules/tr0/lessons/l3-*.md`, `content/modules/tr0/module.md`, `tests/content/openers-table.ts`, `tests/content/module-counts.ts`, `packages/play/predictions/**`, `tests/content/tr0-module.test.ts`, `tests/content/tr0-demos.ts`, `tests/content/tr0-figures.ts`, `tests/content/figures.test.ts`, `public/figures/tr0/**`, `e2e/routes.ts`, `e2e/support/lessons.ts`, `e2e/lesson-games.spec.ts`, `public/md/tr0/**`, `public/llms.txt`.
+- **Accept:**
+  1. As W2b-T32 for each lesson: the kit with zero diagnostics, openers and vocabulary tests, held header rows, a Test of three with one numeric, JSON under 40 KB
+  2. Every value of Qwen3 in lesson 3 comes from a claim on the pinned config.json
+  3. Lesson 3 carries the lab's Build row and no lab or trace block that claims a run
+  4. The module page's laptop section matches the lab page's state lines
+- **Browser tests:** features: e2e/lesson-games.spec.ts, e2e/lesson-predict.spec.ts, e2e/map.spec.ts, e2e/titles.spec.ts, e2e/items.spec.ts, e2e/lab-kits.spec.ts; smoke: a11y, screens; nightly: a11y at 320 px on the two new routes; nightly width: walks (shape-shifter) for three-d
+
+#### [ ] W2b-T52 · TR0 lesson 4: reading Triton · M · opus · deps: W2b-T32, W2b-T49 (or the record that W2b-T49 did not run)
+- **Goal:** Write lesson 4 ('Reading Triton: grids, programs, BLOCK and masks'), the module's hardest: a grid of programs, tl.program_id, a BLOCK that is a compile-time constant, tl.arange, pointer arithmetic from strides, masked loads and stores at the edges, taught from the grid level and the pinned files. With W2b-T49 done, walk through the kernels that ran under the interpreter and name the course's own kernel as the course's. If W2b-T49 did not start, the orchestrator drops that dependency: the lesson then has no walk-through and one sentence says the course has not run a vLLM kernel under the interpreter.
+- **Files:** `content/modules/tr0/lessons/l4-*.md`, `tests/content/openers-table.ts`, `tests/content/module-counts.ts`, `packages/play/predictions/**`, `tests/content/tr0-module.test.ts`, `tests/content/tr0-demos.ts`, `e2e/routes.ts`, `e2e/support/lessons.ts`, `e2e/lesson-games.spec.ts`, `public/md/tr0/**`, `public/llms.txt`.
+- **Accept:**
+  1. As W2b-T32 for the lesson
+  2. Every kernel the lesson walks through is one the cpu job's log shows as ran; a kernel that did not run is not presented as steppable
+  3. The lesson says that a Triton 3.8.0 wheel off Linux is [unverified]
+  4. The grid level's game block names a built level, and the lesson's Test tests masks and grids, not recall of the files
+- **Browser tests:** features: e2e/lesson-games.spec.ts, e2e/lesson-predict.spec.ts, e2e/items.spec.ts, e2e/titles.spec.ts; smoke: a11y, screens; nightly: a11y at 320 px on the new route; nightly width: walks (shape-shifter) for grid
+
+#### [ ] W2b-T33 · TR0 end to end: first-visit checks on its routes · S · haiku · deps: W2-T18
+- **Goal:** Extend REDESIGN 5.2's per-screen checks to /m/tr0, its five lessons, /play/shape-shifter and /labs/tr0.forward, to the pattern of the routes already listed. This is W2-T39's share for TR0.
+- **Files:** `e2e/first-visit.spec.ts`, `e2e/screens.spec.ts`, `e2e/support/screens.ts`.
+- **Accept:**
+  1. The checks pass at both widths with --retries=0
+  2. The smoke project's four shard times are reported
+  3. No existing expectation is edited
+- **Browser tests:** smoke: first-visit, screens
+
+#### [ ] W2b-T34 · TR0 technical check · M · opus · deps: W2b-T33, W2b-T46
+- **Goal:** With a fresh context, check every claim and number in TR0's lessons, module page, card, item rule tables, game copy and lab page: each claim's quote against its anchored lines at the pin (with scripts/claims/requote.ts, then by reading what the script could not), each [derived] number recomputed, each [synthetic] number against the demos file, each configuration value against the pinned config.json, each command against the kit. Write one report and change nothing else. Do not read W2b-T35's report.
+- **Files:** `docs/waves/W2m1b-tr0-technical.md`.
+- **Accept:**
+  1. Every claim of content/claims/tr0.yaml and every tagged number of the five lessons has a row: verified, wrong, or could not be read
+  2. Every 'wrong' row names file and line
+  3. The report holds repository-relative paths only, and no request carried a name, an email or a token
+- **Browser tests:** none
+
+#### [ ] W2b-T35 · TR0 cold-reader check · M · opus · deps: W2b-T33
+- **Goal:** With a fresh context, read as a kernelspace graduate who has not seen the engines: the kernelspace lessons the module names as prerequisites, from the sibling checkout with git -C ../kernelspace show d478f91:<path>; then TR0's pages in order as exported in public/md/tr0/; then each level's parts list, goal line and prompts. For each lesson say where the reader is lost (file and line), which term is used before it is given, whether the opener is the right one by rule 1, whether rules 8 to 12 hold, and whether the Test tests what was taught. Write one report and change nothing else. Cite a kernelspace lesson by id and line and quote none of it. Do not read W2b-T34's report.
+- **Files:** `docs/waves/W2m1b-tr0-cold-read.md`.
+- **Accept:**
+  1. Every lesson has a verdict of 'follows' or 'lost at', with file and line
+  2. The report has no praise and no quoted kernelspace prose
+  3. Nothing was added, committed or pushed in the kernelspace checkout
+- **Browser tests:** none
+
+#### [ ] W2b-T36 · TR0: fix what the technical check found · M · sonnet · deps: W2b-T34
+- **Goal:** Close every 'wrong' row of W2b-T34's report in the lessons, claims and tests it names, or list the row for the owner with the reason. Lower no bar to do it.
+- **Files:** `content/modules/tr0/**`, `content/claims/tr0.yaml`, `content/cards/tensor.md`, `packages/play/items/families/tr0/**`, `packages/play/shape-shifter/copy.ts`, `tests/content/tr0-*.ts`, `public/md/tr0/**`, `public/llms.txt`, `docs/waves/W2m1b-tr0-technical.md`.
+- **Accept:**
+  1. Every 'wrong' row has a closing line: fixed at a commit, or listed for the owner with the reason
+  2. bun test tests/content/tr0-module.test.ts passes, and G0 passes
+  3. bun run verify:claims, verify:numbers and verify:content pass
+- **Browser tests:** features: e2e/lesson-games.spec.ts, e2e/lesson-predict.spec.ts, e2e/items.spec.ts, e2e/titles.spec.ts; smoke: a11y, screens
+
+#### [ ] W2b-T53 · TR0: rewrite where the reader was lost, and re-read the fixes · M · opus · deps: W2b-T35, W2b-T36
+- **Goal:** Rewrite the passages and level copy where W2b-T35's reader was lost; this is teaching work. Then read again each passage W2b-T36 changed, and let it stand or rewrite it.
+- **Files:** `content/modules/tr0/**`, `packages/play/shape-shifter/copy.ts`, `tests/content/tr0-*.ts`, `tests/copy/game-copy.test.ts`, `public/md/tr0/**`, `public/llms.txt`, `docs/waves/W2m1b-tr0-cold-read.md`.
+- **Accept:**
+  1. Every 'lost at' row has a closing line: rewritten at a commit, or listed for the owner with the reason
+  2. Each passage W2b-T36 changed is named as read again, and as standing or rewritten
+  3. bun test tests/content/tr0-module.test.ts passes with zero diagnostics, and G0 passes
+- **Browser tests:** features: e2e/lesson-games.spec.ts, e2e/lesson-predict.spec.ts, e2e/items.spec.ts, e2e/titles.spec.ts; smoke: first-visit, a11y, screens; nightly width: walks (shape-shifter) if level copy changed
+
+#### [ ] W2b-T39 · Wave 1b exit review · S · opus · deps: all of wave 1b
+- **Goal:** Check wave 1b as a whole and hand it to the owner: a report under docs/waves/ with repository-relative paths only, and the pull request from wave-2m1b into wave-2m1a marked ready and not merged. W2b-T49 and W2-T15 are in the report as done or not started, each with its reason.
+- **Files:** `docs/waves/W2m1b-report.md`.
+- **Accept:**
+  1. G0 passes on the tip, and known-red.json holds only what the report lists
+  2. The bundle table is in the report, with the front-page and /play/broken-bench rows
+  3. The labs.yml run on the pull request is green, and the cpu job's results are quoted
+  4. A spot check of five tasks' evidence against their accept lines
+  5. ES_PROPERTY_SEEDS=10000 ES_HEAVY=1 bun test --parallel=2 --timeout 900000, bun test tests/forge/rejection-sampler-rates.test.ts, bun run verify:claims and bun run verify:pins pass once on the tip
+  6. The report lists each owner step and what the page says meanwhile
+- **Browser tests:** ES_E2E_NIGHTLY=1 npx playwright test --project=smoke --project=features once on the tip, on four pinned cores; Firefox and WebKit are recorded as not run
 
 ---
 

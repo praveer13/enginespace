@@ -29,6 +29,14 @@ This file is for the agents that build the repository. The agent kit in the lab 
     - `npm run lint`, `npm run typecheck`, `bun test`, `npm run build` and every `verify:*` the task touches pass;
     - the PR lists each acceptance check with its evidence;
     - you commit on the task branch, open a PR into the wave branch, and never merge.
+11. **Never lowered.**
+    - Never raise or add a bundle budget, and never change a threshold, a tolerance, a timeout, a retry or a skip of an existing test, a pacing or opener constant under `scripts/content/`, the blind-probe bound under `scripts/games/`, a constant of `tests/seeds.ts`, `MAX_PLAN_NUMEL` or a screenshot baseline, except for the change the task itself names.
+    - Never add an entry to `scripts/gate/known-red.json`; an entry only leaves it, by the rule of the task that fixes it.
+    - Where a task edits an expected count, the edit is named in the task and the count stays exact.
+12. **No quiet skip.** A new test that needs something the machine may lack (torch, a browser engine, the network) fails where that thing is expected (`CI=true`, or the named environment) and says so. It never skips there.
+13. **Paths stay private.** A commit, a report, a log and a pull request hold repository-relative paths only: no home-directory path, no scratch-directory path, no session id and no login name. Before a commit, grep the diff for them.
+14. **Toolchains.** Cargo and rustup run with `RUSTUP_AUTO_INSTALL=0`. Python runs only through `uv run --project`, with `UV_OFFLINE=1` and `UV_PYTHON_DOWNLOADS=never`.
+15. **Downloads.** An agent installs no wheel and downloads no model, bank or source tree without the owner's leave.
 
 The orchestrator is whoever dispatches your task. Set up with rules 1 and 2 before you change anything.
 
