@@ -94,12 +94,12 @@ test('a stamp is a button that opens the tag legend: four lines, one per provena
 
 test('the section rail is a nav of an ordered list with one current step, and its strip opens and closes by keyboard', async ({ page }) => {
   await open(page, '/design')
-  const rail = specimen(page, 'Section rail').getByRole('navigation', { name: 'This lesson', exact: true })
+  const rail = specimen(page, 'Section list').getByRole('navigation', { name: 'This lesson', exact: true })
   await expect(rail.locator('> ol')).toHaveCount(1)
   await expect(rail.locator('[aria-current="step"]')).toHaveCount(1)
   await expect(rail.locator('[aria-current="step"]')).toContainText('now')
 
-  const strip = specimen(page, 'Section rail').getByRole('navigation', { name: 'This lesson, as a strip' })
+  const strip = specimen(page, 'Section list').getByRole('navigation', { name: 'This lesson, as a strip' })
   const toggle = strip.getByRole('button')
   await toggle.focus()
   await expect(strip.locator('ol').first()).toBeHidden()
@@ -160,7 +160,8 @@ for (const width of [390, 1440]) {
           .map(({ element, style }) => `${element.className}: ${style.outlineWidth} ${style.outlineStyle} ${style.outlineColor} @${style.outlineOffset} / ${style.boxShadow}`),
       }
     })
-    expect(rings.count).toBeGreaterThanOrEqual(7)
+    // Six: the callout, the parts list, the popover, the stamp, the section list and the level menu. The pan of the old kitchen is gone (REDESIGN 2.8, the table of removed components).
+    expect(rings.count).toBeGreaterThanOrEqual(6)
     expect(rings.wrong).toEqual([])
 
     // A real keyboard focus draws the same ring.

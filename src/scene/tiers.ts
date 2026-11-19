@@ -175,7 +175,7 @@ export function countLostContext(): number {
 
 /**
  * Test builds only (`VITE_ES_TEST_HOOKS=1`): `?es-tier=<0-3>` forces the starting tier, so an e2e run on a software
- * renderer can choose T1 or T2 (TRACKER W0-T15, check 5). A production build compiles this to `null`.
+ * renderer, or on a host with four cores or fewer (which starts at T1), can choose T1 or T2 (TRACKER W0-T15, check 5). A production build compiles this to `null`.
  */
 export function forcedTier(): Tier | null {
   if (import.meta.env.VITE_ES_TEST_HOOKS !== '1') return null
@@ -214,7 +214,8 @@ export function refreshDeviceTier(): void {
 
 function decide(hints: DeviceHints, choice: TierChoice): DeviceTier {
   const forced = forcedTier()
-  if (forced !== null && hints.webgl2) return { tier: forced, reason: 'forced', known: true, hints }
+  // A cap still lowers a forced tier, so that a test on any host can start at T2 and watch the learner's cap bring it down.
+  if (forced !== null && hints.webgl2) return { tier: Math.min(forced, choice.cap) as Tier, reason: 'forced', known: true, hints }
   const lost = Math.max(choice.lostContexts, lostContexts())
   return { ...startingTier(hints, { ...choice, lostContexts: lost }), known: true, hints }
 }
