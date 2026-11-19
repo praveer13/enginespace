@@ -29,7 +29,7 @@ OWN-WORLD: Data Book (REDESIGN §2.8), as the front page's contract states it:
 
 STORY: Flipping latency from send time to due time moves the p99 on the chart and turns the hidden waits red: the worst waits never reached the log.
 
-FIRST VIEWPORT: At 1440 the chart and the timeline at the left with the switch beside them, the dock at the right with the parts list, then the report form with its range rule printed over it. At 390 the chart's box is about 250 px tall and the dock is pinned to the foot.
+FIRST VIEWPORT: At 1440 the chart and the timeline at the left with the switch beside them, the dock at the right with the parts list, then the report form with its range rule printed over it. At 390 the chart is short and wide (about 200 px, whole with its axis), the report form follows it at its content height in the page's own scroll, and only the readout stands at the foot.
 
 FORM: Data Book's instrument frame. There is no 3D view. seed: none (a specified surface inside the established world, which the owner confirmed at the look gate; no roll)
 
@@ -45,7 +45,7 @@ The switch flipped to due time: the p99 jumps, and the dock names it once: "Coor
 
 ## Unresolved
 
-- At 390 the chart shows only its top until the learner scrolls inside its box (the R-T31 follow-up).
+- Chart lettering is about 10 px in play and 8 px on the result's half-width sheets, the charts use half a sheet at the result, the mono face's points and commas fill a cell ('90 . 1'), and the wait between due and sent has no dimension line on the chart.
 - Part popovers with sources for the histogram and the timeline are not wired.
 
 ## The Pass's contract, superseded

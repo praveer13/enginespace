@@ -45,7 +45,7 @@ A hop crosses a column, and the dock names it once: "That hop crosses a process 
 
 ## Unresolved
 
-- At 390 a hop between two stages in the same column has no slot of its own for its label (the finish review's open item).
+- At a desk the list's top row is cut at the pinned filter's edge while the page scrolls under it; an inner scroller was rejected by the finish review.
 - Marking the counted stages on the drawing at the result is not built.
 
 ## The Pass's contract, superseded
