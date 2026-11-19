@@ -765,7 +765,9 @@ On the R-T50 branch [measured 2026-11-17, on 1d69a0c's code with R-T50's documen
 
 ### 7.1 Why it ran, and what the owner may discount
 
-The last finish review of wave R (round 2b, on `4a41050`) returned `fix` with eight material fixes, and the batch that answered it (`wr/fix-finish-2`) did some and left the rest (§6.3). The owner asked at the start of the redesign for a site that is a delight to use and learn from, where a learner is never lost, and on 2026-11-03 for "interactive games, impressive 3d games ... to catch attention and make it fun". So the coordinator went on: eight tasks on a branch, `wave-r2`, stacked on `wave-r` (pull request #9), then a fourth review of the result, then one batch for that review's fixes, then these records.
+The last finish review of wave R (round 2b, on `4a41050`) returned `fix` with eight material fixes, and the batch that answered it (`wr/fix-finish-2`) did some and left the rest (§6.3). The owner asked at the start of the redesign for a site that is a delight to use and learn from, where a learner is never lost, and on 2026-11-03 for "interactive games, impressive 3d games ... to catch attention and make it fun". So the coordinator went on: eight tasks on a branch, `wave-r2`, stacked on `wave-r` (pull request #9), then a fourth review of the result, then one batch for that review's fixes, then these records. A final check of the branch followed the records (§7.10); one more task closed most of its findings, and a last records task brought this section and the pull-request text up to date with the branch's final tip.
+
+**What the branch holds beside the polish.** Seven of its merges are not polish: they are the authoring work that the owner approved on 2026-11-18, recorded in D-069 (`docs/DECISIONS.md`). Asked whether to add five teaching rules to the authoring guide and notes to the TR3 and TR4 briefs from a study of the book "Modern GPU Programming For MLSys", the owner answered "yes to your question"; asked about four further items, "yes to all 4". The merges are `wp/fix-authoring-rules`, `-2` and `-3` (rules 8 to 12 in `content/README.md` and REDESIGN §2.5 for lessons written from 2026-11-18; notes for the authors of TR3 and TR4 in `curriculum/`, and lines in `docs/TRACKER.md`), `wp/fix-sim-numbers` (a fifth prose tag, `[synthetic]`, for a number the course's own model printed; the error `model-number-measured` in `verify:numbers`; fourteen lessons retagged; AGENTS.md rule 7, PRODUCT.md principle 2 and the tag legends; the capstone guide's line in W3-T04), `wp/fix-lesson-edits`, `wp/fix-edits-2` and `wp/fix-edits-3` (edits to TR2 lessons 1 and 5, TR6 lessons 3 and 5 and TR8 lessons 1 and 4, among them lines 677 to 686 of vLLM's `EngineCore.step` quoted at v0.33.0 with a NOTICE entry, and one figure of the book printed as its authors', `[unverified]`; `model-number-measured` widened to the plain text of blocks and front matter and to a model table's caption, cells, later tables and quotes; D-069, O-20 and O-21). One of the four further items is not done: a worked or faded item first in TR5a lesson 1 needs a schema change or a split of an item family, and it is O-20. The polish's own tasks are told below; the authoring work is told in D-069.
 
 The wave's own plan capped finish review at two rounds, and D-068, which proposes that cap, has not been confirmed by the owner. This round went past it on the coordinator's call, not on the owner's word. **The owner can discount this round**: nothing in wave R's own record depends on it, and the pull request for it can be closed with `wave-r` standing as it was.
 
@@ -782,7 +784,7 @@ Each ran in its own worktree from the `wave-r2` tip at the time, was merged by t
 | `bench` (p05, the Broken benchmark) | yes, at 936f7cd | The page's one-height body, the flaw list at the left of the form, the phone chart short and wide, one stamp, sentence-case sheet labels, practice goal words shortened, and a new test of P5 at both sizes. | Verdict in the bold text face, tan labels and corner pins. | Dead token roles `slip` and `slip-ink` stay in `src/design/tokens.ts`; no disc on the phone's Claim step. |
 | `path` (p06, the Request path and TR1 lesson 1) | yes, at 589e858 | A hop's word stands on the side away from the stage's name, with a slot at the first column's left; the desk's `threadMax` is 240; the example at a desk has a second hop; the phone result shows the whole path with the verdict. | "1 stage", the numbered rules and "One process" in TR1 lesson 1; the legend at 390. | The instrument edge in TR1 lesson 1's first viewport (an owner decision, O-19); the desk stage list stays read with the page, against the surface brief's 6 to 7 tile box. |
 | `front` (p07, the front page) | yes, at a7ed99e | The reference run drawn from the first paint; the goal line whole at 390; the sync slab hatched so it never reads as one mark with "now"; the dimension line runs end tick to end tick with its value above; the result takes more width at a desk; a returning visit has its course line; a line about what the page takes as read from kernelspace. | Callout discs in a gutter at 390; Auto-step on the dock row. | A returning visit's left column is empty below about y 565; "It takes about a minute" against a walker's six. |
-| `small` (p08, the small truths) | yes, at e58b503 | The queue's "+N" at 390; the intro's sheet at its own height; the pool's "Admit none" in the heading row at 390; a lesson's breadcrumb on one line at 390; a tag in a card's body; the progress rows that name the question; the step control drawn flat; internal messages without kitchen words; an order-dependent test made order-free. | TR0's title not underlined; level 1's table without Ghost tokens and Bubble; "you are here" facts across lessons. | `packages/play/engine-floor/layout.ts` stays (two parity checks import it). |
+| `small` (p08, the small truths) | yes, at e58b503 | The queue's "+N" at 390; the intro's sheet at its own height; the pool's "Admit none" in the heading row at 390; a lesson's breadcrumb on one line at 390; a tag in a card's body; the progress rows that name the question; the step control drawn flat; thrown messages without the copy guard's words (seven still name two games by their old names, "Back of House" and "the Inspection", in `packages/play/engine-floor` and `packages/play/broken-bench`; no page prints them); an order-dependent test made order-free. | TR0's title not underlined; level 1's table without Ghost tokens and Bubble; "you are here" facts across lessons. | `packages/play/engine-floor/layout.ts` stays (two parity checks import it). |
 
 ### 7.3 The review, and what each verdict was
 
@@ -809,7 +811,7 @@ The batch took the review's eight material fixes. Its report is outside the repo
 | Finding of round 3 | State on the tip |
 |---|---|
 | Request path, 1440 intro draws one node over 500 px of bare ground | **Fixed, pattern.** p01's rule in `frame.css` let the page frame's drawing take its content's height during the intro, and the swimlane is measured from its box, so it collapsed to 120 px. The rule now excludes the Request path. A smoke test holds the worked example at 1440 x 900. |
-| Broken benchmark, 390 report form a 130 px window; 1440 flaw list a three-row scroller | **Fixed, pattern in the frame.** The result's rules in `frame.css` now take the benchmark; at 390 the form follows the chart at its content height and the readout stands at the screen's foot; at 1440 the flaw list shows all eleven flaws. This departs from the surface brief ("at 390 ... the dock is pinned to the foot"); the review's finding won. File the report is under the fold at 1440 x 900 until the learner scrolls. |
+| Broken benchmark, 390 report form a 130 px window; 1440 flaw list a three-row scroller | **Fixed, pattern in the frame.** The result's rules in `frame.css` now take the benchmark; at 390 the form follows the chart at its content height and the readout stands at the screen's foot; at 1440 the flaw list shows all eleven flaws. This departs from the surface brief ("at 390 ... the dock is pinned to the foot"); the review's finding won. File the report is under the fold at 1440 x 900 until the learner scrolls. **Since closed at a desk by `p11` (§7.10):** the eleven flaws stand in two columns, and the whole form is on the first screen at 1440 x 900. |
 | Step loop, Top turned about 35 degrees and cropped | **Fixed.** Top is square to the box, fitted to the plate, and shows the learner's run alone. |
 | Step loop, Along time piles its labels | **Withdrawn.** Looking along the time axis projects the label column as one receding line at every angle that shows time receding, and Lifted already shows the run receding with every lane named. REDESIGN 2.9 names this camera; the brief is changed here, and `track-presets.ts` says so. The step loop has five cameras. |
 | Step loop, Scale overprints the CPU label and shows a moire | **Label fixed; moire left.** Two ways to draw the field (steps edge to edge, a near-overhead camera) were tried and reverted. Withdrawing Scale would delete a loop-scene check that holds Scale's draw calls, which the frozen-gates rule forbids. What it would take: draw Scale's slabs solid instead of hatched (the hatch aliases at a few px a step), or the owner's call to drop the camera with that check. |
@@ -839,7 +841,7 @@ The batch took the review's eight material fixes. Its report is outside the repo
 
 This task changed no source file, so there is no "after". The states below were captured on the tip of `wave-r2` before this task's records were written, from a fresh browser context with nothing stored, at the page's own scroll. They are in a folder outside the repository.
 
-The rows say what each state shows now against the finding that named it. All are at `deb11d8` (the tip after the batch), at 1440 x 900 or 390 x 844 as named.
+The rows say what each state showed against the finding that named it. All are at `deb11d8` (the tip after the batch), at 1440 x 900 or 390 x 844 as named; the Broken benchmark's form at a desk changed after them (§7.10).
 
 | State | What the capture shows | Standing |
 |---|---|---|
@@ -854,62 +856,108 @@ The captures are `before-<name>-<width>.png` in the folder `review-wr/polish/p10
 
 ### 7.6 Screenshot baselines re-blessed by the polish round
 
-Tolerance unchanged (1 percent) for every one; each diff was read by its task before the baseline moved. Eight in all.
+Tolerance unchanged (1 percent) for every one; each diff was read by its task before the baseline moved. Eight baselines in all, two of them twice: ten re-blessings.
 
 | Baseline | Task | What changed in it |
 |---|---|---|
 | `kv-page-pool-390.png` | `frame` | The goal line reads whole, one 8 px shorter; the dock holds only the walk's part (no half-cut "Admit a request" heading). |
 | `request-path-390.png` | `frame` | The goal line whole in three lines (the end shown); the dock holds only the walk's part, so it is shorter, and the foot strip shows under it. |
-| `front-360.png` | `front` | The role line beside the title, the goal whole with "more" running on, the reference outlines in the plot. |
-| `front-fired-360.png` | `front` | The same, plus the hatched sync and the met line in the goal. |
+| `front-360.png` | `front`, then `p11` | `front`: the role line beside the title, the goal whole with "more" running on, the reference outlines in the plot. `p11`: the queue reads "R1 R2 R3 +3", where `front`'s image showed R4 cut at the box's edge with no count (`small` made the queue count what it does not show, under the tolerance, so the image had kept the old defect). |
+| `front-fired-360.png` | `front`, then `p11` | `front`: the same, plus the hatched sync and the met line in the goal. `p11`: the queue reads "R3 R4 R5 +1", where the image showed R6 cut. |
 | `front-fired-1280.png` | `front` | The kernelspace line in the lede, the met line in place of "Ends...", the diagram 24 px higher, the hatched sync. |
 | `front-first-visit-390.png` | `front` | The role line, the whole goal, the reference outlines, tighter gaps. |
 | `front-returning-390.png` | `front` | The same as the first visit's. |
 | `tr5a-lesson-1-390.png` | `small` | The breadcrumb on one line (about 80 px less); the page below it moved up by that much. |
 
-Two came from `frame`, five from `front` and one from `small`. The other five tasks and the last batch (`p09`) re-blessed none.
+Two came from `frame`, five from `front` and one from `small`, and `p11` re-blessed two of `front`'s again. The other five tasks, `p09` and the authoring merges re-blessed none.
 
 ### 7.7 Tests that changed with the design
 
 - `tests/play/loop-track.test.ts` and `e2e/loop-scene.spec.ts`: five cameras, not six; the scene draws no queue chip and no pick on one; two bands of runs on one clock.
 - `tests/play/verifier-scene.test.ts`: the collar's form is `solid`; label room; projector parity with three's camera. `e2e/verifier.spec.ts`, `e2e/loop.spec.ts`, `e2e/pool.spec.ts`: the Keyboard list holds no C and V where 3D is not offered.
 - `tests/play/pool-scene.test.ts` and `e2e/pool-scene.spec.ts`: no fan stem, no fan contact shadow; the frame fits content; the legend under the 3D view is the 2D legend.
-- `tests/play/broken-bench-layout.test.ts`, `tests/play/broken-bench-ui.test.ts`, `e2e/broken-bench.spec.ts`: sentence-case sheet labels; one stamp; "the first screen" held at both sizes.
+- `tests/play/broken-bench-layout.test.ts`, `tests/play/broken-bench-ui.test.ts`, `e2e/broken-bench.spec.ts`: sentence-case sheet labels; one stamp; the range rule one string built from the judge's constants; the meaning line without its term. `e2e/broken-bench.spec.ts`'s "the first screen" is one test at 1440 x 900 and at 390 x 844 that holds the chart, the control in hand and the readout whole and uncovered at the start, with a flaw chosen and at the result, with one stamp in view. As `bench` wrote it, it failed at 1440 x 900 once `p09` let the list show all eleven flaws (the fields and File the report fell under the fold), and it had dropped four assertions of the two tests it replaced. `p11` changed the form (§7.10) and restored the four: every flaw whole in the list with no inner scroll, at both sizes; File the report clear of the readout, at 1440 with no scroll and at 390 once scrolled to; the switch over the chart, at 1440; at least 128 px of the chart showing, and the diagram's box ending above the readout pinned at the foot (it ended where the pinned dock started, and on a phone the dock is no longer pinned). It added three at 1440: the range rule, the fields and File the report whole and uncovered; all eleven flaws inside the first screen; and the p99 field in view. The test passes at both sizes on the tip.
 - `tests/play/engine-floor-layout.test.ts`, `e2e/engine-floor.spec.ts`, `e2e/screens.spec.ts`: a hop's word on the side away from the name; the swimlane at 390; the worked example at 1440 x 900.
 - `e2e/walks.spec.ts`: a game's first run at both sizes, five games (one ring in view, rows against discs, the goal line's target and end in view).
 - `tests/design/components.test.ts` (the step control), `tests/content/render.test.ts` and `record.test.ts`, `tests/play/verifier-exact.test.ts`, `verifier-session.test.ts`: reworded or renamed as the design moved.
 
-No bar was lowered, skipped or deleted by any task; the "scene is drawn, not blank" bars of `loop-scene`, `pool-scene` and `verifier-scene` stand as they were.
+No tolerance, timeout, retry count, budget or gate changed: `git diff wave-r wave-r2` is empty for `playwright.config.ts`, `tests/bundle`, `tests/build.test.ts`, `.github`, `package.json` and `package-lock.json`, no `test.setTimeout`, `waitForTimeout`, retry count, `.skip`, `.fixme`, `.only` or screenshot tolerance under `e2e/` or `tests/` changed, and the two new waits of `e2e/loop.spec.ts` use the spec's existing `BOOT` bound. No test was skipped. Assertions that held what this round removed went with it, each with the thing it held:
+
+- `e2e/loop-scene.spec.ts`: the pick in the scene ("tapping R1's chip on the plate admits it"; the scene draws no chip now, and the test admits R1 from the dock), and Along time in the cameras' list.
+- `tests/play/loop-track.test.ts`: Along time in the cameras' list; Compare's caption (its unit is an axis label now); a waiting request's chip as a pick; the reference run as ink outlines in the learner's gaps, with "a learner who matched it draws no outline", "an outline's top stands over the idle box" and "nothing past now" (the reference is a band behind the learner's run, cut at now only while a guess is open).
+- `e2e/loop.spec.ts`, `e2e/pool.spec.ts`, `e2e/verifier.spec.ts`: the `C` and `V` keys in the Keyboard list where 3D is not offered.
+- `e2e/pool-scene.spec.ts` and `tests/play/pool-scene.test.ts`: the scene's own key ("hollow: free", "solid: in use", "hatched: cached", "dotted: a prefix hit waits on it"; the 2D legend stands under the 3D view now); the fan's stem (the test now asserts that there is none); the canvases 870 x 557 and 356 x 464, and with the second the phone canvas's "a page is 6 px or more across, and 12 px in the usual pools" (the bars are now 8 and 20 px on the narrowest desk canvas, 645 x 557; a phone is offered no 3D).
+- `tests/play/verifier-scene.test.ts`: the one-row scene and its tests ("a draft position alone is one row", "an exact recipe puts the output exactly onto p", the `gamma` row of eight positions), the phone's row names and narrow label column, the canvases 356 x 251 and 358 x 437 and "a canvas taller than wide looks down more steeply", and the one-row levels and the narrow flag in the sweep of every level's skyline; the output's hollow ring (a solid collar now). A one-position level offered no 3D on `wave-r` either.
+- `e2e/broken-bench.spec.ts`: the claim in the first screen at 1440, the pinned dock in view at 390, and the range rule visible at 390 without a scroll (the test holds its words; on a phone the rule follows the chart in the page's scroll).
+- `tests/play/broken-bench-ui.test.ts`: "Every report is filed." (the branch could not render once the frame shows the result in the dock's place, and was removed); a stamp in the claim, the setup and the exhibits (one stamp, on the readout strip); the range rule's two numeric fields (one string now, still checked against the judge's constants).
+- `tests/content/tr2-module.test.ts`: one more claim may be `[unverified]` (the book's launch figure), one more source address and one more id prefix (`mlc-book`) are allowed (D-069).
+
+The "scene is drawn, not blank" bars of `loop-scene`, `pool-scene` and `verifier-scene` stand as they were.
 
 ### 7.8 The gates
 
-**Bundle rows, measured on the tip `deb11d8` with `bun scripts/verify.ts bundle` on 2026-11-18** [measured]: the verdict was "60 budgets gated, 3 over a target, 1 skipped", none over a gate.
+**Bundle rows, measured on `fcd0f68` (the tip before this records task, whose change builds no byte) with `bun scripts/verify.ts bundle` on 2026-11-19** [measured]: the verdict was "60 budgets gated, 3 over a target, 1 skipped", none over a gate.
 
 | Row | Bytes | Gate | Under |
 |---|---|---|---|
-| front page first-paint JavaScript | 149,657 | 150 KB | 343 |
-| `/play/broken-bench` | 199,909 | 200 KB | 91 |
-| `/play/engine-floor` | 194,692 | 200 KB | 5,308 |
-| `/play/pool` | 194,114 | 200 KB | 5,886 |
-| `/play/loop` | 193,915 | 200 KB | 6,085 |
-| `/play/verifier` | 193,112 | 200 KB | 6,888 |
-| `/m/:module/:lesson` | 150,400 | 200 KB | 49,600 |
-| `scene-loop` | 20,627 | 40,000 | 19,373 |
-| `scene-pool` | 17,024 | 40,000 | 22,976 |
-| `scene-verifier` | 15,274 | 40,000 | 24,726 |
+| front page first-paint JavaScript | 149,663 | 150 KB | 337 |
+| `/play/broken-bench` | 199,901 | 200 KB | 99 |
+| `/play/engine-floor` | 194,719 | 200 KB | 5,281 |
+| `/play/pool` | 194,145 | 200 KB | 5,855 |
+| `/play/loop` | 193,953 | 200 KB | 6,047 |
+| `/play/verifier` | 193,144 | 200 KB | 6,856 |
+| `/m/:module/:lesson` | 150,405 | 200 KB | 49,595 |
+| `scene-loop` | 20,590 | 40,000 | 19,410 |
+| `scene-pool` | 17,016 | 40,000 | 22,984 |
+| `scene-verifier` | 15,265 | 40,000 | 24,735 |
 
-`/play/broken-bench` is the row with the least room: 91 B. The batch measured 134 B under on its own branch, and the row moves by a few bytes with the hashes in the entry's chunk map each time a branch merges, so the next change that adds a byte of CSS or JavaScript to a game's frame or to the benchmark must read this row first. The first-paint figure was 129 B under at the start of this round (§6.9) and is 343 B under now, after `front` found bytes by moving the legend and the demo result out of the first paint. The scenes are near half their gate. Nothing in this task changed a byte of the build.
+`/play/broken-bench` is the row with the least room: 99 B. It has stood between 91 and 114 B under since the batch, moving by a few bytes with the hashes in the entry's chunk map each time a branch merges, so the next change that adds a byte of CSS or JavaScript to a game's frame or to the benchmark must read this row first; `p11` paid for its form by deleting code that could not render and folding duplicate rules. The first-paint figure was 129 B under at the start of this round (§6.9) and is 337 B under now, after `front` found bytes by moving the legend and the demo result out of the first paint. The scenes are near half their gate.
 
-**The records task's own run** on the tip with its documents [measured 2026-11-18]: lint, typecheck and build pass; the unit suite in CI's output mode passes (10,577 tests, 28 skipped, 0 failed, 381 files); `verify all` passes; the smoke browser tests as CI runs them (one retry, two workers) 506 passed.
+**The last records task's own run** on `fcd0f68` with its documents and its one assertion [measured 2026-11-19]: lint, typecheck and build pass; the unit suite in CI's output mode passes (10,595 tests in 381 files: 10,567 pass, 28 skipped, 0 failed). The merge gate's run on the merged tip is in the pull-request text.
 
-The merge gate of this branch (`esp-merge.sh`) ran lint, typecheck, the unit suite in CI's output mode, build and `verify all` on the merged tip, and the smoke browser tests as CI runs them, on every merge; a merge that broke one was refused (the Broken benchmark's first merge was refused for being 68 B over its bundle gate on the merged tip, and was rebased and fitted by deleting dead CSS). Each task also ran the smoke tests itself before merging: 495 passed (`loop3d`, `sampler3d`), 505 passed (`bench`, `path`, `front`, `p09` after one fix), 504 passed and 1 baseline re-blessed (`small`). No gate, budget, threshold or tolerance was raised; `esp-merge.sh` refuses a branch that raises or adds a bundle gate.
+The merge gate of this branch (`esp-merge.sh`) ran lint, typecheck, the unit suite in CI's output mode, build and `verify all` on the merged tip, and the smoke browser tests as CI runs them, on every merge; a merge that broke one was refused (the Broken benchmark's first merge was refused for being 68 B over its bundle gate on the merged tip, and was rebased and fitted by deleting dead CSS). Each task also ran the smoke tests itself before merging: 495 passed (`loop3d`, `sampler3d`), 505 passed (`bench`, `path`, `front`, `p09` after one fix), 504 passed and 1 baseline re-blessed (`small`). It ran the smoke project only, not the `features` project that the nightly workflow runs, and four tests of that project broke on this branch without a gate to see it (§7.10). No gate, budget, threshold or tolerance was raised; `esp-merge.sh` refuses a branch that raises or adds a bundle gate.
 
 ### 7.9 What the owner decides
 
 1. **O-19**: TR1 lesson 1's instrument edge (recommended: do it).
 2. **Along time** is withdrawn from the Step loop's cameras (REDESIGN 2.9 named it), and **Scale** keeps its moire. Keep Scale with its draw-call check, or drop the camera with that check.
 3. **The mono face's separators** (a figures face needs the fonts record and its test).
-4. **The Broken benchmark's report form at 390** now reads with the page, where the surface brief pins the dock to the foot.
+4. **The Broken benchmark's report form at 390** now reads with the page, where the surface brief pinned the dock to the foot (the brief now says what was built).
 5. **The front page's first visit** opens in Diagram where REDESIGN 2.9 says 3D Lifted on a capable desktop.
 6. **D-068's two-round cap**: whether this round, past it, counts.
-7. **A fifth review**: none ran after the batch of §7.4, so the verdicts of §7.3 describe `936f7cd`, not the tip.
+7. **A fifth review**: none ran after the batch of §7.4 or after `p11` (§7.10), so the verdicts of §7.3 describe `936f7cd`, not the tip.
+8. **O-20**: a worked or faded item first in TR5a lesson 1, by an optional `variant` key on the item block or a split of the family's levels, or neither (the default).
+9. **O-21**: how a quoted run of someone else's is tagged: `[unverified]` everywhere, `[measured]` everywhere as a source that was read, or both as built with the guide's `[unverified]` line reworded. Until then a new quote is `[unverified]`.
+10. **The authoring notes' questions**: four in `curriculum/TR3-profile-a-real-engine.md` and three in `curriculum/TR4-backends-as-a-consumer.md` ("Questions for the owner").
+
+### 7.10 The final check, and what the last task fixed
+
+A final check of the branch (2026-11-18, at `0c22a1b` and `9a32e57`) returned **fix-first**, with twelve findings. Its report is outside the repository, kept with the coordinator. One more task, `p11`, closed four of them and two small items of a fifth; this task closed the records' findings.
+
+**What it found that the merge gate had not.** The merge gate of this branch ran the smoke project of the browser tests, and not the `features` project that the nightly workflow runs. Four tests of that project failed on the branch and passed on `wave-r`: `e2e/broken-bench.spec.ts`, "the first screen" at 1440 x 900; `e2e/loop.spec.ts`, "plays all four levels to their results"; and `e2e/verifier.spec.ts`, "the first run" on `overlap` and on `chain`. Five more tests of `e2e/loop.spec.ts` needed their retry on the branch and none on `wave-r`. Two causes were in the build, and the specs did not yet walk the design:
+
+- **A phone's walk through the parts lost the keyboard's focus.** At 360 px, Next during the walk sent focus to the strip's title, which is hidden on a phone, so the ring could not be seen and a second Enter did nothing. Now, on a phone's walk through the parts, Next keeps focus and Enter walks on, and the parts list is a polite live region (`src/games/kit/Intro.tsx`).
+- **A move made while the intro was still loading did not end it.** The frame marks the first run at once, but its strip comes 0.5 to 0.8 s later, after the ledger is read and its chunk loads. A move in that time left the intro to come up over a run already under way. Now a real move ends it, loading or open (`src/games/kit/Frame.tsx`).
+- **The specs** of the Step loop end the intro as a keyboard learner does before they walk a level, and wait for the strip, or for the frame to say that none is due, within the spec's own bound; the sampler's spec holds the dock's waiting line under the strip at a desk and from the look step on at every width.
+
+**The Broken benchmark's report form at a desk.** The eleven flaws stand in two columns, read down the first and then the second; the meaning line gives the meaning alone, at a fixed two lines; the range rule is two lines, one string built from the judge's constants; the visible "The flaw" legend is gone (the group keeps its name for a screen reader); on the court, "None filed yet." moves onto the form's title line, and a problem with the report is shown beside File the report; and a 1 px hairline stands between two values of the readout. At 1440 x 900, with a flaw chosen and no scroll [measured 2026-11-18 by `p11` on its preview build]:
+
+| Part | Top, px | Bottom, px |
+|---|---|---|
+| chart | 393 | 670 |
+| flaw list, all eleven, no inner scroll | 314 | 548 |
+| range rule | 597 | 643 |
+| fields | 651 | 723 |
+| File the report | 731 | 775 |
+| readout box | 783 | 864 |
+
+Before, the fields stood at 896 to 967 and File the report at 975 to 1,019, under the fold. On a phone the form still follows the chart in the page's own scroll, under the pinned readout.
+
+**Also fixed by `p11`:** the two baselines of §7.6; the description of the label slip on `/design` and its comments in `src/design/tokens.ts`; the Step loop's and the sampler's rows of ARCHITECTURE §6's game table; and Compare's caption, which stood outside the box (its unit is the last band's axis label now).
+
+**Left:**
+
+- On a phone the intro's strip still arrives about 0.5 to 0.8 s after the game is drawn, so the dock's controls show for that time and then hide while the parts are walked. Holding them until the frame knows whether an intro is due would remove the flash; it is a change to the kit, across all five games' route budgets.
+- The merge gate still runs the smoke project only.
+- Seven thrown messages still name two games by their old names (§7.2, `small`).
+- In the nightly project, tests of `e2e/design-parts.spec.ts` (3), `e2e/lab-kits.spec.ts` (3, §6.10), `e2e/map.spec.ts` ("a page that is not published yet"), `e2e/rejection-sampler.spec.ts` ("a wrong module") and `e2e/titles.spec.ts` (the lab pages) failed on `wave-r` too, in the final check's run against a served copy of the build; they are not this branch's, and nobody has looked further.
