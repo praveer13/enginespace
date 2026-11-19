@@ -1,6 +1,6 @@
 /*
  * The registry (ARCHITECTURE §6.3, D-049): the records of the games, the keys common to every game, and the component registry that
- * maps the same ids to lazy components.
+ * maps the same ids to lazy components and to a loader of each game's record, which `/play/:game` loads instead of every record.
  *
  * Three of these tests read the documents, so a change to a document without the code, or the reverse, fails here:
  *   - the common keys are the ones ARCHITECTURE §6.8 lists;
@@ -8,12 +8,14 @@
  *   - the two game modes are packages/schema's, which this package may import only as types.
  */
 import { describe, expect, test } from 'bun:test'
+import path from 'node:path'
 import { GAME_MODES as SCHEMA_GAME_MODES } from '@es/schema/content'
 import { COMMON_KEYS, GAMES, GAME_MODES, PHASES, PHASE_NAMES, createRegistry, keyProblems, keymapOf, levelOf } from '@es/play'
 import type { KeyBinding } from '@es/play'
-import { GAME_COMPONENTS, resolveGame, type GameComponent } from '@/games/registry'
+import { GAME_COMPONENTS, GAME_RECORDS, loadGame, resolveGame, type GameComponent, type RecordLoader } from '@/games/registry'
+import { checkGames, checkRecordLoader, filesAt, worldAt } from '../../scripts/verify-games'
 import { backticked, between, read } from '../ci/support'
-import { TOY } from './support'
+import { TOY, memoryFiles, toyFiles } from './support'
 
 const key = (id: string, code: string, extra: Partial<KeyBinding> = {}): KeyBinding => ({ id, code, label: id.toUpperCase(), description: `does ${id}`, ...extra })
 
@@ -135,25 +137,107 @@ describe('the games of the course', () => {
     }
   })
 
-  test('the component registry and the records list the same ids (verify:games says which half is missing)', () => {
+  test('the component registry, its record loaders and the records list the same ids (verify:games says which is missing)', () => {
     expect(Object.keys(GAME_COMPONENTS).sort()).toEqual(GAMES.games.map((game) => game.id).sort())
+    expect(Object.keys(GAME_RECORDS).sort()).toEqual(GAMES.games.map((game) => game.id).sort())
   })
 })
 
-describe('resolveGame', () => {
+describe('resolveGame and loadGame', () => {
   const component = {} as GameComponent
+  const toy: RecordLoader = () => Promise.resolve(TOY)
 
-  test('a game is its record and its component together; either missing makes it unknown', () => {
-    const registry = createRegistry([TOY])
-    expect(resolveGame('toy', registry, { toy: component })).toEqual({ kind: 'game', id: 'toy', entry: TOY, Component: component })
-    expect(resolveGame('toy', registry, {})).toEqual({ kind: 'unknown', id: 'toy' })
-    expect(resolveGame('toy', createRegistry([]), { toy: component })).toEqual({ kind: 'unknown', id: 'toy' })
+  test('a game is its component and the loader of its record together; either missing makes it unknown', () => {
+    expect(resolveGame('toy', { toy: component }, { toy })).toEqual({ kind: 'game', id: 'toy', record: toy, Component: component })
+    expect(resolveGame('toy', {}, { toy })).toEqual({ kind: 'unknown', id: 'toy' })
+    expect(resolveGame('toy', { toy: component }, {})).toEqual({ kind: 'unknown', id: 'toy' })
   })
 
   test('only own properties count: prototype names are unknown', () => {
-    const registry = createRegistry([{ ...TOY, id: 'constructor' }])
-    for (const id of ['constructor', 'toString', '__proto__']) expect(resolveGame(id, registry, {}).kind).toBe('unknown')
+    for (const id of ['constructor', 'toString', '__proto__']) {
+      expect(resolveGame(id, {}, {}).kind).toBe('unknown')
+      expect(resolveGame(id).kind).toBe('unknown')
+    }
   })
+
+  test('loadGame loads the one record that the id names, and no other game\'s', async () => {
+    const asked: string[] = []
+    const watched = (id: string, entry: typeof TOY): RecordLoader => () => {
+      asked.push(id)
+      return Promise.resolve(entry)
+    }
+    const records = { toy: watched('toy', TOY), other: watched('other', { ...TOY, id: 'other' }) }
+    const components = { toy: component, other: component }
+    expect(await loadGame('toy', components, records)).toEqual({ kind: 'game', id: 'toy', entry: TOY, Component: component })
+    expect(asked).toEqual(['toy'])
+    expect(await loadGame('nope', components, records)).toEqual({ kind: 'unknown', id: 'nope' })
+    expect(asked).toEqual(['toy'])
+  })
+
+  test('a loader that brings the record of another id is not that game', async () => {
+    expect(await loadGame('toy', { toy: component }, { toy: () => Promise.resolve({ ...TOY, id: 'other' }) })).toEqual({ kind: 'unknown', id: 'toy' })
+  })
+
+  test('each game of the course loads its own record, the one GAMES holds, and its page shows its display name', async () => {
+    for (const game of GAMES.games) {
+      const loaded = await loadGame(game.id)
+      expect([game.id, loaded.kind === 'game' ? loaded.entry : null]).toEqual([game.id, game])
+      expect(loaded.kind === 'game' && loaded.entry === game).toBe(true)
+    }
+    expect(await loadGame('constructor')).toEqual({ kind: 'unknown', id: 'constructor' })
+  })
+
+  test('src/games/registry.ts reads no value of packages/play: it imports types alone, and loads each record by the game\'s own record.ts', () => {
+    const imports = (file: string) =>
+      [...read(file).matchAll(/^import\s+(type\s+)?[^;]*?from\s+'([^']+)'/gm)].map((match) => ({ type: match[1] !== undefined, from: match[2] }))
+    const source = read('src/games/registry.ts')
+    expect(imports('src/games/registry.ts').filter((line) => !line.type && line.from.startsWith('@es/play'))).toEqual([])
+    expect(source).not.toMatch(/\bGAMES\b(?!`)/)
+    const loaded = [...source.matchAll(/import\('(\.\/[^']+\/record)'\)/g)].map((match) => match[1]).sort()
+    expect(loaded).toEqual(GAMES.games.map((game) => `./${game.id}/record`).sort())
+    // A game's record.ts imports its own entry.ts and nothing else that holds a value.
+    for (const game of GAMES.games) {
+      const values = imports(`src/games/${game.id}/record.ts`).filter((line) => !line.type).map((line) => line.from)
+      expect([game.id, values]).toEqual([game.id, [`@es/play/${game.id}/entry`]])
+    }
+  })
+})
+
+describe('verify:games over the record loaders', () => {
+  const root = path.resolve(import.meta.dirname, '../..')
+  const gate = (records: Record<string, RecordLoader>, componentIds = ['toy']) =>
+    checkGames({ games: [TOY], componentIds, records, files: memoryFiles(toyFiles()), world: {} }).then((report) => report.findings.map((finding) => finding.message))
+
+  test('passes when the loaders, the components and the records list the same ids, and each loader brings its record', async () => {
+    expect(await gate({ toy: () => Promise.resolve(TOY) })).toEqual([])
+  })
+
+  test('fails a game with no loader of its record, and a loader of a game that is not registered', async () => {
+    expect(await gate({})).toEqual([
+      'src/games/registry.ts has a component for "toy" and no loader of its record',
+      'it has no loader of its record in src/games/registry.ts (GAME_RECORDS)',
+    ])
+    expect(await gate({ toy: () => Promise.resolve(TOY), ghost: () => Promise.resolve({ ...TOY, id: 'ghost' }) })).toEqual([
+      'src/games/registry.ts has a record loader for "ghost", which packages/play/registry.ts does not list',
+    ])
+  })
+
+  test('fails a component with no record loader even where the records list it, and a loader of another record', async () => {
+    expect(await gate({ toy: () => Promise.resolve(TOY) }, ['toy', 'ghost'])).toEqual([
+      'src/games/registry.ts has a component for "ghost", which packages/play/registry.ts does not list',
+      'src/games/registry.ts has a component for "ghost" and no loader of its record',
+    ])
+    expect(await checkRecordLoader(TOY, { toy: () => Promise.resolve({ ...TOY, id: 'other' }) })).toEqual([
+      'the loader of its record in src/games/registry.ts brings a record with "other" that is not the one packages/play/registry.ts lists',
+    ])
+    expect(await checkRecordLoader(TOY, { toy: () => Promise.reject(new Error('gone')) })).toEqual(['the loader of its record in src/games/registry.ts failed: gone'])
+  })
+
+  test('over this checkout, the three lists agree and each loader brings the record GAMES holds', async () => {
+    const report = await checkGames({ games: GAMES.games, componentIds: Object.keys(GAME_COMPONENTS), records: GAME_RECORDS, files: filesAt(root), world: worldAt(root) })
+    expect(report.findings).toEqual([])
+    expect(Object.keys(GAME_RECORDS).sort()).toEqual(GAMES.games.map((game) => game.id).sort())
+  }, 120_000)
 })
 
 describe('the vocabulary', () => {
