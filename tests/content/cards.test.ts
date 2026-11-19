@@ -146,6 +146,11 @@ describe('the file and its front matter', () => {
     expect(where(broken(edit), 'numbers')).toEqual([`${FILE}:${lineOf(edit(card), 'title:')} untagged-number`])
   })
 
+  test("a number of the course's model in the title is [synthetic], as in a lesson", () => {
+    const edit = swap('title: A fixture world', "title: What the course's sim printed, 957 µs [measured]")
+    expect(where(broken(edit), 'numbers')).toEqual([`${FILE}:${lineOf(edit(card), 'title:')} model-number-measured`])
+  })
+
   test('the front matter is the schema of packages/schema, which JSON Schema export reads', () => {
     expect(cardFrontMatterSchema.safeParse({ id: 'a', kind: 'notional-machine', title: 'T', world: 'w', status: 'live' }).success).toBe(true)
   })

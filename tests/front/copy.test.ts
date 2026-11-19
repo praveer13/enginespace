@@ -36,6 +36,13 @@ describe('verify:numbers reads the front page\'s copy', () => {
     expect(frontCopyDiagnostics(['A rail of 4 clips [estimated].', 'TR5a and TR6, on an H100.'], source)).toEqual([])
   })
 
+  test("a number of the course's model tagged [measured] in the copy fails the gate", () => {
+    const source = "export const X = {\n  a: 'The course\\'s sim printed 957 µs [measured].',\n}\n"
+    const found = frontCopyDiagnostics(["The course's sim printed 957 µs [measured]."], source)
+    expect(found.map((d) => d.code)).toEqual(['model-number-measured'])
+    expect(found[0]).toMatchObject({ gate: 'numbers', severity: 'error', file: FRONT_COPY })
+  })
+
   test('the gate passes on the repository', () => {
     const lines: string[] = []
     const log = console.log

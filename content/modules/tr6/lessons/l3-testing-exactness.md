@@ -98,7 +98,7 @@ What does see it is the other kind of check. The accept step is small enough to 
 
 ## Where a sample does see it
 
-The sample is not blind to this bug on every target, and the next table is the reason to know why. It runs the boundary-inclusive member on three kinds of target, 100 trials [estimated] each, and counts the trials in which the target rules out a token that the draft still proposes.
+The sample is not blind to this bug on every target, and the next table is the reason to know why. The course's model runs the boundary-inclusive member on three kinds of target, 100 trials [estimated] each, and counts the trials in which the target rules out a token that the draft still proposes.
 
 | Target [estimated] | Trials with a token that p rules out and q proposes, of 100 [synthetic] | The chi-square check rejects it, of 100 [synthetic] | The enumeration flags it, of 100 [synthetic] |
 |---|---|---|---|

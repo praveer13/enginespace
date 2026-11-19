@@ -95,7 +95,7 @@ The last file is untracked in kernelspace's checkout, so `git show` cannot reach
 **Tags** (rule 7; the Tags paragraph that opens ARCHITECTURE.md). Every number in content and docs carries one:
 - [measured]: measured on a real machine or read from a named source (a file at a pin, a release feed, a paper's figure), on the stated date. A number you measure on a build also names the build's SHA. In content, never the course's own model's output; in docs, a statistic of the course's own software stays [measured] (rule 7).
 - [derived]: arithmetic on tagged inputs.
-- [synthetic]: a number that the course's own model printed (a simulation, a step loop, a port of an engine's rules), in prose and tables only. The text near it says the day and the commit it was printed at. It says nothing about a real GPU, so it is never [measured]. `verify:numbers` refuses a [measured] tag in a sentence, or on a table whose caption, that names the course's model as its source.
+- [synthetic]: a number that the course's own model printed (a simulation, a step loop, a port of an engine's rules), in prose and tables only. The text near it says the day and the commit it was printed at. It says nothing about a real GPU, so in content it is never [measured] (rule 7 says what docs do). `verify:numbers` refuses the mislabel where the text names the course's model as the source; content/README.md, "Numbers", lists where.
 - [estimated]: a judgment or a design target. Every budget is one.
 - [unverified]: not checked against a primary source. It is never load-bearing until a named task checks it.
 

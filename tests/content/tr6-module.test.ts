@@ -636,6 +636,8 @@ describe('lesson 3: the pooling rule, the level of the lab, the noise of a sampl
   test('the boundary-inclusive member on three bands: the chi-square check sees it only through a leak', () => {
     const rows = leakRows(100)
     const { dense, sparse, fine } = rows
+    mentions('tr6.l3', 'the caption', "The course's model runs the boundary-inclusive member on three kinds of target, 100 trials [estimated] each")
+    mentions('tr6.l3', 'the header', '| Target [estimated] | Trials with a token that p rules out and q proposes, of 100 [synthetic] | The chi-square check rejects it, of 100 [synthetic] | The enumeration flags it, of 100 [synthetic] |')
     mentions('tr6.l3', 'the dense band', `| Six tokens on a grid of 1/64, the level's band | ${dense.leakable} | ${dense.chi} | ${dense.enumeration} |`)
     mentions('tr6.l3', 'the sparse band', `| Sixteen tokens, with the target possible on three to six | ${sparse.leakable} | ${sparse.chi} | ${sparse.enumeration} |`)
     mentions('tr6.l3', 'the fine band', `| Sixty-four tokens, with weights down to 1/65,536 | ${fine.leakable} | ${fine.chi} | ${fine.enumeration} |`)
