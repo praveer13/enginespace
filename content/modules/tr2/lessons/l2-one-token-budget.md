@@ -44,9 +44,9 @@ mode: practice
 
 ## The same arithmetic in the sim
 
-Here is the prediction's night in the course's step-loop model, on the small model's card, with a budget of 2,048 tokens [estimated] and room for 256 requests [estimated], which are vLLM's server defaults on a `24 GB` card. A hundred requests are decoding, and the prompt of 3,000 tokens [estimated] arrives. The steps are the ones that carry it, with the step just before them. Read on 2026-11-08 at `b5fb81a`.
+Here is the prediction's night in the course's step-loop model, on the small model's card, with a budget of 2,048 tokens [estimated] and room for 256 requests [estimated], which are vLLM's server defaults on a `24 GB` card. A hundred requests are decoding, and the prompt of 3,000 tokens [estimated] arrives. The steps are the ones that carry it, with the step just before them. Printed by the course's model on 2026-11-08 at `b5fb81a`.
 
-| Step | Decode rows [measured] | Tokens of the prompt [measured] | Tokens in the step [measured] | The forward, µs [measured] |
+| Step | Decode rows [synthetic] | Tokens of the prompt [synthetic] | Tokens in the step [synthetic] | The forward, µs [synthetic] |
 |---|---|---|---|---|
 | Before the prompt | 100 | 0 | 100 | 1,900 |
 | The first with the prompt | 100 | 1,948 | 2,048 | 16,725 |
@@ -60,7 +60,7 @@ description: Two bars, one for each of the two steps that carry the long prompt,
 origin: generated
 :::
 
-The decodes come first and take 100 tokens [derived], so the prompt gets what is left, 1,948 tokens [derived], and the 1,052 [derived] that remain go in the next step. The second step leaves 896 tokens [derived] of its budget unused, because nothing else is waiting. Now look at the last column. Every request that is decoding waits for the whole step before it gets its next token. In the step that carries a chunk that is 16,725 µs [measured], where a decode-only step is 1,900 µs [measured]. A chunk costs the others in proportion to its size. That is the trade that {{ks:T5.L8}} named: smaller chunks protect the running requests' time between tokens, and larger chunks get the new prompt its first token sooner.
+The decodes come first and take 100 tokens [derived], so the prompt gets what is left, 1,948 tokens [derived], and the 1,052 [derived] that remain go in the next step. The second step leaves 896 tokens [derived] of its budget unused, because nothing else is waiting. Now look at the last column. Every request that is decoding waits for the whole step before it gets its next token. In the step that carries a chunk that is 16,725 µs [synthetic], where a decode-only step is 1,900 µs [synthetic]. A chunk costs the others in proportion to its size. That is the trade that {{ks:T5.L8}} named: smaller chunks protect the running requests' time between tokens, and larger chunks get the new prompt its first token sooner.
 
 Check the arithmetic on a new number before you go on.
 

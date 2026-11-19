@@ -22,7 +22,7 @@ This file is for the agents that build the repository. The agent kit in the lab 
    - Never edit `vendor/`.
 5. **Sibling repos are read-only.** Read kernelspace (the sibling checkout `../kernelspace`) and statespace only with `git -C <repo> show`, `ls-tree` and `grep`. Never add, commit or push there.
 6. **Dependencies.** Add none without a DECISIONS record and an exact pin (A§14). Use no `^` and no `~`.
-7. **Numbers.** Tag every number in content and docs as [measured], [derived], [estimated] or [unverified], and date every upstream fact. In content, put facts in claims (A§4.4). Never invent a fact. If one cannot be sourced, mark it [unverified] and list it in the PR.
+7. **Numbers.** Tag every number in content and docs as [measured], [derived], [estimated], [synthetic] or [unverified], and date every upstream fact. A number that the course's own model printed is [synthetic], never [measured]. In content, put facts in claims (A§4.4). Never invent a fact. If one cannot be sourced, mark it [unverified] and list it in the PR.
 8. **Web requests.** Send a generic User-Agent, and never send the owner's name or email in a header, URL or payload. The site itself makes no third-party request.
 9. **Look.** The visual identity is Data Book (D-062). Use only the token roles in `src/design/tokens.ts` and the components in `src/design/components`. Put no literal colour or font name outside `src/design`. Names follow GAMES.md §2.6: the engine's term is the only name (D-063). D-062 is the owner's decision (the look gate, 2026-11-16, "data book for sure"), and the kitchen's files left the tree at stage 4 of wave R (R-T44).
 10. **Done means:**
@@ -93,8 +93,9 @@ The last file is untracked in kernelspace's checkout, so `git show` cannot reach
 ## Pins and tags
 
 **Tags** (rule 7; the Tags paragraph that opens ARCHITECTURE.md). Every number in content and docs carries one:
-- [measured]: read or measured from the named source, on the stated date. A number you measure on a build also names the build's SHA.
+- [measured]: measured on a real machine or read from a named source (a file at a pin, a release feed, a paper's figure), on the stated date. A number you measure on a build also names the build's SHA. Never the course's own model's output.
 - [derived]: arithmetic on tagged inputs.
+- [synthetic]: a number that the course's own model printed (a simulation, a step loop, a port of an engine's rules), in prose and tables only. The text near it says the day and the commit it was printed at. It says nothing about a real GPU, so it is never [measured]. `verify:numbers` refuses a [measured] tag in a sentence, or on a table whose caption, that names the course's model as its source.
 - [estimated]: a judgment or a design target. Every budget is one.
 - [unverified]: not checked against a primary source. It is never load-bearing until a named task checks it.
 

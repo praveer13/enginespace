@@ -40,7 +40,7 @@ Paste this brief above the task text when dispatching a task. AGENTS.md (W0-T23)
    - Never edit `vendor/`.
 5. **Sibling repos are read-only.** Read kernelspace (the sibling checkout `../kernelspace`) and statespace only with `git -C <repo> show`, `ls-tree` and `grep`. Never add, commit or push there.
 6. **Dependencies.** Add none without a DECISIONS record and an exact pin (A§14). Use no `^` and no `~`.
-7. **Numbers.** Tag every number in content and docs as [measured], [derived], [estimated] or [unverified], and date every upstream fact. In content, put facts in claims (A§4.4). Never invent a fact. If one cannot be sourced, mark it [unverified] and list it in the PR.
+7. **Numbers.** Tag every number in content and docs as [measured], [derived], [estimated], [synthetic] or [unverified], and date every upstream fact. A number that the course's own model printed is [synthetic], never [measured]. In content, put facts in claims (A§4.4). Never invent a fact. If one cannot be sourced, mark it [unverified] and list it in the PR.
 8. **Web requests.** Send a generic User-Agent, and never send the owner's name or email in a header, URL or payload. The site itself makes no third-party request.
 9. **Look.** The visual identity is Data Book (D-062). Use only the token roles in `src/design/tokens.ts` and the components in `src/design/components`. Put no literal colour or font name outside `src/design`. Names follow GAMES.md §2.6: the engine's term is the only name (D-063). D-062 is the owner's decision (the look gate, 2026-11-16, "data book for sure"), and the kitchen's files left the tree at stage 4 of wave R (R-T44).
 10. **Done means:**
@@ -2081,6 +2081,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 #### [ ] W3-T04 · Capstone content · M · sonnet · deps: W3-T03
 - **Goal:** The capstone's module page and guide, written to the authoring rules of REDESIGN.md §2.5 with the lesson template. Every capstone also prices itself with kernelspace's T7.L2 and T7.L4 (catalog §2).
 - **Accept:** The checks of W1-T15 pass.
+- **For the guide's author, before the `attribute` step is written:** to test a hypothesis about where the time goes, change one factor, check that the output is still correct, check that the metric the hypothesis predicted has moved, and only then compare latency with the profilers off; if the metric moved and the latency did not, either another bottleneck has taken its place or the hypothesis was incomplete. The method is set out at length in the appendix "Measuring and Analyzing GPU Kernel Performance" of "Modern GPU Programming For MLSys" (https://mlc.ai/modern-gpu-programming-for-mlsys/appendix/benchmarking_gpu_kernels.html, read 2026-11-18). Cite it; copy none of its words, because no licence was found for it. Question for the owner, not a change to W3-T02: should the harness alternate the two sides within a run, which would be a design change and cost GPU hours?
 
 #### [ ] W3-T05 · Evidence Pack · M · sonnet · deps: W2-T41
 - **Goal:** A one-file HTML export of credited artifacts (A§7.5). It is previewed, makes no requests, and describes artifacts rather than the learner.

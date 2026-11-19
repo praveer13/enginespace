@@ -36,9 +36,9 @@ MRV1, the legacy runner, keys on a `BatchDescriptor` with five fields, and `has_
 
 ## The table of cases
 
-Here are five batches on those batch slots, dispatched by the course's port of each runner's dispatcher. The batch allows two adapters at most [estimated]. Read on 2026-11-08 at `b5fb81a`.
+Here are five batches on those batch slots, dispatched by the course's port of each runner's dispatcher. The batch allows two adapters at most [estimated]. Printed by the course's model on 2026-11-08 at `b5fb81a`.
 
-| The batch [estimated] | MRV2's pick [measured] | MRV1's pick [measured] |
+| The batch [estimated] | MRV2's pick [synthetic] | MRV1's pick [synthetic] |
 |---|---|---|
 | 12 decode rows | `FULL`, 12 tokens | `FULL`, 12 tokens |
 | 9 decode rows | `FULL`, 12 tokens | `FULL`, 12 tokens |
@@ -48,7 +48,7 @@ Here are five batches on those batch slots, dispatched by the course's port of e
 
 Read the rows with the rules. Nine decode rows are uniform, and the smallest captured size at or above 9 is 12, so the batch replays the `FULL` graph of 12 [derived]. A batch with a prompt chunk is not uniform, so the `FULL` decode descriptors cannot match, and the piecewise graph for the smallest size at or above its 20 tokens does, which is 24 [derived]. A batch of 31 tokens is above the largest size, 24, so nothing matches and it runs eagerly, launched kernel by kernel again [derived]. And two adapters become the adapter case 3 [derived], because the only captured cases are no adapter and the cap plus one. **0 plus the captured counts** [measured] **round up to a captured case, clamp at the largest** [measured]
 
-The two runners agree on all five rows. They differ in the keys they hold, and so in what each can tell apart, which is why a record of a GPU run names the runner that ran. The table is the port's, and the port is the course's. It has been held to a second port of the same Python, written separately, on 6,400 [measured] drawn cases for each runner, and the two agree. The pinned code's own answers have not been tabulated: nobody has run its dispatchers on a CPU for this course. Until someone does, read the table as the model's [measured] and the engine's own answers as [unverified].
+The two runners agree on all five rows. They differ in the keys they hold, and so in what each can tell apart, which is why a record of a GPU run names the runner that ran. The table is the port's, and the port is the course's. It has been held to a second port of the same Python, written separately, on 6,400 [measured] drawn cases for each runner, and the two agree. The pinned code's own answers have not been tabulated: nobody has run its dispatchers on a CPU for this course. Until someone does, read the table as the model's [synthetic] and the engine's own answers as [unverified].
 
 Check which graph replays a new batch before you go on.
 
@@ -73,9 +73,9 @@ An attention backend declares how much it can replay. There are four levels, fro
 
 A model with several kinds of attention takes the minimum of its backends' levels, and vLLM downgrades the mode to the best fit. **the minimum of the backends** [measured] The rules are three. A mode with full graphs for mixed batches needs `ALWAYS`, and on a backend below it the mode becomes `FULL_AND_PIECEWISE` if attention is split out of the compiled graph, and `FULL_DECODE_ONLY` if it is not. A backend with no graph support at all raises an error there. **FULL becomes FULL_AND_PIECEWISE or FULL_DECODE_ONLY** [measured] A mode with full decode graphs on a backend that supports none becomes `PIECEWISE`, or `NONE`. **FULL decode without backend support becomes PIECEWISE or NONE** [measured] And with speculative decoding, whose decode batches carry the drafts, a full decode graph needs `UNIFORM_BATCH`. **speculative decode needs UNIFORM_BATCH for a full graph** [measured] The design document's own summary is the rule to keep: vLLM downgrades a requested mode to the closest one that the backend supports. **a requested mode may be downgraded** [measured]
 
-Here is what runs when each mode meets each level, from the course's port of the rules, with plain decode and with attention split out of the compiled graph, which is how the port runs. Read on 2026-11-08 at `b5fb81a`.
+Here is what runs when each mode meets each level, from the course's port of the rules, with plain decode and with attention split out of the compiled graph, which is how the port runs. Printed by the course's model on 2026-11-08 at `b5fb81a`.
 
-| You ask for | `ALWAYS` [measured] | `UNIFORM_BATCH` [measured] | `UNIFORM_SINGLE_TOKEN_DECODE` [measured] | `NEVER` [measured] |
+| You ask for | `ALWAYS` [synthetic] | `UNIFORM_BATCH` [synthetic] | `UNIFORM_SINGLE_TOKEN_DECODE` [synthetic] | `NEVER` [synthetic] |
 |---|---|---|---|---|
 | `NONE` | `NONE` | `NONE` | `NONE` | `NONE` |
 | `PIECEWISE` | `PIECEWISE` | `PIECEWISE` | `PIECEWISE` | `PIECEWISE` |
@@ -93,7 +93,7 @@ Play the `graphs` level's third stage, `modes`, on the level you met in the last
 
 An adapter is part of the key. With `cudagraph_specialize_lora` on, which is the default, vLLM captures graphs with and without active adapters, at the cost of a longer start and slightly more memory. **true** [measured] A second switch, `specialize_active_lora`, is off by default, and when it is on, vLLM captures a graph for each count of active adapters, in powers of two up to `max_loras`. **false** [measured] By default the one adapter graph is therefore the one for the cap plus one. **max_loras + 1 by default** [measured] The count that a batch dispatches on is the number of distinct adapters among its requests, in both runners. **distinct adapters of the batch** [measured] **distinct adapters of the input batch** [measured]
 
-On those 12 batch slots, a cap of 2 adapters [estimated] doubles the graphs, from 12 [measured] to 24 [measured] in `FULL_AND_PIECEWISE`, because every size is captured twice, once for no adapter and once for the adapter case. The model prices each graph alone, so it doubles their memory too. The guide says only slightly more memory, and the course has no capture to say how much more.
+On those 12 batch slots, a cap of 2 adapters [estimated] doubles the graphs, from 12 [synthetic] to 24 [synthetic] in `FULL_AND_PIECEWISE`, because every size is captured twice, once for no adapter and once for the adapter case. The model prices each graph alone, so it doubles their memory too. The guide says only slightly more memory, and the course has no capture to say how much more.
 
 TR5a is where adapters live: vLLM keeps them in a fixed number of GPU slots, and a batch that needs more distinct adapters than there are slots waits. **lora_slots = max_loras** [measured] **distinct adapters at most max_loras** [measured] Here the same cap decides how many graphs the engine takes memory for.
 
@@ -107,9 +107,9 @@ Check the dispatch key on another case before you go on.
 
 A graph holds memory. The engine may use a share of the card's memory, which is set by default at **0.92 share of card memory** [measured], and the weights, the activations, the graphs and the KV cache all come out of that share. MRV2 gained its own estimate of what the graphs will take in v0.29.0. **v0.29.0** [measured] It makes the estimate while the engine is still profiling, before the real KV cache is allocated, **profiled before the KV cache is allocated** [measured] and the memory the cache may take is the requested memory minus the profiled non-KV memory minus that estimate. **requested - non-KV - graph estimate** [measured] The estimate is applied by default. **true** [measured] The profile captures only the largest `FULL` graphs, records what each took, and extrapolates the difference to the rest, so the estimate is a sum over the graphs and every graph you capture costs something. **a memory delta per captured graph** [measured]
 
-The course's model prices a graph at 8 MiB plus 16 KiB for each token of its size [estimated], which are round figures: no capture has been measured on a card. With 12 batch slots [estimated], in each mode, with the sizes above, the model gives these. Read on 2026-11-08 at `b5fb81a`.
+The course's model prices a graph at 8 MiB plus 16 KiB for each token of its size [estimated], which are round figures: no capture has been measured on a card. With 12 batch slots [estimated], in each mode, with the sizes above, the model gives these. Printed by the course's model on 2026-11-08 at `b5fb81a`.
 
-| The mode | Graphs captured [measured] | Memory, MiB [estimated] |
+| The mode | Graphs captured [synthetic] | Memory, MiB [estimated] |
 |---|---|---|
 | `NONE` | 0 | 0.0 |
 | `PIECEWISE` | 7 | 57.0 |
@@ -117,7 +117,7 @@ The course's model prices a graph at 8 MiB plus 16 KiB for each token of its siz
 | `FULL_DECODE_ONLY` | 5 | 40.4 |
 | `FULL_AND_PIECEWISE` | 12 | 97.5 |
 
-The last row is the answer to the first prediction, and the pair of modes has the most graphs because it captures both routines. The same mode with vLLM's own 51 sizes on a server with 256 sequences captures 86 graphs [measured], which the model prices at 918 MiB [estimated].
+The last row is the answer to the first prediction, and the pair of modes has the most graphs because it captures both routines. The same mode with vLLM's own 51 sizes on a server with 256 sequences captures 86 graphs [synthetic], which the model prices at 918 MiB [estimated].
 
 Commit to a number again, and then work it.
 
@@ -125,7 +125,7 @@ Commit to a number again, and then work it.
 >
 > The learner commits to a number in `tokens`, graded within a relative tolerance of `0.03` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
 
-Here is the arithmetic in the model, on the small model's card: 22.08 GB requested [derived], 3.2 GB of weights and activations [estimated], and the 918 MiB [estimated] of the 51-size list in two routines. Read on 2026-11-08 at `b5fb81a`.
+Here is the arithmetic in the model, on the small model's card: 22.08 GB requested [derived], 3.2 GB of weights and activations [estimated], and the 918 MiB [estimated] of the 51-size list in two routines. Printed by the course's model on 2026-11-08 at `b5fb81a`.
 
 | The KV cache | Bytes, GB [derived] | Tokens of KV cache [derived] |
 |---|---|---|
@@ -146,9 +146,9 @@ Check the arithmetic on a new card before you go on.
 
 The module's graded level puts the whole lesson on one run. `close` draws a run from the seed: a burst of requests, the batch slots, a token budget, a cost card, a host card, an attention backend with its support level, and the memory room for graphs. You choose the configuration from the cards before any run: whether the next call is written during the forward, where its ids come from, the runner, the graph mode and the sizes to capture. Then the run is served once. The reference configuration is found by the model. Of a small menu of configurations, it is the cheapest in graph memory whose run is within 1% [estimated] of the best, and the room is exactly what its graphs take, so a configuration whose graphs take more does not start.
 
-On its practice seed, `16`, the run is the small model's, on 8 batch slots [measured] with a budget of 128 tokens [measured], and the room is 18.125 MiB [measured]. Everything off, which is the legacy runner, the next call written after the forward, the ids written by hand and no graph, loses 76% [measured] of its clock to bubbles: 243,067 µs [measured] of 319,593 µs [measured]. The reference configuration is MRV2 with the next call written during the forward, the ids carried by the GPU, and `FULL` graphs at the sizes 8 and 128 [measured]. Its run takes 74,900 µs [measured] with no bubble, and its two graphs take 18.125 MiB [derived], the whole room.
+On its practice seed, `16`, the run is the small model's, on 8 batch slots [synthetic] with a budget of 128 tokens [synthetic], and the room is 18.125 MiB [synthetic]. Everything off, which is the legacy runner, the next call written after the forward, the ids written by hand and no graph, loses 76% [synthetic] of its clock to bubbles: 243,067 µs [synthetic] of 319,593 µs [synthetic]. The reference configuration is MRV2 with the next call written during the forward, the ids carried by the GPU, and `FULL` graphs at the sizes 8 and 128 [synthetic]. Its run takes 74,900 µs [synthetic] with no bubble, and its two graphs take 18.125 MiB [derived], the whole room.
 
-Now turn everything on. vLLM's default sizes for those 8 slots are 1, 2, 4, 8 and 16 [derived], and the engine refuses to start in each of the four modes that use graphs, because their graphs take more than the room [measured]. The default mode at the reference configuration's own two sizes is refused too [measured]. With async scheduling on and the ids still written by hand, the run is served and has 55 dependency violations [measured], and the graded level scores a run with one violation at zero.
+Now turn everything on. vLLM's default sizes for those 8 slots are 1, 2, 4, 8 and 16 [derived], and the engine refuses to start in each of the four modes that use graphs, because their graphs take more than the room [synthetic]. The default mode at the reference configuration's own two sizes is refused too [synthetic]. With async scheduling on and the ids still written by hand, the run is served and has 55 dependency violations [synthetic], and the graded level scores a run with one violation at zero.
 
 Play it in practice first. The seed is fixed, so you can compare your configuration with the reference configuration's afterwards.
 

@@ -41,7 +41,7 @@ Commit to a number. The sizes are the ones just above.
 >
 > The learner commits to a number in `rows`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
 
-Here is what each engine pads a decode batch to with its defaults, from the course's lists. Read on 2026-11-08 at `b5fb81a`. A cell that says eager is a batch with no graph: the step is launched kernel by kernel.
+Here is what each engine pads a decode batch to with its defaults, from the course's lists. Printed by the course's model on 2026-11-08 at `b5fb81a`. A cell that says eager is a batch with no graph: the step is launched kernel by kernel.
 
 | Rows in the batch [estimated] | vLLM [derived] | SGLang on a `24 GB` card [derived] | SGLang on an `80 GB` card [derived] | Mini-SGLang [derived] |
 |---|---|---|---|---|

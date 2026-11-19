@@ -50,9 +50,9 @@ _Two pairs of lanes, one pair for async scheduling off and one for on, with thre
 
 ## The same rule on the course's two cards
 
-The `async` level you ran serves 24 requests [estimated] on 12 batch slots [estimated], and its practice seed is `0`. Here are its two stages, served without overlap and with it. Read on 2026-11-08 at `b5fb81a`.
+The `async` level you ran serves 24 requests [estimated] on 12 batch slots [estimated], and its practice seed is `0`. Here are its two stages, served without overlap and with it. Printed by the course's model on 2026-11-08 at `b5fb81a`.
 
-| The run | `70B on H100`, off [measured] | `70B on H100`, on [measured] | Small model, off [measured] | Small model, on [measured] |
+| The run | `70B on H100`, off [synthetic] | `70B on H100`, on [synthetic] | Small model, off [synthetic] | Small model, on [synthetic] |
 |---|---|---|---|---|
 | Clock, µs | 696,626 | 633,781 | 113,965 | 79,375 |
 | Median time per output token, µs | 14,037 | 11,982 | 2,386 | 1,493 |
@@ -60,13 +60,13 @@ The `async` level you ran serves 24 requests [estimated] on 12 batch slots [esti
 | Steps with a bubble before them | 49 of 50 | 0 of 52 | 49 of 50 | 9 of 52 |
 | Ghost tokens | 0 | 24 | 0 | 24 |
 
-On the big card, overlap closes every bubble: the median token is 14.6% faster [derived] and the run 9.0% shorter [derived]. The forward is about twelve times [derived] the CPU's work, so there is room to hide all of it. On the small card the run is 30.4% shorter [derived] and the median token 37.4% faster [derived], and 9 of its 52 steps [measured] still have a bubble before them. Those nine are not the steady ones. All of them admit a request. Seven launch kernel by kernel, because no graph was captured for their size: the launch alone takes 2,016 µs [measured] against a forward of about 1,240 µs [measured]. The other two launch in pieces and fall short by about 550 µs [measured]. Overlap cannot hide a launch that is longer than the forward it launches. The next two lessons are about making that launch short.
+On the big card, overlap closes every bubble: the median token is 14.6% faster [derived] and the run 9.0% shorter [derived]. The forward is about twelve times [derived] the CPU's work, so there is room to hide all of it. On the small card the run is 30.4% shorter [derived] and the median token 37.4% faster [derived], and 9 of its 52 steps [synthetic] still have a bubble before them. Those nine are not the steady ones. All of them admit a request. Seven launch kernel by kernel, because no graph was captured for their size: the launch alone takes 2,016 µs [synthetic] against a forward of about 1,240 µs [synthetic]. The other two launch in pieces and fall short by about 550 µs [synthetic]. Overlap cannot hide a launch that is longer than the forward it launches. The next two lessons are about making that launch short.
 
 Check the idle time on a new step before you read on.
 
 > **Practice.** Items from the generator family `tr2.bubble-width`, level `1`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
-The last row is the price. Every request in the model stops on EOS, so each of the 24 [measured] costs one ghost token, 24 of the 522 rows [derived] that the run computed, or 4.6% [derived]. A run whose requests all stop at their length cap has none in the real engine, as the claim above says.
+The last row is the price. Every request in the model stops on EOS, so each of the 24 [synthetic] costs one ghost token, 24 of the 522 rows [derived] that the run computed, or 4.6% [derived]. A run whose requests all stop at their length cap has none in the real engine, as the claim above says.
 
 ## What turns it off
 

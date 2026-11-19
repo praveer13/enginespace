@@ -3,16 +3,16 @@
  *
  * marked's lexer reads the Markdown, and this module keeps only what A§4.1 lists. A paragraph, a heading, a list, a table
  * and a code block become block nodes. Text, emphasis, a code span, a link, a claim reference (`{{claim:id}}`, `{{ks:T5.L7}}`)
- * and a tag (`[measured]`, `[derived]`, `[estimated]`, `[unverified]`) become the nodes inside a line. Everything else is an
+ * and a tag (`[measured]`, `[derived]`, `[estimated]`, `[synthetic]`, `[unverified]`) become the nodes inside a line. Everything else is an
  * error that names the line: raw HTML, an image, a quote, a rule, a hard line break, a task list, a reference definition.
  * marked's parser and renderer never run, and no node holds HTML, so React is the only thing that renders prose.
  *
- * The number gate lives here because it reads the same tokens. A digit run must carry one of the four tags within its
+ * The number gate lives here because it reads the same tokens. A digit run must carry one of the five tags within its
  * sentence unless it sits in code or a reference, in an id, or in an ISO date (`untaggedNumbers`).
  */
 import { getDefaults, Lexer } from 'marked'
 import type { Token, Tokens } from 'marked'
-import { CLAIM_TAGS } from '../../packages/schema/claims.ts'
+import { PROSE_TAGS } from '../../packages/schema/claims.ts'
 import type { ProseAlign, ProseFlow, ProseInline } from '../../packages/schema/compiled.ts'
 import { PROSE_HREF } from '../../packages/schema/compiled.ts'
 import { claimIdSchema, ksRefSchema } from '../../packages/schema/refs.ts'
@@ -42,7 +42,7 @@ export interface ProseContext {
 /* The number gate                                                                                                    */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-const TAG = new RegExp(`\\[(?:${CLAIM_TAGS.join('|')})\\]`)
+const TAG = new RegExp(`\\[(?:${PROSE_TAGS.join('|')})\\]`)
 /** Where a sentence may end: a full stop, `!`, `?` or an ellipsis, with any closing quote or bracket, then a space or the end. */
 const TERMINATOR = /[.!?…]+["'”’)\]]*(?=\s|$)/g
 /** The words that end in a full stop without ending a sentence. */
@@ -79,7 +79,7 @@ export function sentences(text: string): { start: number; text: string }[] {
 }
 
 /**
- * The sentences of a text that hold a digit run and none of the four tags (A§4.4). A digit run does not count when:
+ * The sentences of a text that hold a digit run and none of the five tags (A§4.4). A digit run does not count when:
  *   - it is in an ISO date (`2026-11-03`, `2026-11`);
  *   - a letter, an underscore, `§`, `#` or `@` comes before it in its word, which makes it part of an identifier (`H100`,
  *     `p99`, `tr2.l3`, `T5.L7`, `D-014`, `Llama-3-70B`, `v0.33.0`, `§4.2`, `#12`);
@@ -117,7 +117,7 @@ const snippet = (sentence: string): string => {
 export function numberMessage(finding: NumberFinding): string {
   const list = finding.numbers.map((number) => `"${number}"`).join(', ')
   const noun = finding.numbers.length === 1 ? 'number' : 'numbers'
-  return `untagged ${noun} ${list} in "${snippet(finding.sentence)}": tag the sentence [measured], [derived], [estimated] or [unverified], replace the number with a {{claim:id}}, or put an identifier in backticks`
+  return `untagged ${noun} ${list} in "${snippet(finding.sentence)}": tag the sentence [measured], [derived], [estimated], [synthetic] or [unverified], replace the number with a {{claim:id}}, or put an identifier in backticks`
 }
 
 /** The words in a text, not counting the stand-ins for code and references. */
@@ -147,8 +147,24 @@ class Flat {
   }
 }
 
+/**
+ * Words that say a number came out of the course's own model: its sim, simulator, step loop, port or "printed by" a model. A number
+ * that a sentence, or the line above its table, says that about is `[synthetic]`, never `[measured]` (content/README.md, "Numbers"):
+ * a reader takes `[measured]` to mean that a machine or a source was read, and the model is neither.
+ */
+export const MODEL_SOURCE = /\b(?:the\s+)?course'?s\s+(?:own\s+)?(?:sim|simulator|simulation|step[- ]loop|model|port|lifecycle model)\b|\bprinted by the (?:course's )?model\b/i
+const MEASURED = /\[measured\]/
+
+function modelMeasured(text: string, flat: Flat, ctx: ProseContext): void {
+  for (const sentence of sentences(text)) {
+    if (!MEASURED.test(sentence.text) || !MODEL_SOURCE.test(sentence.text)) continue
+    ctx.out.push(problem('numbers', 'error', 'model-number-measured', ctx.file, flat.lineAt(sentence.start), `a number that the course's own model printed is [synthetic], and [measured] is a hardware run or a source that was read, with its date: retag "${snippet(sentence.text)}"`))
+  }
+}
+
 function scan(flat: Flat, ctx: ProseContext): void {
   ctx.words.count += countWords(flat.text.replaceAll(PLACEHOLDER, ' '))
+  modelMeasured(flat.text, flat, ctx)
   for (const finding of untaggedNumbers(flat.text)) {
     ctx.out.push(problem('numbers', 'error', 'untagged-number', ctx.file, flat.lineAt(finding.index), numberMessage(finding)))
   }
@@ -161,11 +177,11 @@ function scan(flat: Flat, ctx: ProseContext): void {
 const newlines = (text: string): number => text.match(/\n/g)?.length ?? 0
 
 /** Every `{{…}}`, and every tag. A reference or a tag is the whole of its token. */
-const SPECIAL = new RegExp(`\\{\\{[^{}]*\\}\\}|\\[(?:${CLAIM_TAGS.join('|')})\\]`, 'g')
+const SPECIAL = new RegExp(`\\{\\{[^{}]*\\}\\}|\\[(?:${PROSE_TAGS.join('|')})\\]`, 'g')
 /** An HTML character reference: `&amp;`, `&nbsp;`, `&#39;`, `&#x27;`. A bare ampersand is text. */
 const ENTITY = /&(?:[A-Za-z][A-Za-z0-9]*|#[0-9]+|#[xX][0-9A-Fa-f]+);/
 /** A tag with something else inside its brackets: a date, a source, an explanation. */
-const LOOSE_TAG = new RegExp(`\\[(?:${CLAIM_TAGS.join('|')})\\b[^\\]]*\\]`, 'i')
+const LOOSE_TAG = new RegExp(`\\[(?:${PROSE_TAGS.join('|')})\\b[^\\]]*\\]`, 'i')
 
 /** The node for a `{{…}}`, or null with a diagnostic when it is not a reference this module knows. */
 function reference(token: string, line: number, ctx: ProseContext): ProseInline | null {
@@ -204,7 +220,7 @@ function textNodes(raw: string, line: number, ctx: ProseContext, flat: Flat): Pr
     if (piece === '') return
     flat.add(piece, at)
     if (LOOSE_TAG.test(piece)) {
-      ctx.out.push(problem('numbers', 'error', 'bad-tag', ctx.file, at, 'a tag is [measured], [derived], [estimated] or [unverified] and nothing else inside the brackets: a source and a date belong in a claim'))
+      ctx.out.push(problem('numbers', 'error', 'bad-tag', ctx.file, at, 'a tag is [measured], [derived], [estimated], [synthetic] or [unverified] and nothing else inside the brackets: a source and a date belong in a claim'))
     }
     if (/\{\{|\}\}/.test(piece)) ctx.out.push(problem('content', 'error', 'bad-ref', ctx.file, at, 'a reference reads {{claim:id}} or {{ks:T5.L7}}, with both pairs of braces'))
     const entity = ENTITY.exec(piece)
@@ -221,7 +237,7 @@ function textNodes(raw: string, line: number, ctx: ProseContext, flat: Flat): Pr
     const at = line + newlines(raw.slice(0, match.index))
     if (match[0].startsWith('[')) {
       flat.add(match[0], at)
-      nodes.push({ type: 'tag', tag: match[0].slice(1, -1) as (typeof CLAIM_TAGS)[number] })
+      nodes.push({ type: 'tag', tag: match[0].slice(1, -1) as (typeof PROSE_TAGS)[number] })
     } else {
       flat.add(PLACEHOLDER, at)
       const node = reference(match[0], at, ctx)
@@ -317,9 +333,13 @@ function line(tokens: readonly Token[], at: number, ctx: ProseContext, scanned =
 function flow(tokens: readonly Token[], first: number, ctx: ProseContext): ProseFlow[] {
   const out: ProseFlow[] = []
   let at = first
+  /** The paragraph just above, which is a table's caption: it says what made the table's numbers. */
+  let caption = ''
   for (const token of tokens) {
     const start = at
     at += newlines(token.raw)
+    const above = caption
+    if (token.type !== 'space') caption = token.type === 'paragraph' ? token.raw : ''
     switch (token.type) {
       case 'space':
         break
@@ -361,6 +381,9 @@ function flow(tokens: readonly Token[], first: number, ctx: ProseContext): Prose
         const head = table.header.map((cell, column) => inline(cell.tokens, start, ctx, flats[column]))
         // A tag in a column's header tags the whole column: a table says once what its numbers are.
         const tagged = flats.map((flat) => TAG.test(flat.text))
+        if (MODEL_SOURCE.test(above) && flats.some((flat) => MEASURED.test(flat.text))) {
+          ctx.out.push(problem('numbers', 'error', 'model-number-measured', ctx.file, start, "the paragraph above this table says that the course's own model printed it, and a column is tagged [measured]: a model's number is [synthetic]"))
+        }
         flats.forEach((flat) => scan(flat, ctx))
         const rows = table.rows.map((row, index) => row.map((cell, column) => line(cell.tokens, start + 2 + index, ctx, !tagged[column])))
         out.push({ type: 'table', align: table.align as ProseAlign[], head, rows })

@@ -69,9 +69,9 @@ level: mask
 mode: practice
 :::
 
-The course's step loop gives the gap for every case. Each cell is the GPU's idle time between two forwards in the loop's steady state, measured by the course's sim on 2026-11-05 at `f4c2395`.
+The course's step loop gives the gap for every case. Each cell is the GPU's idle time between two forwards in the loop's steady state, printed by the course's model on 2026-11-05 at `f4c2395`.
 
-| Case | No grammar, in µs [measured] | Light grammar, in µs [measured] | Heavy grammar, in µs [measured] |
+| Case | No grammar, in µs [synthetic] | Light grammar, in µs [synthetic] | Heavy grammar, in µs [synthetic] |
 |---|---|---|---|
 | Overlapped | 160 | 160 | 380 |
 | Serial | 160 | 400 | 880 |
@@ -79,7 +79,7 @@ The course's step loop gives the gap for every case. Each cell is the GPU's idle
 
 Read each cell from the formulas. Overlapped and light is `100 + 60 + max(0, 240 − 500)` = 160 µs [derived], the same as with no grammar, so the card fits and costs the GPU nothing. Overlapped and heavy is `100 + 60 + (720 − 500)` = 380 µs [derived], and the 220 µs [derived] by which the fill outlasts the forward is the whole of what the mask adds. Serial adds the fill whole: 160 + 240 = 400 µs [derived] and 160 + 720 = 880 µs [derived]. Async scheduling with no grammar already idles for nothing, because the plan and the read hide under the forward, and with the light fill the chain of 400 µs [derived] still fits under it, so the gap stays 0 [derived]. The heavy chain is 880 µs [derived], and 880 − 500 = 380 µs [derived] is what does not fit.
 
-Look at the heavy column. Once the fill is longer than the forward, overlapped and async give the same gap, `P + R + M − F`, which is 380 µs [measured] in both. Async scheduling wins a bubble back from the plan and the read, and a fill that outlasts the forward takes it all out again.
+Look at the heavy column. Once the fill is longer than the forward, overlapped and async give the same gap, `P + R + M − F`, which is 380 µs [synthetic] in both. Async scheduling wins a bubble back from the plan and the read, and a fill that outlasts the forward takes it all out again.
 
 :::item
 family: tr6.mask-fits
@@ -103,7 +103,7 @@ breaks: Double buffering works because the producer's next buffer does not depen
 
 ## Speculation lengthens the card
 
-Speculation multiplies the rows. A request that drafts 4 tokens [estimated] needs 5 rows [derived] where a plain one needs 1. The same 12 requests with the light grammar now fill 12 × 5 × 20 = 1,200 µs [derived]. Take the forward to be the same 500 µs [estimated], since a decode step this small is memory-bound and the extra positions add little, as the first lesson said. The overlapped gap is then `100 + 60 + (1,200 − 500)` = 860 µs [derived], and the step loop measures 860 µs [measured], against 160 µs [measured] for the same grammar without drafts. The grammar that fit now outlasts the forward. And with drafts configured, the pinned engine does not use its parallel fill at all, so a large batch does not rescue it. {{claim:vllm.mask.fill-rows-per-request}}
+Speculation multiplies the rows. A request that drafts 4 tokens [estimated] needs 5 rows [derived] where a plain one needs 1. The same 12 requests with the light grammar now fill 12 × 5 × 20 = 1,200 µs [derived]. Take the forward to be the same 500 µs [estimated], since a decode step this small is memory-bound and the extra positions add little, as the first lesson said. The overlapped gap is then `100 + 60 + (1,200 − 500)` = 860 µs [derived], and the step loop measures 860 µs [synthetic], against 160 µs [synthetic] for the same grammar without drafts. The grammar that fit now outlasts the forward. And with drafts configured, the pinned engine does not use its parallel fill at all, so a large batch does not rescue it. {{claim:vllm.mask.fill-rows-per-request}}
 
 That is the module's two halves meeting. Speculation adds positions to verify, structure adds rows to fill, and the rows scale with the positions. A server that serves structured requests and speculates has to be measured with both on.
 

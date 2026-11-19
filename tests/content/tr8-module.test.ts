@@ -571,7 +571,7 @@ function mentions(lessonId: string, what: string, line: string): void {
 
 describe('lesson 1: the toy log, the pause and the cap', () => {
   const toy = toyLog()
-  const MEASURED_AT = /Measured by the course's sim on 2026-11-04 at `([0-9a-f]{7,40})`, with the seed `7`\./
+  const MEASURED_AT = /Printed by the course's model on 2026-11-04 at `([0-9a-f]{7,40})`, with the seed `7`\./
 
   test('the prediction: 200 requests due every 500 ms, answered in 100 ms but for a freeze of 2 s that gives one reply 2,100 ms after its send', () => {
     const prompt = lessonOf('tr8.l1').lesson.blocks.find((b) => b.type === 'predict')
@@ -614,7 +614,7 @@ describe('lesson 1: the toy log, the pause and the cap', () => {
 
   test('the cap: the open loop and the capped harness, with and without a freeze of 3 s, measured on seed 7', () => {
     const demo = freezeDemo()
-    mentions('tr8.l1', 'rate', `which is ${fmt(demo.ratePerS, 1)} requests a second [measured]`)
+    mentions('tr8.l1', 'rate', `which is ${fmt(demo.ratePerS, 1)} requests a second [synthetic]`)
     expect([demo.requests, demo.cap, demo.freezeS]).toEqual([1500, 24, 3])
     mentions('tr8.l1', 'open, calm', `| Open loop | no freeze | the send, which is the due time | ${fmt(demo.open.calm.dueMs)} |`)
     mentions('tr8.l1', 'open, freeze', `| Open loop | freeze | the send, which is the due time | ${fmt(demo.open.freeze.dueMs)} |`)
@@ -626,11 +626,11 @@ describe('lesson 1: the toy log, the pause and the cap', () => {
     expect([demo.open.calm.sentMs, demo.open.freeze.sentMs]).toEqual([demo.open.calm.dueMs, demo.open.freeze.dueMs])
     expect([ADHERENCE_TOLERANCE_US, ADHERENCE_HARD_LIMIT_US]).toEqual([2000, 20000])
     expect([demo.open.calm.late, demo.open.freeze.late]).toEqual([0, 0])
-    mentions('tr8.l1', 'late sends', `The capped harness sent ${fmt(demo.capped.calm.late)} of its ${fmt(demo.requests)} requests [measured] more than 2 ms [estimated] late in the calm run, and ${fmt(demo.capped.freeze.late)} [measured] in the freeze run`)
+    mentions('tr8.l1', 'late sends', `The capped harness sent ${fmt(demo.capped.calm.late)} of its ${fmt(demo.requests)} requests [synthetic] more than 2 ms [estimated] late in the calm run, and ${fmt(demo.capped.freeze.late)} [synthetic] in the freeze run`)
     // 99.9% of the rows within 2 ms: both capped runs are far outside it.
     expect(demo.capped.calm.late / demo.requests).toBeGreaterThan(0.001)
-    mentions('tr8.l1', 'the capped stopwatch', `reported ${fmt(demo.capped.freeze.sentMs)} ms [measured]`)
-    mentions('tr8.l1', 'the clump', `That is ${fmt(demo.capped.calm.sentMs)} ms from the send against ${fmt(demo.capped.calm.dueMs)} ms from the due time [measured].`)
+    mentions('tr8.l1', 'the capped stopwatch', `reported ${fmt(demo.capped.freeze.sentMs)} ms [synthetic]`)
+    mentions('tr8.l1', 'the clump', `That is ${fmt(demo.capped.calm.sentMs)} ms from the send against ${fmt(demo.capped.calm.dueMs)} ms from the due time [synthetic].`)
     // "Within a fifth" of the open loop, timed from the due time.
     expect(Math.abs(demo.capped.freeze.dueMs / demo.open.freeze.dueMs - 1)).toBeLessThanOrEqual(0.2)
     mentions('tr8.l1', 'a fifth', 'it agrees with the open loop, within a fifth [derived]')
@@ -681,10 +681,10 @@ describe('lesson 2: the cold start, the p99\'s requests beyond it, and the inter
     expect(Math.round((100 * Math.abs(four.p99Ms - rule.p99Ms)) / rule.p99Ms)).toBe(5)
     expect([none.settled, rule.settled, four.settled]).toEqual([false, true, true])
     expect([demo.longCold.rows[2].settled, demo.longCold.rows[3].settled]).toEqual([false, true])
-    mentions('tr8.l2', 'the warm engine', `${fmt(rule.p99Ms)} ms [measured] is what the engine does once it is warm`)
+    mentions('tr8.l2', 'the warm engine', `${fmt(rule.p99Ms)} ms [synthetic] is what the engine does once it is warm`)
     mentions('tr8.l2', 'the extra cut', `Leaving out 400 costs ${fmt(400 - BENCH_WARMUP_ROWS)} requests of data [derived] for a p99 that moves by 5% [derived]`)
-    mentions('tr8.l2', 'the long warm-up', `the p99 after 128 requests is ${fmt(demo.longCold.rows[2].p99Ms)} ms [measured]`)
-    mentions('tr8.l2', 'the temptation', `would give ${fmt(demo.longCold.rows[3].p99Ms)} ms [measured]`)
+    mentions('tr8.l2', 'the long warm-up', `the p99 after 128 requests is ${fmt(demo.longCold.rows[2].p99Ms)} ms [synthetic]`)
+    mentions('tr8.l2', 'the temptation', `would give ${fmt(demo.longCold.rows[3].p99Ms)} ms [synthetic]`)
   })
 
   test('the prediction: 250 requests leave two beyond the p99; the table of what lies beyond', () => {
@@ -713,7 +713,7 @@ describe('lesson 2: the cold start, the p99\'s requests beyond it, and the inter
   test('the coverage of the nominal 95% interval on a p99: 92.6% at 1,000 requests and 94.6% at 5,000', () => {
     const demo = coverageDemo()
     expect([demo.at1000.streams, demo.at5000.streams]).toEqual([100, 20])
-    mentions('tr8.l2', 'coverage', `covers the true p99 ${demo.at1000.percent.toFixed(1)}% of the time at 1,000 requests and ${demo.at5000.percent.toFixed(1)}% at 5,000 [measured]`)
+    mentions('tr8.l2', 'coverage', `covers the true p99 ${demo.at1000.percent.toFixed(1)}% of the time at 1,000 requests and ${demo.at5000.percent.toFixed(1)}% at 5,000 [synthetic]`)
     mentions('tr8.l2', 'streams', 'averaged over 100 resampler seeds at 1,000 requests and over 20 at 5,000 [estimated]')
     // Short of the nominal level, and closer to it as the sample grows (the sim's own test holds the same bounds).
     expect(demo.at1000.percent).toBeLessThan(93.2)
@@ -752,9 +752,9 @@ describe('lesson 4: the rush, goodput\'s two denominators, and Little\'s law', (
       [70, 400],
     ])
     mentions('tr8.l4', 'the stretches', 'The trace runs 70 s [estimated] at 40% [estimated] of what the server can finish, then 8 s [estimated] at 160% [estimated], then 70 s [estimated] at 40% [estimated].')
-    mentions('tr8.l4', 'the trace', `It holds ${fmt(demo.requests)} requests [measured], so ${demo.beyondP99} lie beyond its p99 [derived].`)
+    mentions('tr8.l4', 'the trace', `It holds ${fmt(demo.requests)} requests [synthetic], so ${demo.beyondP99} lie beyond its p99 [derived].`)
     expect(demo.beyondP99).toBeGreaterThanOrEqual(10)
-    mentions('tr8.l4', 'the mean rate', `which is ${fmt(demo.meanSharePct)}% [measured] of the server's capacity`)
+    mentions('tr8.l4', 'the mean rate', `which is ${fmt(demo.meanSharePct)}% [synthetic] of the server's capacity`)
     mentions('tr8.l4', 'in time', `| in time, at the trace's own pace | ${fmt(demo.inTime.p50Ms)} | ${fmt(demo.inTime.p90Ms)} | ${fmt(demo.inTime.p99Ms)} |`)
     mentions('tr8.l4', 'steady', `| at the trace's mean rate | ${fmt(demo.steady.p50Ms)} | ${fmt(demo.steady.p90Ms)} | ${fmt(demo.steady.p99Ms)} |`)
     expect(Math.abs(demo.inTime.p50Ms / demo.steady.p50Ms - 1)).toBeLessThanOrEqual(0.07)
@@ -789,7 +789,7 @@ describe('lesson 4: the rush, goodput\'s two denominators, and Little\'s law', (
     // The run at half the capacity is steady and agrees within 2%; the course allows 5% (ASSESSMENT B10).
     expect(rows[0].residualPermille).toBeLessThanOrEqual(20)
     expect(rows[2].residualPermille).toBeGreaterThan(50)
-    mentions('tr8.l4', 'the steady run', 'the two sides agree to within 2% [measured]')
+    mentions('tr8.l4', 'the steady run', 'the two sides agree to within 2% [synthetic]')
     expect(8 * 2).toBe(16)
   })
 })

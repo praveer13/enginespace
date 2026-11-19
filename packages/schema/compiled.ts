@@ -11,8 +11,8 @@
  * The fields the compiler adds are camel case, as the claims' `verifiedAt` and `ttlDays` are.
  */
 import { z } from './zod'
-import { CLAIM_TAGS, claimSchema } from './claims'
-import type { ClaimTag } from './claims'
+import { PROSE_TAGS, claimSchema } from './claims'
+import type { ProseTag } from './claims'
 import { nonBlank, sha256Hex } from './common'
 import { artifactSchema, blockSchema, cardFrontMatterSchema, LANES, lessonFrontMatterSchema, moduleFrontMatterSchema, STATUSES } from './content'
 import type { Block } from './content'
@@ -35,7 +35,7 @@ export type ProseInline =
   /** `{{ks:T5.L7}}`, a link out to a kernelspace lesson or KC. `ref` carries the `ks:` prefix, as `builds_on` does. */
   | { type: 'ks'; ref: string }
   /** One of the four tags (A§0), shown as a chip. */
-  | { type: 'tag'; tag: ClaimTag }
+  | { type: 'tag'; tag: ProseTag }
 
 export type ProseAlign = 'left' | 'center' | 'right' | null
 
@@ -64,7 +64,7 @@ export const proseInlineSchema: z.ZodType<ProseInline> = z.lazy(() =>
     z.strictObject({ type: z.literal('link'), href: hrefSchema, children: z.array(proseInlineSchema).min(1) }),
     z.strictObject({ type: z.literal('claim'), id: z.string().min(1) }),
     z.strictObject({ type: z.literal('ks'), ref: z.string().min(1) }),
-    z.strictObject({ type: z.literal('tag'), tag: z.enum(CLAIM_TAGS) }),
+    z.strictObject({ type: z.literal('tag'), tag: z.enum(PROSE_TAGS) }),
   ]),
 )
 

@@ -72,9 +72,9 @@ Check what a bubble is before you go on.
 
 ## The same rule on two real-sized cards
 
-The levels after the first four run the step loop in microseconds on two cost cards. `70B on H100` takes its forward from kernelspace's S5 fit, with S5's host term on the CPU lane, and the small model is a napkin on a `24 GB` card, synthetic. The table is one steady step of the `async` level's practice run, with every batch slot full and every row a decode, and the next call written after the forward. Read on 2026-11-08 at `b5fb81a`.
+The levels after the first four run the step loop in microseconds on two cost cards. `70B on H100` takes its forward from kernelspace's S5 fit, with S5's host term on the CPU lane, and the small model is a napkin on a `24 GB` card, synthetic. The table is one steady step of the `async` level's practice run, with every batch slot full and every row a decode, and the next call written after the forward. Printed by the course's model on 2026-11-08 at `b5fb81a`.
 
-| The step's phase | 70B on H100, µs [measured] | Small model, µs [measured] |
+| The step's phase | 70B on H100, µs [synthetic] | Small model, µs [synthetic] |
 |---|---|---|
 | `schedule` | 883 | 510 |
 | `prepare` | 24 | 24 |
@@ -87,7 +87,7 @@ The levels after the first four run the step loop in microseconds on two cost ca
 
 The host phases are the model's [estimated] presets. The `schedule` row of the `70B on H100` card is the host card's base phase and S5's host term for each of the twelve rows, which is **61.1 us** [measured] per running sequence per step, so the card has no `sample` row of its own. On the small card the host card prices the per-sequence work itself, in the `sample` row.
 
-Two things stand out. The GPU's idle time before a step is its CPU's work, row for row: 957 µs and 764 µs [measured]. That is the arithmetic of your prediction, on bigger numbers. And the same CPU part is a very different bubble. The big model's forward is long, so its GPU is busy for 92.6% [derived] of the clock even with nothing overlapped. The small model's forward is barely longer than the CPU's work, so its GPU is busy for 61.6% [derived]. This is why "host overhead" is a small model's complaint, and a small batch's: the CPU part does not shrink with the model, and the forward does.
+Two things stand out. The GPU's idle time before a step is its CPU's work, row for row: 957 µs and 764 µs [synthetic]. That is the arithmetic of your prediction, on bigger numbers. And the same CPU part is a very different bubble. The big model's forward is long, so its GPU is busy for 92.6% [derived] of the clock even with nothing overlapped. The small model's forward is barely longer than the CPU's work, so its GPU is busy for 61.6% [derived]. This is why "host overhead" is a small model's complaint, and a small batch's: the CPU part does not shrink with the model, and the forward does.
 
 ## What a profiler shows, and a number to leave alone
 
