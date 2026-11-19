@@ -871,6 +871,22 @@ Tolerance unchanged (1 percent) for every one; each diff was read by its task be
 
 Two came from `frame`, five from `front` and one from `small`, and `p11` re-blessed two of `front`'s again. The other five tasks, `p09` and the authoring merges re-blessed none.
 
+**Ten more, after the first run of the pull request's CI (2026-11-19, at `9b7ceb9`).** That run failed one test: `front-1280.png` differed from the runner's rendering by 10,715 pixels of 1,024,000, 1.05 percent, where every run on the build machine had found it under the 1 percent tolerance. The baseline was stale, not the page: it dated from R-T19 and lacked the kernelspace line in the lede and the reference outlines, which `front` added. Regenerating all eighteen baselines from the tip showed nine more that had drifted the same way, each under the tolerance and so never failing: a baseline within 1 percent of a changed page is not re-blessed by `--update-snapshots`, and the test passes on it. All ten were regenerated (an eleventh, `tr1-lesson-1-1440.png`, came out pixel for pixel the same and was left) at the unchanged tolerance; a second regeneration on two cores gave the same eighteen images pixel for pixel.
+
+| Baseline | Pixels that differed at all, percent | What had changed on the page |
+|---|---|---|
+| `front-1280.png` | 4.07 | the kernelspace line in the lede, the reference outlines in the plot, Undo and Auto-step on the step control's row |
+| `front-first-visit-1440.png` | 1.79 | the same |
+| `front-returning-1440.png` | 0.71 | differs between y 336 and 683; not read as a pair |
+| `tr5a-lesson-1-1440.png` | 3.01 | the first run's dock holds Next and the parts' list, where the image showed one sentence and the readout |
+| `kv-page-pool-1440.png` | 12.88 | the sheet ends at its legend, where it ran to the screen's foot; "More below" over the readout |
+| `request-path-1440.png` | 0.79 | the worked example's columns at their full height with the call down one column; "More below" |
+| `request-path-390.png` | 1.88 | the worked example re-laid: the request's node and name 38 px to the right, the two processes wider |
+| `tr1-lesson-1-390.png` | 0.48 | differs between y 99 and 114, the breadcrumb's rows; not read as a pair |
+| `course-1440.png`, `course-390.png` | 0.03, 0.12 | one row at y 425; two rows near y 673 to 699; not read as pairs |
+
+[measured 2026-11-19 on the regeneration, the committed image against the regenerated one]. Six of the ten were read as pairs before the commit; the other four moved by the figures given and were not. Left for the next wave: a check that fails when a committed baseline differs from a regeneration at all, so a changed page cannot keep an old image under the tolerance.
+
 ### 7.7 Tests that changed with the design
 
 - `tests/play/loop-track.test.ts` and `e2e/loop-scene.spec.ts`: five cameras, not six; the scene draws no queue chip and no pick on one; two bands of runs on one clock.
