@@ -7,7 +7,7 @@
  * Nothing here touches the DOM, Vite or React, and nothing reads the clock: `today` is always a parameter.
  */
 import type { ReactNode } from 'react'
-import type { Claim, CompiledBlock, CompiledCard, IndexLesson, IndexModule, ProseFlow, ProseInline } from '@es/schema'
+import type { Claim, CompiledBlock, CompiledCard, IndexLesson, ProseFlow, ProseInline } from '@es/schema'
 import type { ReadoutUnit } from '@/design/components/Readout'
 import { LAB_TITLES } from '@/forge/titles'
 
@@ -247,8 +247,8 @@ export const LANE_NAMES: Readonly<Record<string, string>> = { B: 'browser', L: '
 export const laneName = (lane: string): string => (Object.hasOwn(LANE_NAMES, lane) ? LANE_NAMES[lane] : lane)
 
 /** The lessons before and after one, in the order the module lists them. */
-export function neighbours(module: IndexModule | undefined, slug: string): { previous: IndexLesson | null; next: IndexLesson | null } {
-  const lessons = module?.lessons ?? []
+export function neighbours(rows: readonly IndexLesson[] | undefined, slug: string): { previous: IndexLesson | null; next: IndexLesson | null } {
+  const lessons = rows ?? []
   const at = lessons.findIndex((lesson) => lesson.slug === slug)
   if (at < 0) return { previous: null, next: null }
   return { previous: lessons[at - 1] ?? null, next: lessons[at + 1] ?? null }

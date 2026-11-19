@@ -203,11 +203,11 @@ describe('a real build', () => {
 
   test('names the first lesson, its minutes and what it needs in the way into the course, from the compiled index', () => {
     const index = JSON.parse(readFileSync(path.join(root, 'src/content/generated/index.json'), 'utf8')) as {
-      modules: { id: string; lessons: { route: string; title: string; minutes: number; needs?: string[] }[] }[]
+      firstLesson?: { module: string; route: string; title: string; minutes: number; needs?: string[] }
     }
-    const module = index.modules.find((candidate) => candidate.lessons.length > 0)
-    const lesson = module?.lessons[0]
-    if (module === undefined || lesson === undefined) throw new Error('the index has no lesson')
+    const lesson = index.firstLesson
+    if (lesson === undefined) throw new Error('the index has no first lesson')
+    const module = { id: lesson.module }
     const name = `TR${module.id.slice(2)} lesson 1`
     const below = html.slice(html.indexOf('class="es-front-below__start"'))
     const start = new RegExp(`<a [^>]*href="${lesson.route}"[^>]*>([\\s\\S]*?)</a>`).exec(below)
@@ -229,12 +229,12 @@ describe('a real build', () => {
   })
 
   test('prints the path from the compiled course index: every module, the published ones as links, the first marked, with the total', () => {
-    const index = JSON.parse(readFileSync(path.join(root, 'src/content/generated/index.json'), 'utf8')) as { modules: { id: string; route: string; lessons: unknown[] }[] }
+    const index = JSON.parse(readFileSync(path.join(root, 'src/content/generated/index.json'), 'utf8')) as { modules: { id: string; route: string; published: boolean }[] }
     const path_ = html.slice(html.indexOf('class="es-front-path"'), html.indexOf('class="es-front-below__start"'))
     expect(index.modules.length).toBeGreaterThan(5)
     for (const module of index.modules) {
       expect(path_).toContain(`data-module="${module.id}"`)
-      if (module.lessons.length > 0) expect(path_).toContain(`href="${module.route}"`)
+      if (module.published) expect(path_).toContain(`href="${module.route}"`)
       else expect(path_).not.toContain(`href="${module.route}"`)
     }
     expect(path_).toMatch(/data-module="tr1" data-start="true"[\s\S]*?Start here/)

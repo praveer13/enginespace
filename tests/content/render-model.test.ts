@@ -4,7 +4,7 @@
  * days a claim counts in. The components only draw these answers, and tests/content/render.test.ts draws them.
  */
 import { describe, expect, test } from 'bun:test'
-import type { CompiledBlock, IndexLesson, IndexModule, ProseFlow, ProseInline } from '@es/schema'
+import type { CompiledBlock, IndexLesson, ProseFlow, ProseInline } from '@es/schema'
 import {
   citedClaimIds,
   decimals,
@@ -188,15 +188,7 @@ describe('days', () => {
 
 describe('lessons and lanes', () => {
   const lesson = (n: number): IndexLesson => ({ id: `tr2.l${n}`, slug: `l${n}-x`, title: `Lesson ${n}`, route: `/m/tr2/l${n}-x`, minutes: 10, status: 'draft' })
-  const module: IndexModule = {
-    id: 'tr2',
-    title: 'The step loop',
-    route: '/m/tr2',
-    status: 'draft',
-    hours: 10,
-    hours_by_lane: { B: 10 },
-    lessons: [lesson(0), lesson(1), lesson(2)],
-  }
+  const module = [lesson(0), lesson(1), lesson(2)]
 
   test('the lessons before and after one, in the module\'s order, and none past either end', () => {
     expect(neighbours(module, 'l1-x')).toEqual({ previous: lesson(0), next: lesson(2) })

@@ -161,22 +161,40 @@ export const indexModuleSchema = z.strictObject({
   route: z.string().regex(/^\/m\/[a-z0-9]+$/),
   /** `planned` is a module in `course.yaml` with no `module.md` yet. */
   status: z.enum(['planned', ...STATUSES]),
+  /** True when the module has at least one lesson. The front page reads this where it once counted the module's lessons. */
+  published: z.boolean(),
   hours,
   hours_by_lane: z.strictObject({ B: hours.optional(), L: hours.optional(), F: hours.optional() }),
   /** From `module.md`, so a planned module has neither. */
   prereqs: z.array(prereqSchema).optional(),
   games: z.array(gameIdSchema).optional(),
-  lessons: z.array(indexLessonSchema),
+})
+
+/** The course's first lesson as the front page names it: only what the page prints, so the index does not grow with the lessons. */
+export const firstLessonSchema = z.strictObject({
+  module: moduleIdSchema,
+  title: nonBlank,
+  route: indexLessonSchema.shape.route,
+  minutes: indexLessonSchema.shape.minutes,
+  needs: indexLessonSchema.shape.needs,
 })
 
 /**
- * The course index: modules, lessons, titles, routes and hours. It is in the entry's closure (A§4.6), so it stays small, and
- * `verify:content` holds it to 6 KB gz.
+ * The course index: the modules, whether each is published, and the course's first lesson. It is in the front page's first-paint
+ * closure (A§4.6), so it holds nothing that grows with the number of lessons: those rows are in the lesson index, which a page
+ * loads when it shows a module or a lesson. `verify:content` holds it to 6 KB gz.
  */
 export const contentIndexSchema = z.strictObject({
   /** The sum of the modules' hours, [derived]. */
   totalHours: hours,
+  /** Absent while no module has a lesson. */
+  firstLesson: firstLessonSchema.optional(),
   modules: z.array(indexModuleSchema).min(1),
+})
+
+/** The lesson index: each module's lessons in course order, a second generated file that the pages that list lessons load on demand. */
+export const lessonIndexSchema = z.strictObject({
+  modules: z.record(moduleIdSchema, z.array(indexLessonSchema)),
 })
 
 /** `public/claims.json`, for the claim chips and the about page. Claims are sorted by id. */
@@ -269,6 +287,8 @@ export type CompiledLesson = z.infer<typeof compiledLessonSchema>
 export type CompiledModule = z.infer<typeof compiledModuleSchema>
 export type CompiledCard = z.infer<typeof compiledCardSchema>
 export type IndexLesson = z.infer<typeof indexLessonSchema>
+export type FirstLesson = z.infer<typeof firstLessonSchema>
+export type LessonIndex = z.infer<typeof lessonIndexSchema>
 export type IndexModule = z.infer<typeof indexModuleSchema>
 export type ContentIndex = z.infer<typeof contentIndexSchema>
 export type ClaimsOutput = z.infer<typeof claimsOutputSchema>

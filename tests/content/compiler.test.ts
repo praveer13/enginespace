@@ -27,8 +27,8 @@ const INDEX_JSON = 'src/content/generated/index.json'
 
 const lesson = readSample(LESSON)
 const sample = compile()
-/** The files the sample writes: the index, the map, the claims, the export of the module and its lesson, their JSON, and one JSON for each card. */
-const OUTPUT_COUNT = 8 + CARD_COUNT
+/** The files the sample writes: the index, the lesson index, the map, the claims, the export of the module and its lesson, their JSON, and one JSON for each card. */
+const OUTPUT_COUNT = 9 + CARD_COUNT
 
 describe('the sample content compiles', () => {
   test('without a diagnostic of any kind', () => {
@@ -45,6 +45,7 @@ describe('the sample content compiles', () => {
         'public/md/tr2/l0-sample.md',
         ...CARD_IDS.map((id) => `src/content/generated/cards/${id}.json`),
         'src/content/generated/index.json',
+        'src/content/generated/lesson-index.json',
         'src/content/generated/lessons/tr2.l0-sample.json',
         'src/content/generated/map.json',
         'src/content/generated/modules/tr2.json',

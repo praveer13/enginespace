@@ -14,6 +14,7 @@ import {
   compiledModuleSchema,
   contentIndexSchema,
   courseSchema,
+  lessonIndexSchema,
   lessonRoute,
   lessonSlugSchema,
   moduleRoute,
@@ -34,6 +35,7 @@ const lesson = sampleOutput('src/content/generated/lessons/tr2.l0-sample.json')
 const card = output('src/content/generated/cards/trace-room-steploop.json')
 const module_ = sampleOutput('src/content/generated/modules/tr2.json')
 const index = output('src/content/generated/index.json')
+const lessonIndex = output('src/content/generated/lesson-index.json')
 const claims = output('public/claims.json')
 const course = yaml(read('content/course.yaml'))
 
@@ -141,11 +143,10 @@ describe('compiled lessons and modules', () => {
   test('have routes that the index agrees with', () => {
     expect(moduleRoute('tr2')).toBe('/m/tr2')
     expect(lessonRoute('tr2', 'l0-sample')).toBe('/m/tr2/l0-sample')
-    const modules = (index as { modules: { id: string; route: string; lessons: { slug: string; route: string }[] }[] }).modules
-    for (const module of modules) {
-      expect(module.route).toBe(moduleRoute(module.id))
-      for (const entry of module.lessons) expect(entry.route).toBe(lessonRoute(module.id, entry.slug))
-    }
+    const modules = (index as { modules: { id: string; route: string }[] }).modules
+    for (const module of modules) expect(module.route).toBe(moduleRoute(module.id))
+    const rows = lessonIndexSchema.parse(lessonIndex).modules
+    for (const [id, lessons] of Object.entries(rows)) for (const entry of lessons) expect(entry.route).toBe(lessonRoute(id, entry.slug))
   })
 
   test('the index lists every module of course.yaml once, in order, with the hours of its lanes', () => {
@@ -167,7 +168,7 @@ describe('compiled lessons and modules', () => {
     const written = (id: string) => existsSync(path.resolve(import.meta.dirname, '../../content/modules', id, 'module.md'))
     expect(parsed.modules.filter((m) => m.status === 'planned').map((m) => m.id)).toEqual(listed.filter((id) => !written(id)))
     expect(parsed.modules.filter((m) => m.status !== 'planned').map((m) => m.id)).toEqual(listed.filter(written))
-    expect(parsed.modules.filter((m) => m.status === 'planned').every((m) => m.lessons.length === 0)).toBe(true)
+    expect(parsed.modules.filter((m) => m.status === 'planned').every((m) => !m.published)).toBe(true)
   })
 })
 

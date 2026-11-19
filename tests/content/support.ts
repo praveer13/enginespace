@@ -83,8 +83,8 @@ export const REPO_LESSONS = contentCounts().lessons
 const plural = (count: number, one: string, many: string): string => `${count} ${count === 1 ? one : many}`
 /** What the gates and the compiler print for the repo itself, as `2 modules, 5 lessons`. */
 export const REPO_COUNTS = `${plural(REPO_MODULES, 'module', 'modules')}, ${plural(REPO_LESSONS, 'lesson', 'lessons')}`
-/** The files the compiler writes for the repo: the index, the map, the claims and llms.txt, two for each module and each lesson (the export and the JSON), and one JSON for each card. */
-export const REPO_OUTPUT_COUNT = 4 + 2 * REPO_MODULES + 2 * REPO_LESSONS + CARD_COUNT
+/** The files the compiler writes for the repo: the index, the lesson index, the map, the claims and llms.txt, two for each module and each lesson (the export and the JSON), and one JSON for each card. */
+export const REPO_OUTPUT_COUNT = 5 + 2 * REPO_MODULES + 2 * REPO_LESSONS + CARD_COUNT
 
 const scratch: string[] = []
 afterAll(() => {

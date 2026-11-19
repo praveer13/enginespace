@@ -24,15 +24,15 @@ const globsOf = (text: string) =>
 describe('the loader, outside Vite', () => {
   test('imports without evaluating a glob, because every glob sits inside a function', () => {
     const globs = [...globsOf(source), ...globsOf(lessonsSource)]
-    expect(globs.length).toBe(4)
+    expect(globs.length).toBe(5)
     for (const line of globs) expect(line).toMatch(/^const \w+ = \(\) => import\.meta\.glob/)
   })
 
-  test("keeps the tables that grow with the course out of load.ts: the index is its one glob, and the lessons', modules' and cards' are in load-lessons.ts (D-059)", () => {
+  test("keeps the tables that grow with the course out of load.ts: the index is its one glob, and the lessons', modules', lesson index's and cards' are in load-lessons.ts (D-059)", () => {
     // load.ts is in the closure of the front page's first paint (its loader awaits the index) and of every game that cites a claim, and
     // a glob's table names every file it can load. A lesson written later must not grow those pages.
     expect(globsOf(source)).toEqual([expect.stringContaining("'./generated/index.json'")])
-    expect(globsOf(lessonsSource).map((line) => /'\.\/generated\/(\w+)\//.exec(line)?.[1])).toEqual(['lessons', 'modules', 'cards'])
+    expect(globsOf(lessonsSource).map((line) => /'\.\/generated\/([\w-]+)[/.]/.exec(line)?.[1])).toEqual(['lessons', 'modules', 'lesson-index', 'cards'])
   })
 
   test('a load that cannot run is a rejected promise, never a throw', async () => {

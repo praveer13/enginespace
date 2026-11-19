@@ -32,7 +32,7 @@ const plan = planPages(routes, sources)
 /** How many things fill each parameterised route's parameters in this checkout: the documents it should have. */
 const instances: Record<string, number> = {
   '/m/:module': sources.index.modules.length,
-  '/m/:module/:lesson': sources.index.modules.reduce((sum, module) => sum + module.lessons.length, 0),
+  '/m/:module/:lesson': sources.index.modules.reduce((sum, module) => sum + (sources.lessons.modules[module.id] ?? []).length, 0),
   '/play/:game': sources.games.length,
   '/labs/:lab': sources.labs.length,
   '/trace-room/:trace': sources.traces.length,
@@ -110,7 +110,7 @@ describe('acceptance 1: every route-table entry gets an index.html with a distin
   test('every module and lesson has the title that its page sets once it has loaded (titled(title)), and the fallback says it is not found', async () => {
     for (const module of sources.index.modules) {
       expect(await titleOf(readFile(dist, `${module.route.slice(1)}/index.html`))).toBe(`${module.title} · enginespace`)
-      for (const lesson of module.lessons) expect(await titleOf(readFile(dist, `${lesson.route.slice(1)}/index.html`))).toBe(`${lesson.title} · enginespace`)
+      for (const lesson of sources.lessons.modules[module.id] ?? []) expect(await titleOf(readFile(dist, `${lesson.route.slice(1)}/index.html`))).toBe(`${lesson.title} · enginespace`)
     }
     expect(await titleOf(readFile(dist, '404.html'))).toBe('Page not found · enginespace')
   })
@@ -129,9 +129,9 @@ describe('acceptance 2: the CSP <meta> is the first element after <meta charset>
   test('the build has documents to check, among them the front page, a module, a lesson, a lab and the fallback', () => {
     const files = htmlFilesUnder(dist)
     expect(files.length).toBeGreaterThan(20)
-    const [module] = sources.index.modules.filter((candidate) => candidate.lessons.length > 0)
+    const [module] = sources.index.modules.filter((candidate) => candidate.published)
     expect(files).toEqual(
-      expect.arrayContaining(['index.html', '404.html', 'map/index.html', `${module.route.slice(1)}/index.html`, `${module.lessons[0].route.slice(1)}/index.html`, `labs/${sources.labs[0]}/index.html`]),
+      expect.arrayContaining(['index.html', '404.html', 'map/index.html', `${module.route.slice(1)}/index.html`, `${sources.lessons.modules[module.id][0].route.slice(1)}/index.html`, `labs/${sources.labs[0]}/index.html`]),
     )
   })
 

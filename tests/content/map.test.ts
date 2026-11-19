@@ -10,8 +10,8 @@ import { describe, expect, test } from 'bun:test'
 import { readdirSync } from 'node:fs'
 import path from 'node:path'
 import { gzipSync } from 'node:zlib'
-import { compiledLessonSchema, courseMapSchema, courseSchema, kcGraphSchema } from '@es/schema'
-import type { ContentIndex, CourseMap } from '@es/schema'
+import { compiledLessonSchema, courseMapSchema, courseSchema, kcGraphSchema, lessonIndexSchema } from '@es/schema'
+import type { CourseMap } from '@es/schema'
 import { headingIds } from '@/content/render/model'
 import { BUDGETS, compileContent, lessonRow } from '../../scripts/content/build.ts'
 import { loadYaml } from '../../scripts/content/parse.ts'
@@ -219,8 +219,8 @@ describe('the artifacts are the ones the module\'s curriculum file gives', () =>
 describe('the lessons table', () => {
   const real = compileContent({ root })
   const realMap = courseMapSchema.parse(JSON.parse(output(real, MAP_JSON)))
-  const index = JSON.parse(output(real, 'src/content/generated/index.json')) as ContentIndex
-  const built = index.modules.flatMap((module) => module.lessons.map((lesson) => ({ module: module.id, lesson })))
+  const lessonIndex = lessonIndexSchema.parse(JSON.parse(output(real, 'src/content/generated/lesson-index.json')))
+  const built = Object.entries(lessonIndex.modules).flatMap(([module, rows]) => rows.map((lesson) => ({ module, lesson })))
   const lessonJson = (module: string, slug: string) => compiledLessonSchema.parse(JSON.parse(output(real, `src/content/generated/lessons/${module}.${slug}.json`)))
 
   test('has a row for each built lesson, in course order, and the map stays within its budget', () => {
