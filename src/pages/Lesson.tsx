@@ -295,6 +295,28 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
   const names = useLevelNames()
   const levelTitle = (game: string, level: string) => names(game, level) ?? rosterEntry(game)?.title ?? 'A level'
   const wide = useWide()
+  // On a narrow, short-enough page the strip's own place in the flow can fall into the bar's zone at the top of the page, and the bar would
+  // cover half of the strip's button. While it does, the bar steps aside (hidden, so it is neither seen nor tabbed to); once the page has
+  // scrolled, or the strip is stuck at the top, the two never meet.
+  useEffect(() => {
+    if (wide) return
+    const settle = () => {
+      const foot = document.querySelector<HTMLElement>('.es-lesson__foot')
+      const strip = document.querySelector<HTMLElement>('.es-lesson__strip')
+      if (foot === null || strip === null) return
+      const bar = foot.getBoundingClientRect()
+      const at = strip.getBoundingClientRect()
+      if (at.top < bar.bottom && at.bottom > bar.top) foot.setAttribute('data-over-strip', '')
+      else foot.removeAttribute('data-over-strip')
+    }
+    settle()
+    window.addEventListener('scroll', settle, { passive: true })
+    window.addEventListener('resize', settle)
+    return () => {
+      window.removeEventListener('scroll', settle)
+      window.removeEventListener('resize', settle)
+    }
+  })
   // The dock stands beside Read only once there is a run to show: an empty "Your run appears here" box would narrow the text for nothing.
   const hasRun = useHasRun(lesson.id)
   const docked = useDocked() && hasRun

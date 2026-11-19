@@ -862,6 +862,11 @@
   }
 }
 
+/* While the strip's place in the flow lies under the bar (Lesson.tsx), the bar waits: it would cover the strip's button. */
+.es-lesson__foot[data-over-strip] {
+  visibility: hidden;
+}
+
 /* The label names its target in full: a long part title wraps to a second line inside the bar, and is never cut at either end. */
 .es-lesson__foot-action {
   display: flex;

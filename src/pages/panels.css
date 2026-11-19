@@ -602,6 +602,32 @@
   font-family: var(--es-font-numeric);
 }
 
+.es-pins__kind {
+  display: block;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+}
+
+/* A date is one token, whatever the width: it never breaks at its hyphens. */
+.es-pins__read {
+  white-space: nowrap;
+}
+
+/* Below 40rem the Kind column gives way to the line under each name. */
+.es-pins__kindcol {
+  display: none;
+}
+
+@media (min-width: 40rem) {
+  .es-pins__kindcol {
+    display: table-cell;
+  }
+
+  .es-pins__kind {
+    display: none;
+  }
+}
+
 .es-pins__stamp {
   margin: 0;
 }

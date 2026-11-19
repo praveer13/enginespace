@@ -41,16 +41,6 @@
       "note": "fails on the wave base"
     },
     {
-      "file": "e2e/a11y.spec.ts",
-      "title": "at 320 px > /changes: no text is cut off at the right edge, and the page does not scroll sideways",
-      "note": "fails on the wave base"
-    },
-    {
-      "file": "e2e/a11y.spec.ts",
-      "title": "at 320 px > /m/tr2/l2-one-token-budget: axe finds no serious or critical violation, and the headings are an outline",
-      "note": "fails on the wave base"
-    },
-    {
       "file": "e2e/walks.spec.ts",
       "title": "at 360 px > Rejection sampler (verifier), \"Greedy target, n-gram draft\" (greedy-ngram): the keys alone play it to its debrief, with focus in view at every stop",
       "note": "fails on the wave base"
