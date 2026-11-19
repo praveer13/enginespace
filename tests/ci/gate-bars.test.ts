@@ -115,12 +115,12 @@ describe('the other bars', () => {
 
   test('every kind of skip, in an existing file and in a new one', () => {
     // The words are joined from pieces, so that this file holds no skip itself: the gate reads its own branch.
-    const [skip, fixme, todo, skipIf, only] = ['skip', 'fixme', 'todo', 'skipIf', 'only']
+    const [skip, fixme, todo, only] = ['skip', 'fixme', 'todo', 'only']
     const guards = [
       ['e2e/a.spec.ts', `  test.${skip}(isMobile, 'later')`],
       ['e2e/a.spec.ts', `test.${fixme}('b', async () => {})`],
       ['e2e/a.spec.ts', `test.${todo}('c')`],
-      ['tests/a.test.ts', `test.${skipIf}(!process.env.CI)('d', () => {})`],
+      ['tests/a.test.ts', `test.${skip}If(!process.env.CI)('d', () => {})`],
       ['tests/a.test.ts', `test.${only}('e', () => {})`],
       ['labs/grader/tests/test_a.py', `@unittest.${skip}Unless(torch is not None, "needs torch")`],
       ['labs/grader/tests/test_a.py', `torch = pytest.importor${skip}("torch")`],
