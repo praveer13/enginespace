@@ -28,6 +28,7 @@ import { isAnswered, isAtCommit, isHeld, NO_BLOCK, PLAN, planOf, UNLISTED } from
 import { SAME, sameFor } from '@es/play/predictions/same'
 import { commitFor, MODULES_WITH_COMMITS, MODULES_WITH_READINGS, referenceFor } from '@es/play/predictions/truth'
 import { findBanned } from '@/copy/banned'
+import { TOTAL_AFTER_GAME, TOTAL_AT_COMMIT, TOTAL_PREDICTIONS } from '../content/module-counts'
 import { answeringBlock } from '@/content/render/model'
 import { compileContent } from '../../scripts/content/build.ts'
 import { repo } from '../content/support.ts'
@@ -69,13 +70,13 @@ const claims = new Map(
 const LESSON_FIGURES: Readonly<Record<string, { readonly unit: string; readonly reference: () => number }>> = { ...TR1, ...TR2, ...TR5A, ...TR8 }
 
 describe('the table of which run answers which prediction', () => {
-  test('has a row for each of the lessons\' 39 predictions and for no other, in the lessons\' own order', () => {
-    expect(predictions.length).toBe(39)
+  test('has a row for each of the lessons\' predictions and for no other, in the lessons\' own order', () => {
+    expect(predictions.length).toBe(TOTAL_PREDICTIONS)
     expect(Object.keys(PLAN).sort()).toEqual(predictions.map(({ block }) => block.id).sort())
   })
 
-  test('reveals 18 of them after a run and 21 at commit, and leaves none held', () => {
-    expect([answered.length, atCommit.length, predictions.filter(({ plan }) => isHeld(plan)).length]).toEqual([18, 21, 0])
+  test("reveals the counts of the table's rows after a run and at commit (18 and 21 today), and leaves none held", () => {
+    expect([answered.length, atCommit.length, predictions.filter(({ plan }) => isHeld(plan)).length]).toEqual([TOTAL_AFTER_GAME, TOTAL_AT_COMMIT, 0])
   })
 
   test("the lesson's own `reveal` says what the row says", () => {

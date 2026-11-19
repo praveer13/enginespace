@@ -9,6 +9,7 @@ import type { CompiledBlock, CompiledLesson } from '@es/schema'
 import { groupSections, SETUP_WORDS, testLabel } from '@/content/render/sections'
 import { compileContent } from '../../scripts/content/build.ts'
 import { repo } from './support.ts'
+import { TOTAL_LESSONS } from './module-counts.ts'
 
 const compiled = compileContent({ root: repo })
 const lessons: CompiledLesson[] = compiled.outputs
@@ -19,8 +20,8 @@ const rowOf = (id: string) => map.lessons.find((row) => row.id === id)
 const ref = (block: CompiledBlock) => (block.type === 'game' ? `play:${block.id}/${block.level}` : '')
 
 describe('groupSections', () => {
-  test('runs over all 27 built lessons without error and gives each a Test', () => {
-    expect(lessons.length).toBe(27)
+  test('runs over every built lesson without error and gives each a Test', () => {
+    expect(lessons.length).toBe(TOTAL_LESSONS)
     const problems = lessons.flatMap((lesson) => {
       const sections = groupSections(lesson.blocks)
       return sections.test.questions.length + sections.test.graded.length > 0 ? [] : [`${lesson.id} has no Test`]

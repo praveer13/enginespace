@@ -20,20 +20,15 @@ import { GATES } from '../../scripts/verify.ts'
 import { checkKc, courseModules, gameReferences, itemReferences, labReferences, trackerTasks } from '../../scripts/verify-kc.ts'
 import { parseSnapshot } from '../../scripts/kc/kernelspace.ts'
 import { between, read, root } from '../ci/support'
+import { BUILT_MODULES } from '../content/module-counts'
 
 const text = read('content/kc/graph.yaml')
 const loaded = loadYaml(text, 'content/kc/graph.yaml', 1, 'kc', [])
 const graph: readonly Kc[] = kcGraphSchema.parse(loaded.ok ? loaded.value : undefined)
 const moduleOf = (kc: Kc) => kc.id.slice(0, kc.id.indexOf('.'))
 
-/** The five modules W1 ships, each with the curriculum file that proposes its KCs. */
-const MODULES = [
-  ['tr1', 'curriculum/TR1-read-the-engines.md'],
-  ['tr2', 'curriculum/TR2-the-step-loop.md'],
-  ['tr5a', 'curriculum/TR5a-hybrid-kv-and-adapter-pages.md'],
-  ['tr6', 'curriculum/TR6-speculation-and-structure.md'],
-  ['tr8', 'curriculum/TR8-benchmark-like-you-mean-it.md'],
-] as const
+/** The modules that have lessons, each with the curriculum file that proposes its KCs: the rows of tests/content/module-counts.ts. */
+const MODULES: readonly (readonly [string, string])[] = BUILT_MODULES.map((row) => [row.id, row.curriculum])
 
 /** The rows of a curriculum file's table of KCs: the KC in the first column, what it requires in the second. */
 function proposed(file: string): { id: string; requires: string[] }[] {

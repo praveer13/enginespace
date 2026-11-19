@@ -18,6 +18,7 @@ import { FIRST_SERVICE } from '@es/play/loop/entry'
 import { FRONT_LEVELS, SMOKE_LEVELS, WALKED } from '../../e2e/levels'
 import { PR_ROUTES, W1_LEVEL_PAGES, W1_ROUTES, W2_ROUTES } from '../../e2e/routes'
 import { read, root } from './support'
+import { GAMES_WITH_SCENE } from '../content/module-counts'
 
 const PATH = /^\/(?:[A-Za-z0-9][A-Za-z0-9._-]*(?:\/[A-Za-z0-9][A-Za-z0-9._-]*)*)?$/
 const walked: Readonly<Record<string, readonly string[]>> = WALKED
@@ -119,6 +120,6 @@ describe('the 3D scenes', () => {
     // `HAS_3D` is built from the registry's `has3d`, so a game that adds a scene is covered without being listed anywhere.
     expect(site).toContain('GAMES.games.filter((game) => game.has3d)')
     expect(read('e2e/reduced-motion.spec.ts')).toContain('ROUTES.filter(SCENE_IN_RUN)')
-    expect(GAMES.games.filter((game) => game.has3d).map((game) => game.id).sort()).toEqual(['loop', 'pool', 'verifier'])
+    expect(GAMES.games.filter((game) => game.has3d).map((game) => game.id).sort()).toEqual([...GAMES_WITH_SCENE])
   })
 })
