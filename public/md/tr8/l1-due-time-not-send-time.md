@@ -39,7 +39,7 @@ The log of every report keeps both times for each request. Before you read one, 
 
 Here is the log of the guess, for its first eight requests. The client sends a request when it is due or when its last reply has come, whichever is later.
 
-| Request | Due, ms [estimated] | Sent, ms [derived] | Slip, ms [derived] | Reply, ms [derived] | Timed from the send, ms [derived] | Timed from the due time, ms [derived] |
+| Request | Due, ms [estimated] | Sent, ms [derived] | Slip, ms [derived] | Reply, ms [derived] | From the send, ms [derived] | From the due time, ms [derived] |
 |---|---|---|---|---|---|---|
 | #1 | 0 | 0 | 0 | 100 | 100 | 100 |
 | #2 | 500 | 500 | 0 | 600 | 100 | 100 |
@@ -54,7 +54,7 @@ Here is the log of the guess, for its first eight requests. The client sends a r
 
 _The top timeline marks when each of eight requests was due, evenly spaced. The bottom one marks when the client sent each and how long each took. The third request takes most of the width, because the server froze while it was answered and the client was blocked on it. The four requests that fell due meanwhile are sent one after another when it ends, and a dashed line joins each of them to its due tick._
 
-Request #3 is the one the freeze caught, and it took 2,100 ms [derived] either way. Requests #4 to #7 are the ones the timer never saw. Each fell due while the client was still blocked on request #3, so each went out late: read the slip column. Each then took as long as any other request, and that is all the timer measured. The four slips add up to 4,000 ms [derived] that no latency in the log contains.
+Request #3 is the one the freeze caught, and it took 2,100 ms [derived] either way. Requests #4 to #7 are the ones the timer never saw. Each fell due while the client was still blocked on request #3, so each went out late: read the slip column. Each then took as long as requests #1 and #2 did, and that is all the timer measured. The four slips add up to 4,000 ms [derived] that no latency in the log contains.
 
 Five of the 200 requests [estimated] were touched by the freeze, and the timer saw one of them. With 200 values the p99 is the 198th smallest, which is the third largest [derived]. Timed from the send, the third largest is 100 ms [derived]. Timed from the due time it is 1,300 ms [derived]. The freeze is in the maximum of both views, 2,100 ms [derived], and nowhere in the p99 of the send-timed one.
 ## Open and closed

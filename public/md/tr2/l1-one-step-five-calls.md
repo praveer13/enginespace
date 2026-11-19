@@ -26,7 +26,7 @@ Between a request's arrival and its token's departure the engine core schedules,
 
 ## Five calls and a wait
 
-`EngineCore.step` is 31 lines [measured] at the pin, and [these are its first four calls](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L677-L686), with `...` for the lines cut.
+`EngineCore.step` is 31 lines [measured] at the pin, and [these lines hold its first four calls](https://github.com/vllm-project/vllm/blob/v0.33.0/vllm/v1/engine/core.py#L677-L686), the fourth a wait and a sample, with `...` for the lines cut.
 
 ```python
 # vllm/v1/engine/core.py, lines 677 to 686 at v0.33.0
@@ -100,7 +100,7 @@ The levels after the first four run the step loop in microseconds on two cost ca
 
 The host phases are the model's [estimated] presets. The `schedule` row of the `70B on H100` card is the host card's base phase and S5's host term for each of the twelve rows, which is **61.1 us** [measured] per running sequence per step, so the card has no `sample` row of its own. On the small card the host card prices the per-sequence work itself, in the `sample` row.
 
-Two things stand out. The GPU's idle time before a step is its CPU's work, row for row: 957 µs and 764 µs [synthetic]. That is the arithmetic of your prediction, on bigger numbers. And a similar CPU part is a very different bubble on the two cards, which also differ in their GPU and in where the host card prices the per-sequence work. So read them as two cases, not as an effect of size. The big model's forward is long, so its GPU is busy for 92.6% [derived] of the clock even with nothing overlapped. The small model's forward is barely longer than the CPU's work, so its GPU is busy for 61.6% [derived]. This is why "host overhead" is a small model's complaint, and a small batch's: the CPU part does not shrink with the model, and the forward does.
+Two things stand out. The GPU's idle time before a step is its CPU's work, row for row: 957 µs and 764 µs [synthetic]. That is the arithmetic of your prediction, on bigger numbers. And a similar CPU part is a very different bubble on the two cards, which also differ in their GPU and in where the host card prices the per-sequence work. So read them as two cases, not as the effect of size alone. The big model's forward is long, so its GPU is busy for 92.6% [derived] of the clock even with nothing overlapped. The small model's forward is barely longer than the CPU's work, so its GPU is busy for 61.6% [derived]. This is why "host overhead" is a small model's complaint, and a small batch's: the CPU part does not shrink with the model, and the forward does.
 
 ## What a profiler shows, and a number to leave alone
 

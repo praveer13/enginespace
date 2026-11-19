@@ -64,7 +64,7 @@ At light load the two agree to within 4% [derived]. Under overload they part. At
 
 Little's law says that the long-term average number of requests in a stationary system equals their arrival rate times the average time each spends in it. **L = lambda * W** [measured] For a benchmark that reads: mean concurrency equals throughput times mean latency, on a window where the system is steady. At 8 requests a second [estimated] and a mean latency of 2 s [estimated], 16 requests are in flight on average [derived]. If the log's own count of requests in flight comes to 40 [estimated] on average, something is wrong with it: a timestamp, a dropped row, or a window in which the queue was growing.
 
-The same four runs, read through the law, over their arrival windows and counting a request from its send.
+The same four runs of the course's model, read through the law, over their arrival windows and counting a request from its send.
 
 | Load, times capacity [estimated] | In flight, L [synthetic] | Throughput times mean latency [synthetic] | Residual [synthetic] |
 |---|---|---|---|

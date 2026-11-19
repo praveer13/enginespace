@@ -61,7 +61,7 @@ import { formatDiagnostic, isRecord, loadYaml, locate, parseContentFile, problem
 import type { ContentFile, Diagnostic, Gate } from './parse.ts'
 import { headingLines, pacingDiagnostics } from './pacing.ts'
 import type { PaceItem } from './pacing.ts'
-import { compileProse, countWords, numberMessage, untaggedNumbers, WORDS_PER_MINUTE, withoutCode } from './prose.ts'
+import { compileProse, countWords, modelMeasuredSentences, modelMessage, numberMessage, untaggedNumbers, WORDS_PER_MINUTE, withoutCode } from './prose.ts'
 import type { ProseContext } from './prose.ts'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -281,9 +281,19 @@ const COMPILER_KEYS = {
 /** The first line of a front matter key's value. */
 const frontLine = (file: ContentFile, path: (string | number)[]): number => file.frontMatterLine + locate(file.frontMatterText.split('\n'), path)
 
+/**
+ * The number gate for a plain string, a field of the front matter or of a block: every digit run tagged, and no `[measured]` in a
+ * sentence that names the course's own model as its source.
+ */
+function plainNumbers(text: string, file: string, line: number, out: Diagnostic[]): void {
+  const plain = withoutCode(text)
+  for (const sentence of modelMeasuredSentences(plain)) out.push(problem('numbers', 'error', 'model-number-measured', file, line, modelMessage(sentence.text)))
+  for (const finding of untaggedNumbers(plain)) out.push(problem('numbers', 'error', 'untagged-number', file, line, numberMessage(finding)))
+}
+
 /** The number gate, for a plain string of the front matter. */
 function frontNumbers(file: ContentFile, path: (string | number)[], text: string, out: Diagnostic[]): void {
-  for (const finding of untaggedNumbers(withoutCode(text))) out.push(problem('numbers', 'error', 'untagged-number', file.file, frontLine(file, path), numberMessage(finding)))
+  plainNumbers(text, file.file, frontLine(file, path), out)
 }
 
 function linkDiagnostics(problems: readonly LinkProblem[], file: string, yaml: string, firstLine: number, out: Diagnostic[]): void {
@@ -340,7 +350,7 @@ function compileBody(file: ContentFile, sources: Sources, lessonId: string | und
     for (const field of textFields(block)) {
       const line = segment.bodyLine + locate(yamlLines, field.path)
       if (/\{\{|\}\}/.test(field.text)) out.push(problem('content', 'error', 'bad-ref', file.file, line, 'a reference such as {{claim:id}} works in prose only: this field is plain text'))
-      for (const finding of untaggedNumbers(withoutCode(field.text))) out.push(problem('numbers', 'error', 'untagged-number', file.file, line, numberMessage(finding)))
+      plainNumbers(field.text, file.file, line, out)
     }
 
     if (block.type === 'predict' || block.type === 'game' || block.type === 'item' || block.type === 'trace') {

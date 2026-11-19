@@ -755,7 +755,7 @@ describe('lesson 5: the mask against the forward', () => {
     expect([plain.gapUs, spec.fillUs, spec.gapUs, timeline('async', light, 4).gapUs]).toEqual([160, 1200, 860, 860])
     mentions('tr6.l5', 'the rows', 'A request that drafts 4 tokens [estimated] needs 5 rows [derived] where a plain one needs 1.')
     mentions('tr6.l5', 'the fill', 'now fill 12 × 5 × 20 = 1,200 µs [derived]')
-    mentions('tr6.l5', 'the gap', '`100 + 60 + (1,200 − 500)` = 860 µs [derived], and the step loop measures 860 µs [synthetic], against 160 µs [synthetic] for the same grammar without drafts')
+    mentions('tr6.l5', 'the gap', '`100 + 60 + (1,200 − 500)` = 860 µs [derived], and the step loop gives 860 µs [synthetic], against 160 µs [synthetic] for the same grammar without drafts')
   })
 
   test('the figure is the step loop\'s own picture: rebuilt here, it is the file byte for byte', () => {

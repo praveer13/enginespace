@@ -16,9 +16,9 @@
 - `research/upstream-vllm.md` and `research/upstream-sglang.md`, written by this workflow's research agents on 2026-11-03. Their row ids are cited as (vllm R4), (sglang X6) and so on.
 
 **Tags.**
-- [measured]: measured on a real machine, or read from the named source, on 2026-11-03 unless a date is given. It is never a number that the course's own model printed.
+- [measured]: measured on a real machine, or read from the named source, on 2026-11-03 unless a date is given. In content it is never a number that the course's own model printed.
 - [derived]: arithmetic on tagged inputs.
-- [synthetic]: a number that the course's own model printed, at a stated commit and day (prose and tables; a claim of the invented world says `synthetic: true` instead and keeps one of the four tags above).
+- [synthetic]: a number that the course's own model printed, at a stated commit and day (prose and tables; a claim of the invented world says `synthetic: true` instead and keeps one of the four tags above). In content, such a number is [synthetic], never [measured]. In docs, a statistic of the course's own software (a band over seeds, a test's rate, a byte count) stays [measured] and names the tool, the day and the commit.
 - [estimated]: a judgment or a design target. Every budget is a design target and carries [estimated] or [derived].
 - [unverified]: not checked against a primary source. Such a value is never load-bearing until a named task checks it.
 
@@ -72,7 +72,7 @@ Seven rules carry the design.
 | I5 | Determinism | Integer µs time, banned non-deterministic APIs, and committed vectors. | `packages/sim` | Lint, golden vectors, nightly cross-browser hash |
 | I6 | Receipts are verified from raw data | The browser recomputes every summary it can. It never trusts a summary field, a `pass` flag or an exit code alone. | `packages/verify`, `src/workers/receipt.worker.ts` | A forged-receipt bestiary must fail (§8.5) |
 | I7 | Model honesty | A notional-machine card per world, and `synthetic` labels on every synthetic dataset or trace. | `content/cards`, the game registry | `verify:games`, `verify:content` |
-| I8 | Numbers are claims | The claims registry and the four tags. | `content/claims` | `verify:claims`, `verify:numbers` |
+| I8 | Numbers are claims | The claims registry and the five tags. | `content/claims` | `verify:claims`, `verify:numbers` |
 | I9 | Nothing locks | The router has no guards. Prerequisites advise and never block (kernelspace's rule). | `src/routes.tsx` | e2e |
 | I10 | Accessible by default | Every 3D game has a 2D path and a DOM mirror, keyboard control and reduced motion. | `src/scene`, `src/games` | `verify:games`, axe, keyboard walks |
 | I11 | Play first, and fast | A static poster plus the 2D game sit in the first-paint closure, and the 3D loads after LCP. | `index.html`, `src/front` | `verify:bundle`, nightly LCP |
@@ -266,7 +266,7 @@ The cap is eight types, enforced by `verify:content`.
 
 | Block | Carries | Writes to the ledger |
 |---|---|---|
-| prose (implicit) | Markdown, `{{claim:id}}`, the four tags as chips, `{{ks:T5.L7}}` links | nothing |
+| prose (implicit) | Markdown, `{{claim:id}}`, the five tags as chips, `{{ks:T5.L7}}` links | nothing |
 | `predict` | A prompt, an answer shape (numeric with tolerance, choice, or interval), a reveal kind and KCs. The reveal is `after-game`, which shows the answer once the learner has played the level the guess is about, or `at-commit`, which shows it at once, worked from the question's own numbers or from the claim it is about (D-067). Neither earns credit | `predict` (value and truth, no seed) |
 | `item` | A generator family, level and count. Items are drawn on fresh seeds at grade time (§8.2). | `item` |
 | `game` | A game id, a level and a mode (`practice` or `graded`). It embeds `src/games/<id>` (§6). | `play` |
@@ -299,7 +299,7 @@ The cap is eight types, enforced by `verify:content`.
 
 **Why vLLM and SGLang each get their own environment.** The two engines pin different torch builds (2.14.0 against 2.14.1) and different xgrammar builds (0.2.8 against 0.2.7) [measured], so they cannot share one environment (§9.2). The kernelspace twins sit at vLLM v0.31.0 and SGLang v0.5.21 (catalog §3.5), and TR1 names that gap wherever it cites them.
 
-**Tags in prose.** `verify:numbers` scans the compiled prose. Any digit run outside code, a claim reference, an id or a date must carry one of the four tags within its sentence, or the build fails.
+**Tags in prose.** `verify:numbers` scans the compiled prose. Any digit run outside code, a claim reference, an id or a date must carry one of the five tags of §0 within its sentence, or the build fails. A `[measured]` tag fails too where the course's own model is the source (`model-number-measured`): in a sentence that names the model, in the caption of a table that names it and in that table's cells, in a later table of the same `##` part, and in a later sentence of the part that quotes a number of that table. The plain text of blocks and front matter is held to the sentence rule.
 
 **Synthetic data.** Every synthetic trace, workload or benchmark the site shows carries `synthetic: true` and renders a "synthetic" label (PRODUCT.md, "Evidence on Hand").
 

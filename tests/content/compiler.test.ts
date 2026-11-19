@@ -296,6 +296,39 @@ const breaks: Break[] = [
     gate: 'numbers',
     message: /untagged number "8"/,
   },
+  // A number that the course's own model printed is [synthetic]: the plain text of a block and the front matter are held to it too.
+  {
+    name: "a model's number tagged [measured] in a card's body",
+    edit: swap('body: The browser world is a model, and the real engine is the judge.', "body: The course's sim printed 957 µs [measured]. The browser world is a model, and the real engine is the judge."),
+    on: "body: The course's sim printed 957 µs [measured].",
+    code: 'model-number-measured',
+    gate: 'numbers',
+    message: /retag "The course's sim printed 957 µs \[measured\]\."/,
+  },
+  {
+    name: "a model's number tagged [measured] in a prediction's prompt",
+    edit: swap('prompt: With async scheduling on, how many µs', "prompt: The course's sim printed 957 µs [measured]. With async scheduling on, how many µs"),
+    on: "prompt: The course's sim printed 957 µs [measured].",
+    code: 'model-number-measured',
+    gate: 'numbers',
+    message: /\[synthetic\]/,
+  },
+  {
+    name: "a model's number tagged [measured] in a figure's alt text",
+    edit: swap('alt: Two steps on a CPU lane and a GPU lane', 'alt: Two steps on a CPU lane and a GPU lane, which the step loop gives as 957 µs [measured]'),
+    on: 'alt: Two steps on a CPU lane and a GPU lane, which the step loop gives',
+    code: 'model-number-measured',
+    gate: 'numbers',
+    message: /\[synthetic\]/,
+  },
+  {
+    name: "a model's number tagged [measured] in a title",
+    edit: swap('title: A sample lesson that uses every block', 'title: A sample lesson whose step the model prices at 957 µs [measured]'),
+    on: 'title: A sample lesson whose step the model prices',
+    code: 'model-number-measured',
+    gate: 'numbers',
+    message: /\[synthetic\]/,
+  },
 ]
 
 describe('check 2: each of these fails with file:line', () => {
