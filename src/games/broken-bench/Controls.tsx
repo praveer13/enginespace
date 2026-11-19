@@ -35,7 +35,8 @@ function Flaws({ run }: { run: BenchRun }) {
   const shown = looking ?? view.pick
   return (
     <fieldset className="es-bench-flaws" data-bench-flaws="" aria-describedby={meansId}>
-      <legend>The flaw</legend>
+      {/* The list stands straight under the form's title, with its line under it saying what to do: "The flaw" names the group to a reader. */}
+      <legend className="sr-only">The flaw</legend>
       <div className="es-bench-flaws__list">
         {BENCH_FLAWS.map((flaw: Flaw) => {
           const facts = FLAW_FACTS[flaw]
@@ -43,7 +44,6 @@ function Flaws({ run }: { run: BenchRun }) {
           return (
             <label key={flaw} className="es-bench-flaws__option" data-checked={checked || undefined} data-flaw={flaw} onPointerEnter={() => setLooking(flaw)} onPointerLeave={() => setLooking(null)}>
               <input
-                className="sr-only"
                 type="radio"
                 name={`flaw-${group}`}
                 value={flaw}
@@ -64,7 +64,8 @@ function Flaws({ run }: { run: BenchRun }) {
         })}
       </div>
       <p id={meansId} className="es-bench-flaws__means">
-        {shown === null ? 'Name the one flaw the log shows, or find none. Point at a name to read what it means.' : <>{FLAW_FACTS[shown].term} means {FLAW_FACTS[shown].means}.</>}
+        {/* The name is the marked row's, over it: the line reads its meaning alone, so every meaning fits two lines at a desk. */}
+        {shown === null ? 'Name the one flaw the log shows, or find none. Point at a name to read what it means.' : `${FLAW_FACTS[shown].means.replace(/^./, (first) => first.toUpperCase())}.`}
       </p>
     </fieldset>
   )
@@ -74,8 +75,7 @@ function Flaws({ run }: { run: BenchRun }) {
 function RangeRule() {
   return (
     <p className="es-bench-rule" data-bench-rule="">
-      <strong>The range rule.</strong> {RANGE_RULE.p99} <span className="font-numeric">{RANGE_RULE.percent}%</span> {RANGE_RULE.p99After} {RANGE_RULE.range}{' '}
-      <span className="font-numeric">{RANGE_RULE.width}</span> times {RANGE_RULE.rangeAfter}
+      <strong>The range rule.</strong> {RANGE_RULE}
     </p>
   )
 }
@@ -118,14 +118,16 @@ function ReportForm({ run }: { run: BenchRun }) {
         file()
       }}
     >
-      <h3 id={heading} tabIndex={-1} className="es-bench-dock__title">
-        {view.cases === 1 ? 'Report form' : `Report form: report ${view.caseNo} of ${view.cases}`}
-      </h3>
-      {view.cases > 1 ? (
-        <p className="es-bench-dock__progress" role="status">
-          {view.filed === 0 ? 'None filed yet.' : `${view.filed} filed.`}
-        </p>
-      ) : null}
+      <div className="es-bench-form__head">
+        <h3 id={heading} tabIndex={-1} className="es-bench-dock__title">
+          {view.cases === 1 ? 'Report form' : `Report form: report ${view.caseNo} of ${view.cases}`}
+        </h3>
+        {view.cases > 1 ? (
+          <p className="es-bench-dock__progress" role="status">
+            {view.filed === 0 ? 'None filed yet.' : `${view.filed} filed.`}
+          </p>
+        ) : null}
+      </div>
       <Flaws run={run} />
       <RangeRule />
       <div className="es-bench-form__fields">
@@ -133,16 +135,17 @@ function ReportForm({ run }: { run: BenchRun }) {
         <Field numeric label="Range from (ms)" inputMode="decimal" autoComplete="off" value={lo} onChange={(event) => setLo(event.target.value)} />
         <Field numeric label="to (ms)" inputMode="decimal" autoComplete="off" value={hi} onChange={(event) => setHi(event.target.value)} />
       </div>
-      {asked && problem !== null ? (
-        <p className="es-bench-form__problem" role="alert">
-          <Icon name="alert" /> {problem}
-        </p>
-      ) : null}
       <div className="es-bench-form__file">
         <Button variant="ink" disabled={!ready} onClick={file}>
           File the report
         </Button>
-        {ready ? null : <p className="es-bench-form__missing">To file it: {missing.join(', and ')}.</p>}
+        {asked && problem !== null ? (
+          <p className="es-bench-form__problem" role="alert">
+            <Icon name="alert" /> {problem}
+          </p>
+        ) : ready ? null : (
+          <p className="es-bench-form__missing">To file it: {missing.join(', and ')}.</p>
+        )}
       </div>
     </form>
   )
@@ -157,13 +160,8 @@ export function Controls({ run }: { run: BenchRun }) {
     shown.current = view.caseNo
     document.querySelector<HTMLElement>('[data-bench-form] h3')?.focus({ preventScroll: true })
   }, [view.caseNo])
-  if (view.done) {
-    return (
-      <div className="es-bench-dock" data-bench-controls="" data-done="">
-        <p>Every report is filed. The result is in the dock.</p>
-      </div>
-    )
-  }
+  // Once every report is filed the run is over, and the frame shows the result in the dock's place: nothing of the form is drawn.
+  if (view.done) return null
   if (!run.intro.askShown) {
     return (
       <div className="es-bench-dock" data-bench-controls="" data-held="">

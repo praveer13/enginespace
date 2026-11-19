@@ -282,22 +282,44 @@ test.describe('the first screen', () => {
       await wholeOnScreen(page, viewport, { next: '[data-intro-next]', switch: '[data-bench-switch] [role="switch"]' }, '[data-sheet="histogram"] .es-bench-sheet svg')
       await page.locator('[data-intro-skip]').click()
 
-      // A flaw chosen: the chosen row is in view, and at a desk the fields and File the report are too, the list scrolling inside the dock.
-      // A tap on the row, as the learner makes it: no scroll of the test's own.
+      // A flaw chosen. At a desk the whole form is on the first screen with the chart and the readout: every flaw of the list (two columns,
+      // no inner scroll), the range rule, the fields and File the report, clear of the readout at the screen's foot. On a phone the chosen
+      // row is in view, and the form follows the chart in the page's own scroll. A tap on the row, as the learner makes it: no scroll of the
+      // test's own.
       await page.locator('[data-bench-flaws] input[value="coordinated-omission"]').evaluate((input: HTMLInputElement) => input.click())
       await expect(page.locator('[data-bench-flaws] input[value="coordinated-omission"]')).toBeChecked()
       expect(await page.evaluate(() => window.scrollY)).toBe(0)
       const flaw = { flaw: '[data-bench-flaws] label[data-checked]' }
-      const desk = viewport.width >= 1024 ? { fields: '.es-bench-form__fields', file: '.es-bench-form__file button' } : {}
+      const desk = viewport.width >= 1024 ? { rule: '[data-bench-rule]', fields: '.es-bench-form__fields', file: '.es-bench-form__file button' } : {}
       await wholeOnScreen(page, viewport, { ...flaw, ...desk }, '[data-sheet="histogram"] .es-bench-sheet svg')
+      const list = await page.locator('.es-bench-flaws__list').evaluate((element) => element.scrollHeight <= element.clientHeight + 1)
+      expect(list, 'every flaw is in the list whole, with no inner scroll').toBe(true)
+      const readout = await page.locator('[data-bench-readout]').boundingBox()
+      const chart = await page.locator('.es-bench-sheet svg').boundingBox()
+      const view = await page.locator('.es-frame__view').boundingBox()
+      expect(chart && view && Math.min(chart.y + chart.height, view.y + view.height) - chart.y >= 128, 'at least 128 px of the chart shows').toBe(true)
+      expect(view && readout && view.y + view.height <= readout.y + 1, 'the diagram\'s box ends above the readout pinned at the foot').toBe(true)
       if (viewport.width >= 1024) {
+        const options = await page.locator('[data-bench-flaws] label').evaluateAll((all) => all.map((element) => element.getBoundingClientRect().bottom <= innerHeight && element.getBoundingClientRect().top >= 0))
+        expect(options, 'all eleven flaws on the first screen').toEqual(Array(11).fill(true))
         const rule = await page.locator('[data-bench-rule]').boundingBox()
         const p99 = await page.getByLabel('Your p99 (ms)').boundingBox()
-        const chart = await page.locator('.es-bench-sheet svg').boundingBox()
-        // The rule is printed above the fields; the chart and the form stand side by side, the switch over the chart.
+        const file = await page.getByRole('button', { name: 'File the report' }).boundingBox()
+        const toggle = await clockSwitch(page).boundingBox()
+        // The rule is printed above the fields; the chart and the form stand side by side, the switch over the chart; File the report stands
+        // clear of the readout with no scroll.
         expect(rule && p99 && rule.y + rule.height <= p99.y).toBe(true)
         expect(chart && p99 && chart.x + chart.width <= p99.x + 1).toBe(true)
+        expect(toggle && chart && toggle.y < chart.y, 'the switch is over the chart').toBe(true)
+        expect(file && readout && file.y + file.height <= readout.y + 1, 'File the report clear of the readout').toBe(true)
         expect(inView(p99, viewport)).toBe(true)
+      } else {
+        // File the report scrolls clear of the readout pinned at the foot.
+        await page.getByRole('button', { name: 'File the report' }).scrollIntoViewIfNeeded()
+        const file = await page.getByRole('button', { name: 'File the report' }).boundingBox()
+        const pinned = await page.locator('[data-bench-readout]').boundingBox()
+        expect(file && pinned && file.y + file.height <= pinned.y + 1, 'File the report scrolls clear of the pinned readout').toBe(true)
+        await page.evaluate(() => window.scrollTo(0, 0))
       }
       await expect(page.locator('[data-bench-rule]')).toContainText('within 15%')
       await expect(page.locator('[data-bench-rule]')).toContainText('at most 2 times as wide as its bootstrap interval')

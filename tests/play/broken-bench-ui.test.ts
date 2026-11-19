@@ -104,8 +104,8 @@ describe('the frame stands in the order of REDESIGN §2.6, with the switch and t
     expect(dock.indexOf('data-bench-rule')).toBeGreaterThan(0)
     expect(dock.indexOf('data-bench-rule')).toBeLessThan(dock.indexOf('Your p99 (ms)'))
     const rule = text(dock.slice(dock.indexOf('data-bench-rule'), dock.indexOf('Your p99 (ms)')))
-    expect(RANGE_RULE.percent).toBe(NUMBER_TOLERANCE_PERMILLE / 10)
-    expect(RANGE_RULE.width).toBe(INTERVAL_WIDTH_FACTOR)
+    // The line is built from the judge's own constants, and the form prints it whole.
+    expect(rule).toContain(RANGE_RULE)
     expect(rule).toContain(`within ${NUMBER_TOLERANCE_PERMILLE / 10}%`)
     expect(rule).toContain(`at most ${INTERVAL_WIDTH_FACTOR} times as wide as its bootstrap interval`)
   })
@@ -327,7 +327,8 @@ describe('the report form', () => {
     const markup = render(h(Controls, { run: fakeRun(stateOf('due', 0, [{ t: 'flaw', flaw: 'none' }])) }))
     expect(text(markup)).toContain('To file it: write a p99 and a range that holds it.')
     expect(text(markup)).not.toContain('name a flaw')
-    expect(text(markup)).toContain(FLAW_FACTS.none.means)
+    // The line under the list reads the marked row's meaning, from a capital: the name is the row's, over it.
+    expect(text(markup)).toContain(`${FLAW_FACTS.none.means.replace(/^./, (first) => first.toUpperCase())}.`)
   })
 
   test('has no digit in the names of the flaws, which are a list of names', () => {
@@ -342,9 +343,10 @@ describe('the report form', () => {
     expect(text(markup)).toContain('None filed yet.')
   })
 
-  test('says that every report is filed once none is left', () => {
+  test('draws nothing once every report is filed: the run is over, and the frame shows the result in the dock\'s place', () => {
     const done = fakeRun(play('due', 0, rightAnswer).state)
-    expect(render(h(Controls, { run: done }))).toContain('Every report is filed.')
+    expect(done.view.done).toBe(true)
+    expect(render(h(Controls, { run: done }))).toBe('')
   })
 })
 

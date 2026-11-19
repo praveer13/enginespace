@@ -347,13 +347,14 @@ function compareRun(band: (typeof COMPARE_BANDS)[number]): StepLoopRun {
 
 /**
  * One of Compare's bands: its name in the label column, and its marks with no words of their own, so three bands read at a glance; the
- * last band carries the axis's numbers for all three. The dashed idle boxes are what the eye compares.
+ * last band carries the axis's numbers and its unit, "synthetic ticks", for all three, in the label column as on every other camera (a caption
+ * under the plate fell outside the box and was never seen). The dashed idle boxes are what the eye compares.
  */
 function bandModel(run: StepLoopRun, index: number, prefix: string, name: string, axis: boolean): FlatModel {
   const layout = laneLayout(runSource(run, 4, COMPARE_TICKS), COMPARE_GEOMETRY)
   const z = PAD.desk + index * (layout.height + BAND_GAP)
-  const marks = diagramModel(layout, { x: PAD.desk, z, prefix, rowLabels: false })
-  const kept = marks.labels.filter((label) => label.kind === 'now' || (axis && label.kind === 'tick'))
+  const marks = diagramModel(layout, { x: PAD.desk, z, prefix, rowLabels: axis })
+  const kept = marks.labels.filter((label) => label.kind === 'now' || (axis && (label.kind === 'tick' || label.kind === 'axis')))
   return { ...marks, inks: marks.inks.slice(-1 - layout.axis.ticks.length), labels: [{ id: `${prefix}name`, at: [PAD.desk + 4, 0, z + COMPARE_GEOMETRY.queueGap + COMPARE_GEOMETRY.lanesHeight / 2 - 6], text: name, kind: 'band', place: 'right' }, ...kept] }
 }
 
@@ -368,7 +369,7 @@ export function compareTrack(): { model: FlatModel; from: FlatModel } {
   const before = bandModel(runs[1], last, `${COMPARE_BANDS[last].id}/`, COMPARE_BANDS[last].name, true)
   const plate = (models: readonly FlatModel[]): FlatModel => {
     const joined = joinModels(models)
-    return { ...joined, plates: platesOf(joined.bounds, PAD.desk), labels: [...joined.labels, caption(joined.bounds, 'Compare: the same requests under three schedulers · synthetic ticks')] }
+    return { ...joined, plates: platesOf(joined.bounds, PAD.desk) }
   }
   return { model: plate(bands), from: plate([...bands.slice(0, last), before]) }
 }

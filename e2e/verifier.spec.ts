@@ -431,13 +431,18 @@ test.describe('the first run', () => {
     expect(listed.length).toBeGreaterThan(2)
     expect(listed.length).toBeLessThanOrEqual(5)
     for (const text of listed) expect(drawn.some((name) => text.includes(name))).toBe(true)
-    // The level's own ask waits, and the dock says so.
-    await expect(page.locator('[data-vf-held]')).toBeVisible()
+    // The level's own ask waits, and the dock says so: under the strip at a desk, and on a phone, whose pinned dock is the walk's alone while
+    // it names the parts, from the look on.
+    const held = page.locator('[data-vf-held]')
+    await expect(held).toBeAttached()
+    if ((page.viewportSize()?.width ?? 0) >= 1024) await expect(held).toBeVisible()
     await expect(page.getByLabel(field)).toHaveCount(0)
     // The look: one token's bars, and what is not on them is the answer.
     await page.getByRole('button', { name: /^Next/ }).click()
     for (let step = 0; step < 6 && (await coach.getAttribute('data-intro')) === 'parts'; step++) await page.getByRole('button', { name: /^Next/ }).click()
     await expect(coach).toHaveAttribute('data-intro', 'look')
+    await expect(held).toBeVisible()
+    await expect(page.getByLabel(field)).toHaveCount(0)
     await page.getByRole('button', { name: 'Token 0', exact: true }).click()
     await expect(page.getByRole('dialog').or(page.locator('.es-pop[data-open]')).first()).toContainText(/the target gives it \d+ of 64, and the draft \d+ of 64/)
     await page.keyboard.press('Escape')
