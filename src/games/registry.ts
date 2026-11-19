@@ -1,6 +1,5 @@
 import { lazy, type ComponentType, type LazyExoticComponent } from 'react'
-import { GAMES } from '@es/play'
-import type { GameEntry, GameMode, GameRegistry, RunResult } from '@es/play'
+import type { GameEntry, GameMode, RunResult } from '@es/play'
 
 /*
  * The component registry (ARCHITECTURE §6.3): the one place a game id turns into a component. `/play/:game` and a lesson's
@@ -10,7 +9,10 @@ import type { GameEntry, GameMode, GameRegistry, RunResult } from '@es/play'
  * behind React.lazy, and verify:boundaries fails any static path to three.
  *
  * packages/play/registry.ts holds what is known about a game without running it: its display name, keys, levels and sources.
- * This file holds the code. `verify:games` fails when the two do not list the same ids.
+ * This file holds the code, and a loader of each game's record (its `entry.ts`) rather than the list of every record: a game's page
+ * loads its own record and no other game's, so a game that joins the course costs the other games' pages nothing. A game joins by
+ * adding its component and its record's loader below, and its entry to `GAMES` in packages/play/registry.ts. `verify:games` fails
+ * when the three do not list the same ids, or when a loader brings a record of another id.
  */
 
 /** What every game's `Game.tsx` takes. */
@@ -45,13 +47,43 @@ export const GAME_COMPONENTS: Readonly<Record<string, GameComponent>> = {
   pool: lazy(() => import('./pool/Game')),
 }
 
-export type GameResolution = { kind: 'game'; id: string; entry: GameEntry; Component: GameComponent } | { kind: 'unknown'; id: string }
+/**
+ * A loader of one game's record: the `record()` of the game's `record.ts`, which returns its `entry.ts` from packages/play, the same object
+ * that `GAMES` holds for it. The loader goes through `record.ts` and not to `entry.ts` itself, because a module that is loaded with
+ * `import()` keeps its export names in the build, and every page that reads a record by `GAMES` (and the front page, Service's) would pay
+ * for the names.
+ */
+export type RecordLoader = () => Promise<GameEntry>
+
+/** The loader of each game's record, by id: the same ids as the components above and as `GAMES`. */
+export const GAME_RECORDS: Readonly<Record<string, RecordLoader>> = {
+  loop: () => import('./loop/record').then((module) => module.record()),
+  verifier: () => import('./verifier/record').then((module) => module.record()),
+  'engine-floor': () => import('./engine-floor/record').then((module) => module.record()),
+  'broken-bench': () => import('./broken-bench/record').then((module) => module.record()),
+  pool: () => import('./pool/record').then((module) => module.record()),
+}
+
+export type GameResolution = { kind: 'game'; id: string; record: RecordLoader; Component: GameComponent } | { kind: 'unknown'; id: string }
 
 /**
- * A game's record and its component, or unknown. Only own properties count: an id such as `constructor` is not a game. A game
- * missing from either registry is unknown, so a half-registered game never renders, and `verify:games` says which half.
+ * A game's component and the loader of its record, or unknown, without loading anything. Only own properties count: an id such as
+ * `constructor` is not a game. A game missing from either table is unknown, so a half-registered game never renders, and
+ * `verify:games` says which half.
  */
-export function resolveGame(id: string, registry: GameRegistry = GAMES, components: Readonly<Record<string, GameComponent>> = GAME_COMPONENTS): GameResolution {
-  const entry = registry.get(id)
-  return entry !== undefined && Object.hasOwn(components, id) ? { kind: 'game', id, entry, Component: components[id] } : { kind: 'unknown', id }
+export function resolveGame(id: string, components: Readonly<Record<string, GameComponent>> = GAME_COMPONENTS, records: Readonly<Record<string, RecordLoader>> = GAME_RECORDS): GameResolution {
+  return Object.hasOwn(components, id) && Object.hasOwn(records, id) ? { kind: 'game', id, record: records[id], Component: components[id] } : { kind: 'unknown', id }
+}
+
+export type LoadedGame = { kind: 'game'; id: string; entry: GameEntry; Component: GameComponent } | { kind: 'unknown'; id: string }
+
+/**
+ * A game's record and its component, or unknown: what `/play/:game` renders. It loads the one record the id names, and no other game's.
+ * A loader that brings a record of another id is a game registered under the wrong name, and is unknown here as `verify:games` fails it.
+ */
+export async function loadGame(id: string, components: Readonly<Record<string, GameComponent>> = GAME_COMPONENTS, records: Readonly<Record<string, RecordLoader>> = GAME_RECORDS): Promise<LoadedGame> {
+  const found = resolveGame(id, components, records)
+  if (found.kind === 'unknown') return found
+  const entry = await found.record()
+  return entry.id === id ? { kind: 'game', id, entry, Component: found.Component } : { kind: 'unknown', id }
 }
