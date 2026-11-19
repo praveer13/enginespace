@@ -65,6 +65,8 @@ import {
 } from './tr2-demos.ts'
 import { FIGURES } from './tr2-figures.ts'
 import { read, repo } from './support.ts'
+import { moduleKit } from './module-kit.ts'
+import { MODEL_TABLES } from './tr2-demos.ts'
 
 const LESSON_FILES = [
   'content/modules/tr2/lessons/l1-one-step-five-calls.md',
@@ -1018,4 +1020,26 @@ describe('the commit that the numbers name', () => {
       expect(git('merge-base', '--is-ancestor', sha, 'HEAD').status).toBe(0)
     }
   })
+})
+
+/* W2b-T18: the checks every built module runs, and the rule that each model table is held by the demos file. */
+moduleKit({
+  id: 'tr2',
+  result,
+  lessonFiles: LESSON_FILES,
+  moduleFile: MODULE_FILE,
+  claimsFile: CLAIMS_FILE,
+  titles: [
+    "One step, five calls: vLLM's busy loop at v0.33.0",
+    "One token budget: chunked prefill, recompute preemption, and defaults that depend on your GPU",
+    "Async scheduling closes the bubble, and costs a token",
+    "The MRV2 delta: persistent state, GPU-side input prep, and why MRV1 still ships",
+    "CUDA graphs: capture, replay, padding, and five modes",
+    "Dispatch keys: which graph replays this step",
+    "The same loop in SGLang, Mini-SGLang and TRT-LLM",
+  ],
+  labs: [],
+  announces: 'TR2 has no GPU stage.',
+  demosFile: 'tests/content/tr2-demos.ts',
+  modelTables: MODEL_TABLES,
 })

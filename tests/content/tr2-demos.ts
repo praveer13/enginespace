@@ -35,6 +35,7 @@ import {
 import type { BackendSupport, GraphModeId } from '../../packages/sim/steploop'
 import { sglangDecodeBuckets, sglangPaddedSize } from '../../packages/sim/steploop/engine-defaults'
 import type { ReqSpec, Workload } from '../../packages/sim/workload'
+import type { ModelTable } from './module-kit'
 
 /** The practice seed of the levels that TR2's lessons print numbers from. `close` has its own, which its registry entry pins. */
 export const PRACTICE_SEED = 0
@@ -614,3 +615,113 @@ export const PREDICTIONS: Readonly<Record<string, { readonly unit: string; reado
   'tr2.l7.p1': { unit: 'rows', reference: () => (wasted(10, paddedSize(DEFAULT_SIZES, 10)) ?? 0) - (wasted(10, sglangPaddedSize(sglangDecodeBuckets(256), 10)) ?? 0) },
 }
 
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The model tables                                                                                                   */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+const fmt = (x: number, digits = 0): string => x.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })
+
+/**
+ * Every table of TR2's lessons whose header or caption carries [synthetic]: the header row word for word, tags included, and the rows that the
+ * model recomputes. The module kit (`module-kit.ts`) finds each such table in a lesson and fails unless it is held here and its rows are these.
+ */
+export const MODEL_TABLES: readonly ModelTable[] = [
+  {
+    lesson: 'tr2.l1',
+    header: "| The step's phase | 70B on H100, µs [synthetic] | Small model, µs [synthetic] |",
+    rows: () => {
+      const big = steadyFire('70b')
+      const small = steadyFire('small')
+      const us = (fire: typeof big, kind: string): number => fire.phases.find((phase) => phase.kind === kind)?.us ?? 0
+      return [
+        ...['schedule', 'prepare', 'launch', 'sync', 'sample'].map((kind) => [`\`${kind}\``, fmt(us(big, kind)), fmt(us(small, kind))]),
+        ["The CPU's work, added up", fmt(big.cpuUs), fmt(small.cpuUs)],
+        ['The forward', fmt(big.forwardUs), fmt(small.forwardUs)],
+        ["The GPU's idle time before the step", fmt(big.bubbleUs), fmt(small.bubbleUs)],
+      ]
+    },
+  },
+  {
+    lesson: 'tr2.l2',
+    header: '| Step | Decode rows [synthetic] | Tokens of the prompt [synthetic] | Tokens in the step [synthetic] | The forward, µs [synthetic] |',
+    rows: () => {
+      const names = ['Before the prompt', 'The first with the prompt', 'The second with the prompt', 'After it']
+      return budgetSteps().map((step, at) => [names[at], fmt(step.decodeRows), fmt(step.promptTokens), fmt(step.tokens), fmt(step.forwardUs)])
+    },
+  },
+  {
+    lesson: 'tr2.l3',
+    header: '| The run | `70B on H100`, off [synthetic] | `70B on H100`, on [synthetic] | Small model, off [synthetic] | Small model, on [synthetic] |',
+    rows: () => {
+      const big = asyncNights('70b')
+      const small = asyncNights('small')
+      const rows: [string, (r: typeof big.off) => string][] = [
+        ['Clock, µs', (r) => fmt(r.clockUs)],
+        ['Median time per output token, µs', (r) => fmt(r.tpotP50Us)],
+        ["The GPU's idle time while the CPU worked, µs", (r) => fmt(r.bubbleUs)],
+        ['Steps with a bubble before them', (r) => `${r.darkFires} of ${r.fires}`],
+        ['Ghost tokens', (r) => fmt(r.ghostTokens)],
+      ]
+      return rows.map(([name, cell]) => [name, cell(big.off), cell(big.on), cell(small.off), cell(small.on)])
+    },
+  },
+  {
+    lesson: 'tr2.l4',
+    header: '| Median time per output token | On V1, µs [synthetic] | On MRV2, µs [synthetic] | MRV2 saves, µs [synthetic] |',
+    rows: () => {
+      const small = mrv2Nights('small')
+      const big = mrv2Nights('70b')
+      return [
+        ['Small model', fmt(small.v1TpotUs), fmt(small.mrv2TpotUs), fmt(small.savedUs)],
+        ['`70B on H100`', fmt(big.v1TpotUs), fmt(big.mrv2TpotUs), fmt(big.savedUs)],
+      ]
+    },
+  },
+  {
+    lesson: 'tr2.l5',
+    header: "| The first stage's run | No graph [synthetic] | The default mode [synthetic] |",
+    rows: () => {
+      const night = combNight()
+      return [
+        ['Calls to launch one steady step', fmt(night.eagerCalls), fmt(night.graphCalls)],
+        ['Clock, µs', fmt(night.eager.clockUs), fmt(night.graphs.clockUs)],
+        ['Median time per output token, µs', fmt(night.eager.tpotP50Us), fmt(night.graphs.tpotP50Us)],
+        ["The GPU's idle time while the CPU worked, µs", fmt(night.eager.bubbleUs), fmt(night.graphs.bubbleUs)],
+      ]
+    },
+  },
+  {
+    lesson: 'tr2.l5',
+    header: '| The `sizes` stage | The captured sizes [synthetic] | Capture cost, µs [synthetic] |',
+    rows: () => {
+      const sizes = sizesNight()
+      return [
+        ["vLLM's own list cut to three", sizes.naiveMolds.join(', '), fmt(sizes.naiveCost)],
+        ['The best three', sizes.houseMolds.join(', '), fmt(sizes.houseCost)],
+      ]
+    },
+  },
+  {
+    lesson: 'tr2.l6',
+    header: "| The batch [estimated] | MRV2's pick [synthetic] | MRV1's pick [synthetic] |",
+    rows: () => {
+      const pick = (side: DispatchRow['v2']): string => `\`${side.mode}\`, ${fmt(side.tokens)} tokens${side.adapters > 0 ? `, adapter case ${side.adapters}` : ''}`
+      return dispatchTable().map((row) => [row.name, pick(row.v2), pick(row.v1)])
+    },
+  },
+  {
+    lesson: 'tr2.l6',
+    header: '| You ask for | `ALWAYS` [synthetic] | `UNIFORM_BATCH` [synthetic] | `UNIFORM_SINGLE_TOKEN_DECODE` [synthetic] | `NEVER` [synthetic] |',
+    rows: () =>
+      Object.entries(modeTable()).map(([requested, row]) => [
+        `\`${requested}\``,
+        ...SUPPORTS.map((support) => (row[support] === 'refused' ? 'the engine refuses' : `\`${row[support]}\``)),
+      ]),
+  },
+  {
+    lesson: 'tr2.l6',
+    header: '| The mode | Graphs captured [synthetic] | Memory, MiB [estimated] |',
+    rows: () => graphCounts().map((row) => [`\`${row.mode}\``, String(row.graphs), fmt(row.mib, 1)]),
+  },
+]

@@ -54,6 +54,8 @@ import {
   tokensExact,
 } from './tr6-demos.ts'
 import { read, repo } from './support.ts'
+import { moduleKit } from './module-kit.ts'
+import { MODEL_TABLES } from './tr6-demos.ts'
 
 // The checks that run the lab's chi-square on hundreds of cases take a few seconds (20,000 rounds on two seeds each).
 setDefaultTimeout(120_000)
@@ -797,4 +799,32 @@ describe('the commit that the numbers name', () => {
       expect(git('merge-base', '--is-ancestor', sha, 'HEAD').status).toBe(0)
     }
   })
+})
+
+/* W2b-T18: the checks every built module runs, and the rule that each model table is held by the demos file. */
+moduleKit({
+  id: 'tr6',
+  result,
+  lessonFiles: LESSON_FILES,
+  moduleFile: MODULE_FILE,
+  claimsFile: CLAIMS_FILE,
+  titles: [
+    "Where speculation lives in the step: draft, verify, the bonus token, the padded shape",
+    "The rejection sampler, exactly",
+    "Testing exactness: chi-square, power, and a real bug",
+    "Proposers: n-gram, suffix, draft model, EAGLE-3 and MTP, and what moved at v0.33.0",
+    "The grammar mask's four phases, and its overlap with the forward (DP4's minimal recap inside)",
+  ],
+  labs: [
+    { id: 'rejection-sampler', lane: 'B', stages: ['s1', 's2', 's3', 's4'] },
+    { id: 'tr6.proposer', lane: 'F', stages: ['s1', 's2', 's3'] },
+  ],
+  announces: 'It runs on a GPU, outside the browser, so this page shows what the lab asks and does not grade it.',
+  demosFile: 'tests/content/tr6-demos.ts',
+  modelTables: MODEL_TABLES,
+  // The forge lab (75 min), the mask-overlap timeline (30 min) and the Verifier (60 min) sit beside the lessons in the module's browser hours.
+  browserMinutesBesideLessons: 165,
+  // Lesson 2's Test is a graded game, and lesson 4's three questions hold no numeric one: listed for wave 4.
+  gameTests: ['tr6.l2'],
+  noNumeric: ['tr6.l4'],
 })
