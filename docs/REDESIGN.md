@@ -329,13 +329,13 @@ That is 4 A, 13 B and 10 C. Seventeen lessons put a run in the first screen or t
 5. No kitchen sentence, no build-log id.
 6. After moving a block, re-read the prose for words that assume the old order ("above", "below", "you just", "the level that follows").
 7. Moving blocks changes a lesson's `rev`, so earlier evidence for it shows "re-check". Nothing is lost.
-8. Open every Read, and every lesson after a module's first, on what the reader just ran or on what the last lesson's version could not do. A back-reference to kernelspace comes after that.
-9. A module's first lesson fixes three or four questions that every later lesson answers. Each later lesson carries one small plain table of what changed since the last and what did not, where "unchanged" is a legal cell. No new block type. The payoff is never held back to a later lesson.
-10. A table that sets two times or two counts side by side has a column for what else changed and a column for the bound the numbers are read against. A cell nobody measured is a dash. In prose, the sentence that makes a comparison names what else differs.
-11. Where a module has one relation at its centre, write it once, in at most a line, as a `text` block, and repeat it unchanged in later lessons, goal lines and question stems. TR3's author settles the term for the idle stretch with the owner first (policy 4 below).
-12. Four sentence rules: say what a step does not buy yet; say that an arbitrary number is arbitrary, in the next sentence; one fact to a sentence with the point first and each claim mark after its own sentence; do not list in prose what a table can carry.
+8. Open every Read on what the reader just ran or, where there is no Run, on what the last lesson left them unable to do. A back-reference to kernelspace comes after that.
+9. A module's first lesson names three or four things to ask of every later lesson. Each later lesson carries one small plain table of them, after its Run: what changed since the last lesson and what did not, where "unchanged" is a legal cell. No new block type. A module whose lessons are separate subjects says so and carries no table unless the owner asks.
+10. A table that sets two times side by side has a column for what else changed and a column for the bound the numbers are read against. A cell the course has no number for is a dash. In prose, the sentence that makes a comparison names what else differs.
+11. Where a module has one relation at its centre, write it once, in at most a line, as a `text` block, and keep its words in later lessons, goal lines and question stems. The owner settles "bubble" against "CPU gap" before TR3's form is written (policies 1 and 5 below).
+12. Four sentence rules: say what the lesson's change does not buy yet; say that an arbitrary number is arbitrary, in the next sentence; one fact to a sentence with the point first and each claim mark after its own sentence, save a number the sentence needs; do not list in prose what a table can carry.
 
-Rules 8 to 12 were added on 2026-11-18 after a reading of an outside book on GPU kernel programming; `content/README.md` carries them with an example each and the book's name. They have no compiler warning.
+Rules 8 to 12 were added on 2026-11-18, for lessons written from that day on, after a reading of an outside book on GPU kernel programming; `content/README.md` carries them with an example each and the book's name. They have no compiler warning.
 
 ### 2.6 The game shell: one instrument frame
 
