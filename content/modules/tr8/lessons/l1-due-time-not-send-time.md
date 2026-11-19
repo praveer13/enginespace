@@ -51,16 +51,16 @@ kcs: [tr8.latency-from-due, tr8.open-vs-closed]
 
 Here is the log of the guess, for its first eight requests. The client sends a request when it is due or when its last reply has come, whichever is later.
 
-| Request | Due, ms [estimated] | Sent, ms [derived] | Reply, ms [derived] | Timed from the send, ms [derived] | Timed from the due time, ms [derived] |
-|---|---|---|---|---|---|
-| #1 | 0 | 0 | 100 | 100 | 100 |
-| #2 | 500 | 500 | 600 | 100 | 100 |
-| #3 | 1,000 | 1,000 | 3,100 | 2,100 | 2,100 |
-| #4 | 1,500 | 3,100 | 3,200 | 100 | 1,700 |
-| #5 | 2,000 | 3,200 | 3,300 | 100 | 1,300 |
-| #6 | 2,500 | 3,300 | 3,400 | 100 | 900 |
-| #7 | 3,000 | 3,400 | 3,500 | 100 | 500 |
-| #8 | 3,500 | 3,500 | 3,600 | 100 | 100 |
+| Request | Due, ms [estimated] | Sent, ms [derived] | Slip, ms [derived] | Reply, ms [derived] | Timed from the send, ms [derived] | Timed from the due time, ms [derived] |
+|---|---|---|---|---|---|---|
+| #1 | 0 | 0 | 0 | 100 | 100 | 100 |
+| #2 | 500 | 500 | 0 | 600 | 100 | 100 |
+| #3 | 1,000 | 1,000 | 0 | 3,100 | 2,100 | 2,100 |
+| #4 | 1,500 | 3,100 | 1,600 | 3,200 | 100 | 1,700 |
+| #5 | 2,000 | 3,200 | 1,200 | 3,300 | 100 | 1,300 |
+| #6 | 2,500 | 3,300 | 800 | 3,400 | 100 | 900 |
+| #7 | 3,000 | 3,400 | 400 | 3,500 | 100 | 500 |
+| #8 | 3,500 | 3,500 | 0 | 3,600 | 100 | 100 |
 
 :::figure
 src: figures/tr8/l1-slip.svg
@@ -69,7 +69,7 @@ description: The top timeline marks when each of eight requests was due, evenly 
 origin: authored
 :::
 
-Request #3 is the one the freeze caught, and it took 2,100 ms [derived] either way. Requests #4 to #7 are the ones the timer never saw. Each fell due while the client was still blocked on request #3, so each went out late, by 1,600, 1,200, 800 and 400 ms [derived], and then took 100 ms [derived]. The timer measured the 100 ms [derived]. The four waits add up to 4,000 ms [derived] that no latency in the log contains.
+Request #3 is the one the freeze caught, and it took 2,100 ms [derived] either way. Requests #4 to #7 are the ones the timer never saw. Each fell due while the client was still blocked on request #3, so each went out late: read the slip column. Each then took as long as any other request, and that is all the timer measured. The four slips add up to 4,000 ms [derived] that no latency in the log contains.
 
 Five of the 200 requests [estimated] were touched by the freeze, and the timer saw one of them. With 200 values the p99 is the 198th smallest, which is the third largest [derived]. Timed from the send, the third largest is 100 ms [derived]. Timed from the due time it is 1,300 ms [derived]. The freeze is in the maximum of both views, 2,100 ms [derived], and nowhere in the p99 of the send-timed one.
 ## Open and closed

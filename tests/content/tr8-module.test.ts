@@ -582,13 +582,15 @@ describe('lesson 1: the toy log, the pause and the cap', () => {
     expect(PREDICTIONS['tr8.l1.p1'].reference()).toBe(100)
   })
 
-  test('the first eight rows of the log, and what they add up to', () => {
+  test('the first eight rows of the log, with the slip of each in a column of its own, and what the slips add up to', () => {
+    // The slip is the first term of the written form, sent - due. The table carries it, and the prose points at the column without repeating it.
+    mentions('tr8.l1', 'the head', '| Request | Due, ms [estimated] | Sent, ms [derived] | Slip, ms [derived] | Reply, ms [derived] | Timed from the send, ms [derived] | Timed from the due time, ms [derived] |')
     for (const r of toy.slice(0, 8)) {
-      mentions('tr8.l1', `row #${r.n}`, `| #${r.n} | ${fmt(r.dueMs)} | ${fmt(r.sentMs)} | ${fmt(r.replyMs)} | ${fmt(r.fromSentMs)} | ${fmt(r.fromDueMs)} |`)
+      mentions('tr8.l1', `row #${r.n}`, `| #${r.n} | ${fmt(r.dueMs)} | ${fmt(r.sentMs)} | ${fmt(r.sentMs - r.dueMs)} | ${fmt(r.replyMs)} | ${fmt(r.fromSentMs)} | ${fmt(r.fromDueMs)} |`)
     }
     const slips = toy.slice(3, 7).map((r) => r.sentMs - r.dueMs)
-    mentions('tr8.l1', 'the slips', `by ${fmt(slips[0])}, ${fmt(slips[1])}, ${fmt(slips[2])} and ${fmt(slips[3])} ms [derived]`)
-    mentions('tr8.l1', 'the unseen wait', `add up to ${fmt(slips.reduce((a, b) => a + b, 0))} ms [derived]`)
+    mentions('tr8.l1', 'the slips', 'so each went out late: read the slip column')
+    mentions('tr8.l1', 'the unseen wait', `The four slips add up to ${fmt(slips.reduce((a, b) => a + b, 0))} ms [derived]`)
   })
 
   test('the p99 of the stopwatch and of the due times, on 200 values, and how many requests the freeze touched', () => {

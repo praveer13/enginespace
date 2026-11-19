@@ -223,6 +223,10 @@ The TR1 lessons in content/modules/tr1/lessons/, which the site serves again as 
 public/md/tr1/, quote short excerpts of four projects' source files. Each excerpt is a block
 headed with its path, its lines and a pinned commit, as in "nanovllm/engine/scheduler.py,
 lines 29 to 55 at bb823b3", and the prose above it links the same lines at the same commit.
+TR2's first lesson, content/modules/tr2/lessons/l1-one-step-five-calls.md (served again as
+public/md/tr2/l1-one-step-five-calls.md), quotes one excerpt in the same form: EngineCore.step,
+"vllm/v1/engine/core.py, lines 677 to 686 at v0.33.0", the tag that vLLM's entry below
+names.
 The one-line quotes in content/claims/ and in packages/sim/lifecycle are the same kind of
 excerpt, each with its source path, its line or lines, and a pinned commit or tag.
 
