@@ -252,7 +252,7 @@ The one colour code, shown in every diagram's legend. Each slot has a fill, an e
 ### Named Rules
 **The One Marker Rule.** Amber means now. It has three carriers and no others: the control to act on now, the "now" cursor on a diagram, and the current-position mark in the rail and on the course track. The header's Continue is an outline wherever the page has a move in hand, and an intro's callouts are ink discs.
 
-**The Ink Focus Rule.** The focus ring is 3 px of text-1 at a 2 px offset, with a paper halo. It is never amber, so focus is not mistaken for now, and it reads against the amber button's own edge.
+**The Ink Focus Rule.** The focus ring is 3 px of text-1 at a 2 px offset, with a paper halo. It is never amber, so focus is not mistaken for now, and it reads against the amber button's own edge. Where focus is sent so that reading starts there, not to a control: a verdict or a result takes the ring at a 6 px offset, clear of its words, and a page or a game's whole section takes none.
 
 **The Colour Is State Rule.** A code colour appears only where the model's state is drawn, and always with its glyph or hatch.
 

@@ -105,7 +105,7 @@ const bellCount = (page: Page) => page.locator('[data-loop-readout] [data-readou
 const overlap = (page: Page) => page.getByRole('switch', { name: /Async scheduling/ })
 const camera = (page: Page) => page.getByRole('group', { name: 'Camera' })
 const labels = (page: Page) => stage(page).locator('.es-labels')
-const CAMERAS = ['Lifted', 'Side', 'Along time', 'Top', 'Compare', 'Scale']
+const CAMERAS = ['Lifted', 'Side', 'Top', 'Compare', 'Scale']
 
 /**
  * Opens a level on a device of the tier given. The diagram is the default view since R-T17 (REDESIGN §2.9), so where the tier draws 3D the
@@ -159,7 +159,7 @@ async function choose(page: Page, name: string) {
   await expect(stage(page).locator(`[data-track-camera="${CAMERAS_ID[name]}"]`)).toHaveCount(1)
 }
 
-const CAMERAS_ID: Record<string, string> = { Lifted: 'lifted', Side: 'side', 'Along time': 'along', Top: 'top', Compare: 'compare', Scale: 'scale' }
+const CAMERAS_ID: Record<string, string> = { Lifted: 'lifted', Side: 'side', Top: 'top', Compare: 'compare', Scale: 'scale' }
 
 test.describe('the draw-call budget at the practice seed (A§11.1)', () => {
   for (const tier of [1, 2]) {

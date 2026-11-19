@@ -646,7 +646,7 @@ button.es-lanes__chip:disabled {
 
 .es-loopdebrief__verdict:focus-visible {
   outline: 3px solid var(--es-text-1);
-  outline-offset: 2px;
+  outline-offset: 6px;
 }
 
 .es-loopdebrief__sentence {

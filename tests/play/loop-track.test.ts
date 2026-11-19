@@ -81,8 +81,8 @@ function project(camera: Camera, canvas: Canvas, x: number, y: number, z: number
 const preset = (model: FlatModel, canvas: Canvas, id: string) => trackPresets(model, canvas, model.cursors[0]?.x ?? 0).find((p) => p.id === id) as CameraPreset
 
 describe('the cameras', () => {
-  test('six, in the brief\'s words, with Lifted first: C steps through every one and wraps', () => {
-    expect(TRACK_CAMERAS.map((camera) => camera.label)).toEqual(['Lifted', 'Side', 'Along time', 'Top', 'Compare', 'Scale'])
+  test('five, in the brief\'s words, with Lifted first: C steps through every one and wraps', () => {
+    expect(TRACK_CAMERAS.map((camera) => camera.label)).toEqual(['Lifted', 'Side', 'Top', 'Compare', 'Scale'])
     expect(DEFAULT_CAMERA).toBe('lifted')
     let at: string = DEFAULT_CAMERA
     const seen = [at]

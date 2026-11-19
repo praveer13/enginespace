@@ -335,37 +335,56 @@
 
 /*
  * Where the dock scrolls (the dock beside the drawing at a desk, a phone's pinned dock) and its content runs past its foot, the foot says
- * so in words, on paper that covers the line it would cut, and goes at the end of the scroll. A state of the scroll, not an animation:
- * nothing runs at rest. The words stand in the dock's last line of room, so they take no room of their own.
+ * so in words, and goes at the end of the scroll. A state of the scroll, not a movement, so nothing runs at rest. The words stand in the
+ * dock's last line of room, so they take no room of their own, and the lines going under them fade into the paper rather than being cut
+ * through their letters by a rule. So does the readout that stands at the screen's foot over a result or a form read with the page.
  */
 @supports (container-type: scroll-state) {
-  .es-frame__dock-main {
+  .es-frame__dock-main,
+  .es-frame__readout {
     container-type: scroll-state;
   }
 
-  .es-frame__dock-main::after {
+  .es-frame__dock-main::after,
+  .es-frame__readout > :first-child::before {
     content: 'More below' / '';
-    position: sticky;
-    /* Over the dock's own padding at its foot, too, so nothing shows under the words. */
-    bottom: calc(-1 * var(--es-space-3));
     z-index: 3;
     display: block;
-    height: 1.5rem;
-    margin: -1.5rem calc(-1 * var(--es-space-4)) 0;
-    padding: 0.125rem var(--es-space-4);
-    border-top: 1px solid var(--es-edge);
-    background: var(--es-paper);
+    height: 2.25rem;
+    padding: 0.875rem var(--es-space-4) 0;
+    background: linear-gradient(transparent, var(--es-paper) 55%);
     color: var(--es-text-2);
     font-size: var(--es-size-caption);
     font-weight: 700;
     line-height: 1.4;
-    visibility: hidden;
     pointer-events: none;
+  }
+
+  .es-frame__dock-main::after {
+    position: sticky;
+    /* Over the dock's own padding at its foot, too, so nothing shows under the words. */
+    bottom: calc(-1 * var(--es-space-3));
+    margin: -2.25rem calc(-1 * var(--es-space-4)) 0;
+    visibility: hidden;
   }
 
   @container scroll-state(scrollable: bottom) {
     .es-frame__dock-main::after {
       visibility: visible;
+    }
+  }
+
+  .es-frame__readout > :first-child::before {
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    right: 0;
+    display: none;
+  }
+
+  @container scroll-state(stuck: bottom) {
+    .es-frame__readout > :first-child::before {
+      display: block;
     }
   }
 }
@@ -379,10 +398,11 @@
   outline: none;
 }
 
+/* Where focus is sent to read a result (not a control), the ring stands clear of the words it holds. */
 .es-frame__result:focus-visible,
 .es-debrief__verdict:focus-visible {
   outline: 3px solid var(--es-text-1);
-  outline-offset: 2px;
+  outline-offset: 6px;
 }
 
 /*
@@ -411,8 +431,9 @@
   }
 
   /* While the dock holds the parts list whole, the row is taller than a drawing needs: the sheet takes its drawing's height, and the legend
-     stands under the drawing, so no blank paper lies between the two. */
-  .es-frame[data-placement='page'][data-intro][data-view='2d'] .es-frame__diagram {
+     stands under the drawing, so no blank paper lies between the two. Not the Request path's: its swimlane is drawn to its box, and its
+     worked example runs down the box's height while the parts are named. */
+  .es-frame[data-placement='page'][data-intro][data-view='2d']:not([data-game='engine-floor']) .es-frame__diagram {
     align-self: start;
     max-height: 100%;
   }
@@ -429,17 +450,18 @@
   }
 
   /* At the result the dock takes its content's height, so no line and no button of the result is cut by a box's edge; the drawing keeps
-     its own height beside it, and the readout stands at the foot of the screen while the result runs on past it (P5). */
-  .es-frame[data-placement='page'][data-phase='result'] .es-frame__body {
+     its own height beside it, and the readout stands at the foot of the screen while the result runs on past it (P5). Broken benchmark's
+     report form is read so from the start: its flaws, its fields and File the report, whole, with the page. */
+  .es-frame[data-placement='page']:is([data-phase='result'], [data-game='broken-bench']) .es-frame__body {
     height: auto;
     align-items: start;
   }
 
-  .es-frame[data-placement='page'][data-phase='result'] .es-frame__diagram {
+  .es-frame[data-placement='page']:is([data-phase='result'], [data-game='broken-bench']) .es-frame__diagram {
     height: clamp(26rem, 100svh - 23.5rem, 44rem);
   }
 
-  .es-frame[data-placement='page'][data-phase='result'] .es-frame__dock-main {
+  .es-frame[data-placement='page']:is([data-phase='result'], [data-game='broken-bench']) .es-frame__dock-main {
     overflow: visible;
   }
 }
@@ -448,14 +470,14 @@
    top beside the result as it is read, so a control deep in the result and the drawing it changes share the screen (P5). Under 600 px of
    height nothing is sticky. */
 @media (min-width: 64rem) and (min-height: 600px) {
-  .es-frame[data-placement='page'][data-phase='result'] .es-frame__diagram {
+  .es-frame[data-placement='page']:is([data-phase='result'], [data-game='broken-bench']) .es-frame__diagram {
     position: sticky;
     top: var(--es-space-2);
   }
 }
 
 @media (min-height: 600px) {
-  .es-frame[data-phase='result'] .es-frame__readout {
+  .es-frame:is([data-phase='result'], [data-placement='page'][data-game='broken-bench']) .es-frame__readout {
     position: sticky;
     bottom: 0;
     z-index: 2;
@@ -541,10 +563,13 @@
   }
 
   /* In a lesson the page scrolls under the pinned dock: a control the keyboard reaches is scrolled clear of it, never left under it (WCAG
-     2.4.11). */
-  html:has(.es-frame[data-placement='embed']) {
+     2.4.11). Not while the first run is read: the dock is not pinned then, and the room kept for it scrolled the page, at each focus, until
+     the drawing went up under the lesson's bar. */
+  html:has(.es-frame[data-placement='embed'][data-phase='play']:not([data-intro])) {
     scroll-padding-bottom: calc(33svh + var(--es-space-4));
   }
+
+
 
   /*
    * Once the run has ended, on the game's page and in a lesson, the result is read with the page and not through the pinned dock's window
@@ -554,17 +579,19 @@
    */
   /* So does a lesson's dock while the first run is read: the page, not the learner, chose where the instrument stands on the screen, and a
      dock pinned at the foot would lie over the part the intro names. It follows the drawing, one part at a time under it. */
-  .es-frame:is([data-phase='result'], [data-placement='embed'][data-intro]) .es-frame__dock {
+  /* Broken benchmark's report form is read with the page under the chart, as a result is: its flaws, fields and File the report whole. */
+  .es-frame:is([data-phase='result'], [data-placement='embed'][data-intro], [data-placement='page'][data-game='broken-bench']) .es-frame__dock {
     position: static;
     max-height: none;
     box-shadow: var(--es-shadow-paper);
   }
 
-  .es-frame:is([data-phase='result'], [data-placement='embed'][data-intro]) .es-frame__dock-main {
+  .es-frame:is([data-phase='result'], [data-placement='embed'][data-intro], [data-placement='page'][data-game='broken-bench']) .es-frame__dock-main {
     overflow: visible;
   }
 
   /* At the result the page keeps clear of the readout standing at its foot, so a way on that is brought into view is never under it. */
+  html:has(.es-frame[data-placement='page'][data-game='broken-bench']),
   html:has(.es-frame[data-phase='result']):not(:has(.es-frame[data-phase='play'])) {
     scroll-padding-bottom: 6rem;
   }
@@ -586,6 +613,12 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--es-space-2);
+}
+
+/* Every game's practice or graded note, at one size. */
+.es-frame__mode {
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
 }
 
 .es-frame__table {

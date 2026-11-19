@@ -290,10 +290,6 @@
   gap: var(--es-space-2);
 }
 
-.es-vf__mode {
-  color: var(--es-text-2);
-  font-size: var(--es-size-note);
-}
 
 @media (max-width: 63.999rem) {
   .es-vf {

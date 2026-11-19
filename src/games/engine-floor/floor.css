@@ -565,6 +565,11 @@
   outline-offset: 2px;
 }
 
+/* A tile's ring is drawn inside its edge: the list's box, which scrolls, would cut a ring outside it down to its corners. */
+.es-floor-tile:focus-visible {
+  outline-offset: -3px;
+}
+
 .es-floor-facts {
   display: flex;
   flex-direction: column;
@@ -1080,10 +1085,6 @@
   flex: none;
 }
 
-.es-floor-mode {
-  color: var(--es-text-2);
-  font-size: var(--es-size-note);
-}
 
 /*
  * On a phone the dock is pinned to the foot and holds the decision over one readout line (REDESIGN §3.6): the filter chips in one row that
@@ -1424,10 +1425,15 @@
   }
 }
 
-/* On a phone the readout's four counts are cells, each parted from the next by a rule, so no count runs into the next one's word. */
+/* On a phone the readout's four counts are cells, each parted from the next by a rule, so no count runs into the next one's word; where a
+   delta beside a number leaves its word no room, the word goes under the number rather than into the next cell. */
 @media (max-width: 63.999rem) {
   .es-floor-strip__list {
     gap: 0;
+  }
+
+  .es-floor-strip__item:has(.es-floor-strip__delta) {
+    flex-wrap: wrap;
   }
 
   .es-floor-strip__item + .es-floor-strip__item {

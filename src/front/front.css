@@ -163,11 +163,6 @@
   outline: none;
 }
 
-.es-front-service:focus-visible {
-  outline: 3px solid var(--es-focus);
-  outline-offset: 2px;
-}
-
 @media (min-width: 48rem) {
   .es-front-service {
     --front-pad: var(--es-space-4);
@@ -798,9 +793,10 @@
   outline: none;
 }
 
+/* Focus sent to the result is not a control's: its ring stands clear of the words, as the verdicts' do (frame.css). */
 .es-front-result:focus-visible {
   outline: 3px solid var(--es-focus);
-  outline-offset: 2px;
+  outline-offset: 6px;
 }
 
 .es-front-result__body {

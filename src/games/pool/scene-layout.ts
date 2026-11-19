@@ -50,6 +50,8 @@ export const WAIT = { width: 46, depth: 20, height: 8, gap: 6, shown: 8, room: 3
 export const NAME_ROOM = 92
 /** The room a request's name takes over its tile, in the diagram's px, which the cameras keep in the frame [estimated]. */
 const NAME_HEIGHT = 34
+/** How far behind the batch a request's name reaches on the sheet, seen from above [estimated: a line of the label face at the top shot's scale]. */
+const NAME_BACK = 22
 /** A page's glyph, as a share of the page (the 2D cell's 55%, a free page's ring 40%), and how far it lies over the page's top [estimated]. */
 export const GLYPH = { size: 0.55, free: 0.4, lift: 0.5 } as const
 /**
@@ -224,6 +226,9 @@ function fanBoxes(g: Geometry, fan: Fan, open: boolean): FlatBox[] {
       form: padding ? 'hollow' : pageForm[fan.state],
       // A pick on a layer is a pick on its page: the same pick again closes the fan.
       pick: `page:${fan.page}`,
+      // The layers stand in the air over their page, one sheet: a contact shadow under each would lay a blurred smear over the cells
+      // beneath (the Flat Paper Rule). The first layer rises out of the page itself, so the fan needs no stem to say whose it is.
+      shadow: false,
     } satisfies FlatBox
   })
 }
@@ -413,11 +418,6 @@ export function rackOf(view: PoolView, { station, chosen, pointed, pick }: RackO
     const at = pageBox(g, f.page)
     return { id: 'fan/words', at: [fanX(g, f, n - 1, n), fanTop(n, tallestFor(g, f.page)), (at.z0 + at.z1) / 2 + (n - 1) * leanFor(g, f.page, n)], text: `${f.layers} layers${f.pads > 0 ? ` + ${f.pads} padding` : ''}`, kind: 'dim', place: 'above' }
   }
-  const stem = (f: Fan): FlatSegment => {
-    const at = pageBox(g, f.page)
-    const n = f.layers + f.pads
-    return { x0: (at.x0 + at.x1) / 2, x1: (at.x0 + at.x1) / 2, z0: (at.z0 + at.z1) / 2, z1: (at.z0 + at.z1) / 2, y: PAGE_TOP, y1: fanTop(n, tallestFor(g, f.page)) - FAN.thick }
-  }
 
   const base: Omit<FlatModel, 'boxes' | 'inks' | 'labels'> = {
     plates,
@@ -429,7 +429,7 @@ export function rackOf(view: PoolView, { station, chosen, pointed, pick }: RackO
   const fanOpen = fan === null ? [] : fanBoxes(g, fan, true)
   const fanShut = fan === null ? [] : fanBoxes(g, fan, false)
   const common = { ...base, boxes: [...boxes, ...rings], inks, labels }
-  const model: FlatModel = fan === null ? common : { ...common, boxes: [...common.boxes, ...fanOpen], inks: [...inks, stem(fan)], labels: [...labels, fanLabel(fan.layers + fan.pads, fan)] }
+  const model: FlatModel = fan === null ? common : { ...common, boxes: [...common.boxes, ...fanOpen], inks, labels: [...labels, fanLabel(fan.layers + fan.pads, fan)] }
   const closed: FlatModel = fan === null ? common : { ...common, boxes: [...common.boxes, ...fanShut] }
   return { model, closed, glyphs, geometry: g, fan, request, threaded, moment: JSON.stringify([fan?.page ?? null, fan?.layers ?? null, fan?.pads ?? null, station, shownPick?.kind ?? null]) }
 }
@@ -499,7 +499,8 @@ export function fit(points: readonly Point[], canvas: Canvas, deg: number, margi
 export function framePoints(g: Geometry, fanHeight: number): Point[] {
   const x0 = (g.rack.x0 - NAME_ROOM) / PX
   const x1 = g.rack.x1 / PX
-  const back = g.slots.z0 / PX
+  // Behind the batch, the requests' names over their tiles: from above they stand on the sheet behind the tiles, not over them.
+  const back = (g.slots.z0 - NAME_BACK) / PX
   const front = (g.queue.z1 + 4) / PX
   const row = (g.rack.z0 + PAGE.pitch / 2 + FAN.leanMost) / PX
   const up = fanHeight / PX
