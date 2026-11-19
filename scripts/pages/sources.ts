@@ -9,8 +9,8 @@
  */
 import path from 'node:path'
 import { GAMES } from '../../packages/play/index.ts'
-import { contentIndexSchema } from '../../packages/schema/compiled.ts'
-import type { ContentIndex } from '../../packages/schema/compiled.ts'
+import { contentIndexSchema, lessonIndexSchema } from '../../packages/schema/compiled.ts'
+import type { ContentIndex, LessonIndex } from '../../packages/schema/compiled.ts'
 import { compileContent } from '../content/build.ts'
 import { LAB_IDS } from '../content/directives.ts'
 import { formatDiagnostic } from '../content/parse.ts'
@@ -34,18 +34,24 @@ export class SourcesError extends Error {
  */
 export const TRACE_IDS: readonly string[] = []
 
-/** The course index of the project under `root`, compiled in memory. It throws, with the files and the lines, when the content has an error. */
-export function loadIndex(root: string = ROOT): ContentIndex {
+/** The course index and the lesson index of the project under `root`, compiled in memory. It throws, with the files and the lines, when the content has an error. */
+export function loadIndexes(root: string = ROOT): { index: ContentIndex; lessons: LessonIndex } {
   const result = compileContent({ root })
   const errors = result.diagnostics.filter((diagnostic) => diagnostic.severity === 'error')
   if (errors.length > 0) {
     throw new SourcesError(`the content has ${errors.length} ${errors.length === 1 ? 'error' : 'errors'}, so there is no course index:\n${errors.map(formatDiagnostic).join('\n')}`)
   }
-  const output = result.outputs.find((candidate) => candidate.path === 'src/content/generated/index.json')
-  if (output === undefined) throw new SourcesError('the content compiler wrote no course index (src/content/generated/index.json)')
-  return contentIndexSchema.parse(JSON.parse(output.text))
+  const read = (file: string): unknown => {
+    const output = result.outputs.find((candidate) => candidate.path === file)
+    if (output === undefined) throw new SourcesError(`the content compiler wrote no ${file}`)
+    return JSON.parse(output.text)
+  }
+  return { index: contentIndexSchema.parse(read('src/content/generated/index.json')), lessons: lessonIndexSchema.parse(read('src/content/generated/lesson-index.json')) }
 }
 
+/** The course index of the project under `root`. */
+export const loadIndex = (root: string = ROOT): ContentIndex => loadIndexes(root).index
+
 export function loadSources(root: string = ROOT): Sources {
-  return { index: loadIndex(root), games: GAMES.games, labs: LAB_IDS, traces: TRACE_IDS }
+  return { ...loadIndexes(root), games: GAMES.games, labs: LAB_IDS, traces: TRACE_IDS }
 }

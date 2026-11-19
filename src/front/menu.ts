@@ -35,12 +35,12 @@ export const menuId = (id: string): string => (/^tr\d/.test(id) ? `TR${id.slice(
 
 /**
  * The course's first lesson as the front page names it: "TR1 lesson 1", its title up to the first colon ("Five mechanisms"), its minutes,
- * what it needs in words ("browser only", "browser and GPU") and its route. Null when the index has no lesson.
+ * what it needs in words ("browser only", "browser and GPU") and its route. Null when the index has no lesson. The index holds this row
+ * itself, so the front page does not read the lesson rows.
  */
 export function firstLesson(index: ContentIndex | null) {
-  const module = index?.modules.find((candidate) => candidate.lessons.length > 0)
-  const lesson = module?.lessons[0]
-  if (module === undefined || lesson === undefined) return null
+  const lesson = index?.firstLesson
+  if (lesson === undefined) return null
   const lanes = (lesson.needs ?? ['B']).map((lane) => PATH.lanes[lane])
-  return { module: module.id, name: `${menuId(module.id)} lesson 1`, title: lesson.title.split(':')[0], minutes: lesson.minutes, needs: `${lanes.join(' and ')}${lanes.length === 1 ? ' only' : ''}`, route: lesson.route }
+  return { module: lesson.module, name: `${menuId(lesson.module)} lesson 1`, title: lesson.title.split(':')[0], minutes: lesson.minutes, needs: `${lanes.join(' and ')}${lanes.length === 1 ? ' only' : ''}`, route: lesson.route }
 }

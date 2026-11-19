@@ -18,6 +18,7 @@
  *
  * What it writes:
  *   src/content/generated/index.json              the course index, in the entry's closure (6 KB gz [estimated])
+ *   src/content/generated/lesson-index.json       each module's lesson rows, which the pages that list lessons load on demand
  *   src/content/generated/map.json                what the map and the module pages read: prerequisites, artifacts, KCs and refs
  *   src/content/generated/modules/<id>.json       one per written module
  *   src/content/generated/lessons/<id>.<slug>.json  one per lesson (40 KB gz each [estimated])
@@ -40,11 +41,12 @@ import {
   compiledLessonSchema,
   compiledModuleSchema,
   contentIndexSchema,
+  lessonIndexSchema,
   courseMapSchema,
   lessonRoute,
   moduleRoute,
 } from '../../packages/schema/compiled.ts'
-import type { CompiledBlock, ContentIndex, CourseMap, FamilyCount, IndexLesson, IndexModule, MapLesson, ProseFlow, ProseInline } from '../../packages/schema/compiled.ts'
+import type { CompiledBlock, ContentIndex, CourseMap, FamilyCount, FirstLesson, IndexLesson, IndexModule, LessonIndex, MapLesson, ProseFlow, ProseInline } from '../../packages/schema/compiled.ts'
 import { lessonFrontMatterSchema, moduleFrontMatterSchema } from '../../packages/schema/content.ts'
 import type { LessonFrontMatter, ModuleFrontMatter } from '../../packages/schema/content.ts'
 import { courseSchema } from '../../packages/schema/course.ts'
@@ -873,6 +875,8 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
   }
 
   const indexModules: IndexModule[] = []
+  const lessonRows: Record<string, IndexLesson[]> = {}
+  let firstLesson: FirstLesson | undefined
   for (const entry of course.modules) {
     const module = modules.get(entry.id)
     const lessons: IndexLesson[] = (module?.lessons ?? []).map(({ slug, front }) => ({
@@ -889,11 +893,14 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
       title: entry.title,
       route: moduleRoute(entry.id),
       status: module?.front.status ?? 'planned',
+      published: lessons.length > 0,
       hours: entry.hours,
       hours_by_lane: entry.hours_by_lane,
       ...(module === undefined ? {} : { prereqs: module.front.prereqs, ...(module.front.games === undefined ? {} : { games: module.front.games }) }),
-      lessons,
     })
+    lessonRows[entry.id] = lessons
+    const head = lessons[0]
+    if (firstLesson === undefined && head !== undefined) firstLesson = { module: entry.id, title: head.title, route: head.route, minutes: head.minutes, needs: head.needs }
     if (module === undefined) continue
 
     const moduleSource = `content/modules/${entry.id}/module.md`
@@ -919,8 +926,10 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
     if (compiled !== undefined) emit(`src/content/generated/cards/${id}.json`, json(compiled), card.file, BUDGETS.page)
   }
 
-  const index = checked<ContentIndex>(contentIndexSchema, { totalHours: course.modules.reduce((sum, module) => sum + module.hours, 0), modules: indexModules }, 'course index', 'content/course.yaml')
+  const index = checked<ContentIndex>(contentIndexSchema, { totalHours: course.modules.reduce((sum, module) => sum + module.hours, 0), ...(firstLesson === undefined ? {} : { firstLesson }), modules: indexModules }, 'course index', 'content/course.yaml')
   if (index !== undefined) emit('src/content/generated/index.json', json(index), 'content/course.yaml', BUDGETS.index)
+  const lessonIndex = checked<LessonIndex>(lessonIndexSchema, { modules: lessonRows }, 'lesson index', 'content/course.yaml')
+  if (lessonIndex !== undefined) emit('src/content/generated/lesson-index.json', json(lessonIndex), 'content/course.yaml', BUDGETS.page)
   const courseMap = checked<CourseMap>(courseMapSchema, buildMap(course, modules, sources.kcGraph, out), 'course map', 'content/course.yaml')
   if (courseMap !== undefined) emit('src/content/generated/map.json', json(courseMap), 'content/course.yaml', BUDGETS.map)
   emit('public/llms.txt', llmsText(course, modules))

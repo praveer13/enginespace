@@ -258,7 +258,7 @@ describe('the command line', () => {
     expect(lines.some((line) => new RegExp(`^ {2}/labs/:lab +${sources.labs.length}\\b`).test(line))).toBe(true)
     for (const module of sources.index.modules) {
       expect(existsSync(path.join(dist, `${module.route.slice(1)}/index.html`))).toBe(true)
-      for (const lesson of module.lessons) expect(existsSync(path.join(dist, `${lesson.route.slice(1)}/index.html`))).toBe(true)
+      for (const lesson of sources.lessons.modules[module.id] ?? []) expect(existsSync(path.join(dist, `${lesson.route.slice(1)}/index.html`))).toBe(true)
     }
     expect(existsSync(path.join(dist, '404.html'))).toBe(true)
   })

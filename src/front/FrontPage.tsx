@@ -200,7 +200,7 @@ function PathTable({ index }: { index: ContentIndex | null }) {
       </thead>
       <tbody>
         {index.modules.map((module) => {
-          const published = module.lessons.length > 0
+          const published = module.published
           return (
             <tr key={module.id} data-module={module.id} data-start={module.id === first || undefined}>
               <th scope="row">{menuId(module.id)}</th>

@@ -25,7 +25,7 @@
 import { matchRoutes } from 'react-router'
 import type { RouteObject } from 'react-router'
 import type { GameEntry } from '../../packages/play/types.ts'
-import type { ContentIndex } from '../../packages/schema/compiled.ts'
+import type { ContentIndex, LessonIndex } from '../../packages/schema/compiled.ts'
 import { labName, titled } from '../../src/content/render/model.ts'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -34,8 +34,10 @@ import { labName, titled } from '../../src/content/render/model.ts'
 
 /** The things that fill a route's parameters. `loadSources` (sources.ts) reads the real ones. */
 export interface Sources {
-  /** The course index of ARCHITECTURE §4.6: every module of `course.yaml`, written or planned, with its lessons. */
+  /** The course index of ARCHITECTURE §4.6: every module of `course.yaml`, written or planned, its title, its route and whether it is published. */
   index: ContentIndex
+  /** Each module's lesson rows, from the lesson index. */
+  lessons: LessonIndex
   /** The game registry (`packages/play/registry.ts`): the games that are built, with the names the learner sees (D-049). */
   games: readonly Pick<GameEntry, 'id' | 'title' | 'subtitle' | 'has3d'>[]
   /** The lab list: the ids of ARCHITECTURE §9.2 (`hybrid-kv`, `tr8.replay`). */
@@ -146,9 +148,9 @@ export const PAGES: Readonly<Record<string, Spec>> = {
           : 'A module of the course, with its lessons, the games and labs it uses, and what you will be able to do after it.',
     })),
   ),
-  '/m/:module/:lesson': each(({ index }) =>
+  '/m/:module/:lesson': each(({ index, lessons }) =>
     index.modules.flatMap((module) =>
-      module.lessons.map((lesson) => ({
+      (lessons.modules[module.id] ?? []).map((lesson) => ({
         url: lesson.route,
         title: titled(lesson.title),
         heading: lesson.title,

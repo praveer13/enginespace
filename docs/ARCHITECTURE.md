@@ -322,7 +322,7 @@ KCs come from a ref→KC map at read time and are never stored (kernelspace's ru
 
 | Output | Where | Size target |
 |---|---|---|
-| Course index: modules, lessons, titles, routes and hours | `src/content/generated/index.json`, in the entry closure | ≤ 6 KB gz [estimated] |
+| Course index: modules, whether each is published, hours, and the first lesson; the lesson rows are in `lesson-index.json`, loaded on demand | `src/content/generated/index.json`, in the entry closure | ≤ 6 KB gz [estimated] |
 | Course map: each module's prerequisites, artifacts and KCs, each KC's description and edges, the ref→KC table (§4.5) and the lessons table (§4.8) | `src/content/generated/map.json`, one lazy chunk read by `/map`, the module pages and the progress code; kept out of the index because the index is in the entry closure | ≤ 12 KB gz [estimated] |
 | One JSON per lesson, per module and per card | `src/content/generated/{lessons,modules,cards}/*.json`, one lazy chunk each through `import.meta.glob`, whose tables sit in `src/content/load-lessons.ts`: the index and the claims, which the front page and the games read, are in `load.ts` without them (D-059) | ≤ 40 KB gz each [estimated] |
 | Learner's-agent export, with keys and answers stripped | `public/md/<module>/<lesson>.md`, `public/llms.txt` | — |
