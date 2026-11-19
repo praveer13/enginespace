@@ -1414,6 +1414,13 @@
 /* The list is read with the page, so the field and the processes to filter by stand at the screen's top over it, as the drawing does beside
    it: no scroll of the page cuts them (the finish review: the field and the tabs cut at the top). Under 600 px of height nothing is sticky. */
 @media (min-width: 64rem) and (min-height: 600px) {
+  /* A stage the keyboard reaches is scrolled clear of the filters pinned at the screen's top (WCAG 2.4.11). The filters stand 149 px tall
+     (two rows of process chips) or 189 px (three) on every level and at every width from 1024 to 1920 px [measured 2026-11-19 at b2435ba],
+     so 12.5rem (200 px) clears the taller. */
+  html:has(.es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro])) {
+    scroll-padding-top: 12.5rem;
+  }
+
   .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-filters {
     position: sticky;
     top: 0;

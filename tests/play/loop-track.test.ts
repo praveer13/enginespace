@@ -1,6 +1,6 @@
 /*
  * R-T18: the step loop's 3D time track (src/games/loop/Scene3D.tsx; REDESIGN §2.8, §2.9, P7). The scene draws a flat model of the
- * 2D diagram (track-layout.ts, full/track.ts) through six cameras (track-presets.ts). These tests hold it to the brief:
+ * 2D diagram (track-layout.ts, full/track.ts) through five cameras (track-presets.ts). These tests hold it to the brief:
  *   - the Side camera is the 2D diagram: a tick's x through its projection equals the 2D layout's x within 1 px, on a demo level and on a
  *     full level;
  *   - Lifted is Side tilted: time still runs left to right, and the slots recede in depth;

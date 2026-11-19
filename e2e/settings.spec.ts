@@ -116,8 +116,21 @@ const test = base.extend<{ requests: string[] }>({
 
 // ------------------------------------------------------------------------------------------------ helpers
 
+/**
+ * Opens a route and waits for its own page, as e2e/support/site.ts's ready() does: every address is answered with index.html, whose shell is
+ * the front page's, so a test that read `main` at once could measure the front page and not the page it names.
+ */
 async function open(page: Page, route: string) {
   await page.goto(`${ORIGIN}${route}`)
+  if (route === '/') {
+    await page.waitForFunction(() => Object.keys(document.querySelector('section.es-front-service') ?? {}).some((key) => key.startsWith('__react')))
+  } else {
+    await page.waitForFunction(() => {
+      const main = document.querySelector('main')
+      const loading = [...document.querySelectorAll('[role="status"]')].some((status) => status.textContent?.trim().startsWith('Loading'))
+      return main !== null && main.querySelector('.es-front') === null && main.querySelector('h1') !== null && !loading
+    })
+  }
   await page.evaluate(() => document.fonts.ready)
 }
 

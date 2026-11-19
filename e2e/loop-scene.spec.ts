@@ -2,7 +2,7 @@
  * The step loop's 3D scene, the time track (R-T18; REDESIGN §2.8, §2.9), in Playwright's Chromium, through `/play/loop`:
  *
  *   - a whole night of first-4-par draws in at most 100 calls, at T1 and at T2, read from the scene's own `renderer.info` (A§11.1);
- *   - `V` swaps 2D and 3D and keeps the levers; `C` and the buttons reach all six cameras;
+ *   - `V` swaps 2D and 3D and keeps the levers; `C` and the buttons reach all five cameras;
  *   - the waiting queue is drawn once, in the dock, and a chip admitted there shows on the plate;
  *   - the capture is not blank at T1 and at T2, where the contact shadows and baked occlusion are all the depth there is;
  *   - all text is DOM over the canvas;
@@ -215,7 +215,7 @@ test.describe('the views and the cameras (A§6.8)', () => {
     await expect(labels(page).getByText('now', { exact: true })).toHaveCount(1)
   })
 
-  test('`C` cycles all six cameras from Lifted, and each button reaches its own', async ({ page }) => {
+  test('`C` cycles all five cameras from Lifted, and each button reaches its own', async ({ page }) => {
     test.setTimeout(180_000)
     await open(page, 'first-2-slot', 2)
     await settle(page)
