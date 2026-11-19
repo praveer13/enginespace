@@ -17,6 +17,7 @@ import { BUDGETS, compileContent, lessonRow } from '../../scripts/content/build.
 import { loadYaml } from '../../scripts/content/parse.ts'
 import { read as readRepo, root } from '../ci/support'
 import { OPENERS } from './openers-table.ts'
+import { TOTAL_LESSONS } from './module-counts.ts'
 import { COURSE, KCS, compile, lineOf, MODULE, output, read, swap, where } from './support.ts'
 
 const MAP_JSON = 'src/content/generated/map.json'
@@ -222,8 +223,8 @@ describe('the lessons table', () => {
   const built = index.modules.flatMap((module) => module.lessons.map((lesson) => ({ module: module.id, lesson })))
   const lessonJson = (module: string, slug: string) => compiledLessonSchema.parse(JSON.parse(output(real, `src/content/generated/lessons/${module}.${slug}.json`)))
 
-  test('has a row for each of the 27 built lessons, in course order, and the map stays within its budget', () => {
-    expect(realMap.lessons).toHaveLength(27)
+  test('has a row for each built lesson, in course order, and the map stays within its budget', () => {
+    expect(realMap.lessons).toHaveLength(TOTAL_LESSONS)
     expect(realMap.lessons.map((row) => row.id)).toEqual(built.map(({ lesson }) => lesson.id))
     expect(realMap.lessons.map((row) => row.route)).toEqual(built.map(({ lesson }) => lesson.route))
     expect(gzipSync(output(real, MAP_JSON)).length).toBeLessThanOrEqual(BUDGETS.map)

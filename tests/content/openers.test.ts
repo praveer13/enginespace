@@ -14,6 +14,7 @@ import { groupSections, SETUP_WORDS } from '@/content/render/sections'
 import { compileContent } from '../../scripts/content/build.ts'
 import { PACING } from '../../scripts/content/pacing.ts'
 import { OPENERS } from './openers-table.ts'
+import { TOTAL_LESSONS } from './module-counts.ts'
 import { failing, repo } from './support.ts'
 
 const compiled = compileContent({ root: repo })
@@ -50,8 +51,8 @@ function holdsRow(id: string): void {
 }
 
 describe('the openers table of REDESIGN §2.5', () => {
-  test('has the 27 rows: 4 A, 13 B and 10 C, and every built lesson is one of them', () => {
-    expect(OPENERS.length).toBe(27)
+  test('has a row for each built lesson (27 today): 4 A, 13 B and 10 C, and every built lesson is one of them', () => {
+    expect(OPENERS.length).toBe(TOTAL_LESSONS)
     expect(OPENERS.filter((row) => row.opener === 'A').length).toBe(4)
     expect(OPENERS.filter((row) => row.opener === 'B').length).toBe(13)
     expect(OPENERS.filter((row) => row.opener === 'C').length).toBe(10)

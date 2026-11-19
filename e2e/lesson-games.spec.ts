@@ -24,6 +24,7 @@ import { GAMES, drawInBand, levelOf } from '../packages/play'
 import { POOL_PARTS } from '../packages/play/pool/copy'
 import { benchSession } from '../packages/play/broken-bench/session'
 import { PR_WIDTHS } from './routes'
+import { TOTAL_GAME_BLOCKS, TOTAL_LESSONS } from '../tests/content/module-counts'
 import { walkOf } from './support/front'
 import { embedOf, lessonGames, openerOfRoute, playEvents, startBlock, ticketOf, type LessonGame, type StoredPlay } from './support/lessons'
 import { expect, open, quiet, test, withSettings } from './support/site'
@@ -56,9 +57,9 @@ async function tabToLocator(walk: Walk, target: Locator, limit: number): Promise
 }
 
 test.describe('the blocks', () => {
-  test('are the 42 that the course holds, in 26 of the 27 lessons', () => {
-    expect(BLOCKS.length).toBe(42)
-    expect(lessonsOf(BLOCKS).length).toBe(26)
+  test('are the game blocks that the course holds (42 today), in all its lessons but one', () => {
+    expect(BLOCKS.length).toBe(TOTAL_GAME_BLOCKS)
+    expect(lessonsOf(BLOCKS).length).toBe(TOTAL_LESSONS - 1)
   })
 })
 
