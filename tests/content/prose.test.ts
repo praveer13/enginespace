@@ -322,6 +322,8 @@ describe("the number gate: a model's number is [synthetic], never [measured]", (
     // "The model" as the LLM, after "of", and a network port that gives a number, are not the course's model.
     expect(codes('The tokenizer of the model counts 32,000 entries [measured] in its config at the pin.')).toEqual([])
     expect(codes('The README says the port gives 8000 by default [measured].')).toEqual([])
+    // The price of letting a network port give a number: write 'the course's port'.
+    expect(codes('The port gave 86 graphs [measured] on that seed.')).toEqual([])
     // A source's number that equals a cell of the model's table, in the same `##` part, is still refused: the gate reads words and
     // cannot tell a source's 957 from the model's. The message says how to keep it [measured].
     const part = [
