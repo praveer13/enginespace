@@ -8,10 +8,11 @@
  *
  * Every test that changes content changes a copy. Nothing here writes into the repository.
  */
-import { afterAll, test } from 'bun:test'
+import { test } from 'bun:test'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { tempDirs } from '../ci/temp-preload'
 import { compileContent } from '../../scripts/content/build.ts'
 import type { CompileResult } from '../../scripts/content/build.ts'
 import { formatDiagnostic } from '../../scripts/content/parse.ts'
@@ -86,15 +87,10 @@ export const REPO_COUNTS = `${plural(REPO_MODULES, 'module', 'modules')}, ${plur
 /** The files the compiler writes for the repo: the index, the lesson index, the map, the claims and llms.txt, two for each module and each lesson (the export and the JSON), and one JSON for each card. */
 export const REPO_OUTPUT_COUNT = 5 + 2 * REPO_MODULES + 2 * REPO_LESSONS + CARD_COUNT
 
-const scratch: string[] = []
-afterAll(() => {
-  for (const dir of scratch) rmSync(dir, { recursive: true, force: true })
-})
-
-/** A new directory outside the repo, removed when the test file ends. */
+/** A new directory outside the repo, removed when the run ends (tests/ci/temp-preload.ts). */
 export function tempDir(label = 'project'): string {
   const dir = mkdtempSync(path.join(tmpdir(), `enginespace-${label}-`))
-  scratch.push(dir)
+  tempDirs.add(dir)
   return dir
 }
 
