@@ -1,21 +1,6 @@
 {
   "red": [
     {
-      "file": "e2e/design-parts.spec.ts",
-      "title": "the section rail is a nav of an ordered list with one current step, and its strip opens and closes by keyboard",
-      "note": "fails on the wave base"
-    },
-    {
-      "file": "e2e/design-parts.spec.ts",
-      "title": "at 390 px every new target is 44 px or more on its short side, and focus is the ink ring on a paper halo",
-      "note": "fails on the wave base"
-    },
-    {
-      "file": "e2e/design-parts.spec.ts",
-      "title": "at 1440 px every new target is 44 px or more on its short side, and focus is the ink ring on a paper halo",
-      "note": "fails on the wave base"
-    },
-    {
       "file": "e2e/lab-kits.spec.ts",
       "title": "every file in the manifest is linked from its lab page > the manifest lists forge labs and nothing else, so that a file of another kind must be given its page and its row here",
       "note": "fails on the wave base"
@@ -33,11 +18,6 @@
     {
       "file": "e2e/rejection-sampler.spec.ts",
       "title": "a wrong module > a re-plate from p fails round and the chi-square, which names the dish furthest from its share",
-      "note": "fails on the wave base"
-    },
-    {
-      "file": "e2e/settings.spec.ts",
-      "title": "settings apply live (accept 1) > a quality cap lowers the tier the running scene draws at",
       "note": "fails on the wave base"
     },
     {
