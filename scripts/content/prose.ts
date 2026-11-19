@@ -9,8 +9,9 @@
  *
  * The number gate lives here because it reads the same tokens. A digit run must carry one of the five tags within its
  * sentence unless it sits in code or a reference, in an id, or in an ISO date (`untaggedNumbers`). A number that the course's own
- * model printed is `[synthetic]`, never `[measured]`: a `[measured]` tag in a sentence that names the model, or in a `##` part after a
- * table whose caption names it, is refused (`modelMeasuredSentences`, `model-number-measured`).
+ * model printed is `[synthetic]`, never `[measured]`: a `[measured]` tag is refused in a sentence that names the model, in the
+ * caption of a table that names it and in that table's cells, in a later table of the same `##` part, and in a later sentence of the
+ * part that quotes a number of that table (`modelMeasuredSentences`, `model-number-measured`).
  */
 import { getDefaults, Lexer } from 'marked'
 import type { Token, Tokens } from 'marked'
@@ -164,17 +165,20 @@ class Flat {
 
 /**
  * Words that say a number came out of the course's own model, in the forms the lessons use for it: "the course's sim" (simulator,
- * simulation, step loop, model, port, lifecycle model), "the course's own world", "printed by the course's model", "the step loop
- * gives" (sim, simulator or port; gives, prints, measures or counts) and "the model gives" (counts, prices or prints). A number that a
- * sentence, or the caption of its table, says that about is `[synthetic]`, never `[measured]` (content/README.md, "Numbers"): a reader
- * takes `[measured]` to mean that a machine or a source was read, and the model is neither.
+ * simulation, step loop, model, port, lifecycle model; with a straight or a curly apostrophe), "the course's own world", "printed by
+ * the course's model", "the step loop gives" (sim, simulator or simulation; gives, prints, measures, counts or reports), "the port
+ * prints" (prints, measures or counts, so that a network port that gives a number is not read as the course's port) and "the model
+ * gives" (counts, prices or prints; not after "of", so that "the tokenizer of the model counts" is not read as the course's model). A
+ * number that a sentence, or the caption of its table, says that about is `[synthetic]`, never `[measured]` (content/README.md,
+ * "Numbers"): a reader takes `[measured]` to mean that a machine or a source was read, and the model is neither.
  */
 export const MODEL_SOURCE = new RegExp(
   [
-    String.raw`\b(?:the\s+)?course'?s\s+(?:own\s+)?(?:sim|simulator|simulation|step[- ]loop|model|port|lifecycle\s+model|world)\b`,
-    String.raw`\bprinted\s+by\s+the\s+(?:course's\s+)?model\b`,
-    String.raw`\bthe\s+(?:step[- ]loop|sim|simulator|port)\s+(?:gives|gave|prints|printed|measures|measured|counts|counted)\b`,
-    String.raw`\bthe\s+model\s+(?:gives|gave|counts|counted|prices|priced|prints|printed)\b`,
+    String.raw`\b(?:the\s+)?course['’]?s\s+(?:own\s+)?(?:sim|simulator|simulation|step[- ]loop|model|port|lifecycle\s+model|world)\b`,
+    String.raw`\bprinted\s+by\s+the\s+(?:course['’]?s\s+)?model\b`,
+    String.raw`\bthe\s+(?:step[- ]loop|sim|simulator|simulation)\s+(?:gives|gave|prints|printed|measures|measured|counts|counted|reports|reported)\b`,
+    String.raw`\bthe\s+port\s+(?:prints|printed|measures|measured|counts|counted)\b`,
+    String.raw`(?<!\bof\s+)\bthe\s+model\s+(?:gives|gave|counts|counted|prices|priced|prints|printed)\b`,
   ].join('|'),
   'i',
 )
@@ -194,9 +198,19 @@ const MODEL_WHY: Record<ModelReason, string> = {
   table: "this sentence quotes a number of a table that the course's own model printed in this part, and that number is [synthetic]",
 }
 
+/**
+ * The way out of each reason. The gate reads words, so a caption's or a quoting sentence's number may be a source's own: a
+ * `##` part of its own is where it can say so.
+ */
+const MODEL_FIX: Record<ModelReason, string> = {
+  named: 'retag "%s"',
+  caption: `retag "%s", or, if the number is a source's own, name the source in another \`##\` part`,
+  table: `retag "%s", or, if the number is a source's own and only equals the table's, name the source in another \`##\` part`,
+}
+
 /** The message for a `[measured]` sentence that the course's own model printed. */
 export function modelMessage(sentence: string, reason: ModelReason = 'named'): string {
-  return `${MODEL_WHY[reason]}, and [measured] is a hardware run or a source that was read, with its date: retag "${snippet(sentence)}"`
+  return `${MODEL_WHY[reason]}, and [measured] is a hardware run or a source that was read, with its date: ${MODEL_FIX[reason].replace('%s', () => snippet(sentence))}`
 }
 
 /** The numbers of a cell or a sentence that could be read off a table: every digit run of two characters or more. */

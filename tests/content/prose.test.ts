@@ -298,12 +298,15 @@ describe("the number gate: a model's number is [synthetic], never [measured]", (
       'The model prices a page at 16 tokens [measured].',
       "Here is the effect in the course's own world, which holds 1,159 requests [measured].",
       "That is two stages [measured], counted in the course's lifecycle model on 2026-11-05.",
+      'Here the course’s sim prints 860 µs [measured], with a curly apostrophe.',
+      'The step loop reports 860 µs [measured] for that grammar.',
+      'The simulation gives 860 µs [measured] for that grammar.',
     ]) {
       expect([sentence, codes(sentence)]).toEqual([sentence, ['1 model-number-measured']])
     }
   })
 
-  test('a source that was read, a quoted run and a count of a fixture stay [measured]', () => {
+  test('the gate does not refuse a source that was read, a quoted run or a count of a fixture', () => {
     for (const sentence of [
       'The scheduler is 92 lines [measured] at `bb823b3`, read on 2026-11-05.',
       "The README's second example shows the size of the effect, in a run with one pause of 1.4 s [measured] on the server.",
@@ -313,6 +316,31 @@ describe("the number gate: a model's number is [synthetic], never [measured]", (
     ]) {
       expect([sentence, codes(sentence)]).toEqual([sentence, []])
     }
+  })
+
+  test("the model of a sentence is the course's only where the words say so, and a quote of the model's table is refused with both ways out", () => {
+    // "The model" as the LLM, after "of", and a network port that gives a number, are not the course's model.
+    expect(codes('The tokenizer of the model counts 32,000 entries [measured] in its config at the pin.')).toEqual([])
+    expect(codes('The README says the port gives 8000 by default [measured].')).toEqual([])
+    // A source's number that equals a cell of the model's table, in the same `##` part, is still refused: the gate reads words and
+    // cannot tell a source's 957 from the model's. The message says how to keep it [measured].
+    const part = [
+      "The table is one steady step. Printed by the course's model on 2026-11-08 at `b5fb81a`.",
+      '',
+      '| The phase | 70B on H100, µs [synthetic] | Batch [synthetic] |',
+      '|---|---|---|',
+      '| The CPU work | 957 | 24 |',
+      '',
+    ].join('\n')
+    for (const sentence of ['The pinned scheduler file is 957 lines [measured] at `4ba787e`.', 'vLLM caps the batch at 24 requests [measured] at `4ba787e`.']) {
+      const out = prose(`${part}\n${sentence}`).out
+      expect([sentence, out.map((d) => `${d.line} ${d.code}`)]).toEqual([sentence, ['7 model-number-measured']])
+      expect(out[0].message).toContain("or, if the number is a source's own and only equals the table's, name the source in another `##` part")
+    }
+    // The caption's own [measured] sentence gets its way out too.
+    const caption = prose("The server finishes 8.6 requests a second [measured]. Printed by the course's model on 2026-11-04 at `fd168df`.\n\n| Load [estimated] | p50, ms [synthetic] |\n|---|---|\n| 0.5 | 63 |").out
+    expect(caption.map((d) => d.code)).toEqual(['model-number-measured'])
+    expect(caption[0].message).toContain("or, if the number is a source's own, name the source in another `##` part")
   })
 
   test("a caption that names the model makes its own sentences, its table, a later table of the part and a sentence quoting the table the model's", () => {
