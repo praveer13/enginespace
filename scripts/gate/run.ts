@@ -23,7 +23,7 @@ import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
 import path from 'node:path'
-import { plan, type Plan, type Step } from './touched'
+import { plan, type Command, type Plan, type Step } from './touched'
 
 const ROOT = path.resolve(import.meta.dirname, '../..')
 
@@ -176,6 +176,44 @@ export function runStep(step: Step, known: KnownRed): StepResult {
   return { step, command: text, total, failed, refused, known: knownFailing, rerun, nowPassing }
 }
 
+/** The interpreters the grader's requires-python (>=3.11,<3.15) allows, newest tested first: CI pins 3.12, the task names 3.13. */
+export const PYTHONS: readonly string[] = ['3.13', '3.12', '3.14', '3.11']
+
+/** The environment of a uv command: offline, never a download, and `python` an installed interpreter. */
+export function uvEnv(base: NodeJS.ProcessEnv, python: string): NodeJS.ProcessEnv {
+  return { ...base, UV_OFFLINE: '1', UV_PYTHON_DOWNLOADS: 'never', UV_PYTHON: python }
+}
+
+/** The first of PYTHONS that uv finds installed, or undefined. */
+export function pickPython(): string | undefined {
+  for (const version of PYTHONS) {
+    const run = spawnSync('uv', ['python', 'find', version], { cwd: ROOT, env: { ...process.env, UV_OFFLINE: '1', UV_PYTHON_DOWNLOADS: 'never' }, encoding: 'utf8' })
+    if (run.status === 0) return version
+  }
+  return undefined
+}
+
+export interface CommandResult {
+  readonly command: Command
+  readonly code: number | null
+  readonly seconds: number
+  readonly tail: string
+}
+
+/** Runs one lab command from the repository root. A command that cannot start (no uv, no interpreter) counts as failed. */
+export function runCommand(command: Command, python: string | undefined): CommandResult {
+  const started = Date.now()
+  if (command.uv === true && python === undefined) {
+    return { command, code: null, seconds: 0, tail: `no installed Python of ${PYTHONS.join(', ')} for uv, and uv may not download one` }
+  }
+  const base: NodeJS.ProcessEnv = { ...process.env, ...command.env }
+  const env = command.uv === true && python !== undefined ? uvEnv(base, python) : base
+  const [bin, ...args] = command.argv
+  const run = spawnSync(bin, args, { cwd: ROOT, env, encoding: 'utf8', maxBuffer: 1 << 28 })
+  const tail = clean(`${run.error?.message ?? ''}${run.stderr ?? ''}${run.stdout ?? ''}`).split('\n').filter(Boolean).slice(-15).join('\n')
+  return { command, code: run.error !== undefined ? null : run.status, seconds: Math.round((Date.now() - started) / 1000), tail }
+}
+
 function parse(argv: readonly string[]): { base: string; head: string; planOnly: boolean } | undefined {
   let base: string | undefined
   let head: string | undefined
@@ -213,8 +251,29 @@ function main(argv: readonly string[]): number {
   }
   console.log(`gate: ${paths.length} changed path${paths.length === 1 ? '' : 's'}, ${made.steps.length} browser step${made.steps.length === 1 ? '' : 's'}`)
   for (const note of made.notes) console.log(`note: ${note}`)
+  let labsFailed = 0
+  if (made.commands.length > 0) {
+    const python = made.commands.some((command) => command.uv === true) ? pickPython() : undefined
+    console.log(`\n== lab checks: ${made.commands.length} commands  [${made.commands[0].why.join('; ')}]`)
+    if (python !== undefined) console.log(`uv: offline, no downloads, interpreter ${python} (installed)`)
+    for (const note of made.notRun) console.log(`NOT RUN: ${note}`)
+    for (const command of made.commands) {
+      const result = runCommand(command, python)
+      const ok = result.code === 0
+      console.log(`$ ${command.env ? Object.entries(command.env).map(([key, value]) => `${key}=${value} `).join('') : ''}${command.argv.join(' ')}`)
+      console.log(`${ok ? 'ok' : 'FAILED'}: ${command.id} (${result.seconds} s)`)
+      if (!ok) {
+        labsFailed++
+        console.log(result.tail.split('\n').map((line) => `    ${line}`).join('\n'))
+      }
+    }
+  }
   if (made.steps.length === 0) {
-    console.log('gate: no changed path maps to a features spec or a nightly walk; nothing to run')
+    if (labsFailed > 0) {
+      console.log(`gate: FAILED (${labsFailed} lab check${labsFailed === 1 ? '' : 's'})`)
+      return 1
+    }
+    console.log('gate: no changed path maps to a features spec or a nightly walk; nothing more to run')
     return 0
   }
   const known = readKnown()
@@ -234,11 +293,12 @@ function main(argv: readonly string[]): number {
   }
   const bad = results.filter((result) => result.crash !== undefined || result.refused.length > 0)
   console.log('\nsummary')
+  if (made.commands.length > 0) console.log(`  lab checks: ${labsFailed === 0 ? 'ok' : `${labsFailed} failed`}`)
   for (const result of results) {
     const state = result.crash !== undefined ? 'could not run' : result.refused.length > 0 ? `${result.refused.length} new failure${result.refused.length === 1 ? '' : 's'}` : 'ok'
     console.log(`  ${result.step.project}${result.step.nightly ? ' nightly' : ''}: ${state}`)
   }
-  if (bad.length > 0) {
+  if (bad.length > 0 || labsFailed > 0) {
     console.log('gate: FAILED')
     for (const result of bad) for (const test of result.refused) console.log(`  ${test.file} > ${test.title}`)
     return 1
