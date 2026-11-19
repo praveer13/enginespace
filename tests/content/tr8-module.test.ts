@@ -584,12 +584,16 @@ describe('lesson 1: the toy log, the pause and the cap', () => {
 
   test('the first eight rows of the log, with the slip of each in a column of its own, and what the slips add up to', () => {
     // The slip is the first term of the written form, sent - due. The table carries it, and the prose points at the column without repeating it.
-    mentions('tr8.l1', 'the head', '| Request | Due, ms [estimated] | Sent, ms [derived] | Slip, ms [derived] | Reply, ms [derived] | Timed from the send, ms [derived] | Timed from the due time, ms [derived] |')
+    mentions('tr8.l1', 'the head', '| Request | Due, ms [estimated] | Sent, ms [derived] | Slip, ms [derived] | Reply, ms [derived] | From the send, ms [derived] | From the due time, ms [derived] |')
     for (const r of toy.slice(0, 8)) {
       mentions('tr8.l1', `row #${r.n}`, `| #${r.n} | ${fmt(r.dueMs)} | ${fmt(r.sentMs)} | ${fmt(r.sentMs - r.dueMs)} | ${fmt(r.replyMs)} | ${fmt(r.fromSentMs)} | ${fmt(r.fromDueMs)} |`)
     }
     const slips = toy.slice(3, 7).map((r) => r.sentMs - r.dueMs)
     mentions('tr8.l1', 'the slips', 'so each went out late: read the slip column')
+    // The four late requests took what #1 and #2 took, and #3, the frozen one, took longer.
+    expect(toy.slice(3, 7).map((r) => r.fromSentMs)).toEqual(Array(4).fill(toy[0].fromSentMs))
+    expect([toy[1].fromSentMs, toy[2].fromSentMs > toy[0].fromSentMs]).toEqual([toy[0].fromSentMs, true])
+    mentions('tr8.l1', 'as long as #1 and #2', 'Each then took as long as requests #1 and #2 did, and that is all the timer measured.')
     mentions('tr8.l1', 'the unseen wait', `The four slips add up to ${fmt(slips.reduce((a, b) => a + b, 0))} ms [derived]`)
   })
 

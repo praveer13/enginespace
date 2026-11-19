@@ -8,7 +8,9 @@
  * marked's parser and renderer never run, and no node holds HTML, so React is the only thing that renders prose.
  *
  * The number gate lives here because it reads the same tokens. A digit run must carry one of the five tags within its
- * sentence unless it sits in code or a reference, in an id, or in an ISO date (`untaggedNumbers`).
+ * sentence unless it sits in code or a reference, in an id, or in an ISO date (`untaggedNumbers`). A number that the course's own
+ * model printed is `[synthetic]`, never `[measured]`: a `[measured]` tag in a sentence that names the model, or in a `##` part after a
+ * table whose caption names it, is refused (`modelMeasuredSentences`, `model-number-measured`).
  */
 import { getDefaults, Lexer } from 'marked'
 import type { Token, Tokens } from 'marked'
@@ -25,6 +27,12 @@ const PLACEHOLDER = '\uFFFC'
 /** Reading speed for prose: 200 words a minute [estimated]. The compiler warns when a lesson's `minutes` strays from its own sum. */
 export const WORDS_PER_MINUTE = 200
 
+export interface ModelSection {
+  model: boolean
+  caption: boolean
+  numbers: Set<string>
+}
+
 export interface ProseContext {
   file: string
   /** The ids of the claims that exist. A reference to any other is an error. */
@@ -35,6 +43,13 @@ export interface ProseContext {
   outline: { depth: number }
   /** Out: the words read, for the reading time. */
   words: { count: number }
+  /**
+   * In and out: what the current `##` part has said about the course's own model, for `model-number-measured`. `model`: a table's
+   * caption named the model, so a later table of the part cannot tag a column `[measured]`. `caption`: the caption that names it is
+   * being read, so none of its sentences can either. `numbers`: the numbers printed in the cells of the model's tables, which a later
+   * `[measured]` sentence of the part cannot quote. A `##` heading starts a new part, and absent means nothing was said.
+   */
+  section?: ModelSection
   out: Diagnostic[]
 }
 
@@ -148,17 +163,57 @@ class Flat {
 }
 
 /**
- * Words that say a number came out of the course's own model: its sim, simulator, step loop, port or "printed by" a model. A number
- * that a sentence, or the line above its table, says that about is `[synthetic]`, never `[measured]` (content/README.md, "Numbers"):
- * a reader takes `[measured]` to mean that a machine or a source was read, and the model is neither.
+ * Words that say a number came out of the course's own model, in the forms the lessons use for it: "the course's sim" (simulator,
+ * simulation, step loop, model, port, lifecycle model), "the course's own world", "printed by the course's model", "the step loop
+ * gives" (sim, simulator or port; gives, prints, measures or counts) and "the model gives" (counts, prices or prints). A number that a
+ * sentence, or the caption of its table, says that about is `[synthetic]`, never `[measured]` (content/README.md, "Numbers"): a reader
+ * takes `[measured]` to mean that a machine or a source was read, and the model is neither.
  */
-export const MODEL_SOURCE = /\b(?:the\s+)?course'?s\s+(?:own\s+)?(?:sim|simulator|simulation|step[- ]loop|model|port|lifecycle model)\b|\bprinted by the (?:course's )?model\b/i
+export const MODEL_SOURCE = new RegExp(
+  [
+    String.raw`\b(?:the\s+)?course'?s\s+(?:own\s+)?(?:sim|simulator|simulation|step[- ]loop|model|port|lifecycle\s+model|world)\b`,
+    String.raw`\bprinted\s+by\s+the\s+(?:course's\s+)?model\b`,
+    String.raw`\bthe\s+(?:step[- ]loop|sim|simulator|port)\s+(?:gives|gave|prints|printed|measures|measured|counts|counted)\b`,
+    String.raw`\bthe\s+model\s+(?:gives|gave|counts|counted|prices|priced|prints|printed)\b`,
+  ].join('|'),
+  'i',
+)
 const MEASURED = /\[measured\]/
+
+/** The sentences of a text that tag a number `[measured]` and name the course's own model as where it came from. */
+export function modelMeasuredSentences(text: string): { start: number; text: string }[] {
+  return sentences(text).filter((sentence) => MEASURED.test(sentence.text) && MODEL_SOURCE.test(sentence.text))
+}
+
+/** Why a `[measured]` sentence is the model's: it names the model, it is the caption of the model's table, or it quotes that table. */
+export type ModelReason = 'named' | 'caption' | 'table'
+
+const MODEL_WHY: Record<ModelReason, string> = {
+  named: "a number that the course's own model printed is [synthetic]",
+  caption: "this caption says that the course's own model printed the table below it, so its numbers are [synthetic]",
+  table: "this sentence quotes a number of a table that the course's own model printed in this part, and that number is [synthetic]",
+}
+
+/** The message for a `[measured]` sentence that the course's own model printed. */
+export function modelMessage(sentence: string, reason: ModelReason = 'named'): string {
+  return `${MODEL_WHY[reason]}, and [measured] is a hardware run or a source that was read, with its date: retag "${snippet(sentence)}"`
+}
+
+/** The numbers of a cell or a sentence that could be read off a table: every digit run of two characters or more. */
+const tableNumbers = (text: string): string[] => [...text.matchAll(NUMBER)].map((match) => match[0]).filter((number) => number.length >= 2)
+
+function modelReason(sentence: string, section: ModelSection | undefined): ModelReason | null {
+  if (!MEASURED.test(sentence)) return null
+  if (MODEL_SOURCE.test(sentence)) return 'named'
+  if (section?.caption === true) return 'caption'
+  if (section !== undefined && tableNumbers(sentence).some((number) => section.numbers.has(number))) return 'table'
+  return null
+}
 
 function modelMeasured(text: string, flat: Flat, ctx: ProseContext): void {
   for (const sentence of sentences(text)) {
-    if (!MEASURED.test(sentence.text) || !MODEL_SOURCE.test(sentence.text)) continue
-    ctx.out.push(problem('numbers', 'error', 'model-number-measured', ctx.file, flat.lineAt(sentence.start), `a number that the course's own model printed is [synthetic], and [measured] is a hardware run or a source that was read, with its date: retag "${snippet(sentence.text)}"`))
+    const reason = modelReason(sentence.text, ctx.section)
+    if (reason !== null) ctx.out.push(problem('numbers', 'error', 'model-number-measured', ctx.file, flat.lineAt(sentence.start), modelMessage(sentence.text, reason)))
   }
 }
 
@@ -333,25 +388,28 @@ function line(tokens: readonly Token[], at: number, ctx: ProseContext, scanned =
 function flow(tokens: readonly Token[], first: number, ctx: ProseContext): ProseFlow[] {
   const out: ProseFlow[] = []
   let at = first
-  /** The paragraph just above, which is a table's caption: it says what made the table's numbers. */
-  let caption = ''
-  for (const token of tokens) {
+  for (const [index, token] of tokens.entries()) {
     const start = at
     at += newlines(token.raw)
-    const above = caption
-    if (token.type !== 'space') caption = token.type === 'paragraph' ? token.raw : ''
     switch (token.type) {
       case 'space':
         break
       case 'paragraph':
       case 'text': {
+        // The paragraph just above a table is its caption, and it says what made the table's numbers. When it names the course's own
+        // model, its sentences, the tables after it in the `##` part and the sentences that quote those tables are the model's.
+        const next = tokens.slice(index + 1).find((after) => after.type !== 'space')
+        const caption = token.type === 'paragraph' && next?.type === 'table' && MODEL_SOURCE.test(token.raw)
+        if (caption) ctx.section = { model: true, caption: true, numbers: ctx.section?.numbers ?? new Set() }
         const inner = (token as Tokens.Paragraph).tokens ?? [{ type: 'text', raw: token.raw, text: (token as Tokens.Text).text } as Tokens.Text]
         const children = line(inner, start, ctx)
+        if (caption && ctx.section !== undefined) ctx.section.caption = false
         if (children.length > 0) out.push({ type: 'paragraph', children })
         break
       }
       case 'heading': {
         const { depth, tokens: inner } = token as Tokens.Heading
+        if (depth === 2) ctx.section = undefined
         if (depth < 2 || depth > 4) {
           unsupported(ctx, start, 'bad-heading', `a heading in prose is ## to ####, and this is ${'#'.repeat(depth)}: the page's title is its h1`)
         } else if (depth > ctx.outline.depth + 1) {
@@ -381,11 +439,17 @@ function flow(tokens: readonly Token[], first: number, ctx: ProseContext): Prose
         const head = table.header.map((cell, column) => inline(cell.tokens, start, ctx, flats[column]))
         // A tag in a column's header tags the whole column: a table says once what its numbers are.
         const tagged = flats.map((flat) => TAG.test(flat.text))
-        if (MODEL_SOURCE.test(above) && flats.some((flat) => MEASURED.test(flat.text))) {
-          ctx.out.push(problem('numbers', 'error', 'model-number-measured', ctx.file, start, "the paragraph above this table says that the course's own model printed it, and a column is tagged [measured]: a model's number is [synthetic]"))
+        const measuredCell = flats.some((flat) => MEASURED.test(flat.text)) || table.rows.some((row) => row.some((cell) => MEASURED.test(cell.text)))
+        if (ctx.section?.model === true && measuredCell) {
+          ctx.out.push(problem('numbers', 'error', 'model-number-measured', ctx.file, start, "a caption in this part says that the course's own model printed its table, and a cell is tagged [measured]: a model's number is [synthetic]"))
         }
+        // The cells are checked above, as a table's: a sentence check of each cell under the caption would report the table twice.
+        const section = ctx.section
+        ctx.section = undefined
         flats.forEach((flat) => scan(flat, ctx))
         const rows = table.rows.map((row, index) => row.map((cell, column) => line(cell.tokens, start + 2 + index, ctx, !tagged[column])))
+        ctx.section = section
+        if (section?.model === true) for (const row of table.rows) for (const cell of row) for (const number of tableNumbers(cell.text)) section.numbers.add(number)
         out.push({ type: 'table', align: table.align as ProseAlign[], head, rows })
         break
       }

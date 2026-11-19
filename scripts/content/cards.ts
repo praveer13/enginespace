@@ -21,7 +21,7 @@ import type { ProseFlow } from '../../packages/schema/compiled.ts'
 import { slugSchema } from '../../packages/schema/refs.ts'
 import { locate, parseContentFile, problem, schemaDiagnostics } from './parse.ts'
 import type { Diagnostic, ProseSegment } from './parse.ts'
-import { compileProse, numberMessage, untaggedNumbers, withoutCode } from './prose.ts'
+import { compileProse, modelMeasuredSentences, modelMessage, numberMessage, untaggedNumbers, withoutCode } from './prose.ts'
 import type { ProseContext } from './prose.ts'
 
 /** Keys the compiler writes itself, which an author must not. */
@@ -193,6 +193,7 @@ export function compileCard(file: string, source: string, claims: ReadonlySet<st
       out.push(problem('content', 'error', 'id-mismatch', file, frontLine('id'), `the file ${stem}.md is the card "${stem}", and its id says "${front.id}"`))
       usable = false
     }
+    for (const sentence of modelMeasuredSentences(withoutCode(front.title))) out.push(problem('numbers', 'error', 'model-number-measured', file, frontLine('title'), modelMessage(sentence.text)))
     for (const finding of untaggedNumbers(withoutCode(front.title))) out.push(problem('numbers', 'error', 'untagged-number', file, frontLine('title'), numberMessage(finding)))
   }
 

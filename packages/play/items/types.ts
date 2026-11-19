@@ -38,7 +38,7 @@ export const LEVEL_NAMES: Readonly<Record<Level, string>> = {
 /* Text: parts, so that no number is bare                                                                             */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-/** How a number is known (ARCHITECTURE §4.4's four tags, and `synthetic` for the course's invented worlds). */
+/** How a number is known: the five prose tags of ARCHITECTURE §0, `synthetic` among them for a number the course's own model printed. */
 export const ITEM_TAGS = ['measured', 'derived', 'estimated', 'unverified', 'synthetic'] as const
 export type ItemTag = (typeof ITEM_TAGS)[number]
 

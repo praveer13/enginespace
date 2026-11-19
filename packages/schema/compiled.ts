@@ -34,7 +34,7 @@ export type ProseInline =
   | { type: 'claim'; id: string }
   /** `{{ks:T5.L7}}`, a link out to a kernelspace lesson or KC. `ref` carries the `ks:` prefix, as `builds_on` does. */
   | { type: 'ks'; ref: string }
-  /** One of the four tags (A§0), shown as a chip. */
+  /** One of the five prose tags (A§0), shown as a chip. */
   | { type: 'tag'; tag: ProseTag }
 
 export type ProseAlign = 'left' | 'center' | 'right' | null

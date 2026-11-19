@@ -645,6 +645,9 @@ describe('lesson 1: one step, and what the GPU waits for', () => {
     const before = text.slice(0, text.indexOf(whole)).trimEnd().split('\n').pop() ?? ''
     expect(before).toContain(`(https://github.com/vllm-project/vllm/blob/${pin}/${file}#L${first}-L${last})`)
     expect(before).toContain('`EngineCore.step` is 31 lines [measured] at the pin')
+    // The link says what the block holds: four calls, the fourth of them the wait and the sample, so five call lines.
+    expect(before).toContain('[these lines hold its first four calls](')
+    expect(before).toContain('the fourth a wait and a sample')
     // The first four calls of the list are the block's, in the block's order, and the line after the block names the fifth.
     const after = text.slice(text.indexOf(whole) + whole.length).trim().split('\n')[0]
     expect(after).toContain('The fifth call, `update_from_output`, follows a drain of aborts. {{claim:vllm.step.order}}')
@@ -654,7 +657,7 @@ describe('lesson 1: one step, and what the GPU waits for', () => {
 
   test('an arbitrary number says so in the next sentence, and a comparison of the two cards names what else differs between them', () => {
     mentions('tr2.l1', 'the ticks are arbitrary', "{{claim:loop.world.step-ticks-serial}} The three numbers are arbitrary: others would change the share, not the rule.")
-    mentions('tr2.l1', 'the confound', 'which also differ in their GPU and in where the host card prices the per-sequence work. So read them as two cases, not as an effect of size.')
+    mentions('tr2.l1', 'the confound', 'which also differ in their GPU and in where the host card prices the per-sequence work. So read them as two cases, not as the effect of size alone.')
   })
 })
 
@@ -827,13 +830,15 @@ describe('lesson 5: CUDA graphs', () => {
     // T4.L3 gives decode about 1 FLOP a byte at batch 1, N times that for a batch of N, and an H100 ridge of about 295 at FP16, from the weights.
     const claim = (id: string) => result.claims.find((record) => record.claim.id === id)?.claim
     expect([claim('loop.kernelspace.decode-intensity')?.value, claim('loop.kernelspace.h100-ridge')?.value]).toEqual([1, 295])
-    mentions('tr2.l5', 'the range', "decode is bandwidth-bound while the batch stays well below the GPU's ridge, about 295 requests [derived] for FP16 weights on an H100, counting the weights alone.")
+    mentions('tr2.l5', 'the range', '{{ks:T4.L3}} told you that decode is bandwidth-bound. By its numbers that holds while the batch stays well below about 295 requests [derived] for FP16 weights on an H100, counting the weights alone.')
     for (const id of ['decode-intensity', 'batch-lever', 'h100-ridge', 'decode-plus-kv']) mentions('tr2.l5', id, `{{claim:loop.kernelspace.${id}}}`)
   })
 
   test("says what the model's 6 µs is, and sets one launch call that the book's authors report beside it as theirs, unverified", () => {
     mentions('tr2.l5', 'the quantity', "The 6 µs [estimated] is the engine thread's time for one kernel in a run of launches, from the start of its launch to the start of the next.")
     mentions('tr2.l5', 'the book', '50.717 µs [unverified] for the host\'s launch API call of one GEMM kernel')
+    mentions('tr2.l5', 'one traced call', 'One traced launch call can take several times longer.')
+    mentions('tr2.l5', 'the section', 'in the appendix on measuring a kernel, under “Locate the Most Expensive Kernel in the Timeline”, read on 2026-11-18.')
     mentions('tr2.l5', 'the learner settles it', 'your own capture in TR3 is what settles the figure for your machine')
     const book = result.claims.find((record) => record.claim.id === 'mlc-book.gemm-launch-api')?.claim
     expect([book?.value, book?.tag, book?.source?.accessed]).toEqual([50.717, 'unverified', '2026-11-18'])
