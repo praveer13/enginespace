@@ -1,0 +1,91 @@
+{
+  "red": [
+    {
+      "file": "e2e/design-parts.spec.ts",
+      "title": "the section rail is a nav of an ordered list with one current step, and its strip opens and closes by keyboard",
+      "note": "fails on the wave base"
+    },
+    {
+      "file": "e2e/design-parts.spec.ts",
+      "title": "at 390 px every new target is 44 px or more on its short side, and focus is the ink ring on a paper halo",
+      "note": "fails on the wave base"
+    },
+    {
+      "file": "e2e/design-parts.spec.ts",
+      "title": "at 1440 px every new target is 44 px or more on its short side, and focus is the ink ring on a paper halo",
+      "note": "fails on the wave base"
+    },
+    {
+      "file": "e2e/lab-kits.spec.ts",
+      "title": "every file in the manifest is linked from its lab page > the manifest lists forge labs and nothing else, so that a file of another kind must be given its page and its row here",
+      "note": "fails on the wave base"
+    },
+    {
+      "file": "e2e/lab-kits.spec.ts",
+      "title": "every file in the manifest is linked from its lab page > enginespace-gpu-kit-0.1.0.zip: linked from /labs/undefined with its size and hash, and the bytes behind the link are the manifest's, fetched and downloaded",
+      "note": "fails on the wave base"
+    },
+    {
+      "file": "e2e/lab-kits.spec.ts",
+      "title": "every file in the manifest is linked from its lab page > enginespace_grader-0.1.0-py3-none-any.whl: linked from /labs/undefined with its size and hash, and the bytes behind the link are the manifest's, fetched and downloaded",
+      "note": "fails on the wave base"
+    },
+    {
+      "file": "e2e/rejection-sampler.spec.ts",
+      "title": "a wrong module > a re-plate from p fails round and the chi-square, which names the dish furthest from its share",
+      "note": "fails on the wave base"
+    },
+    {
+      "file": "e2e/settings.spec.ts",
+      "title": "settings apply live (accept 1) > a quality cap lowers the tier the running scene draws at",
+      "note": "fails on the wave base"
+    },
+    {
+      "file": "e2e/a11y.spec.ts",
+      "title": "at 320 px > /changes: no text is cut off at the right edge, and the page does not scroll sideways",
+      "note": "fails on the wave base"
+    },
+    {
+      "file": "e2e/a11y.spec.ts",
+      "title": "at 320 px > /m/tr2/l2-one-token-budget: axe finds no serious or critical violation, and the headings are an outline",
+      "note": "fails on the wave base"
+    },
+    {
+      "file": "e2e/walks.spec.ts",
+      "title": "at 360 px > Rejection sampler (verifier), \"Greedy target, n-gram draft\" (greedy-ngram): the keys alone play it to its debrief, with focus in view at every stop",
+      "note": "fails on the wave base"
+    },
+    {
+      "file": "e2e/walks.spec.ts",
+      "title": "at 360 px > Rejection sampler (verifier), \"Five broken accept rules\" (mutants): the keys alone play it to its debrief, with focus in view at every stop",
+      "note": "fails on the wave base"
+    },
+    {
+      "file": "e2e/walks.spec.ts",
+      "title": "at 1280 px > Rejection sampler (verifier), \"Greedy target, n-gram draft\" (greedy-ngram): the keys alone play it to its debrief, with focus in view at every stop",
+      "note": "fails on the wave base"
+    },
+    {
+      "file": "e2e/walks.spec.ts",
+      "title": "at 1280 px > Rejection sampler (verifier), \"Five broken accept rules\" (mutants): the keys alone play it to its debrief, with focus in view at every stop",
+      "note": "fails on the wave base"
+    },
+    {
+      "file": "e2e/walks.spec.ts",
+      "title": "at 1280 px > Broken benchmark (broken-bench), \"Five reports\" (court): the keys alone play it to its debrief, with focus in view at every stop",
+      "note": "fails on the wave base"
+    }
+  ],
+  "flaky": [
+    {
+      "file": "e2e/keyboard-loop.spec.ts",
+      "title": "at 360 px > Tab and Enter alone win \"Fill the batch\", with focus in view at every step",
+      "note": "fails some runs on the wave base"
+    },
+    {
+      "file": "e2e/walks.spec.ts",
+      "title": "at 360 px > KV page pool (pool), \"One page size for every group\" (same-size): the keys alone play it to its debrief, with focus in view at every stop",
+      "note": "fails some runs on the wave base"
+    }
+  ]
+}
