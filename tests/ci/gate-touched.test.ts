@@ -3,12 +3,11 @@
  * decide a verdict. The plan is pure, so nothing here starts a browser.
  */
 import { describe, expect, test } from 'bun:test'
-import { readdirSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { WALKED } from '../../e2e/levels'
 import { clean, failures, keyOf, pickPython, PYTHONS, uvEnv } from '../../scripts/gate/run'
 import { FORGE_COMMANDS, GAMES, GRADER_COMMANDS, LAB_SPEC, plan, RELOCK_NOT_RUN, SMOKE_SPECS, walkGrep, type Step } from '../../scripts/gate/touched'
-import { existsSync } from 'node:fs'
 import { read, root } from './support'
 
 const specs = readdirSync(path.join(root, 'e2e'))
