@@ -13,7 +13,7 @@ import { useFamily } from '../families'
 import { deriveCards } from './cards'
 import { MORE_PREP, PRINT_LABEL, START_AHEAD, START_PREP } from './copy'
 import { seenKeys } from './draw'
-import { appKcsOfRef } from './kcs'
+import { appKcsOfRef, kcsOfRefWith } from './kcs'
 import { lineViews, nextServableDay, planFor, servable, tally } from './plan'
 import type { LineView, Plan, Result } from './plan'
 import { PrepList, PrepStrip } from './PrepList'
@@ -65,7 +65,11 @@ export function TodayView({ families: given }: TodayViewProps) {
   const evidence = useEvidence()
   const today = useLocalDay()
   const [run, setRun] = useState<Run | null>(null)
-  const set = useMemo(() => deriveCards(evidence.events, appKcsOfRef, today, { servable: (card) => servable(card, families) }), [evidence.events, today, families])
+  // A prediction names its ideas through the compiled map's refs (kcs.ts), so the deck waits for the map to settle: a map that failed leaves predictions out.
+  const map = useMap()
+  const refs = map.status === 'ready' ? map.value.refs : undefined
+  const resolve = useMemo(() => (refs === undefined ? appKcsOfRef : kcsOfRefWith(refs)), [refs])
+  const set = useMemo(() => deriveCards(evidence.events, resolve, today, { servable: (card) => servable(card, families) }), [evidence.events, resolve, today, families])
   const plan: Plan = useMemo(() => planFor(set, today, { families }), [set, today, families])
   const results = run === null ? null : run.results
   // What the learner has met: the ledger's seeds, and the questions of this review, which may not be in the ledger yet.
@@ -73,7 +77,6 @@ export function TodayView({ families: given }: TodayViewProps) {
 
   // The way on is `nextStep`'s, which is told how many reviews are due: with every lesson done, Continue is Review, and a page that is
   // Review itself has no Continue to offer (the set's own button is the way on).
-  const map = useMap()
   const lessons = map.status === 'ready' ? map.value.lessons : null
   const due = plan.kind === 'list' ? plan.session.lines.length : 0
   const step = useWayOn(lessons, undefined, due)
@@ -94,7 +97,7 @@ export function TodayView({ families: given }: TodayViewProps) {
   const start = useCallback((session: Session) => setRun({ phase: 'work', session, index: 0, entropy: freshEntropy(1)[0], results: [] }), [])
   const next = nextServableDay(set, today, families)
 
-  if (!evidence.ready) {
+  if (!evidence.ready || map.status === 'loading') {
     return (
       <div className="es-prep" data-phase="loading">
         <LoadingTicket />

@@ -3,7 +3,7 @@
  * time and are never stored"). An event keeps its ref and nothing else about its KCs, so retagging a variant moves the evidence already written.
  */
 import { describe, expect, test } from 'bun:test'
-import { appKcsOfRef, kcsOfRef, sourcesOf } from '../../src/items/today/kcs'
+import { appKcsOfRef, kcsOfRef, kcsOfRefWith, sourcesOf } from '../../src/items/today/kcs'
 import type { KcSources } from '../../src/items/today/kcs'
 import { toySum } from '../play/items-support.ts'
 
@@ -73,5 +73,16 @@ describe('the map over the sources it is given', () => {
     expect(own.variant('tr2.toy-sum', 'sum')).toEqual([BUBBLE])
     expect(own.variant('tr2.toy-sum', 'larger')).toEqual([OVERLAP])
     expect(own.variant('tr2.bubble-width', 'async-off')).toEqual([])
+  })
+})
+
+describe('a prediction, which names the ideas its lesson says it is about (W2-T44)', () => {
+  const REFS = { 'predict:tr2.l3#tr2.l3.p1': [BUBBLE, BUBBLE, OVERLAP] }
+
+  test('names them from the compiled map\'s refs, once each, and names none without the map', () => {
+    expect(kcsOfRefWith(REFS)('predict:tr2.l3#tr2.l3.p1')).toEqual([BUBBLE, OVERLAP])
+    expect(kcsOfRefWith(REFS)('predict:tr2.l3#tr2.l3.p2')).toEqual([])
+    expect(appKcsOfRef('predict:tr2.l3#tr2.l3.p1')).toEqual([])
+    expect(kcsOfRefWith({ constructor: [BUBBLE] })('predict:constructor#x')).toEqual([])
   })
 })

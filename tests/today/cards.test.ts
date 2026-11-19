@@ -9,7 +9,7 @@ import { aheadCards, deriveCards, dueCards, earns, nextDueDay, ratingOfEvent, re
 import type { Card } from '../../src/items/today/cards'
 import { intervalDays, nextMemory } from '../../vendor/kernelspace/src/lib/learner/fsrs'
 import { GAP_DAYS, SESSION_CAP_ITEMS, SPREAD_DAYS } from '../../src/items/today/limits'
-import { appKcsOfRef, kcsOfRef } from '../../src/items/today/kcs'
+import { appKcsOfRef, kcsOfRef, kcsOfRefWith } from '../../src/items/today/kcs'
 import type { KcSources } from '../../src/items/today/kcs'
 import { TestLedger } from './support'
 
@@ -303,5 +303,38 @@ describe('welcome back', () => {
     ledger.review('2026-10-01', OVERLAP, 3)
     const set = deriveCards(ledger.events, appKcsOfRef, '2026-10-30')
     expect(dueCards(set, '2026-10-30').map((c) => c.kc)).toEqual([BUBBLE, OVERLAP, 'tr2.graph-replay'])
+  })
+})
+
+describe('a prediction through the map\'s refs (W2-T44)', () => {
+  const REFS = { 'predict:tr2.l3#tr2.l3.p1': [BUBBLE], 'predict:tr2.l3#tr2.l3.p2': [BUBBLE] }
+
+  test('reschedules an idea that is earned, from either reveal, and earns none that is not', () => {
+    const resolve = kcsOfRefWith(REFS)
+    const earned = new TestLedger()
+    earned.item('2026-10-30', 'async-off')
+    const alone = deriveCards(earned.events, resolve, TODAY).cards.get(BUBBLE)
+    // As the box writes them: after a run (with the run's seed), then at commit (with none). Both are stamped `practice`.
+    earned.write('2026-11-02', { kind: 'predict', ref: 'predict:tr2.l3#tr2.l3.p1', score: 1, ok: true, provenance: 'practice', seed: 5, data: { value: 300, truth: 312 } })
+    earned.write('2026-11-03', { kind: 'predict', ref: 'predict:tr2.l3#tr2.l3.p2', score: 1, ok: true, provenance: 'practice', conf: 'sure', data: { value: 300, truth: 312 } })
+    const after = deriveCards(earned.events, resolve, TODAY).cards.get(BUBBLE)
+    expect(alone?.reps).toBe(1)
+    expect(after?.reps).toBe(3)
+    expect(after?.lastDay).toBe('2026-11-03')
+    expect(after?.earnedDay).toBe('2026-10-30')
+
+    const never = new TestLedger()
+    // Even one stamped at full weight earns nothing: a prediction fails `earns` by its kind.
+    never.write('2026-11-03', { kind: 'predict', ref: 'predict:tr2.l3#tr2.l3.p1', score: 1, ok: true, provenance: 'unseen', conf: 'sure', data: { value: 1, truth: 1 } })
+    never.write('2026-11-03', { kind: 'predict', ref: 'predict:tr2.l3#tr2.l3.p2', score: 1, ok: true, provenance: 'practice', data: { value: 1, truth: 1 } })
+    expect(deriveCards(never.events, resolve, TODAY).cards.size).toBe(0)
+  })
+
+  test('a wrong prediction lapses an earned idea, and a map-less resolver leaves the card as it was', () => {
+    const ledger = new TestLedger()
+    ledger.item('2026-11-01', 'async-off')
+    ledger.write('2026-11-03', { kind: 'predict', ref: 'predict:tr2.l3#tr2.l3.p1', score: 0, ok: false, provenance: 'practice', data: { value: 1, truth: 9 } })
+    expect(deriveCards(ledger.events, kcsOfRefWith(REFS), TODAY).cards.get(BUBBLE)?.lapses).toBe(1)
+    expect(deriveCards(ledger.events, appKcsOfRef, TODAY).cards.get(BUBBLE)?.reps).toBe(1)
   })
 })

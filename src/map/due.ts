@@ -13,14 +13,14 @@ export interface Due {
   readonly minutes: number
 }
 
-export function useDue(events: readonly LedgerEvent[], ready: boolean): Due | null {
+export function useDue(events: readonly LedgerEvent[], ready: boolean, refs?: Readonly<Record<string, readonly string[]>>): Due | null {
   const [due, setDue] = useState<Due | null>(null)
   useEffect(() => {
     if (!ready) return
     let live = true
     import('./dueCount')
       .then((module) => {
-        if (live) setDue(module.dueSummary(events))
+        if (live) setDue(module.dueSummary(events, refs))
       })
       .catch(() => {
         if (live) setDue(null)
@@ -28,6 +28,6 @@ export function useDue(events: readonly LedgerEvent[], ready: boolean): Due | nu
     return () => {
       live = false
     }
-  }, [events, ready])
+  }, [events, ready, refs])
   return due
 }
