@@ -131,20 +131,38 @@
     height: 100%;
   }
 
+  /* The setup is the box that scrolls and the one that keyboard focus stands on: a focus stop is the part that is seen, not the whole of a
+     long column that is cut at the box's edge (the ring would be cut with it, and its middle would lie under whatever stands there). */
   .es-frame[data-placement='page'][data-phase='play'] .es-bench-setupbox {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr);
     align-self: stretch;
+    min-height: 0;
+  }
+
+  .es-frame[data-placement='page'][data-phase='play'] .es-bench-setup {
     min-height: 0;
     overflow-y: auto;
   }
 }
 
+/* On a desk shorter than about 860 px the form runs under the readout that stands at the screen's foot. A field, File the report or the
+   setup that a key brings into view is scrolled clear of the readout and of the "More below" line it draws over the parts above it (its height, 2.25rem for the line, and the gap the strip stands off the foot), and never left under it (WCAG 2.4.11). The
+   margin is on the parts themselves, as the Request path's stages have theirs, and not on the page. Where the readout is not sticky (under
+   600 px of height) there is nothing to clear. */
+@media (min-width: 64rem) and (min-height: 600px) {
+  .es-frame[data-placement='page'][data-game='broken-bench'] :is(.es-bench-form__fields :is(input, select), .es-bench-form__file button, .es-bench-setup, .es-bench-flaws__option) {
+    scroll-margin-block: 0.5rem 9.5rem;
+  }
+}
+
 /* A box that scrolls says so at its foot, in words over the line it would cut, until its end is reached (as the frame's dock does). */
 @supports (container-type: scroll-state) {
-  .es-bench-setupbox {
+  .es-bench-setup {
     container-type: scroll-state;
   }
 
-  .es-bench-setupbox::after {
+  .es-bench-setup::after {
     content: 'More below' / '';
     position: sticky;
     bottom: 0;
@@ -163,7 +181,7 @@
   }
 
   @container scroll-state(scrollable: bottom) {
-    .es-bench-setupbox::after {
+    .es-bench-setup::after {
       visibility: visible;
     }
   }
