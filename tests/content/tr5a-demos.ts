@@ -18,6 +18,7 @@ import { costOf, scoreOf, unservedOf } from '../../packages/play/pool/score'
 import type { PoolLevel } from '../../packages/play/pool/types'
 import { buildKvSpec, kvAdapterCatalog, kvAlignment, kvBlocksHeld, kvFindHit, kvPaddingWaste, kvPagesHeld, kvPreset, kvTableRule } from '../../packages/sim/kv'
 import type { KvGroupSpec, KvSpec } from '../../packages/sim/kv'
+import type { ModelTable } from './module-kit'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Lesson 1: what each kind of group holds                                                                            */
@@ -395,3 +396,30 @@ export const PREDICTIONS: Readonly<Record<string, { readonly unit: string; reado
   'tr5a.l4.p1': { unit: 'pages', reference: () => adapterRows([16])[0].pages },
   'tr5a.l4.p2': { unit: 'percent', reference: () => slotIdlePercent(8, 64) },
 }
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The model tables                                                                                                   */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+const fmtNumber = (x: number): string => x.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
+
+/**
+ * Every table of TR5a's lessons whose header or caption carries [synthetic]: the header row word for word, tags included, and the rows that the
+ * model recomputes. The module kit (`module-kit.ts`) finds each such table in a lesson and fails unless it is held here and its rows are these.
+ */
+export const MODEL_TABLES: readonly ModelTable[] = [
+  {
+    lesson: 'tr5a.l4',
+    header: '| The adapters are | Pages left [synthetic] | Tokens recomputed [synthetic] | Stall steps [synthetic] | Price [synthetic] |',
+    rows: () => {
+      const demo = shelfDemo(0)
+      const nights: readonly [string, NightRow][] = [
+        ['pages in the pool', demo.pages],
+        ['one slot, outside it', demo.oneSlot],
+        ['two slots, outside it', demo.twoSlots],
+        ['two slots, paid for first', demo.twoSlotsPaid],
+      ]
+      return nights.map(([name, night]) => [name, fmtNumber(night.pans), fmtNumber(night.recomputed), String(night.stalls), fmtNumber(night.cost)])
+    },
+  },
+]

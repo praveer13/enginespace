@@ -36,6 +36,7 @@ import type { Span } from '../../packages/sim/steploop'
 import { genWorkload } from '../../packages/sim/workload'
 import { maskModel } from '../../packages/play/items/families/tr6/mask-fits'
 import { outcomeOf } from '../../packages/play/items/families/tr6/which-runner'
+import type { ModelTable } from './module-kit'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Decimals, by integers                                                                                              */
@@ -427,3 +428,58 @@ export const PREDICTIONS: Readonly<Record<string, NumericPrediction | ChoicePred
 /** The formula of the same prediction, to hold the sim to. */
 export const formulaGap = (mode: TimelineMode, rowUs: number, drafts = 0): number =>
   maskModel.gap(mode, MASK_SCENE.plan, MASK_SCENE.read, MASK_SCENE.forward, maskModel.fill(maskModel.rows(MASK_SCENE.requests, drafts), rowUs))
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The model tables                                                                                                   */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/**
+ * Every table of TR6's lessons whose header or caption carries [synthetic]: the header row word for word, tags included, and the rows that the
+ * model recomputes. The module kit (`module-kit.ts`) finds each such table in a lesson and fails unless it is held here and its rows are these.
+ */
+export const MODEL_TABLES: readonly ModelTable[] = [
+  {
+    lesson: 'tr6.l3',
+    header: '| Sampler | The chi-square check rejects it, of 50 trials [synthetic] | The enumeration flags it, of 50 trials [synthetic] |',
+    rows: () => {
+      const titles: Record<string, string> = {
+        'accept-if-p-over-q': 'Accept when p > q, with no coin',
+        'resample-from-p': 'Resample from p',
+        'resample-from-q': 'Resample from q',
+        'residual-off-by-one': 'A residual off by one',
+        'boundary-inclusive': 'The boundary-inclusive comparison',
+        'fly-lossy': 'A FLy-style lossy rule',
+      }
+      const control = referenceDetection(50)
+      return [['The exact sampler', String(control.chi), String(control.enumeration)], ...detections(50).map((row) => [titles[row.id], String(row.chi), String(row.enumeration)])]
+    },
+  },
+  {
+    lesson: 'tr6.l3',
+    header: '| Target [estimated] | Trials with a token that p rules out and q proposes, of 100 [synthetic] | The chi-square check rejects it, of 100 [synthetic] | The enumeration flags it, of 100 [synthetic] |',
+    rows: () => {
+      const { dense, sparse, fine } = leakRows(100)
+      return [
+        ["Six tokens on a grid of 1/64, the level's band", dense],
+        ['Sixteen tokens, with the target possible on three to six', sparse],
+        ['Sixty-four tokens, with weights down to 1/65,536', fine],
+      ].map(([name, row]) => [name as string, String((row as typeof dense).leakable), String((row as typeof dense).chi), String((row as typeof dense).enumeration)])
+    },
+  },
+  {
+    lesson: 'tr6.l5',
+    header: '| Case | No grammar, in µs [synthetic] | Light grammar, in µs [synthetic] | Heavy grammar, in µs [synthetic] |',
+    rows: () => {
+      const cases = [
+        ['Overlapped', 'overlap'],
+        ['Serial', 'serial'],
+        ['Async scheduling', 'async'],
+      ] as const
+      return cases.map(([name, mode]) => {
+        const light = timeline(mode, 20)
+        const heavy = timeline(mode, 60)
+        return [name, String(light.freeUs), String(light.gapUs), String(heavy.gapUs)]
+      })
+    },
+  },
+]
