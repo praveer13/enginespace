@@ -201,6 +201,11 @@ export interface GameEntry {
   /** The game's own keys. The keys common to every game are added by `keymapOf`. */
   readonly keys: readonly KeyBinding[]
   readonly levels: readonly LevelEntry[]
+  /**
+   * The level the module's Prove-it plays (ASSESSMENT §7.2): a graded level, started in Prove mode (`/play/<id>?mode=prove`) on fresh
+   * seeds, with the agent closed and the readouts hidden until the result. A game that names none has no Prove mode yet.
+   */
+  readonly prove?: string
   /** The id of the world's notional-machine card, `content/cards/<card>.md` (A§5.9). */
   readonly card: string
   /** The claims the game shows, as ids in `content/claims/*.yaml` (A§4.4). */
@@ -210,4 +215,4 @@ export interface GameEntry {
 }
 
 /** What the shell shows of a game and binds for it. */
-export type GameFace = Pick<GameEntry, 'id' | 'title' | 'subtitle' | 'has3d' | 'keys'>
+export type GameFace = Pick<GameEntry, 'id' | 'title' | 'subtitle' | 'has3d' | 'keys'> & Partial<Pick<GameEntry, 'prove'>>
