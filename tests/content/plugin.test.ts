@@ -16,7 +16,7 @@ import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, symlinkSync, 
 import type { Dirent } from 'node:fs'
 import path from 'node:path'
 import { stripVTControlCharacters } from 'node:util'
-import { contentPlugin, DEBOUNCE_MS, filesUnder, WATCH_POLL_MS, WATCHING } from '../../scripts/content/vite-plugin.ts'
+import { contentPlugin, DEBOUNCE_MS, filesUnder, WATCHING } from '../../scripts/content/vite-plugin.ts'
 import { LESSON, lineOf, project, readSample, repo, swap } from './support.ts'
 import type { Edit } from './support.ts'
 
@@ -89,19 +89,22 @@ function fakeVite(root: string, command: 'build' | 'serve', options: Parameters<
 const settle = () => Bun.sleep(DEBOUNCE_MS * 5)
 
 /**
- * Counts the timers the plugin has pending, by their delay (the poll's and the debounce's), so that a test says "nothing more will
- * happen" by asking what is scheduled, and not by sleeping past a figure. Call `restore` when done.
+ * Counts every timer that is pending, whatever its delay, so that a test says "nothing more will happen" by asking what is
+ * scheduled, and not by sleeping past a figure. A test sleeps with `Bun.sleep`, which sets no timer of this kind. Call `restore`
+ * when done.
  */
 function trackTimers() {
   const real = { setTimeout: globalThis.setTimeout, clearTimeout: globalThis.clearTimeout }
   const pending = new Map<unknown, number>()
-  const mine = (delay: number | undefined) => delay === WATCH_POLL_MS || delay === DEBOUNCE_MS
   globalThis.setTimeout = ((handler: () => void, delay?: number, ...rest: unknown[]) => {
-    if (!mine(delay)) return (real.setTimeout as (...args: unknown[]) => unknown)(handler, delay, ...rest)
-    const timer = (real.setTimeout as (...args: unknown[]) => unknown)(() => {
-      pending.delete(timer)
-      handler()
-    }, delay)
+    const timer = (real.setTimeout as (...args: unknown[]) => unknown)(
+      (...args: unknown[]) => {
+        pending.delete(timer)
+        ;(handler as (...args: unknown[]) => void)(...args)
+      },
+      delay,
+      ...rest,
+    )
     pending.set(timer, delay as number)
     return timer
   }) as unknown as typeof setTimeout
@@ -117,6 +120,80 @@ function trackTimers() {
     },
   }
 }
+
+describe('a file that vanishes between the compiler\'s walk and its read', () => {
+  const real = (abs: string) => readFileSync(abs, 'utf8')
+
+  test('is read once more, and compiles when the second read finds it', () => {
+    const root = project()
+    const lesson = path.join(root, LESSON)
+    let reads = 0
+    const vite = fakeVite(root, 'serve', {
+      read: (abs) => {
+        if (abs !== lesson) return real(abs)
+        reads += 1
+        return reads === 1 ? undefined : real(abs)
+      },
+    })
+    vite.buildStart()
+    expect(reads).toBe(2)
+    expect(vite.logs.error).toEqual([])
+    expect(existsSync(path.join(root, 'src/content/generated/lessons/tr2.l0-sample.json'))).toBe(true)
+  })
+
+  test('is reported once it is gone twice, and the dev server keeps running and compiles the next save', async () => {
+    const root = project()
+    const lesson = path.join(root, LESSON)
+    let vanish = true
+    let reads = 0
+    const vite = fakeVite(root, 'serve', {
+      read: (abs) => {
+        if (abs !== lesson) return real(abs)
+        reads += 1
+        if (vanish) {
+          // The editor's rename has removed the file: the read finds nothing.
+          return undefined
+        }
+        return real(abs)
+      },
+    })
+    expect(() => vite.buildStart()).not.toThrow()
+    expect(reads).toBe(2)
+    expect(vite.logs.error[0]).toContain(`${LESSON}:1: error file-vanished`)
+    const timers = trackTimers()
+    try {
+      vite.serve()
+      expect(vite.logs.info).toContain(WATCHING)
+      const generated = path.join(root, 'src/content/generated/lessons/tr2.l0-sample.json')
+      expect(existsSync(generated)).toBe(false)
+      vanish = false
+      vite.fire('change', lesson)
+      await until(() => existsSync(generated), 'the next save to compile')
+      vite.close()
+      expect(timers.pending()).toBe(0)
+    } finally {
+      timers.restore()
+    }
+  })
+
+  test('is reported when the file system removes it for real, and never throws', () => {
+    const root = project()
+    const lesson = path.join(root, LESSON)
+    const vite = fakeVite(root, 'serve', {
+      read: (abs) => {
+        if (abs !== lesson) return real(abs)
+        rmSync(abs, { force: true })
+        try {
+          return real(abs)
+        } catch {
+          return undefined
+        }
+      },
+    })
+    expect(() => vite.buildStart()).not.toThrow()
+    expect(vite.logs.error.join('\n')).toContain('file-vanished')
+  })
+})
 
 describe('the plugin in a project with no content', () => {
   test('does nothing: it writes no file and watches nothing', async () => {
