@@ -27,12 +27,12 @@ A table whose numbers share one tag says so in its header or caption.
 
 ## 0. The games on one screen
 
-Nine games: five in 3D, four in 2D. The step loop is one game that the front page opens and TR2 continues, so a visitor's first minute and TR2's graded levels run the same model.
+Nine games: four in 3D, five in 2D. Tensor views was designed in 3D and is now 2D: its design (§4, 2026-11-20) found no camera that shows what its 2D does not, and the owner confirms the cut (D-074, proposed). The step loop is one game that the front page opens and TR2 continues, so a visitor's first minute and TR2's graded levels run the same model.
 
 | Id | Title · subtitle (D-063) | Module | The rule (= the concept) | View | Graded levels (fresh seeds) | Size |
 |---|---|---|---|---|---|---|
 | `loop` | **Step loop** · *Keep every slot live, and never make the GPU wait for the CPU.* | front page; TR2; TR6's mask lane | Adding a request to a decode step costs the GPU little, so the loop wins by keeping every slot live and never making the GPU wait for the CPU. CUDA graphs pad each step to a captured size or fall back to launches. | 3D and 2D, built | TR2: capture sizes, modes, "close the bubbles"; TR6: mask lane | L + L |
-| `shape-shifter` | **Tensor views** · *A view relabels the buffer. A copy moves every element.* | TR0 | A tensor is a buffer plus shape and strides: views move nothing, a copy moves everything. | 3D and 2D, designed | fewest copies; grid coverage | M |
+| `shape-shifter` | **Tensor views** · *A view relabels the buffer. A copy moves every element.* | TR0 | A tensor is a buffer plus shape and strides: views move nothing, a copy moves everything. | 2D, designed | fewest copies; grid coverage | M |
 | `engine-floor` | **Request path** · *Every queue, IPC hop, copy and sync between the API server and the GPU.* | TR1 | Data crosses a boundary only through the mechanism that crosses it: a queue between threads, IPC between processes, a copy between host and GPU, a sync before reading an async result. | 2D, built | the lifecycle map, span-checked | M |
 | `gap-hunt` | **Trace attribution** · *Every nanosecond of a step belongs to a kernel, a copy, a CPU gap or idle.* | TR3; capstone | A GPU gap is an empty launch queue, and every ns of a step belongs to exactly one category. | 2D, designed | attribution of synthetic, then pinned, traces | M |
 | `dispatch` | **Backend dispatch** · *The first attention backend that meets every requirement takes the call.* | TR4 | The engine takes the first backend in its order whose support covers the model and GPU. | 2D, designed | backend picks on fresh feature cards | S |
@@ -171,11 +171,12 @@ D-019 keeps kernelspace's tests 1, 3, 4, 6 and 7 required, restates 5, and makes
 | Game | 1 Intrinsic | 2 Axes | 3 Model-backed | 4 Recurs in ≥ 3 sessions | 5 Schematic | 6 Low load | 7 Debriefed |
 |---|---|---|---|---|---|---|---|
 | Step loop | refilling slots and overlapping is how you win | time × lane × slot | `steploop` | front page, TR2's levels, TR6's mask lane, TR3's synthetic traces, Keep | slabs and cells | turn-based, pausable | counterfactual lever |
-| Tensor views | the fewest copies is the concept of a view | the tensor's three dims | `tensor` | TR0 levels, Keep, TR4 reads | cells, one thread | turn-based | fewest-copies ghost |
 | Request path | a wrong mechanism cannot move the request | process × thread × rank | `lifecycle` | TR1 levels, TR3 span names, capstone | platforms, links | turn-based | first wrong stage |
 | KV page pool | a hit or a page saved is the concept | page × group/layer × token | `kv` | TR5a levels, KV offload, Keep | rack, threads | turn-based | R(i) rule |
 | KV offload | an unsafe move corrupts output | tier × block × layer | `tiers`, `kv` | TR5b levels, Keep, capstone reads | decks, cars | turn-based | first violation or R(i) |
 | Rejection sampler | an exact residual is the only way to TV = 0 | token × probability × draft position | `spec` | TR6 levels, the forge lab, Keep | skylines | turn-based | worst token |
+
+Tensor views left this table on 2026-11-20. Its row read the tensor's three dims as its axes; §4 found that for tensors of at most 64 elements a camera on those three dims shows nothing that the 2D slices and the buffer strip do not, and hides the inside of the block. It has no 3D scene unless the owner overturns D-074 (proposed).
 
 ### 2.5 The session contract and what CI checks
 
@@ -240,12 +241,12 @@ D-063 (wave R) replaces D-049's two vocabularies with one: **the engine's term i
 | `pool` | **KV page pool** | One page pool serves every KV group and every adapter. | You are the KV allocator. |
 | `verifier` | **Rejection sampler** | Accept with min(1, p/q), resample from (p - q)+, and the output is exactly p. | You are the verifier. |
 | `broken-bench` | **Broken benchmark** | Latency counts from when a request was due. | You audit a benchmark. |
-| `shape-shifter` | **Tensor views** | A view relabels the buffer. A copy moves every element. | You lay out a tensor. |
+| `shape-shifter` | **Tensor views** | A view relabels the buffer. A copy moves every element. | You plan the reshape. |
 | `gap-hunt` | **Trace attribution** | Every nanosecond of a step belongs to a kernel, a copy, a CPU gap or idle. | You account for a step. |
 | `dispatch` | **Backend dispatch** | The first attention backend that meets every requirement takes the call. | You predict the backend. |
 | `switchyard` | **KV offload** | A page in transit cannot be read, and every move is published as an event. | You move KV between tiers. |
 
-The first five role lines are REDESIGN §2.6's. The four games still to be built take theirs from their rule, and the task that builds each may reword its line.
+The first five role lines are REDESIGN §2.6's. Tensor views' line is REDESIGN §7's and the tracker's, which are later than the roster's first line, "You lay out a tensor." (D-073, proposed). The three games still to be designed take theirs from their rule, and the task that builds each may reword its line.
 
 #### Step loop (`loop`)
 
@@ -295,12 +296,12 @@ The first five role lines are REDESIGN §2.6's. The four games still to be built
 
 #### Tensor views (`shape-shifter`)
 
-*Tensor views and copies.* In TR0.
+*Tensor views and copies, and a Triton grid over a tensor.* In TR0; 2D (§4, "3D: not built").
 
-- **The present:** the tensor the next operation acts on.
-- **The diagram** (§4): the tensor's elements as a block of cells above its buffer, a strip of every element in memory order. The stride order is a line through the cells in the order the strides read them. Shape, strides and offset are DOM labels. A view (`view`, `transpose`, `permute`, `expand`, slicing) relabels: new strides, the line re-drawn, nothing moved. A copy (`contiguous()`, or a `reshape` the strides cannot express) lays a new buffer and moves every element. `expand` (stride 0) reads one element in several places. In `grid`, program instances are tiles over the tensor, and a lane past its edge is masked, drawn hollow.
-- **Views:** **Three-quarter** (Establish), **One slice** (Focus) and **Before and after** (Compare).
-- **Legible:** shape and strides (DOM), which elements move, the masked lanes, and the counts of copies, elements moved and operations.
+- **The present:** the current tensor, the one the next operation acts on; on `grid`, the BLOCK and grid being set.
+- **The diagram** (§4, "2D view"): the shape and stride table beside the tensor's cells and its buffer strip. The table has a row per dimension (size, stride), the offset and whether the tensor is contiguous; the target's table sits under it. The cells lay the tensor out by index (one grid for rank 2; for rank 3, one grid per index of the first dimension, side by side). The buffer strip lays every address in order, in rows of 16. Each element carries its number, the address it had in the start's buffer, in its cell and in its strip place. The stride order is one line through the cells in address order: on a contiguous tensor it reads row by row with no jump, and a jump is an arc. A view (`view`, `reshape` where the strides can express it, `transpose`, `permute`, `expand`, slicing) changes the table and moves the numbers among the cells; the strip does not move. A copy (`contiguous()`, or a `reshape` the strides cannot express) draws the old strip dashed and lays a new one under it, with every element written. `expand` makes a stride of 0, and the cells that share an address are drawn dotted. In `grid`, programs are tiles over the cells, and a lane past the edge is a hollow cell outside it.
+- **Views:** the one 2D view. No 3D camera is built (§4).
+- **Legible at 390 px:** the table as one line over the cells, every element's number, the strip in rows of 16 at 20 px a cell, the arcs of the stride order, the masked lanes, and the readouts, all DOM: copies, elements moved, operations, and on `grid` programs, lanes, masked lanes and elements covered.
 
 #### Trace attribution (`gap-hunt`)
 
@@ -688,92 +689,214 @@ export function optimalCaptureSizes(hist: readonly number[], budgetUs: Us, gpu: 
 
 ## 4. Tensor views (`shape-shifter`): TR0
 
-**Module and concept.** PyTorch for the Rust-first, and reading Triton. A tensor is a buffer plus a shape, strides and an offset. `view`, `transpose`, `permute`, `expand` (stride 0) and slicing change only metadata. `reshape` copies only when strides cannot express the result, and `contiguous()` copies. A Triton program grid with BLOCK sizes covers a tensor, with masks at the edges.
+**Status:** designed again on 2026-11-20 for the redesign's frame (W2b-T26), and not built. W2b-T28 builds the session, its levels, bands and copy from this section; W2-T14 builds the 2D view in the frame and registers the game; W2b-T29 builds the item families. This section replaces the design of 2026-11-03: its 3D scene, its block "up to 16 × 16 × 16" and its `fewestCopies(start, target)` signature are withdrawn. Every number below that a level prints is the level's own and is read from it; the copy holds no digit but a graded level's bar (`tests/copy/game-copy.test.ts`).
 
-**Why the rule is the concept.** The goal is a target layout with the fewest copies, then a grid that covers every element exactly once. You can only win by knowing which operations are views, and which shapes need a copy, which is exactly what reading vLLM's model code demands.
+**Module and concept.** PyTorch for the Rust-first, and reading Triton. A tensor is a buffer plus a shape, strides and an offset. `view`, `transpose`, `permute`, `expand` (stride 0) and slicing change only that metadata. `reshape` copies only when the strides cannot express the result, and `contiguous()` copies unless the tensor is contiguous already. A Triton program grid with BLOCK sizes covers a tensor, with masks at the edges.
+
+**Why the rule is the concept.** The goal is a target layout with the fewest copies, then a grid that covers every element exactly once with the least waste. You can only win by knowing which operations are views and which shapes need a copy, and by counting what a BLOCK leaves masked at an edge. That is what reading vLLM's model code and its Triton kernels asks.
+
+**The rule, as the session plays it.** Every operation is `applyOp` of `packages/sim/tensor` (built, W2-T13), whose view rules agree with torch 2.14.0 on the golden vectors. Each element is named by its number: the address it had in the start's buffer. A target is a shape, the elements in logical order and whether the result must be contiguous (`Goal` of `plan.ts`), and a tensor reaches it when all three hold. A copy writes every element into a new buffer, and `copied` counts them all, including any that land at the address they had.
+
+**Role line: "You plan the reshape."** REDESIGN §7 and the tracker's W2-T14 give this line, and both are later than the roster's first line, "You lay out a tensor." The learner's act in every level is a plan: which operations, in which order, and where the one unavoidable copy goes; on `grid`, which BLOCK and which grid. (Proposed, D-073; the owner confirms.)
 
 **Core loop.**
-1. Predict the element count a copy will move.
-2. Apply operations, one per turn.
-3. Watch the stride thread re-weave, or cells move on a copy.
-4. Reach the target.
-5. Tile it with a grid.
-6. The debrief compares with the fewest-copies ghost.
+1. Read the target, then commit the level's opening guess.
+2. Apply operations, one per turn. A view moves the numbers among the cells and leaves the strip still; a copy lays a new strip.
+3. Reach the target.
+4. On `grid`, set BLOCK and the grid, and launch.
+5. The debrief sets your copies, or your masked lanes, against the reference's.
 
-**Controls.**
-- Operation buttons with argument steppers. `reshape` and `view` take a shape picker; `permute` takes an order picker built from buttons, never a drag.
-- `U` undoes in practice. Grid BLOCK steppers.
-- Pointer and touch: every operation is a 44 px button, and tapping a cell in the 3D block or a 2D slice selects that element and shows its address in the strip.
-- Keyboard: arrows across the operation bar, `Enter` to apply.
+### 4.1 The 2D view
 
-**Levels.**
+The diagram is the engine's own picture of a tensor: the metadata as a table, the elements by index, and the memory they live in. Every count is DOM text; the cells and lines are the kit's 2D marks (§2.3's Cell and Thread), drawn as the built games' 2D views are.
 
-| Level | New idea | Kind |
-|---|---|---|
-| `views` | 2D tensors: a transpose is free; `view` on a transposed tensor fails, `reshape` copies | practice |
-| `stride-zero` | `expand` and broadcasting; why writing to an expanded tensor is wrong | practice |
-| `three-d` | rank-3 tensors such as `[tokens, heads, head_dim]`: permute and then `contiguous()` | practice |
-| `fewest` | seeded start and target, fewest copies | **graded** |
-| `grid` | a Triton-style grid: programs, BLOCK, masks, and which elements each program covers | practice → **graded** |
+**Geometry.** On `/play/shape-shifter` at 1440 x 900 the diagram box is 896 x 544 (REDESIGN §3.5); in a lesson it is 760 wide; at 390 x 844 it is 358 x 344.
 
-- **Band.** The naive path (always `contiguous()` first) costs ≥ 1 extra copy, and the target is reachable within 6 operations.
-- **Difficulty.** Rank 2, then rank 3; one copy needed, then two; even sizes, then uneven sizes that need masks.
+| Region | 1440, game page | In a lesson | 390 |
+|---|---|---|---|
+| **Shape and strides** | left column, 280 wide, top: one row per dimension (dim, size, stride), then offset and contiguous | left column, 240 wide | one line over the cells: `shape (6, 4) · strides (1, 6) · offset 0 · contiguous no` |
+| **Target** | left column, under the first table: shape, contiguous required or not, and "k of n in place" | as at 1440 | a second line |
+| **Cells** | right of the tables, top, at most 300 tall | right of the tables | under the lines |
+| **Buffer** | right of the tables, under the cells: every address in order, in rows of 16 | as at 1440 | under the cells, rows of 16 |
 
-**Scoring and pass.**
-- `fewest`: copies made, elements moved and operations; pass when the copies equal the ghost's on 3 fresh seeds.
-- `grid`: programs launched, masked lanes and elements covered; pass when coverage is exact (every element once) with the least waste on 3 fresh seeds.
+- **Cells.** One cell per element at its index: one grid for rank 2 (rows by columns); for rank 3, one grid per index of the first dimension, side by side with a 12 px gap and labelled `[0]`, `[1]`, and so on, wrapping to a second row where they do not fit. A cell is at most 32 px and at least 20 px: the side is the smaller of 32 and the box's width over the columns drawn. Each cell holds its element's number.
+- **Buffer.** One cell per address from the lowest the tensor reads to the highest, in rows of 16, with the address under each row's first cell. An address the view reads holds its element's number, solid. An address inside that range the view does not read (a slice with a step, or an offset) is hollow.
+- **Stride order.** One line through the cells, in address order: from the cell at the lowest address to the cell at the next, and so on. Between two cells that are neighbours in row-major order the line is straight; any other step is an arc over the cells. So a contiguous tensor's line reads row by row, left to right, and a transposed one reads down its columns in arcs. The line starts at a dot and ends at an arrowhead. It is the course's coined name, "stride order", and its first use says so in a clause.
+- **A view.** The table changes, the numbers move among the cells to their new indices, the line is drawn again, and the buffer does not move. The readout's "elements moved" stays where it was.
+- **A copy.** The old buffer stays one turn, dashed and hollow, above the new one; the new one lays every element in the tensor's logical order, solid; the line becomes a raster. "Elements moved" steps up by every element.
+- **A refused `view`.** Nothing changes. The refusal is said beside the table, and the place where the line jumps, which no one stride can walk in the asked shape, is marked on the cells for that turn.
+- **Stride 0.** Cells that read one address are dotted, and the buffer cell they share carries a count ("× 4").
+- **Wrong order.** Where the shape matches the target and an element is not where the target puts it, its cell is hatched (`marked`), and the target's "k of n in place" counts the rest.
+- **`grid`.** The cells show the tensor's shape alone, with no buffer. Each program is a tile outline over the cells, labelled with its program index; a lane past the edge is a hollow cell outside the tensor, inside its tile. The focused program's tile carries the amber mark.
+- **Legend:** element (solid), address not read (hollow), shared by stride 0 (dotted), not in the target's place (hatched), old buffer (dashed), masked lane (hollow, outside the edge), program (outline).
+- **The present** takes the amber mark: the current tensor's table header; on `grid`, the focused program.
+- **Motion.** The numbers' move on a view and the new strip on a copy take at most 400 ms and cut under reduced motion.
+- **State as a table** (the mirror): the shape and stride table, then one row per element: its index, its address and its number; on `grid`, one row per program: its index, its lanes, its masked lanes.
+- **Readout strip:** copies · elements moved · operations · in place (k of n). On `grid`: programs · lanes · masked lanes · covered (k of n).
+- **Dock.** The opening guess, then the operation bar: one 44 px button per operation the level offers. `reshape` and `view` open a shape picker built from the element count's factors; `permute` an order picker of buttons, never a drag; `transpose` two dimension buttons; `slice` steppers for dim, start, stop and step; `expand` a shape picker. On `grid`: a BLOCK stepper per dimension (1 to 32), a grid stepper per dimension that starts at `cdiv`, and Launch. Practice has Undo.
+- **DockView** (a lesson's dock, 464 x 240): the table as one line, the cells and the buffer at 14 px a cell, which fits 64 elements; on `grid`, the cells and tiles.
+- **Input.** Tapping or selecting a cell selects its element and marks its place in the buffer, and the other way about. Arrows move across the operation bar, Enter applies.
 
-**Predict, Prove, Keep.**
-- Predict: "elements copied by this `reshape`".
-- Prove: `fewest` with the agent closed.
-- GPU lane: none. The L lane's forward pass (Qwen3-0.6B matching HF to 1e-3) is TR0's Build, and the game previews its reshapes, such as `[B·T, H·D] → [B, T, H, D] → permute`.
-- Keep: generators for "strides after this permute" and "is this a view?".
+### 4.2 3D: not built
 
-**3D scene.**
-- **Objects.** The tensor is a block of cells, up to 16 × 16 × 16. Under it, the buffer is a strip of cells in memory order. A thread runs through the block's cells in stride order and touches the strip at each element's address.
-  - A view re-weaves the thread and leaves the strip unchanged.
-  - A copy lays a new strip, and cells travel to it.
-  - In the grid level, program tiles cover the block, and masked lanes show as hollow cells.
-- **Axes.** The tensor's three dims, against the strip as the fourth, 1D memory.
-- **Camera.** Establish (3/4), Focus (one slice), Compare (start against target).
-- **Motion.** The thread re-weave and the cell travel animate in ≤ 400 ms and cut under reduced motion.
-- **Legible:** shape and strides (DOM), which cells move, and masked lanes.
+The 2026-11-03 design gave the game a 3D scene: a block of cells over its strip, a thread through the block, and three cameras. The scene would carry the tensor's first dimension in depth for rank 3; rank 2 lies flat. Each camera was weighed against the 2D of §4.1, at the bands of §4.4 (at most 64 elements a tensor on the view levels, at most 256 on `grid`).
 
-**2D path.** Three linked slice views, as kernelspace's Tiling Cube `Mirror2D` does, plus the strip, with the same controls. The mirror is the stride table and an address list.
+| Camera | What it would show | What the 2D shows | Shows what the 2D does not |
+|---|---|---|---|
+| **Three-quarter** (Establish) | the block over its strip, the thread through the block | every cell of every slice and every step of the stride order. At [4, 4, 4] the block's 8 inner cells, and the thread's steps through them, are behind its faces | no; it shows less |
+| **One slice** (Focus) | one index of the first dimension, filling the frame | the same slice is one grid of the cells, drawn whole | no |
+| **Before and after** (Compare) | the start's block beside the current one, orthographic | the old buffer, dashed, over the new one for the turn of a copy, and the target's table beside the current one | no |
+| **Lifted** (the built games' Establish: the 2D tilted into depth) | the same diagram, tilted | the same diagram, flat and at full size | no; it costs legibility |
 
-**Budget** [estimated].
-- Draw calls ≤ 16 at T2 and ≤ 12 at T1. Triangles ≤ 30k and ≤ 15k. Instances ≤ 4.2k at T2 and ≤ 2k at T1.
-- At T1 the block shows one slice at a time above 2,048 cells.
-- Frame: p95 ≤ 16.7 ms at T2 on the reference laptop, with the scene's own render ≤ 4 ms; p95 ≤ 33.3 ms at T1 on the reference phone.
-- `scene-shape-shifter` ≤ 25 KB gz.
+Two arguments for depth were weighed and do not hold. A permute drawn as a turn of the block keeps each cell where it is and relabels the axes; the 2D keeps the buffer where it is, which is the thing a view does not move, and the readout says 0 moved. A first dimension whose stride is not the largest shows in depth as a step back; in the 2D it shows as an arc between grids, as plainly.
 
-**Simulation API.**
+**So no camera is built.** W2-T15 is recommended cut and `has3d` is false in the roster (D-074, proposed; the owner decides, N3). The 3D switch is not offered and the default view is the only one. If the owner wants a scene, W2-T15 starts from REDESIGN §7's line and names, before it builds, a camera that passes this table.
+
+### 4.3 Levels
+
+| Level | Title | Kind | Rank and size | Operations offered | Reference |
+|---|---|---|---|---|---|
+| `views` | A transpose is a view | practice | rank 2, practice [4, 6] | `transpose`, `view`, `reshape`, `contiguous()` | 1 copy, 24 elements, 2 operations [synthetic] |
+| `stride-zero` | Broadcasting is stride 0 | practice | a row of 6 to [4, 6] | `expand`, `view`, `reshape`, `contiguous()` | 1 copy, 24 elements, 2 operations [synthetic] |
+| `three-d` | One block per head | practice | rank 2 to rank 3, practice [4, 8] to [2, 4, 4] | `view`, `reshape`, `transpose`, `permute`, `contiguous()` | 1 copy, 32 elements, 3 operations [synthetic] |
+| `fewest` | Fewest copies | **graded**, the Prove level | rank 2 or 3, 12 to 64 elements | all but `expand` | the ghost's copies on each target, 0 to 2 |
+| `grid` | A grid of programs | practice, then **graded** | rank 2, practice [12, 20], at most 6 programs | BLOCK and grid per dimension, Launch | 5 programs, 80 lanes masked [synthetic] |
+
+The numbers in the last column were printed by the course's model (`packages/sim/tensor`) on 2026-11-20 at `066f8d4`. W2b-T28 pins each practice seed so that it draws these tensors; a sentence that quotes one of them reads it from the level, so a different draw changes no copy.
+
+Each level below gives its parts (at most five, the rows of §4.5), its goal line in REDESIGN §2.6's four parts with its number, its opening guess, its first move (the first action of its reference run, always legal), its named moment, its pass-rule sentence, and what the learner can do at its end that they could not at its start, with the way the level makes the wrong idea fail where the learner can see it.
+
+**`views` · A transpose is a view**
+- **Parts:** Shape and strides; Buffer; Stride order; Target.
+- **Goal line.** Aim: "Read this tensor column by column, as one row of 24 elements, with as few copies as you can." Controls: "You choose one operation at a time: `transpose`, `view`, `reshape` or `contiguous()`." Number: "The reference does it with 1 copy." Ends: "Ends when your tensor matches the target."
+- **Opening guess** (after the run): "The reference makes 1 copy here. How many elements will that copy move?" The answer is 24. Two elements (the first and the last) already sit at the address the copy writes them to, so a learner who thinks a copy moves only what is out of place says 22.
+- **First move:** `transpose(0, 1)`. The ghost's plan names it `permute((1, 0))`, the same view; the level's reference script spells it `transpose`, so that the pointed move uses the level's own button.
+- **Named moment** (`view-free`), on the first move: "The buffer did not move. `transpose` is a view: the strides went from (6, 1) to (1, 6)."
+- **Pass rule** (practice): "Passes in practice when your copies equal the reference's: 1."
+- **At its end** the learner can say that a transpose changes the strides and moves nothing, that `view` works only where one stride can walk each new dimension, and that `reshape` copies there instead, writing every element. **The wrong ideas fail where they can be seen:** "a transpose rearranges memory" fails when the buffer stays still and the readout stays at 0 moved; "`view` works on any tensor" fails when `view([24])` on the transposed tensor is refused, with the jump in the stride order marked; "a copy moves only what is out of place" fails at the guess's reveal, 24 against 22.
+
+**`stride-zero` · Broadcasting is stride 0**
+- **Parts:** Shape and strides; Buffer; Stride order; Stride 0; Target.
+- **Goal line.** Aim: "Make a [4, 6] tensor whose every row is this row of 6, and that you can write to." Controls: "You choose one operation at a time: `expand`, `view`, `reshape` or `contiguous()`." Number: "The reference does it with 1 copy." Ends: "Ends when your tensor matches the target."
+- **Opening guess** (after the run): "How many elements will `expand` move?" The answer is 0.
+- **First move:** `expand([4, 6])`.
+- **Named moment** (`stride-zero`), on the first move: "Stride 0: the 4 rows read the same 6 elements. Writing to one row would change them all."
+- **Pass rule** (practice): "Passes in practice when your copies equal the reference's: 1."
+- **At its end** the learner can say that `expand` and broadcasting make a stride of 0 and move nothing, that such a tensor reads one element in several places, and that it must be copied before it is written. **The wrong ideas fail where they can be seen:** "`expand` makes 4 copies of the row" fails when the buffer stays at 6 cells, each marked "× 4", and the readout stays at 0 moved; "the expanded tensor is an ordinary tensor" fails when the target's "contiguous: required" stays unmet until `contiguous()` writes 24 elements.
+
+**`three-d` · One block per head**
+- **Parts:** Shape and strides; Buffer; Stride order; Target; Slices (one grid per index of the first dimension).
+- **Goal line.** Aim: "Turn the projection's [4, 8] output into one contiguous block per head, [2, 4, 4]: heads, tokens, head size." Controls: "You choose one operation at a time: `view`, `reshape`, `transpose`, `permute` or `contiguous()`." Number: "The reference does it with 1 copy." Ends: "Ends when your tensor matches the target."
+- **Opening guess** (after the run): "After the permute, how far apart in the buffer are two neighbouring tokens of one head?" The answer is 8, the stride of the tokens' dimension after `permute((1, 0, 2))` (strides (4, 8, 1)).
+- **First move:** `reshape([4, 2, 4])`, which the strides express, so it is a view.
+- **Named moments.** `view-free` on the first move: "The buffer did not move. `reshape` is a view here: the strides went from (8, 1) to (8, 4, 1)." And `wrong-order`, where a learner reshapes straight to [2, 4, 4]: "The shape matches the target and the order does not: 8 of 32 elements are in place. `reshape` keeps the buffer's order; `permute` changes which dimension moves fastest."
+- **Pass rule** (practice): "Passes in practice when your copies equal the reference's: 1."
+- **At its end** the learner can split a dimension with a view, reorder dimensions with `permute`, and say why a kernel that wants each head's rows together needs one `contiguous()` after the permute and not before. **The wrong ideas fail where they can be seen:** "`reshape` to [2, 4, 4] gives one block per head" fails with 24 of 32 cells hatched and "8 of 32 in place"; "the permute alone is enough" fails when the stride order arcs between the two grids and the target's "contiguous: required" stays unmet.
+
+**`fewest` · Fewest copies** (graded; the Prove level)
+- **Parts:** Shape and strides; Buffer; Stride order; Target; Slices.
+- **Goal line.** Aim: "Reach each target with as few copies as you can." Controls: "You choose one operation at a time, and there is no undo." Pass rule: "Passes when your copies equal the reference's on each of 3 new targets." Ends: "Ends when all 3 targets are reached."
+- **Opening guess** (after the run), on each target: "How many copies does the fewest path need?" Drawn answer first (§2.1): the band picks 0, 1 or 2 copies, then a start and a chain that need exactly that.
+- **First move:** the first operation of the ghost's plan on the target.
+- **Named moments:** the first of `view-free`, `view-refused` and `copy` that the run meets. A target that a slice has made unreachable (an element it needs is gone) is said at once, and that target is not passed.
+- **At its end** the learner plans a chain with a copy only where no view can give the layout. **The wrong idea fails where it can be seen:** "call `contiguous()` first, to be safe" costs a copy over the reference's, and the debrief names that call (§2.1's R(i) rule): "Your `contiguous()` at operation 2 is the copy the reference never makes: the `permute` after it was a view either way."
+- **Prove.** `fewest` is the module's Prove level (ASSESSMENT §7.2): it starts in Prove mode (W2b-T42) with the readouts hidden until the result, on three targets drawn when the run starts, with the coding agent closed. W2-T14 turns Prove on for it.
+
+**`grid` · A grid of programs** (practice on its pinned tensor, then graded on new ones)
+- **Parts:** Tensor; Program; BLOCK; Grid; Mask.
+- **Goal line.** Aim: "Cover every element of this [12, 20] tensor exactly once, with as few masked lanes as you can, in at most 6 programs." Controls: "You choose BLOCK along each dimension and the grid, then launch." Number, in practice: "The reference leaves 80 lanes masked." Pass rule, graded: "Passes when every element is covered exactly once and your masked lanes equal the reference's, on each of 3 new tensors." Ends: "Ends when you launch." (Graded: "Ends when you have launched on all 3 tensors.")
+- **The cap.** At most 6 programs [estimated]. The cap is arbitrary: it stands for the cost of launching many small programs, which the model does not count. Without it, a BLOCK of 1 would mask nothing and teach nothing. The card says so.
+- **Opening guess** (after the run): "How many lanes will the reference leave masked?" The answer is 80.
+- **First move:** set BLOCK along dimension 0 to 16, the reference's first action. The reference's launch is BLOCK (16, 4) on a grid of (1, 5): 5 programs, 320 lanes, 80 masked.
+- **Named moments.** `masked`, on the first launch with a masked lane: "Program (0, 4) runs 64 lanes and 16 are masked: their offsets are past the edge, so the mask is false there." `uncovered`, on a grid below `cdiv`: "48 elements are not covered: along dimension 1 the grid needs cdiv(20, 4) = 5 programs." (a grid of (1, 4) with BLOCK (16, 4)) `not-pow2`, on a launch whose BLOCK is not a power of two: "BLOCK must be a power of two, because `tl.arange` takes one. 12 is not." Nothing launches then.
+- **At its end** the learner can say what one program covers, why BLOCK is a power of two, what `cdiv` gives, how many lanes an edge masks, and that the least waste comes from fitting the dimension that divides, not from the squarest tile. **The wrong ideas fail where they can be seen:** "BLOCK = the size" (12) is refused with its reason; "grid = n // BLOCK" leaves a stripe of cells uncovered and counted; "one large program" masks 272 lanes against the reference's 80; "square tiles" (8 x 8) mask 144.
+
+### 4.4 Bands and seeds
+
+- **Size.** Every tensor of the view levels has at most 64 elements, under `MAX_PLAN_NUMEL` (256) and small enough that the cells and the buffer fit the 390 px box together. A `grid` tensor has at most 256 elements, from 5 to 20 along each dimension.
+- **`views`:** [a, b] with a and b from 3 to 8, a ≠ b, ab ≤ 64; the target is the transpose read as one row, contiguous.
+- **`stride-zero`:** a row of 3 to 8 elements, expanded to 2 to 8 rows; the target is contiguous.
+- **`three-d`:** tokens 2 to 6, heads 2 to 4, head size 2 to 8, at most 64 elements; the target is [heads, tokens, head size], contiguous.
+- **`fewest`:** a start (contiguous, transposed or sliced) and a target from `goalAfter` over a chain of 2 to 4 operations, drawn answer first on the fewest copies (0, 1 or 2). In band when the naive path (`contiguous()` before every operation of the chain, `naivePlan`) costs at least one copy more than `fewestPlan`, the target is reachable in at most 6 operations, and the tensor has 12 to 64 elements.
+- **`grid`:** in band when the least masked count within the cap is reached by one masked count only (ties of BLOCK are allowed), is above 0, and is below both the one-program launch's and the squarest tile's within the cap.
+- **Seeds** as §2.1: practice seeds pinned in the level, graded seeds drawn at the start and stamped `unseen`. Acceptance of each band is measured and printed by W2b-T28's tests, with §2.1's floor of 20%.
+
+### 4.5 Parts
+
+The parts list and the source popover read these rows from `packages/play/shape-shifter/copy.ts`. A level's list shows the rows drawn on that level, at most five.
+
+| Id | Name | Sentence | Levels | Source |
+|---|---|---|---|---|
+| `table` | Shape and strides | One row per dimension: its size, and its stride, how far in the buffer one step along it moves. | the four view levels | a claim on PyTorch 2.14's `stride` |
+| `buffer` | Buffer | The flat memory that holds the elements, address by address. A view reads it; only a copy writes a new one. | the four view levels | a claim on PyTorch 2.14's `view` |
+| `order` | Stride order | A line through the elements in the order they sit in the buffer. On a contiguous tensor it reads row by row. | the four view levels | model object |
+| `target` | Target | The layout to reach: its shape, its elements in order, and whether it must be contiguous. | the four view levels | model object |
+| `shared` | Stride 0 | A dimension whose stride is 0: every index along it reads the same addresses. | `stride-zero` | a claim on PyTorch 2.14's `expand` |
+| `slices` | Slices | One grid of cells for each index of the first dimension. | `three-d`, `fewest` | model object |
+| `tensor` | Tensor | The elements to cover, one cell each. | `grid` | model object |
+| `program` | Program | One instance of the kernel. `tl.program_id` says which tile it covers. | `grid` | a claim on Triton 3.8.0's `program_id` |
+| `block` | BLOCK | The tile's size along each dimension: a compile-time constant and a power of two. | `grid` | a claim on Triton 3.8.0's `arange` |
+| `grid-size` | Grid | Programs along each dimension. `cdiv(n, BLOCK)` of them cover n. | `grid` | a claim on Triton 3.8.0's `cdiv` |
+| `mask` | Mask | A lane whose offset is past the edge. Its load and its store do nothing. | `grid` | a claim on Triton 3.8.0's `load` |
+
+The claims are W2b-T27's, read at the pins; a part whose claim could not be read is a model object, and its popover says so.
+
+### 4.6 Named moments
+
+| Id | When, the first time in a level | The line (every figure is the view's own) | Said beside |
+|---|---|---|---|
+| `view-free` | an operation that changes the strides and copies nothing | "The buffer did not move. `{op}` is a view: the strides went from ({before}) to ({after})." | the table |
+| `view-refused` | a `view` that the strides cannot express | "`view` cannot give [{shape}] here: the stride order jumps where the new shape needs one stride. `reshape` would copy." | the marked jump |
+| `copy` | an operation that copies | "`{op}` moved {n} elements into a new buffer, every one of them. The stride order now reads row by row." | the new buffer |
+| `stride-zero` | an `expand` over more than one element | "Stride 0: the {rows} rows read the same {m} elements. Writing to one row would change them all." | the shared buffer cell |
+| `wrong-order` | the shape matches the target and the elements do not | "The shape matches the target and the order does not: {k} of {n} elements are in place. `reshape` keeps the buffer's order; `permute` changes which dimension moves fastest." | the target |
+| `masked` | a launch with a masked lane | "Program ({index}) runs {lanes} lanes and {m} are masked: their offsets are past the edge, so the mask is false there." | that program's tile |
+| `uncovered` | a launch whose grid is below `cdiv` on a dimension | "{n} elements are not covered: along dimension {d} the grid needs cdiv({size}, {block}) = {g} programs." | the uncovered cells |
+| `not-pow2` | a launch whose BLOCK is not a power of two | "BLOCK must be a power of two, because `tl.arange` takes one. {x} is not." | the BLOCK stepper |
+
+**The keep-list's entry is `view-free` on `views`.** The scripted first run meets it on its first move, so it arrives inside the first run (REDESIGN §5.4), and it is the game's subtitle made visible: the table's strides swap and the buffer does not move. W2-T14 adds it to `e2e/keep-list.spec.ts`: open `views` in 2D, skip the intro, apply `transpose(0, 1)`, and hold that the buffer's numbers are unchanged, the table reads (1, 6), "elements moved" reads 0, and the moment names the view. `copy` is the second moment of the same run, and the keep-list does not need it.
+
+### 4.7 Scoring, Predict, Prove, Keep
+
+- **`fewest`:** copies made, elements moved and operations; a target passes when the copies equal the ghost's (`fewestPlan`'s), and the level when 3 fresh targets pass. Elements moved and operations are shown and do not grade.
+- **`grid`:** programs, lanes, masked lanes and elements covered; a tensor passes when coverage is exact and the masked lanes equal the least within the cap, and the level when 3 fresh tensors pass.
+- **Practice levels** pass in practice on the same rule against their own reference.
+- **Debrief.** `fewest` and the view levels use §2.1's R(i) rule over the operations: the latest operation after which the reference could no longer reach the target with its copies. `grid` is a configuration, so its debrief swaps one lever (BLOCK on one dimension, or the grid) to the reference's value and names the lever worth the most.
+- **Predict.** Each level's opening guess (§4.3) is revealed after the run. Lessons reuse three of them (`views`, `three-d`, `grid`) in `packages/play/predictions/same.ts`.
+- **Prove:** `fewest` in Prove mode (§4.3).
+- **GPU lane:** none. The L lane's forward pass (`tr0.forward`) is TR0's Build; the game previews its reshapes, such as `[tokens, heads · head size]` to `[heads, tokens, head size]`.
+- **Keep:** the families `tr0.strides-of`, `tr0.view-or-copy`, `tr0.find-the-sync` and `tr0.grid-cover` (W2b-T29; TR0's brief, "Before you write", gives each its variants).
+
+### 4.8 Simulation API
+
+The model is built (`packages/sim/tensor`, W2-T13); the session (W2b-T28) plays it and adds nothing to its rules.
 
 ```ts
-// packages/play/shape-shifter/session.ts, over packages/sim/tensor (ARCHITECTURE §5.8)
-export interface TView { offset: number; shape: readonly number[]; strides: readonly number[] }   // in elements
-export type ShiftOp =
-  | { op: 'view' | 'reshape'; shape: readonly number[] } | { op: 'permute'; order: readonly number[] }
-  | { op: 'transpose'; a: number; b: number } | { op: 'expand'; shape: readonly number[] }
-  | { op: 'slice'; dim: number; start: number; stop: number; step: number } | { op: 'contiguous' }
-export function applyOp(v: TView, o: ShiftOp): { view: TView; copied: number } | { error: 'not-viewable' | 'bad-shape' }
+// packages/sim/tensor: what the session calls
+export function applyOp(v: TView, o: ShiftOp): OpResult                      // { view, copied } | { error: 'not-viewable' | 'bad-shape' }
 export function isContiguous(v: TView): boolean
-export function fewestCopies(start: TView, target: readonly number[]): number   // BFS over ops ≤ 6 deep: the ghost
-export function gridCoverage(shape: readonly number[], block: readonly number[]): { programs: number; masked: number; exact: boolean }
+export function hasInternalOverlap(v: TView): boolean                         // a stride of 0 over more than one element
+export function addresses(v: TView): number[]                                 // each element's address, in logical order
+export function goalAfter(start: TView, ops: readonly ShiftOp[], contiguous: boolean): Goal | null   // how a seeded target is made
+export function fewestPlan(start: TView, goal: Goal, maxOps?: number): Plan | null                 // the ghost: fewest copies, then fewest operations
+export function naivePlan(start: TView, ops: readonly ShiftOp[], contiguousEnd: boolean): Plan | null  // the band's naive path
+export function gridCoverage(shape: readonly number[], block: readonly number[], grid?: readonly number[]): GridResult | { error: 'bad-shape' }
+export function programCells(shape: readonly number[], block: readonly number[], index: readonly number[]): { cells: number[][]; masked: number } | { error: 'bad-shape' }
 ```
+
+The session's actions are a commit of the guess, one operation (`ShiftOp`), a BLOCK or grid value on one dimension, and a launch. Its state holds no display string.
 
 **Invariants.**
 - A view never changes the buffer.
 - `contiguous()` on a contiguous tensor copies 0 elements.
-- `view` fails exactly where PyTorch's does on the vector set. That set is a golden file generated once at the `cpu` environment's torch, 2.14.0 (ARCHITECTURE §14; W2-T13), the build TR0's lab runs on.
+- `view` fails exactly where PyTorch's does on the vector set, the golden file of torch 2.14.0 (W2-T13; its open check regenerates it from the `cpu` environment's own build).
 - `expand` gives stride 0.
-- Grid coverage counts each element exactly once.
+- A grid's coverage counts each element at most once, and exactly once when the grid is at least `cdiv` on each dimension.
 - Determinism.
 
-**Claims.**
-- View and copy semantics: PyTorch docs at the pinned torch version [unverified until the `tensor` task checks them].
-- The Triton program model and `TRITON_INTERPRET=1`: catalog §3.5, and the Triton docs at the pinned version [unverified until checked].
-- Shapes and seeds: synthetic.
+**Claims.** View and copy semantics: PyTorch 2.14.0's documents for `view`, `reshape`, `contiguous` and `expand`. The program model: Triton 3.8.0's documents for `program_id`, `arange`, `cdiv`, `load` and `store`, and `TRITON_INTERPRET`. W2b-T27 reads both at their pins into `content/claims/tr0.yaml`; until then each is [unverified]. Shapes, seeds and the program cap are the course's model, and the card (`content/cards/tensor.md`) says so.
+
+**Budget.** 2D only, so no scene chunk. The `/play/shape-shifter` row stays under the 200 KB route gate, and W2-T14's skeleton leaves at least 30 KB of it [estimated need].
 
 **Size.** M.
 
@@ -1577,7 +1700,7 @@ The front-page run comes first. Then the no-GPU modules, TR1, TR2, TR5a, TR6 and
 | 6 | Broken benchmark | W1-T33, after W1-T32 | W1 | M | TR8, no-GPU. 2D, extends kernelspace's corpus. |
 | 7 | The Trace Room and Trace attribution, on synthetic traces first | W2-T20 | W2 | M | TR3's tool before real traces. Shares its attribution test with the step loop. |
 | 8 | KV offload | W2-T30, W2-T31, after W2-T28 | W2 | M | TR5b. Reuses the KV page pool's rack. |
-| 9 | Tensor views | W2-T14, W2-T15, after W2-T13 | W2 | M | TR0, beside the L-lane forward lab. |
+| 9 | Tensor views | W2b-T28, then W2-T14; W2-T15 only if the owner overturns D-074 | W2 | M | TR0, beside the L-lane forward lab. 2D only (§4, "3D: not built"). |
 | 10 | Backend dispatch | W2-T25 | W2 | S | TR4. |
 | 11 | Trace attribution on pinned traces | after W2-T21 | W2 or later | S | Real cases once the owner's traces exist (O-5). |
 | 12 | `rain-and-relay`; a pre-registered 3D-against-2D comparison (D-005's revisit) | not in TRACKER yet | W3, stretch | S + S | Attention, then evidence. |

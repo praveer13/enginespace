@@ -80,9 +80,9 @@ describe('map.json', () => {
     expect(map.refs).toEqual({ 'predict:tr2.l0#tr2.l0.p1': ['tr2.async-overlap'] })
   })
 
-  test('has a KC graph that is the five modules the plan writes in W1, and nothing for the modules that come later', () => {
+  test('has a KC graph that is the five modules the plan writes in W1 and TR0, whose design wrote its KCs ahead of its lessons (W2b-T26), and nothing for the modules that come later', () => {
     const withKcs = map.modules.filter((module) => module.kcs.length > 0).map((module) => module.id)
-    expect(withKcs).toEqual(['tr1', 'tr2', 'tr5a', 'tr6', 'tr8'])
+    expect(withKcs).toEqual(['tr0', 'tr1', 'tr2', 'tr5a', 'tr6', 'tr8'])
   })
 })
 
