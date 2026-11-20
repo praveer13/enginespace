@@ -279,9 +279,17 @@ describe('scores outside [0, 1]', () => {
   })
 
   test('a graded event with no score is refused, and the reason names it', () => {
-    for (const kind of GRADED_KINDS) {
+    // A receipt event holds no score since schema version 2: what it is worth is worked out when it is read (tests/receipts/credit.test.ts).
+    for (const kind of GRADED_KINDS.filter((candidate) => candidate !== 'receipt')) {
       expect(reason(omit(EXAMPLES[kind], 'score'))).toContain('score')
     }
+    expect(accepts(omit(EXAMPLES.receipt, 'score'))).toBe(true)
+  })
+
+  test('a receipt event may hold the score, the ok and the provenance that schema version 1 wrote, and refuses them out of range', () => {
+    expect(accepts({ ...copy(EXAMPLES.receipt), score: 1, ok: true, provenance: 'gpu-verified' })).toBe(true)
+    expect(accepts({ ...copy(EXAMPLES.receipt), score: 2, ok: true, provenance: 'gpu-verified' })).toBe(false)
+    expect(accepts({ ...copy(EXAMPLES.receipt), provenance: 'invented' })).toBe(false)
   })
 
   test('a score of 1.0001 says where it went wrong', () => {
@@ -386,7 +394,8 @@ describe('unknown and missing members, and members of the wrong type', () => {
     prove: { required: ['actual', 'agentClosed', 'predicted', 'wasmSha256'], optional: [] },
     'trace-mark': { required: ['error', 'marks'], optional: [] },
     challenge: { required: ['issuedOn', 'nonce', 'seed', 'token'], optional: [] },
-    receipt: { required: ['challenge', 'checks', 'environment', 'graderVersion', 'receiptSha256'], optional: [] },
+    // Schema 1 also wrote `checks` here, and a ledger written then still reads: tests/receipts/credit.test.ts holds that.
+    receipt: { required: ['challenge', 'environment', 'graderVersion', 'receiptSha256'], optional: [] },
     review: { required: ['grade'], optional: [] },
   }
 

@@ -95,10 +95,7 @@ describe('a challenge, in the ledger, over time', () => {
     await engine.append({
       kind: 'receipt',
       ref: 'receipt:tr8.replay.s2',
-      score: 1,
-      ok: true,
-      provenance: 'gpu-verified',
-      data: { receiptSha256: hash, challenge: spent.event.data.token, checks: [{ id: 'agreement', verdict: 'attested' }], graderVersion: '0.1.0', environment: 'one GPU' },
+      data: { receiptSha256: hash, challenge: spent.event.data.token, graderVersion: '0.1.0', environment: 'one GPU' },
     })
     const states = (nowMs: number) => Object.fromEntries(heldChallenges(engine.getSnapshot().events, nowMs).map((entry) => [entry.stage, entry.state]))
     const issuedAt = Date.parse('2026-11-04T09:00:00.000Z')
@@ -118,10 +115,7 @@ describe('a challenge, in the ledger, over time', () => {
     await a.engine.append({
       kind: 'receipt',
       ref: 'receipt:tr8.replay.s2',
-      score: 1,
-      ok: true,
-      provenance: 'gpu-verified',
-      data: { receiptSha256: sha256('r'), challenge: spent.event.data.token, checks: [{ id: 'agreement', verdict: 'pass' }], graderVersion: '0.1.0', environment: 'one GPU' },
+      data: { receiptSha256: sha256('r'), challenge: spent.event.data.token, graderVersion: '0.1.0', environment: 'one GPU' },
     })
     await writeChallenge('tr3.profile.s2', a.engine, a.clock, entropyOf(2))
     const exported = await a.engine.exportLedger()

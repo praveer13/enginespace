@@ -35,9 +35,10 @@ import { checkIntegrity } from './integrity'
 import { CAPS } from './limits'
 import type { Caps } from './limits'
 import { checkPins } from './pins'
+import { keptArgmax } from './rechecks'
 import type { Compatible, PinTable } from './pins'
 import { RULES } from './report'
-import type { RuleResult, Sizes } from './report'
+import type { RuleResult, Sizes, StoredReport } from './report'
 import { sha256Hex } from './hashing'
 import { parseBundle } from './schema'
 import { verdictOf } from './verdict'
@@ -81,6 +82,8 @@ export interface CheckedOutcome {
   /** The SHA-256 of the receipt's canonical JSON: its identity, and the fragment of its page. */
   readonly receiptSha256: string
   readonly verdict: Verdict
+  /** What the report keeps beside the rules, for a check that the site's own data decides (report.ts `argmax`). */
+  readonly argmax?: StoredReport['argmax']
 }
 
 export type Outcome = RefusedOutcome | CheckedOutcome
@@ -172,7 +175,8 @@ export async function verifyBundle(file: Blob, context: VerifyContext): Promise<
   const rules = [...first, ...evaluate(run)]
 
   /* 10. The verdict, from the results. */
-  return { kind: 'checked', rules, sizes, receipt, receiptSha256, verdict: verdictOf(receipt, rules) }
+  const argmax = keptArgmax(run)
+  return { kind: 'checked', rules, sizes, receipt, receiptSha256, verdict: verdictOf(receipt, rules), ...(argmax === undefined ? {} : { argmax }) }
 }
 
 /** Rule 1 passed: what it counted, against what the cap allows. */

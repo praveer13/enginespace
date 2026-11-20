@@ -14,8 +14,8 @@ import { decodeReceiptRecord, LIMITS, stampEvent } from '@es/ledger'
 import type { Draft } from '@es/ledger'
 import type { Receipt } from '@es/schema/receipt'
 import { readStoredReport, verifyBundle } from '@es/verify'
-import type { CheckedOutcome, Verdict } from '@es/verify'
-import { checksOf, environmentLine, hasEventFor, receiptDraft, receiptRecord } from '@/receipts/keep'
+import type { CheckedOutcome } from '@es/verify'
+import { environmentLine, hasEventFor, receiptDraft, receiptRecord } from '@/receipts/keep'
 import { contextFor, fileOf, sampleBundle } from '../verify/support'
 import { replayFixture } from '../verify/synthetic'
 import { Ledger } from './support'
@@ -44,67 +44,20 @@ describe('the event', () => {
     })
   })
 
-  test('does not credit the bare sample: not ok, a score of 0, and gpu-unverified, because the stage asks of its evidence what a toy trace cannot give', async () => {
+  test('holds no verdict: no ok, no score, no provenance and no check, so that nothing is frozen at import', async () => {
     const draft = receiptDraft(await outcomeOf())
-    expect(draft).toMatchObject({ ok: false, score: 0, provenance: 'gpu-unverified' })
-  })
-
-  test('credits an honest receipt with the provenance of its verdict: gpu-verified for the replay, ok and at a score of 1 (the weight is applied at read time)', async () => {
+    expect(Object.keys(draft).sort()).toEqual(['data', 'kind', 'ref'])
+    expect(Object.keys(draft.data).sort()).toEqual(['challenge', 'environment', 'graderVersion', 'receiptSha256'])
     const fixture = replayFixture()
-    const outcome = await verifyBundle(fileOf(fixture.bundle), fixture.context)
-    if (outcome.kind !== 'checked') throw new Error('refused')
-    const draft = receiptDraft(outcome)
-    expect(draft).toMatchObject({ ok: true, score: 1, provenance: 'gpu-verified' })
-    const event = stampEvent<'receipt'>(writer, draft as Draft<'receipt'> & { kind: 'receipt' })
-    expect(event.data.checks.map((check) => check.verdict)).toContain('pass')
-    expect(event.data.checks.find((check) => check.id === 'teacher-forced')).toEqual({ id: 'teacher-forced', verdict: 'attested', bound: 'value 0.995, bound 0.99, n 200; teacher-forced agreement on a sample of 200 outputs' })
-  })
-
-  test('says of each check what the browser found or the grader said: pass or fail when this browser ran it, attested or fail when only the grader did', () => {
-    const verdict: Verdict = {
-      provenance: 'gpu-unverified',
-      reasons: [],
-      checks: [
-        { id: 'B6', verdict: 'pass', bound: 'p99 1,000 µs', how: 're-checked', required: true },
-        { id: 'B4', verdict: 'fail', bound: '12 sends were late', how: 're-checked', required: true },
-        { id: 'agreement', verdict: 'attested', bound: 'value 0.995, bound 0.99, n 200', how: 'attested', required: true },
-        { id: 'identity', verdict: 'fail', bound: 'value 0.2, bound 0.99', how: 'attested', required: false },
-      ],
-    }
-    expect(checksOf(verdict)).toEqual([
-      { id: 'B6', verdict: 'pass', bound: 'p99 1,000 µs' },
-      { id: 'B4', verdict: 'fail', bound: '12 sends were late' },
-      { id: 'agreement', verdict: 'attested', bound: 'value 0.995, bound 0.99, n 200' },
-      { id: 'identity', verdict: 'fail', bound: 'value 0.2, bound 0.99' },
-    ])
-  })
-
-  test('holds one check when the verdict has none, and says that is a failure', () => {
-    expect(checksOf({ provenance: 'gpu-unverified', reasons: [], checks: [] })).toEqual([{ id: 'no-checks', verdict: 'fail', bound: 'the receipt lists no check' }])
-  })
-
-  test('holds at most as many checks as the ledger keeps, and counts the rest in the last, which fails if any of them did', () => {
-    const many = (failAt: number | null, how: 're-checked' | 'attested' = 'attested'): Verdict => ({
-      provenance: 'gpu-unverified',
-      reasons: [],
-      checks: Array.from({ length: 200 }, (_, at) => ({ id: `check-${at}`, verdict: at === failAt ? ('fail' as const) : how === 'attested' ? ('attested' as const) : ('pass' as const), bound: 'a bound', how, required: false })),
-    })
-    const passing = checksOf(many(null))
-    expect(passing).toHaveLength(LIMITS.checks)
-    expect(passing.at(-1)).toEqual({ id: 'more-checks', verdict: 'attested', bound: `and ${200 - (LIMITS.checks - 1)} more checks, not listed here` })
-    expect(checksOf(many(null, 're-checked')).at(-1)?.verdict).toBe('pass')
-    expect(checksOf(many(150)).at(-1)?.verdict).toBe('fail')
-    const early = checksOf(many(3))
-    expect(early.at(-1)?.verdict).toBe('attested')
-    expect(early[3].verdict).toBe('fail')
-  })
-
-  test('holds an event that passes the codec however many checks the verdict has', async () => {
-    const outcome = await outcomeOf()
-    const verdict: Verdict = { ...outcome.verdict, checks: Array.from({ length: 200 }, (_, at) => ({ id: `check-${at}`, verdict: 'attested' as const, bound: 'a bound', how: 'attested' as const, required: false })) }
-    const draft = receiptDraft({ ...outcome, verdict })
-    expect(() => stampEvent<'receipt'>(writer, draft as Draft<'receipt'> & { kind: 'receipt' })).not.toThrow()
-    expect(draft.data.checks).toHaveLength(LIMITS.checks)
+    const honest = await verifyBundle(fileOf(fixture.bundle), fixture.context)
+    if (honest.kind !== 'checked') throw new Error('refused')
+    // An honest receipt that the verdict credits as gpu-verified is written the same way: the credit is read from its record (credit.test.ts).
+    expect(honest.verdict.provenance).toBe('gpu-verified')
+    expect(Object.keys(receiptDraft(honest)).sort()).toEqual(['data', 'kind', 'ref'])
+    const event = stampEvent<'receipt'>(writer, receiptDraft(honest) as Draft<'receipt'> & { kind: 'receipt' })
+    expect(event).not.toHaveProperty('ok')
+    expect(event).not.toHaveProperty('score')
+    expect(event).not.toHaveProperty('provenance')
   })
 
   test('describes the machine in one line of plain text: its GPUs, the engine and the driver, and says no GPU for a laptop', () => {

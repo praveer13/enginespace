@@ -4,7 +4,7 @@
  * The same flows run against IndexedDB in a real browser in e2e/ledger-conformance.spec.ts.
  */
 import { describe, expect, spyOn, test } from 'bun:test'
-import { MemoryStore, seededIds } from '@es/ledger'
+import { MemoryStore, SCHEMA_VERSION, seededIds } from '@es/ledger'
 import type { Json, LedgerEvent, LedgerStore, ReceiptRecord, WorkingRecord } from '@es/ledger'
 import { CHANNEL_NAME } from '@/evidence/channel'
 import { createEvidence, NOT_READY } from '@/evidence/engine'
@@ -28,7 +28,7 @@ describe('opening', () => {
     expect(snapshot.readOnly).toBe(false)
     expect(snapshot.events).toEqual([])
     expect(snapshot.deviceId).toBeDefined()
-    expect((await db.data.readAll()).meta).toEqual({ deviceId: snapshot.deviceId, createdAt: '2026-11-04T09:00:00.000Z', schemaVersion: 1 })
+    expect((await db.data.readAll()).meta).toEqual({ deviceId: snapshot.deviceId, createdAt: '2026-11-04T09:00:00.000Z', schemaVersion: SCHEMA_VERSION })
     expect(db.commits).toBe(1)
   })
 
@@ -383,13 +383,13 @@ describe('the other tabs', () => {
     await openTab(db, bus)
     bus.posted.length = 0
     await a.engine.append(ITEM)
-    expect(bus.posted).toEqual([{ t: 'changed', what: 'append', from: a.tabId, schemaVersion: 1 }])
+    expect(bus.posted).toEqual([{ t: 'changed', what: 'append', from: a.tabId, schemaVersion: SCHEMA_VERSION }])
   })
 
   test('says hello when it opens, so that an older tab can step aside', async () => {
     const bus = new FakeBus()
     const a = await openTab(new SharedDb(), bus)
-    expect(bus.posted).toEqual([{ t: 'hello', from: a.tabId, schemaVersion: 1 }])
+    expect(bus.posted).toEqual([{ t: 'hello', from: a.tabId, schemaVersion: SCHEMA_VERSION }])
   })
 
   test('a burst of messages is one read of the store', async () => {
@@ -469,7 +469,7 @@ describe('the other tabs', () => {
 })
 
 describe('the schema guard', () => {
-  const NEWER = { deviceId: 'dev-a1', createdAt: '2026-10-01T00:00:00.000Z', schemaVersion: 2 }
+  const NEWER = { deviceId: 'dev-a1', createdAt: '2026-10-01T00:00:00.000Z', schemaVersion: SCHEMA_VERSION + 1 }
 
   test('a database with a newer schemaVersion puts the tab in read-only mode, with a reload prompt', async () => {
     const db = new SharedDb({ events: [copy(EXAMPLES.item)], meta: NEWER })
@@ -533,13 +533,13 @@ describe('the schema guard', () => {
     old.engine.subscribe(() => {
       notified += 1
     })
-    const newer = await openTab(db, bus, { schemaVersion: 2 })
+    const newer = await openTab(db, bus, { schemaVersion: SCHEMA_VERSION + 1 })
     await until(() => old.engine.getSnapshot().readOnly, 'the old tab to stop')
     expect(old.engine.getSnapshot().reason).toBe('newer-schema')
     expect(notified).toBeGreaterThan(0)
     expect(await old.engine.append(ITEM)).toMatchObject({ ok: false, error: 'read-only' })
     // The newer tab is untouched by it: it upgraded the data model, and writes.
-    expect((await db.data.readAll()).meta.schemaVersion).toBe(2)
+    expect((await db.data.readAll()).meta.schemaVersion).toBe(SCHEMA_VERSION + 1)
     expect((await newer.engine.append(ITEM)).ok).toBe(true)
     // And what the old tab showed before it stopped is still there.
     expect(old.engine.getSnapshot().events).toHaveLength(1)
@@ -817,7 +817,7 @@ describe('export, clear and import', () => {
     expect(snapshot.checkpoints).toEqual([])
     expect(snapshot.deviceId).toBe(device)
     const stored = await db.data.readAll()
-    expect(stored).toEqual({ events: [], receipts: [], working: [], meta: { deviceId: device, createdAt: '2026-11-04T09:00:00.000Z', schemaVersion: 1 } })
+    expect(stored).toEqual({ events: [], receipts: [], working: [], meta: { deviceId: device, createdAt: '2026-11-04T09:00:00.000Z', schemaVersion: SCHEMA_VERSION } })
     expect(await db.data.listCheckpoints()).toEqual([])
   })
 
