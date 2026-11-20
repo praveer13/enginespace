@@ -6,7 +6,7 @@
 import { describe, expect, test } from 'bun:test'
 import { contentIndexSchema, lessonIndexSchema } from '@es/schema'
 import { compileContent } from '../../scripts/content/build.ts'
-import { LESSON, output, project, read, readSample } from './support.ts'
+import { LESSON, output, project, readSample, repoOutput } from './support.ts'
 
 /** The sample course with `count` lessons: the sample lesson, and copies of it with their own ids and file names. */
 function course(count: number) {
@@ -46,8 +46,8 @@ describe('the course index and the lesson index', () => {
   })
 
   test('the real course: every module row says whether it is published, and the first lesson is the first module that has one', () => {
-    const real = contentIndexSchema.parse(JSON.parse(read('src/content/generated/index.json')))
-    const rows = lessonIndexSchema.parse(JSON.parse(read('src/content/generated/lesson-index.json'))).modules
+    const real = contentIndexSchema.parse(JSON.parse(repoOutput('src/content/generated/index.json')))
+    const rows = lessonIndexSchema.parse(JSON.parse(repoOutput('src/content/generated/lesson-index.json'))).modules
     for (const module of real.modules) expect(module.published, module.id).toBe((rows[module.id] ?? []).length > 0)
     const first = real.modules.find((module) => module.published)
     expect(real.firstLesson?.module).toBe(first?.id)
