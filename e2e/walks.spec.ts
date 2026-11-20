@@ -277,6 +277,21 @@ test.describe('a phone\'s first run: no decision control shows before the coach 
   }
 })
 
+/** A ledger that never answers (an upgrade blocked by an old tab) must not leave a phone's dock without its controls. */
+test.describe('a phone\'s first run with a ledger that does not answer', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('Pool, "one-group": a dock control comes on the screen and is enabled', async ({ page }) => {
+    await page.addInitScript(() => {
+      IDBFactory.prototype.open = () => ({}) as IDBOpenDBRequest
+    })
+    await openLevel(page, 'pool', 'one-group')
+    const controls = page.locator('section[data-game="pool"] [data-dock-main] button:not(:disabled)')
+    await expect(controls.first()).toBeVisible()
+    await expect(controls.first()).toBeEnabled()
+  })
+})
+
 /** Every level that has a pass rule, with its words: the games' copy tables are the list, so a level that gains a rule is held to showing it. */
 const RULES: { game: string; level: string; rule: string }[] = [
   ...Object.entries(FLOOR_COPY).flatMap(([level, copy]) => (copy.passRule === undefined ? [] : [{ game: 'engine-floor', level, rule: copy.passRule }])),

@@ -191,6 +191,15 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     kit === undefined ? null : introPlan({ firstAsk: kit.firstAsk, canLook: look !== null, parts: props.parts, shown: met, replay, ledger, turns: run.turns })
   const [intro, setIntro] = useState<IntroState | null>(() => (shown !== null && kit !== undefined && introOpens(props.parts, shown) ? plan(false, shown) : null))
   const step: IntroStep | null = intro === null || intro.checking ? (intro === null ? null : 'parts') : intro.steps[intro.at]
+  // The dock holds its controls back while the strip's chunk (which holds the ledger read too) comes, and not for ever: a chunk that does
+  // not come, or a ledger that does not answer, must not leave a phone's dock empty, so after a moment the controls show as they would without the strip.
+  const [stripLate, setStripLate] = useState(false)
+  const stripAwaited = intro !== null
+  useEffect(() => {
+    if (!stripAwaited) return
+    const timer = window.setTimeout(() => setStripLate(true), 1500)
+    return () => window.clearTimeout(timer)
+  }, [stripAwaited])
   const endIntro = () => {
     if (intro === null) return
     if (!intro.checking)
@@ -459,6 +468,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
       data-phase={outcome === null ? 'play' : 'result'}
       data-placement={embedded ? 'embed' : 'page'}
       data-intro={step ?? undefined}
+      data-intro-wait={stripAwaited && !stripLate ? '' : undefined}
       className="es-frame"
       onKeyDown={(event) => {
         // Escape ends the intro at any step, unless it is closing a sheet that is open (a popover or the Keyboard list).
