@@ -527,13 +527,14 @@ export function LessonView({ lesson, module, lessons: rows, claims, today, map =
               {questions > 0 ? ', on new numbers' : ''}
               {reading?.testWords ? `. ${reading.testWords}` : ''}
             </p>
-            {questions > 0 ? <p className="es-lesson__rule">{passRule(lesson, sections)}</p> : null}
             <div className="es-lesson__prose">
               <Pieces pieces={sections.test.pieces} {...pieceProps} />
             </div>
             {sections.test.graded.map((at) => (
               <Instrument key={at} block={lesson.blocks[at] as Of<'game'>} at={at} blocks={lesson.blocks} scope={lesson.id} rev={lesson.rev} kind="graded" />
             ))}
+            {/* The rule stands after the last prose and graded run, directly above the questions it governs: it is read where it is used. */}
+            {questions > 0 ? <p className="es-lesson__rule">{passRule(lesson, sections)}</p> : null}
             {sections.test.questions.map((at, nth) => (
               <Suspense key={at} fallback={<p className="es-lesson__meta es-lesson__reserve-set">Setting up the questions…</p>}>
                 <ItemBlock

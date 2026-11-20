@@ -63,6 +63,8 @@ export function ItemBlock({ block, scope, families, quiet = false, practice = fa
   const [run, setRun] = useState<Run | null>(null)
   const gen = faceById(block.family, families)
   const level: Level | null = isLevel(block.level) ? block.level : null
+  const variant = block.variant
+  const variantTitle = variant === undefined ? undefined : gen?.variants.find((candidate) => candidate.id === variant)?.title
 
   if (gen === undefined || level === null) {
     return (
@@ -75,7 +77,7 @@ export function ItemBlock({ block, scope, families, quiet = false, practice = fa
       </Frame>
     )
   }
-  if (offeredAt(gen, level).length === 0) {
+  if (offeredAt(gen, level).filter((offered) => variant === undefined || offered.id === variant).length === 0) {
     return (
       <Frame scope={scope} family={block.family} phase="unbuilt" stub={<PrimaryButton disabled>Start questions</PrimaryButton>}>
         <p className="es-c-pending">
@@ -97,7 +99,7 @@ export function ItemBlock({ block, scope, families, quiet = false, practice = fa
         </p>
         <p className="es-c-line">
           <SheetLine qty={`${block.count}x`} note={LEVEL_NAMES[level]}>
-            {gen.title}
+            {variantTitle === undefined ? gen.title : `${gen.title}: ${variantTitle}`}
           </SheetLine>
         </p>
       </Frame>
@@ -106,7 +108,7 @@ export function ItemBlock({ block, scope, families, quiet = false, practice = fa
 
   return (
     <Suspense fallback={<Frame scope={scope} family={block.family} phase="loading" state="loading" loadingLabel="Setting up the questions" />}>
-      <AttemptOf key={run.n} family={gen.id} {...(families === undefined ? {} : { families })} level={level} entropy={run.entropy} scope={scope} onRestart={start} quiet={practice} onward={onward} />
+      <AttemptOf key={run.n} family={gen.id} {...(families === undefined ? {} : { families })} level={level} {...(variant === undefined ? {} : { variant })} entropy={run.entropy} scope={scope} onRestart={start} quiet={practice} onward={onward} />
     </Suspense>
   )
 }

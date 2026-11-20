@@ -1036,9 +1036,9 @@
   overflow-x: auto;
 }
 
-/* The Test's pass rule: one sentence, stated once, above the questions it governs. */
+/* The Test's pass rule: one sentence, stated once, directly above the questions it governs (after the Test's prose). */
 .es-lesson__rule {
-  margin: var(--es-space-3) 0 0;
+  margin: 0 0 var(--es-space-4);
   max-width: 68ch;
   color: var(--es-text-1);
 }

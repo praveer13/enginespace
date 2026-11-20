@@ -31,6 +31,8 @@ import { PartView, RichText } from './Rich'
 interface AttemptViewProps {
   gen: Gen
   level: Level
+  /** The one variant to draw (the block names it), or undefined for the seed's pick. */
+  variant?: string
   entropy: readonly number[]
   scope: string
   /** Starts another attempt, on entropy read afresh. */
@@ -45,9 +47,9 @@ interface AttemptViewProps {
 
 type Phase = 'asking' | 'revealed' | 'done'
 
-export default function AttemptView({ gen, level, entropy, scope, onRestart, quiet = false, onward = null }: AttemptViewProps) {
+export default function AttemptView({ gen, level, variant, entropy, scope, onRestart, quiet = false, onward = null }: AttemptViewProps) {
   const evidence = useEvidence()
-  const [attempt, setAttempt] = useState<Attempt>(() => startAttempt(gen, level, entropy))
+  const [attempt, setAttempt] = useState<Attempt>(() => startAttempt(gen, level, entropy, variant === undefined ? {} : { variant }))
   const [shown, setShown] = useState(0)
   const [phase, setPhase] = useState<Phase>('asking')
   const [text, setText] = useState('')
