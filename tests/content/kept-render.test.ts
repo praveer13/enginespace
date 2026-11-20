@@ -26,6 +26,9 @@ const engine = json<CompiledInProduction>('src/content/generated/cards/in-vllm-p
 const build = json<CompiledBuildThis>('src/content/generated/cards/build-hybrid-kv-pool.json')
 
 const render = (element: ReactElement, location = '/') => renderToString(h(StaticRouter, { location }, element)).replaceAll('<!-- -->', '')
+// The sample lesson without the blocks that load code lazily (a guess, a question set, a game): rendering one starts that load, and a lazy component that
+// has resolved draws differently for every later test of the process (tests/content/render.test.ts reads the loading state).
+const base: CompiledBlock[] = lesson.blocks.filter((block) => block.type !== 'predict' && block.type !== 'item' && block.type !== 'game')
 const trace: CompiledBlock = { type: 'trace', id: 'loop-off', seed: 7, tasks: ['gap'] }
 const kept = (kind: 'in-production' | 'build-this', id: string, cites: string[]): CompiledBlock => ({ type: 'card', kind, id, cites })
 const ENGINE_CITES = ['vllm.cache.prefix-caching-default', 'vllm.cache.block-size-default', 'sglang.radix.rust-core-default']
@@ -48,7 +51,7 @@ describe('the trace block', () => {
   })
 
   test('in a lesson is a Run-style block where it was written, with the head of a run', () => {
-    const shown: CompiledLesson = { ...lesson, blocks: [...lesson.blocks, trace] }
+    const shown: CompiledLesson = { ...lesson, blocks: [...base, trace] }
     const html = render(h(LessonView, { lesson: shown, lessons: lessonIndex.modules.tr2 ?? [], claims, today: TODAY }), '/m/tr2/l0-sample')
     expect(html).toContain('<span class="es-run__kind">Trace</span>')
     expect(html).toContain('Open the trace')
@@ -58,7 +61,7 @@ describe('the trace block', () => {
 
 describe('"In vLLM today"', () => {
   test('is a note in the lesson where it was written, which waits for its card and names no task', () => {
-    const shown: CompiledLesson = { ...lesson, blocks: [...lesson.blocks, kept('in-production', 'in-vllm-prefix-cache', ENGINE_CITES)] }
+    const shown: CompiledLesson = { ...lesson, blocks: [...base, kept('in-production', 'in-vllm-prefix-cache', ENGINE_CITES)] }
     const html = render(h(LessonView, { lesson: shown, lessons: lessonIndex.modules.tr2 ?? [], claims, today: TODAY }), '/m/tr2/l0-sample')
     expect(html).toMatch(/class="es-note es-inprod" data-kind="in-engine"/)
     expect(html).toContain('In vLLM today')
@@ -87,10 +90,10 @@ describe('"In vLLM today"', () => {
 
 describe('the Build row', () => {
   test('is Keep’s, drawn from a Build-this card beside the lesson’s lab blocks, and the card is not drawn where it was written', () => {
-    const blocks: CompiledBlock[] = [...lesson.blocks, kept('build-this', build.id, [])]
+    const blocks: CompiledBlock[] = [...base, kept('build-this', build.id, [])]
     const sections = groupSections(blocks)
     expect(sections.builds).toEqual([blocks.length - 1])
-    expect(groupSections(lesson.blocks).builds).toEqual([])
+    expect(groupSections(base).builds).toEqual([])
     const html = render(h(LessonView, { lesson: { ...lesson, blocks }, lessons: lessonIndex.modules.tr2 ?? [], claims, today: TODAY }), '/m/tr2/l0-sample')
     expect(html.indexOf('keep-build-')).toBeGreaterThan(html.indexOf('id="keep"'))
   })
