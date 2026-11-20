@@ -138,17 +138,45 @@ function walk(dir: string, accept: (name: string) => boolean): string[] {
   return found
 }
 
+/** Reads one source file as text, or returns `undefined` when the file is gone. A save by rename, as editors make it, can remove a file between the walk and the read. */
+export type Reader = (abs: string) => string | undefined
+
+/** The file system read: the text, or `undefined` for a file that does not exist. Any other error (permission, a folder) throws. */
+export const readText: Reader = (abs) => {
+  try {
+    return readFileSync(abs, 'utf8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
+    throw error
+  }
+}
+
+/**
+ * A reader for one compile. A file that has vanished is read once more (the rename that removed it has usually put the new file
+ * in place by then); if it is still gone, a diagnostic names it and the compile goes on without it, so that the dev server keeps
+ * running and the next save compiles again. The reader returns `null` for such a file.
+ */
+function readSource(read: Reader, root: string, out: Diagnostic[]): (abs: string) => string | null {
+  return (abs) => {
+    const text = read(abs) ?? read(abs)
+    if (text !== undefined) return text
+    out.push(problem('content', 'error', 'file-vanished', rel(root, abs), 1, `${rel(root, abs)} was removed while it was being read (an editor saves by renaming); save it again to compile it`))
+    return null
+  }
+}
+
 const slash = (file: string): string => file.split(path.sep).join('/')
 const rel = (root: string, absolute: string): string => slash(path.relative(root, absolute))
 
-function loadCourse(root: string, out: Diagnostic[]): Course | null {
+function loadCourse(root: string, out: Diagnostic[], read: (abs: string) => string | null): Course | null {
   const file = 'content/course.yaml'
   const abs = path.join(root, file)
   if (!existsSync(abs)) {
     out.push(problem('content', 'error', 'missing-file', file, 1, 'content/course.yaml lists the course\'s modules in order, with their hours (ARCHITECTURE §2.2)'))
     return null
   }
-  const text = readFileSync(abs, 'utf8')
+  const text = read(abs)
+  if (text === null) return null
   const loaded = loadYaml(text, file, 1, 'content', out)
   if (!loaded.ok) return null
   const parsed = courseSchema.safeParse(loaded.value)
@@ -159,11 +187,12 @@ function loadCourse(root: string, out: Diagnostic[]): Course | null {
   return parsed.data
 }
 
-function loadClaims(root: string, out: Diagnostic[]): Map<string, ClaimRecord> {
+function loadClaims(root: string, out: Diagnostic[], read: (abs: string) => string | null): Map<string, ClaimRecord> {
   const claims = new Map<string, ClaimRecord>()
   for (const abs of walk(path.join(root, 'content/claims'), (name) => /\.ya?ml$/.test(name))) {
     const file = rel(root, abs)
-    const text = readFileSync(abs, 'utf8')
+    const text = read(abs)
+    if (text === null) continue
     const loaded = loadYaml(text, file, 1, 'claims', out)
     if (!loaded.ok) continue
     if (!Array.isArray(loaded.value)) {
@@ -191,12 +220,13 @@ function loadClaims(root: string, out: Diagnostic[]): Map<string, ClaimRecord> {
 }
 
 /** The KC ids that lessons name, which are read even from a graph that fails its schema, and the graph itself once it passes. */
-function loadKcs(root: string, out: Diagnostic[]): { ids: Set<string>; graph: Kc[] } {
+function loadKcs(root: string, out: Diagnostic[], read: (abs: string) => string | null): { ids: Set<string>; graph: Kc[] } {
   const file = 'content/kc/graph.yaml'
   const abs = path.join(root, file)
   const ids = new Set<string>()
   if (!existsSync(abs)) return { ids, graph: [] }
-  const text = readFileSync(abs, 'utf8')
+  const text = read(abs)
+  if (text === null) return { ids, graph: [] }
   const loaded = loadYaml(text, file, 1, 'content', out)
   if (!loaded.ok) return { ids, graph: [] }
   const parsed = kcGraphSchema.safeParse(loaded.value)
@@ -231,12 +261,14 @@ interface Cards {
 }
 
 /** Compiles `content/cards/*.md`. A `README.md` there is not a card. */
-function loadCards(root: string, claimIds: ReadonlySet<string>, out: Diagnostic[]): Cards {
+function loadCards(root: string, claimIds: ReadonlySet<string>, out: Diagnostic[], read: (abs: string) => string | null): Cards {
   const cards: Cards = { stems: new Set(), compiled: new Map() }
   for (const abs of walk(path.join(root, 'content/cards'), (name) => name.endsWith('.md') && !/^readme\.md$/i.test(name))) {
     const file = rel(root, abs)
     cards.stems.add(path.basename(abs, '.md'))
-    const card = compileCard(file, readFileSync(abs, 'utf8'), claimIds, out)
+    const text = read(abs)
+    if (text === null) continue
+    const card = compileCard(file, text, claimIds, out)
     if (card !== null) cards.compiled.set(card.front.id, card)
   }
   return cards
@@ -248,6 +280,8 @@ function loadCards(root: string, claimIds: ReadonlySet<string>, out: Diagnostic[
 
 interface Sources {
   root: string
+  /** Reads a source file; `null` once the file has vanished twice, with the diagnostic already filed. */
+  read: (abs: string) => string | null
   course: Course | null
   /** The KC graph, or an empty list while content/kc/graph.yaml is absent or fails its schema (which is reported). */
   kcGraph: readonly Kc[]
@@ -422,7 +456,9 @@ function compileLesson(abs: string, moduleId: string, sources: Sources, out: Dia
     out.push(problem('content', 'error', 'bad-file-name', file, 1, `a lesson file is named like l3-async-overlap.md: l, the lesson's number, then words joined by hyphens`))
     return null
   }
-  const parsedFile = parseContentFile(file, readFileSync(abs, 'utf8'), out)
+  const text = sources.read(abs)
+  if (text === null) return null
+  const parsedFile = parseContentFile(file, text, out)
   if (parsedFile === null) return null
 
   const lessonId = `${moduleId}.${/^l\d+/.exec(slug)?.[0]}`
@@ -514,7 +550,9 @@ function compileModule(id: string, sources: Sources, out: Diagnostic[]): ModuleR
     return null
   }
 
-  const parsedFile = parseContentFile(file, readFileSync(abs, 'utf8'), out)
+  const text = sources.read(abs)
+  if (text === null) return null
+  const parsedFile = parseContentFile(file, text, out)
   let front: ModuleFrontMatter | undefined
   if (parsedFile?.frontMatter !== undefined) {
     const parsed = moduleFrontMatterSchema.safeParse(parsedFile.frontMatter)
@@ -962,16 +1000,18 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
 }
 
 /** Compiles `content/` under `root`. It reads files and writes none. */
-export function compileContent({ root, replay }: { root: string; replay?: ReplayCheck }): CompileResult {
+export function compileContent({ root, replay, read = readText }: { root: string; replay?: ReplayCheck; read?: Reader }): CompileResult {
   const out: Diagnostic[] = []
-  const course = loadCourse(root, out)
-  const claims = loadClaims(root, out)
-  const kcs = loadKcs(root, out)
+  const source = readSource(read, root, out)
+  const course = loadCourse(root, out, source)
+  const claims = loadClaims(root, out, source)
+  const kcs = loadKcs(root, out, source)
   const lockKeys = loadLockKeys(root)
   const claimIds: ReadonlySet<string> = new Set(claims.keys())
-  const cards = loadCards(root, claimIds, out)
+  const cards = loadCards(root, claimIds, out, source)
   const sources: Sources = {
     root,
+    read: source,
     course,
     kcGraph: kcs.graph,
     claims,

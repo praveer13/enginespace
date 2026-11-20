@@ -32,6 +32,7 @@ import { existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import type { Logger, Plugin, ViteDevServer } from 'vite'
 import { compileContent, writeOutputs } from './build.ts'
+import type { Reader } from './build.ts'
 import { isRegularFile } from './files.ts'
 import { formatDiagnostic } from './parse.ts'
 import type { Diagnostic } from './parse.ts'
@@ -64,8 +65,8 @@ export interface Compiled {
 }
 
 /** Compiles the project under `root` and writes its outputs unless an error stopped it. */
-export function compileAndWrite(root: string): Compiled {
-  const result = compileContent({ root })
+export function compileAndWrite(root: string, read?: Reader): Compiled {
+  const result = compileContent({ root, read })
   const errors = result.diagnostics.filter((diagnostic) => diagnostic.severity === 'error')
   const warnings = result.diagnostics.filter((diagnostic) => diagnostic.severity === 'warning')
   const outputs = result.outputs.map((output) => output.path)
@@ -101,13 +102,20 @@ function loaded(server: ViteDevServer, file: string): boolean {
   return (server.environments.client.moduleGraph.getModulesByFile(file.split(path.sep).join('/'))?.size ?? 0) > 0
 }
 
+/**
+ * The options of `contentPlugin`. The plugin object that it returns keeps the state of one server (its timers, its watcher wait,
+ * its first compile) in a closure: it is not to be shared between servers. Make one plugin for each `createServer`.
+ */
 export interface ContentPluginOptions {
+  /** How a source file is read; tests inject one that removes a file between the compiler's walk and its read. Defaults to the file system. */
+  read?: Reader
   /** How long to wait for Vite's watcher to list every file; tests inject a short one. Defaults to WATCH_WAIT_MS. */
   watchWaitMs?: number
 }
 
 export function contentPlugin(options: ContentPluginOptions = {}): Plugin {
   const watchWaitMs = options.watchWaitMs ?? WATCH_WAIT_MS
+  const compile = () => compileAndWrite(root, options.read)
   let root = ''
   let active = false
   let building = false
@@ -133,14 +141,14 @@ export function contentPlugin(options: ContentPluginOptions = {}): Plugin {
       logger = config.logger
       if (!active || building || previewing) return
       // The dev server, whose watcher Vite creates once this hook returns.
-      first = compileAndWrite(root)
+      first = compile()
       for (const warning of first.warnings) logger.warn(formatDiagnostic(warning), { timestamp: true })
       if (first.errors.length > 0) logger.error(summary(first.errors), { timestamp: true })
     },
 
     buildStart() {
       if (!active || !building) return
-      const { errors, warnings } = compileAndWrite(root)
+      const { errors, warnings } = compile()
       for (const warning of warnings) this.warn(formatDiagnostic(warning))
       if (errors.length > 0) this.error(summary(errors))
     },
@@ -188,7 +196,7 @@ export function contentPlugin(options: ContentPluginOptions = {}): Plugin {
       const started = Date.now()
       const catchUp = () => {
         watching = true
-        const compiled = compileAndWrite(root)
+        const compiled = compile()
         // Quiet when nothing has changed since the first compile, which has said all there was to say.
         if (compiled.written.length > 0 || !first || said(compiled) !== said(first)) report(compiled)
       }
@@ -216,7 +224,7 @@ export function contentPlugin(options: ContentPluginOptions = {}): Plugin {
         if (closed || !watching || !path.resolve(file).startsWith(content)) return
         clearTimeout(timer)
         timer = setTimeout(() => {
-          if (!closed) report(compileAndWrite(root))
+          if (!closed) report(compile())
         }, DEBOUNCE_MS)
       }
       stop = () => {
