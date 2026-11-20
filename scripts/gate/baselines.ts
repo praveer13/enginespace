@@ -16,7 +16,17 @@ import { existsSync, readFileSync, rmSync } from 'node:fs'
 import path from 'node:path'
 import { inflateSync } from 'node:zlib'
 
-const ROOT = path.resolve(import.meta.dirname, '../..')
+/**
+ * The top level of the git checkout that `from` (the working directory) is in. The merge script runs this from the tree under test, which is
+ * not always the tree that holds the script (a script run by path from another worktree used to read that other worktree's baselines).
+ */
+export function repoRoot(from: string = process.cwd()): string {
+  return path.resolve(execFileSync('git', ['rev-parse', '--show-toplevel'], { cwd: from, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim())
+}
+
+let root: string | undefined
+/** The root of the run, found once from the working directory. */
+const ROOT_OF_RUN = (): string => (root ??= repoRoot())
 
 export interface Image {
   readonly width: number
@@ -143,11 +153,11 @@ export function both(first: readonly Difference[], second: readonly Difference[]
 }
 
 const SNAPSHOTS = ':(glob)e2e/**/*-snapshots/*.png'
-const git = (args: string[]): Buffer => execFileSync('git', args, { cwd: ROOT, maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'pipe'] })
+const git = (args: string[]): Buffer => execFileSync('git', args, { cwd: ROOT_OF_RUN(), maxBuffer: 1 << 28, stdio: ['ignore', 'pipe', 'pipe'] })
 const lines = (args: string[]): string[] => git(args).toString('utf8').split('\n').filter(Boolean)
 
 function regenerate(): { code: number | null; tail: string } {
-  const run = spawnSync('npx', ['playwright', 'test', '--project=smoke', 'e2e/screenshots.spec.ts', '--update-snapshots=all', '--workers=2'], { cwd: ROOT, encoding: 'utf8', maxBuffer: 1 << 28 })
+  const run = spawnSync('npx', ['playwright', 'test', '--project=smoke', 'e2e/screenshots.spec.ts', '--update-snapshots=all', '--workers=2'], { cwd: ROOT_OF_RUN(), encoding: 'utf8', maxBuffer: 1 << 28 })
   const tail = `${run.stderr ?? ''}${run.stdout ?? ''}`.split('\n').filter(Boolean).slice(-15).join('\n')
   return { code: run.status, tail }
 }
@@ -160,11 +170,11 @@ function round(before: ReadonlySet<string>): Difference[] {
   const regenerated = new Map<string, Uint8Array>()
   for (const file of modified) {
     committed.set(file, git(['show', `HEAD:${file}`]))
-    regenerated.set(file, readFileSync(path.join(ROOT, file)))
+    regenerated.set(file, readFileSync(path.join(ROOT_OF_RUN(), file)))
   }
   for (const file of fresh) {
     committed.set(file, undefined)
-    regenerated.set(file, readFileSync(path.join(ROOT, file)))
+    regenerated.set(file, readFileSync(path.join(ROOT_OF_RUN(), file)))
   }
   return compare(committed, regenerated)
 }
@@ -173,7 +183,7 @@ export function main(): number {
   const before = new Set(lines(['ls-files', '--others', '--exclude-standard', '--', SNAPSHOTS]))
   const restore = () => {
     git(['checkout', '--', SNAPSHOTS])
-    for (const file of lines(['ls-files', '--others', '--exclude-standard', '--', SNAPSHOTS])) if (!before.has(file) && existsSync(path.join(ROOT, file))) rmSync(path.join(ROOT, file))
+    for (const file of lines(['ls-files', '--others', '--exclude-standard', '--', SNAPSHOTS])) if (!before.has(file) && existsSync(path.join(ROOT_OF_RUN(), file))) rmSync(path.join(ROOT_OF_RUN(), file))
   }
   try {
     const first = regenerate()

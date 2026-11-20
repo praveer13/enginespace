@@ -179,6 +179,11 @@ export async function open(page: Page, route: string): Promise<void> {
  * scene's labels settle on their own time, and an audit or a screenshot taken in the middle of one sees half a page.
  */
 export async function quiet(page: Page, ms = 500, cap = 20_000): Promise<void> {
+  // A game's first-run strip comes in its own chunk, after the game has drawn: the frame says an intro is open (`data-intro`) and holds its dock
+  // back (`data-intro-wait`) until the strip is on the page, or for a moment at most. A window of quiet that closed before the chunk came let an
+  // audit sample the strip at the start of its fade, and find its text too pale (nightly run of 2026-11-20: "color-contrast" on the strip's
+  // Next and a part's sentence, 1 run in 30 on two cores).
+  await page.waitForFunction(() => document.querySelector('.es-frame[data-intro][data-intro-wait]') === null || document.querySelector('.es-intro') !== null)
   await page.evaluate(
     ([quietFor, limit]) =>
       new Promise<void>((resolve) => {
