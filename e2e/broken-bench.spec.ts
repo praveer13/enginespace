@@ -388,6 +388,45 @@ test.describe('the first screen', () => {
     })
   }
 
+  // A pointer's focus does not scroll in Chromium: a click on the sliver of a field that shows must still leave it whole and uncovered.
+  for (const viewport of [
+    { width: 1440, height: 800 },
+    { width: 1366, height: 768 },
+    { width: 1280, height: 800 },
+  ]) {
+    test(`at ${viewport.width} x ${viewport.height} a click on a field's visible part leaves it whole and uncovered`, async ({ page }) => {
+      await page.setViewportSize(viewport)
+      await open(page, 'court')
+      await page.locator('[data-bench-flaws] input[value="coordinated-omission"]').evaluate((input: HTMLInputElement) => input.click())
+      for (const label of ['Your p99 (ms)', 'Range from (ms)', 'to (ms)']) {
+        const field = page.getByLabel(label)
+        const point = await field.evaluate((element) => {
+          const box = element.getBoundingClientRect()
+          for (let y = Math.max(box.top + 2, 0); y < Math.min(box.bottom - 2, innerHeight); y += 2) {
+            if (document.elementFromPoint(box.left + 6, y) === element) return { x: box.left + 6, y }
+          }
+          return null
+        })
+        if (point !== null) await page.mouse.click(point.x, point.y)
+        else await field.focus()
+        await page.keyboard.type('120')
+        const read = await field.evaluate((element) => {
+          const box = element.getBoundingClientRect()
+          const readout = document.querySelector('[data-bench-readout]')?.parentElement?.getBoundingClientRect()
+          const points = [[box.left + 2, box.top + 2], [box.right - 2, box.top + 2], [box.left + 2, box.bottom - 2], [box.right - 2, box.bottom - 2], [(box.left + box.right) / 2, (box.top + box.bottom) / 2]]
+          const hit = points.map(([x, y]) => {
+            const found = document.elementFromPoint(x, y)
+            return found !== null && (element.contains(found) || found.contains(element))
+          })
+          return { whole: box.top >= 0 && box.bottom <= innerHeight, clear: readout === undefined || box.bottom <= readout.top - 36 + 1, hit }
+        })
+        expect(read.whole, `${label} is whole`).toBe(true)
+        expect(read.clear, `${label} ends above the readout and its cue`).toBe(true)
+        expect(read.hit, `${label} has nothing over it`).toEqual([true, true, true, true, true])
+      }
+    })
+  }
+
   test('at 390 x 844 every flaw\'s meaning line takes at most two lines', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 })
     await open(page, 'court')
