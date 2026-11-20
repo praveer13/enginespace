@@ -8,6 +8,10 @@ outcomes:
   - Name the CPU work that sits on the critical path of an engine step
   - Say what async scheduling hides and what a CUDA graph replay saves
   - Explain why a batch dispatches to the graph it does
+outcome_kcs:
+  - [tr2.bubble]
+  - [tr2.async-overlap]
+  - []
 artifacts:
   - id: loop
     lane: B

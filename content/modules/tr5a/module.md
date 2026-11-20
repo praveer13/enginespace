@@ -9,6 +9,11 @@ outcomes:
   - Work out how a model's layers become groups of one page size, and where the padding goes
   - Find the prefix hit that every group accepts, and say why it is an intersection and not a union
   - Page adapters in the same pool as the KV, all or nothing, and say what the slots of vLLM and SGLang do differently
+outcome_kcs:
+  - ['tr5a.kv-groups', 'tr5a.sliding-free', 'tr5a.state-pages']
+  - ['tr5a.page-size-unification']
+  - ['tr5a.hit-intersection']
+  - ['tr5a.adapter-pages', 'tr5a.slots-vs-pages', 'tr5a.all-or-nothing']
 artifacts:
   - id: hybrid-kv
     lane: B

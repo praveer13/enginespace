@@ -411,8 +411,11 @@ describe('ids, refs and links', () => {
     [
       'a module that course.yaml does not have',
       { [COURSE]: withoutTr7, 'content/modules/tr7/module.md': readSample(MODULE).replace('id: tr2', 'id: tr7') },
-      ['content/modules/tr7:1 unknown-module'],
+      // The sample's outcomes lean on TR2's KCs, which are not a KC of the module it is now called.
+      ['content/modules/tr7:1 unknown-module', 'content/modules/tr7/module.md:12 foreign-kc', 'content/modules/tr7/module.md:13 foreign-kc'],
     ],
+    ['an outcome that rests on a KC of another module', { [MODULE]: swap('  - [tr2.bubble]', '  - [tr1.five-mechanisms]') }, [`${MODULE}:${lineOf(readSample(MODULE), '- [tr2.bubble]')} foreign-kc`]],
+    ['an outcome that rests on a KC the graph does not have', { [MODULE]: swap('  - [tr2.bubble]', '  - [tr2.no-such-kc]') }, [`${MODULE}:${lineOf(readSample(MODULE), '- [tr2.bubble]')} unknown-kc`]],
     ['a module folder with no module.md', { [MODULE]: null }, ['content/modules/tr2:1 missing-file']],
     ['a module whose title differs from course.yaml', { [MODULE]: swap('title: The step loop', 'title: The loop of steps') }, [`${MODULE}:3 title-mismatch`]],
     [

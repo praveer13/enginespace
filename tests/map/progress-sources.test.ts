@@ -15,7 +15,7 @@ import { CATALOG } from '@es/play/items/catalog'
 import type { ContentIndex, CourseMap } from '@es/schema'
 import { LAB_CHECK_KCS } from '@es/sim/forge/kcs'
 import { CourseMapView } from '@/map/CourseMap'
-import { OUTCOME_KCS, outcomesPassed } from '@/map/outcomes'
+import { outcomesPassed } from '@/map/outcomes'
 import { deriveProgress } from '@/progress/derive'
 import { appSources, homeModule } from '@/progress/sources'
 import { compileContent } from '../../scripts/content/build.ts'
@@ -157,7 +157,10 @@ describe('the map and the module pages show it', () => {
 
   test('a module page ticks the outcomes whose KCs the item and the lab passed', () => {
     const states = new Map([...progressOf(events).kcs].map(([kc, row]) => [kc, row.state]))
-    const passedOf = (id: string) => outcomesPassed(id, OUTCOME_KCS[id].length, states, true)
+    const passedOf = (id: string) => {
+      const rows = (JSON.parse(output(compiled, `src/content/generated/modules/${id}.json`)) as { outcome_kcs: string[][] }).outcome_kcs
+      return outcomesPassed(rows, rows.length, states, true)
+    }
     // The one item passes tr2.bubble, which is one of five KCs under TR2's first outcome: no outcome is whole yet.
     expect(passedOf('tr2')).toEqual([false, false, false, false])
     // The lab passes five of TR5a's eight KCs, which complete the third outcome (one KC) and no other.

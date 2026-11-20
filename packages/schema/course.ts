@@ -27,6 +27,8 @@ export const courseModuleSchema = z
     hours,
     /** The hours split by lane, which add up to `hours`. A module with no hours in a lane leaves it out. */
     hours_by_lane: z.strictObject({ B: hours.optional(), L: hours.optional(), F: hours.optional() }),
+    /** One sentence of what the learner can do after the module, for a module with no `module.md` yet. Its `module.md` takes over with `outcomes`. */
+    outcome: nonBlank.optional(),
     /** Kernelspace lessons and other modules that it leans on. They advise and never lock (A§1, I9). */
     prereqs: uniqueList(prereqSchema).optional(),
     /** What the module asks the learner to build and prove, with the lane each is worked in. */

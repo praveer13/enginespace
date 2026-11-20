@@ -218,7 +218,7 @@ export const mapModuleSchema = z.strictObject({
   labs: z.array(labIdSchema),
   /** Its KCs, in the order of the graph. */
   kcs: z.array(kcIdSchema),
-  /** The first of the module's outcomes, which Course prints on the module's row. A planned module has none. */
+  /** The first of the module's outcomes, which Course prints on the module's row. A planned module's is the sentence `course.yaml` holds for it. */
   outcome: nonBlank.optional(),
 })
 

@@ -9,6 +9,11 @@ outcomes:
   - Declare a warm-up by a rule fixed before the run, and put a bootstrap interval on a p99 that has enough requests beyond it
   - Read the defaults of vllm bench serve and sglang.bench_serving, and name the flags that change them
   - Say whether a replay keeps a trace's timing, and name the denominator of a goodput
+outcome_kcs:
+  - ['tr8.latency-from-due', 'tr8.open-vs-closed', 'tr8.client-queue']
+  - ['tr8.warmup-rule', 'tr8.min-n-tail', 'tr8.bootstrap-p99']
+  - ['tr8.tool-defaults']
+  - ['tr8.time-shaped-replay', 'tr8.goodput-denominator', 'tr8.littles-law']
 artifacts:
   - id: broken-bench
     lane: B
