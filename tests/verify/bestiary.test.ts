@@ -143,7 +143,8 @@ describe('the forged bestiary', () => {
           // The honest control passes the check, or shows nothing for it: a check that is silent unless something is bare (claims-backed) leaves no row on an honest receipt.
           const controlOutcome = await run(make())
           const silent = forgery.fails.rule === 7 && !(controlOutcome.rules[6].checks ?? []).some((entry) => entry.id === forgery.fails.check)
-          if (!silent) expect(found(controlOutcome, forgery.fails.rule, forgery.fails.check).status).toBe('pass')
+          const control = silent ? { status: 'pass' } : found(controlOutcome, forgery.fails.rule, forgery.fails.check)
+          expect(control.status).toBe('pass')
 
           const forged = forgery.forge(make())
           const outcome = await run(forged)
