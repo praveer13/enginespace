@@ -443,6 +443,48 @@ test.describe('the first run', () => {
   })
 })
 
+test.describe('after the first run\'s commit', () => {
+  for (const [width, height] of [
+    [1280, 800],
+    [1440, 900],
+    [390, 844],
+  ] as const) {
+    for (const level of ['nano', 'mini', 'vllm', 'map']) {
+      test(`at ${width} x ${height}, "${level}": focus is on the stage the intro points at, in the list's box and uncovered, and Enter lays it`, async ({ page }) => {
+        await page.setViewportSize({ width, height })
+        await open(page, level, { intro: 'fresh' })
+        const intro = page.locator('.es-intro')
+        for (let guard = 0; guard < 12 && (await intro.getAttribute('data-intro')) !== 'ask'; guard++) await page.locator('[data-intro-next]').click()
+        await page.getByRole('button', { name: '0 boundaries' }).click()
+        await page.getByRole('button', { name: 'Commit the prediction' }).click()
+        await expect(intro).toHaveAttribute('data-intro', 'point')
+        // A level whose intro points at no stage has no ring: focus then stands on the list's first stage.
+        const ring = page.locator('.es-floor-ring [data-stage]')
+        const ringed = (await ring.count()) > 0 ? await ring.getAttribute('data-stage') : await page.locator('[data-floor-tray] [data-stage]').first().getAttribute('data-stage')
+        await page.waitForTimeout(2_500)
+        const seen = await page.evaluate(() => {
+          const el = document.activeElement as HTMLElement | null
+          const list = document.querySelector('[data-floor-tray]')
+          if (el === null || list === null) return null
+          const box = el.getBoundingClientRect()
+          const within = list.getBoundingClientRect()
+          const top = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+          return {
+            stage: el.getAttribute('data-stage'),
+            inList: box.top >= within.top - 1 && box.bottom <= within.bottom + 1,
+            inView: box.top >= 0 && box.bottom <= window.innerHeight,
+            uncovered: top !== null && el.contains(top),
+          }
+        })
+        expect(seen).toEqual({ stage: ringed, inList: true, inView: true, uncovered: true })
+        await page.keyboard.press('Enter')
+        await expect(page.locator(`[data-floor-tray] [data-stage="${ringed}"]`)).toHaveCount(0)
+        await expect(rows(page)).toHaveCount(1)
+      })
+    }
+  }
+})
+
 test.describe('the stage list', () => {
   test('filters by process and by typed text, by keyboard', async ({ page }) => {
     await open(page, 'vllm')

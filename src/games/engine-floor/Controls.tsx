@@ -344,7 +344,7 @@ function GradedNote({ view, mode }: { view: FloorView; mode: FloorRun['mode'] })
 
 /** The dock, in its order. `ring` is the stage the first run points at, if any. */
 export function Controls({ run, ring = null }: { run: FloorRun; ring?: string | null }) {
-  const controls = useFloorControls(run)
+  const controls = useFloorControls(run, ring)
   const { view } = controls
   return (
     <div className="es-floor-dock" data-floor-controls="" data-step={view.step}>

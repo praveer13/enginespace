@@ -129,12 +129,12 @@ export interface FloorControls {
   readonly sendIt: () => void
 }
 
-export function useFloorControls(run: FloorRun): FloorControls {
+export function useFloorControls(run: FloorRun, ring: string | null = null): FloorControls {
   const { view, dispatch } = run
   const [pick, setPick] = useState<number | null>(null)
   const [chosen, setFilter] = useState<string | null>(null)
   const [query, setQuery] = useState('')
-  const [stop, setStop] = useState(0)
+  const [stop, setStop] = useState<number | null>(null)
   const tray = useRef<HTMLUListElement>(null)
   const chips = useRef<HTMLDivElement>(null)
   const focusAfterLay = useRef<number | null>(null)
@@ -146,7 +146,9 @@ export function useFloorControls(run: FloorRun): FloorControls {
   const platforms = platformsOf(view.tray, view.present)
   const filter = chosen !== null && platforms.some((platform) => platform.key === chosen) ? chosen : null
   const tiles = view.tray.filter((tile) => (filter === null || platformOf(tile.from) === filter) && matches(tile, query))
-  const tabStop = Math.min(stop, Math.max(tiles.length - 1, 0))
+  // Until the learner moves, the one tab stop is the stage the first run points at, else the first.
+  const ringAt = ring === null ? -1 : tiles.findIndex((tile) => tile.id === ring)
+  const tabStop = Math.min(stop ?? Math.max(ringAt, 0), Math.max(tiles.length - 1, 0))
   const choices = Array.from({ length: MAX_PREDICTION + 1 }, (_, i) => i)
 
   // Before the screen is drawn after any change, and as the page scrolls or the window changes size, the held room is cut to what is seen.
@@ -174,12 +176,19 @@ export function useFloorControls(run: FloorRun): FloorControls {
     if (revealAfterLay.current) reveal(next)
   }, [view.tray])
 
-  // After the prediction is committed, focus goes to the stage list: the next decision.
+  // After the prediction is committed, focus goes to the stage list: the next decision. A first run that points at a stage has
+  // scrolled the list to it (the stage list's own effect runs first), so focus goes there, and Enter lays the move the intro points at;
+  // otherwise the first tile is focused and brought into view.
   useEffect(() => {
     if (!focusAfterCommit.current || view.prediction === null) return
     focusAfterCommit.current = false
-    tray.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus({ preventScroll: true })
-  }, [view.prediction])
+    const buttons = tray.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
+    if (!buttons || buttons.length === 0) return
+    const ringed = ring === null ? undefined : Array.from(buttons).find((button) => button.closest('.es-floor-ring') !== null)
+    const target = ringed ?? buttons[0]
+    target.focus({ preventScroll: true })
+    reveal(target)
+  }, [view.prediction, ring])
 
   // After the path is taken back, focus goes to the first tile of the list, where the fix is chosen.
   useEffect(() => {
