@@ -1412,8 +1412,12 @@
 }
 
 /* The list is read with the page, so the field and the processes to filter by stand at the screen's top over it, as the drawing does beside
-   it: no scroll of the page cuts them (the finish review: the field and the tabs cut at the top). Under 600 px of height nothing is sticky. */
-@media (min-width: 64rem) and (min-height: 600px) {
+   it: no scroll of the page cuts them (the finish review: the field and the tabs cut at the top). Under 700 px of height nothing is sticky.
+   The bar stands inside the stage list's box, and the box ends 450 px above the page's foot (478 px on the map) with Run the path, the
+   readout and the page's foot under it; on a screen shorter than the bar and that room together (639 px with three rows of chips, 667 on the
+   map) the page's foot carried the bar up by 19 to 47 px, so a click in the field moved the page to bring the field back [measured
+   2026-11-20 at 1280 x 620 on mini and map, headless Chromium]. */
+@media (min-width: 64rem) and (min-height: 700px) {
   /* A stage the keyboard reaches is scrolled clear of the filters pinned at the screen's top (WCAG 2.4.11). The filters stand 149 px tall
      (two rows of process chips) or 189 px (three) on every level and at every width from 1024 to 1920 px [measured 2026-11-19 at b2435ba],
      so the stage's scroll margin of 12.5rem (200 px) clears the taller. The margin is the stage's, not the page's, so a filter control that
