@@ -18,7 +18,7 @@ import type { GameEntry } from '@es/play'
 import { kcGraphSchema } from '@es/schema'
 import { loadYaml } from '../../scripts/content/parse.ts'
 import { renderSnapshot } from '../../scripts/kc/kernelspace.ts'
-import { checkKc, CONFUSABLE_MAX, courseModules, dependentCounts, gameReferences, itemReferences, LABS_FILE, labReferences, readKernelspace, THRESHOLD_DEPENDENTS, trackerTasks } from '../../scripts/verify-kc.ts'
+import { checkKc, CONFUSABLE_MAX, courseModules, dependentCounts, gameReferences, itemReferences, LABS_FILE, labReferences, readKernelspace, STAGE_LIST_FILE, stageReferences, STAGES_FILE, THRESHOLD_DEPENDENTS, trackerTasks } from '../../scripts/verify-kc.ts'
 import type { KcInput, Reference } from '../../scripts/verify-kc.ts'
 import { root, trackerTasks as testTasks } from '../ci/support'
 
@@ -449,6 +449,59 @@ describe('labReferences', () => {
     const names = found.references.map((r) => r.name)
     expect(names.some((name) => name.startsWith('lab:hybrid-kv/'))).toBe(true)
     expect(names.some((name) => name.startsWith('lab:rejection-sampler/'))).toBe(true)
+    for (const reference of found.references) expect([reference.name, reference.kcs.length > 0, reference.graded]).toEqual([reference.name, true, true])
+  })
+})
+
+describe('stageReferences', () => {
+  /** A stage table and a stage list of the shapes the repository has, as modules of a tree of their own. */
+  const tree = (rows: string, stages = `[{ id: 'tr0.forward.s2' }, { id: 'tr0.forward.s3' }]`) => ({
+    [STAGES_FILE]: `export const STAGE_KCS = {\n${rows}\n}\n`,
+    [STAGE_LIST_FILE]: `export const RECEIPT_STAGES = ${stages}\n`,
+  })
+
+  test('while packages/verify/stage-kcs.ts does not exist, finds none and says so', async () => {
+    const found = await stageReferences(tempDir())
+    expect(found.references).toEqual([])
+    expect(found.diagnostics).toEqual([])
+    expect(found.note).toBe(`stages: ${STAGES_FILE} does not exist, so no stage names a KC`)
+  })
+
+  test('reads each stage that the table maps to KCs as a graded reference named receipt:<stage>, and a KC whose only reference is a stage is earned', async () => {
+    const found = await stageReferences(put(tempDir(), tree(`  'tr0.forward.s2': ['tr0.logits-fp32'],\n  'tr0.forward.s3': ['tr0.kv-cache', 'tr0.cache-length'],`)))
+    expect(found.diagnostics).toEqual([])
+    expect(found.note).toBeNull()
+    expect(found.references).toEqual([
+      { kind: 'check', name: 'receipt:tr0.forward.s2', file: STAGES_FILE, kcs: ['tr0.logits-fp32'], graded: true },
+      { kind: 'check', name: 'receipt:tr0.forward.s3', file: STAGES_FILE, kcs: ['tr0.kv-cache', 'tr0.cache-length'], graded: true },
+    ])
+    const graph = graphOf(kc('tr0.logits-fp32'), kc('tr0.kv-cache'), kc('tr0.cache-length'))
+    expect(said(run(graph, { references: found.references }))).toEqual([])
+    expect(said(run(graph, { references: [] }))).toEqual([
+      `error no-reference ${GRAPH}:${lineOf(graph, 'id: tr0.logits-fp32')}`,
+      `error no-reference ${GRAPH}:${lineOf(graph, 'id: tr0.kv-cache')}`,
+      `error no-reference ${GRAPH}:${lineOf(graph, 'id: tr0.cache-length')}`,
+    ])
+  })
+
+  test('fails a row for a stage that src/receipts/labs.ts does not list, a table that is not one, and a file that cannot be imported', async () => {
+    const unknown = await stageReferences(put(tempDir(), tree(`  'tr0.forward.s2': ['tr0.logits-fp32'],\n  'tr0.forward.s9': ['tr0.kv-cache'],`)))
+    expect(unknown.references.map((r) => r.name)).toEqual(['receipt:tr0.forward.s2'])
+    expect(unknown.diagnostics.map((d) => [d.code, d.file, d.message])).toEqual([
+      ['stage-unknown', STAGES_FILE, `receipt:tr0.forward.s9 maps a stage to KCs, and ${STAGE_LIST_FILE} does not list that stage`],
+    ])
+    const none = await stageReferences(put(tempDir(), { ...tree(''), [STAGES_FILE]: 'export const SOMETHING_ELSE = 1\n' }))
+    expect(none.diagnostics.map((d) => d.code)).toEqual(['stage-table'])
+    const broken = await stageReferences(put(tempDir(), { ...tree(''), [STAGES_FILE]: `throw new Error('boom')\n` }))
+    expect(broken.diagnostics.map((d) => [d.code, d.message])).toEqual([['stage-import', "cannot be imported to read the stages' KCs: boom"]])
+    const unlisted = await stageReferences(put(tempDir(), { ...tree(''), [STAGE_LIST_FILE]: 'export const OTHER = 1\n' }))
+    expect(unlisted.diagnostics.map((d) => d.code)).toEqual(['stage-list'])
+  })
+
+  test("the repository's table maps only stages that src/receipts/labs.ts lists", async () => {
+    const found = await stageReferences(root)
+    expect(found.diagnostics).toEqual([])
+    expect(found.note).toBeNull()
     for (const reference of found.references) expect([reference.name, reference.kcs.length > 0, reference.graded]).toEqual([reference.name, true, true])
   })
 })

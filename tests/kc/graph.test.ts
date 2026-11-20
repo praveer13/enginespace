@@ -17,7 +17,7 @@ import type { Kc } from '@es/schema'
 import { loadYaml } from '../../scripts/content/parse.ts'
 import { untaggedNumbers } from '../../scripts/content/prose.ts'
 import { GATES } from '../../scripts/verify.ts'
-import { checkKc, courseModules, gameReferences, itemReferences, labReferences, trackerTasks } from '../../scripts/verify-kc.ts'
+import { checkKc, courseModules, gameReferences, itemReferences, labReferences, stageReferences, trackerTasks } from '../../scripts/verify-kc.ts'
 import { parseSnapshot } from '../../scripts/kc/kernelspace.ts'
 import { between, read, root } from '../ci/support'
 import { BUILT_MODULES } from '../content/module-counts'
@@ -94,7 +94,9 @@ describe('2. every KC has a description, and a reference or a planned task', () 
     expect(items.diagnostics).toEqual([])
     const labs = await labReferences(root)
     expect(labs.diagnostics).toEqual([])
-    const references = [...gameReferences(GAMES.games), ...items.references, ...labs.references]
+    const stages = await stageReferences(root)
+    expect(stages.diagnostics).toEqual([])
+    const references = [...gameReferences(GAMES.games), ...items.references, ...labs.references, ...stages.references]
     const result = checkKc({ text, references, modules: courseModules(root), tasks: trackerTasks(root), kernelspace: snapshot, final: false })
     expect(result.diagnostics.filter((d) => d.severity === 'error')).toEqual([])
     expect(result.stats?.kcs).toBe(graph.length)
@@ -104,7 +106,8 @@ describe('2. every KC has a description, and a reference or a planned task', () 
     const tasks = trackerTasks(root) as Set<string>
     const items = await itemReferences(root)
     const labs = await labReferences(root)
-    const referenced = new Set([...gameReferences(GAMES.games), ...items.references, ...labs.references].filter((reference) => reference.graded).flatMap((reference) => reference.kcs))
+    const stages = await stageReferences(root)
+    const referenced = new Set([...gameReferences(GAMES.games), ...items.references, ...labs.references, ...stages.references].filter((reference) => reference.graded).flatMap((reference) => reference.kcs))
     for (const kc of graph) {
       if (referenced.has(kc.id)) continue
       const task = kc.planned ?? ''

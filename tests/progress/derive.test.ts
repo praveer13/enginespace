@@ -185,6 +185,14 @@ describe("a module's loop (Predict, Play, Build, Prove, Keep)", () => {
     expect([...state.modules.values()].filter((module) => module.loop.build.tried > 0).map((module) => module.module)).toEqual(['tr5a'])
   })
 
+  test("a receipt of a stage earns the stage's KCs when its event is credited, and a receipt not credited (a bank is missing) earns nothing but practice", () => {
+    const stages: Parameters<typeof deriveProgress>[2] = { ...SOURCES, stage: (stage) => (stage === 'tr0.forward.s2' ? ['tr1.five-mechanisms'] : []) }
+    const of = (events: Events) => deriveProgress(events, MAP, stages, homeOf).kcs.get('tr1.five-mechanisms')?.state
+    expect(of([made('receipt', 'receipt:tr0.forward.s2')])).toBe('earned')
+    expect(of([made('receipt', 'receipt:tr0.forward.s2', { ok: false, provenance: 'gpu-unverified' })])).toBe('practised')
+    expect(of([made('receipt', 'receipt:tr0.forward.s3')])).toBe('none')
+  })
+
   test('Prove is whether any result passed with the agent closed', () => {
     expect(tr2?.loop.proved).toBe(false)
     expect(progress([play({ provenance: 'proved' })]).modules.get('tr2')?.loop.proved).toBe(true)
