@@ -19,7 +19,7 @@ On the tip: every committed screenshot baseline is the picture the page draws (�
 | The bundle table, with the front-page and `/play/broken-bench` rows and the room each now has | met | §4 |
 | A spot check of five tasks' evidence against their accept lines | met | §8 |
 | `ES_PROPERTY_SEEDS=10000 ES_HEAVY=1 bun test --parallel=2 --timeout 900000` and `bun test tests/forge/rejection-sampler-rates.test.ts` pass once on the tip | met | §3 |
-| N4, N5 and N8 with the default wave 1b takes for each | met | §11 |
+| N4, N5 and N8 with what the owner answered and what wave 1b therefore does | met | §11 |
 | `ES_E2E_NIGHTLY=1 npx playwright test --project=smoke --project=features` once on the tip, four pinned cores; Firefox and WebKit recorded as not run | met: 1,664 passed; the 2 failures are the two known-red entries | §2; Firefox and WebKit were not run on this host. They ran on the runner (§2.2) |
 
 ---
@@ -128,7 +128,7 @@ Of the fifteen tests W2b-T02 found red on the base, thirteen left the list in th
 
 ## 6. Screenshot baselines
 
-`bun scripts/gate/baselines.ts` on the tip, CI's environment, cores 8 to 11: "every committed baseline is the picture that the page draws", exit 0, 18 baselines [measured]. Three baselines changed in the wave; the owner has not yet looked at them (§12):
+`bun scripts/gate/baselines.ts` on the tip, CI's environment, cores 8 to 11: "every committed baseline is the picture that the page draws", exit 0, 18 baselines [measured]. Three baselines changed in the wave; the owner has not looked at them yet; the coordinator has (§12 item 3):
 
 - `e2e/screenshots.spec.ts-snapshots/tr1-lesson-1-1440.png` | W2b-T54 | 2 pixels of the breadcrumb link's underline (x 139 and 143, y 122, under 'TR1 R') are lighter: the module crumb became text plus a span, so the underline is drawn in two runs with a seam
 - `e2e/screenshots.spec.ts-snapshots/course-1440.png` and `course-390.png` | W2b-T19 | TR0's row now carries its outcome sentence, "You will be able to read the PyTorch and Triton that engines use.", between its hours and its "Builds on" line; nothing else changed [W2b-T19's report]. W2b-T19 merged before the baseline gate existed, so no allow list named them; they follow from its goal ("give each planned module one outcome sentence in content/course.yaml")
@@ -204,10 +204,17 @@ Besides the fixes: Review now reschedules ideas from the learner's predictions, 
 
 ---
 
-## 11. What the owner answers before wave 1b
+## 11. What the owner answered before wave 1b
 
-| Question | Default wave 1b takes if no answer comes |
-|---|---|
+Before wave 1a ended the coordinator put three questions to the owner, each with a default. The owner replied on 2026-11-19: "1. agree 2. what are best options 3. keep the currnt". The numbers are, in order, N8, N4 and N5. For N4 the coordinator then set out options, and the owner replied: "b".
+
+| Question | The owner's answer | What wave 1b therefore does |
+|---|---|---|
+| **N8.** Does TR0 become the course's start? The default: no, TR0 is an advised primer and the course starts at TR1 lesson 1 | "1. agree" | The default stands. TR0 is an advised primer, the course starts at TR1 lesson 1, and the map says TR0 helps. W2b-T41 made the start one key of `content/course.yaml` (`start: tr1`); changing it later means new front-page copy, about twenty expectation edits and re-shot baselines |
+| **N4.** What may an agent download or install? | "2. what are best options", then "b". Option B, as it was put to the owner: agents may install the locked CPU environment on the build machine (CPU-only torch 2.14.0, transformers 5.19.0 and the Triton 3.8.0 wheel, in an isolated uv environment at the lockfile's pins) and nothing else; no model weights on the build machine; the TR0 argmax bank stays the owner's step; if torch cannot load on the build machine, the work falls back to CI and the owner is told | Not the default this report first gave (nothing installed, W2b-T49 not starting, TR0 lesson 4 without the interpreter walk-through). Under option B the locked CPU environment is installed, W2b-T49 starts, and TR0 lesson 4 has its interpreter walk-through. The weights job of `labs.yml` still waits for the owner's dispatch, and `labs.yml` on the wave's pull request remains the evidence for W2-T13, W2b-T48 and W2b-T31 where torch cannot load here |
+| **N5.** The pass rule of a lesson's Test: every question right (the built page) or 2 of 3 with one numeric (ASSESSMENT 4.2) | "3. keep the currnt" | The page's rule stays: every question right. Every Test holds three questions, with at least one numeric |
+
+---|---|
 | **N8.** Does TR0 become the course's start? | No. TR0 is an advised primer, the course starts at TR1 lesson 1, and the map says TR0 helps. W2b-T41 made the start one key of `content/course.yaml` (`start: tr1`); changing it later means new front-page copy, about twenty expectation edits and re-shot baselines |
 | **N4.** What may an agent download? | Nothing is installed on the build machine. `labs.yml` on the wave's pull request syncs the locked CPU environment and is the evidence for W2-T13, W2b-T48 and W2b-T31; W2b-T49 (the Triton CPU wheel) does not start, and TR0 lesson 4 ships without the interpreter walk-through and says so; the weights job waits for the owner's dispatch |
 | **N5.** The pass rule of a lesson's Test: every question right (the built page) or 2 of 3 with one numeric (ASSESSMENT 4.2) | The page's rule stays, and every new Test holds three questions with at least one numeric, which fits both rules |
@@ -218,6 +225,6 @@ Besides the fixes: Review now reschedules ideas from the learner's predictions, 
 
 1. **The GPU kit and the grader wheel get their page rows with TR0's lab page, and not before.** Until then the two `lab-kits` tests stay red in `known-red.json` (§5) and fail with "no page links this file yet". The other choice is a page row now on a page that does not use them.
 2. **The gate's host list.** The merge gate may set aside, under "Not checked on this host", up to six tests that the build host cannot pass and that a measurement judged a limit of the host, each with its reason, commit and date; every other failure of the same file still refuses the branch. The list is empty today. Since the nightly schedule is off, a test on it would be checked by no machine until the nightly is dispatched (AGENTS.md says so).
-3. **Three re-shot baselines** (§6) merged without the owner's look that W2b-T03's rule asks of a re-blessed image: W2b-T19's two merged before the rule existed, and W2b-T54's was allowed by the coordinator.
+3. **Three re-shot baselines** (§6) merged without the owner's look that W2b-T03's rule asks of a re-blessed image: W2b-T19's two merged before the rule existed, and W2b-T54's was allowed by the coordinator. On 2026-11-20 the coordinator read the old and the new image of all three: in `course-1440.png` and `course-390.png`, TR0's row gained its outcome sentence and nothing else moved; in `tr1-lesson-1-1440.png`, two pixels in the crumb's underline are lighter. The owner has not looked yet.
 4. **W2b-T08 was not run** (§1).
 5. **The wave's pull request goes into `main`**, not into `wave-r2`, which has merged.
