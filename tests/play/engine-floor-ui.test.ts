@@ -36,7 +36,7 @@ import { floorKit, floorStep, partRows } from '@/games/engine-floor/kit'
 import { Mirror } from '@/games/engine-floor/Mirror'
 import { handoffWords, permalink, plain, readoutOf, splitCode } from '@/games/engine-floor/text'
 import type { FloorOutcome } from '@/games/engine-floor/types'
-import { heldHeight, matches, platformsOf } from '@/games/engine-floor/useFloorControls'
+import { bandEmpty, heldHeight, matches, platformsOf, roomInSight } from '@/games/engine-floor/useFloorControls'
 import { FloorLegend, StageFacts, Swimlane } from '@/games/engine-floor/View2D'
 import { fakeRun, laidTo, levelOf, ranTo, truthOf, walk } from './engine-floor-support'
 
@@ -180,6 +180,25 @@ describe('the stage list', () => {
     expect(heldHeight(600, 100, 1000, 900)).toBeNull()
     // Remove last puts the row back, and the list fills the room again by itself.
     expect(heldHeight(600, 300, 900, 900)).toBeNull()
+  })
+
+  test('a phone\'s list box keeps a lay\'s room at its end while it is in sight, and gives back what its scroll takes out of sight', () => {
+    // A box 132 px tall at its foot (scrollTop 1274 of 1406) keeps the 44 px of a row laid there: all of it is in sight.
+    expect(roomInSight(44, 1274, 132, 1406)).toBe(44)
+    // Scrolled up by 30 px, 30 px of the room have gone under the box's foot: 14 px are kept.
+    expect(roomInSight(44, 1244, 132, 1406)).toBe(14)
+    // Scrolled up by a row or more, none of it shows, and the room goes.
+    expect(roomInSight(44, 1230, 132, 1406)).toBeNull()
+    expect(roomInSight(132, 1100, 132, 1406)).toBeNull()
+  })
+
+  test('the band under the pinned filters says the stages are above once no tile of the list starts in it', () => {
+    // The last tile starts 20 px under the bar's foot at 149 px: it is whole in the band.
+    expect(bandEmpty(169, 149)).toBe(false)
+    expect(bandEmpty(149, 149)).toBe(false)
+    // It starts under the bar: what shows of it is an edge, and the band holds no whole tile.
+    expect(bandEmpty(120, 149)).toBe(true)
+    expect(bandEmpty(null, 149)).toBe(true)
   })
 })
 
