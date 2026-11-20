@@ -22,7 +22,7 @@ describe('what a line leaks', () => {
   })
 
   test('a repository-relative path and prose are clean', () => {
-    expect(leaks('scripts/gate/paths.ts and docs/home/page.md and the home page', undefined)).toEqual([])
+    expect(leaks('scripts/gate/paths.ts and docs/guide/page.md and the front page', undefined)).toEqual([])
   })
 
   test('the login name is read at run time, whole-word and in any case', () => {
