@@ -106,8 +106,21 @@ async function visit(page: Page, route = ROUTE): Promise<{ token: string }> {
   return { token }
 }
 
+/**
+ * The pages whose file chooser Playwright already takes. It starts to take a page's chooser when a listener first asks for one, by a message
+ * it does not wait for, and drops a chooser that opens before that message has landed: the page had clicked its input, and the test waited
+ * for an event that never came [measured 2026-11-19 at b5bf755: 14 such waits in three runs of this file, a different test each time; none
+ * in three runs with the listener put on first]. So each page gets a listener of its own once, and a round trip to the page before Enter.
+ */
+const taken = new WeakSet<Page>()
+
 /** Chooses a file with the learner's own picker, as a keyboard does: the stub is focused, and Enter opens the chooser. */
 async function chooseWithKeys(page: Page, file: { name: string; mimeType: string; buffer: Buffer }): Promise<void> {
+  if (!taken.has(page)) {
+    taken.add(page)
+    page.on('filechooser', () => undefined)
+    await page.evaluate(() => undefined)
+  }
   await choose(page).focus()
   const chooser = page.waitForEvent('filechooser')
   await page.keyboard.press('Enter')

@@ -6,7 +6,7 @@ import { describe, expect, test } from 'bun:test'
 import { existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { WALKED } from '../../e2e/levels'
-import { clean, failures, keyOf, pickPython, PYTHONS, uvEnv } from '../../scripts/gate/run'
+import { clean, failures, hostLines, keyOf, pickPython, PYTHONS, sortFailures, uvEnv } from '../../scripts/gate/run'
 import { FORGE_COMMANDS, GAMES, GRADER_COMMANDS, LAB_SPEC, plan, RELOCK_NOT_RUN, SMOKE_SPECS, walkGrep, type Step } from '../../scripts/gate/touched'
 import { read, root } from './support'
 
@@ -236,7 +236,11 @@ describe('the verdict', () => {
 })
 
 describe('the known-red list', () => {
-  const known = JSON.parse(read('scripts/gate/known-red.json')) as { red: { file: string; title: string }[]; flaky: { file: string; title: string }[] }
+  const known = JSON.parse(read('scripts/gate/known-red.json')) as {
+    red: { file: string; title: string }[]
+    flaky: { file: string; title: string }[]
+    host: { file: string; title: string; reason: string; shownAt: string; date: string }[]
+  }
 
   // The base had fifteen failing tests and two flaky ones. An entry leaves a list when its fix passes five of five, so the lists only shrink: a
   // count above these is an entry that was added, which the gate never allows.
@@ -250,5 +254,51 @@ describe('the known-red list', () => {
 
   test('names no path of a machine', () => {
     expect(read('scripts/gate/known-red.json')).not.toMatch(/\/home\/|\/Users\/|\/tmp\//)
+  })
+
+  // W2b-T55: the host list holds the tests this build host cannot pass, each judged by measurement. It is capped at six, so that it never
+  // becomes a place to park a failure, and each entry says why, at which commit it was shown to fail as first written, and when.
+  test('holds at most six host entries, each with its file, title, measured reason, commit and date, in a spec that exists, and in no other list', () => {
+    expect(Array.isArray(known.host)).toBe(true)
+    expect(known.host.length).toBeLessThanOrEqual(6)
+    const others = new Set([...known.red, ...known.flaky].map(keyOf))
+    expect(new Set(known.host.map(keyOf)).size).toBe(known.host.length)
+    for (const entry of known.host) {
+      expect(Object.keys(entry).sort()).toEqual(['date', 'file', 'reason', 'shownAt', 'title'])
+      expect(specs).toContain(entry.file.replace(/^e2e\//, '').replace(/\.spec\.ts$/, ''))
+      expect(read(entry.file)).toContain(entry.title.split(' > ').at(-1)?.slice(0, 40) ?? '')
+      expect(entry.title.length).toBeGreaterThan(0)
+      expect(entry.reason).toMatch(/\[measured \d{4}-\d{2}-\d{2}/)
+      expect(entry.shownAt).toMatch(/^[0-9a-f]{7,40}$/)
+      expect(entry.date).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+      expect(others.has(keyOf(entry))).toBe(false)
+    }
+  })
+})
+
+describe('the host list in a verdict', () => {
+  const entry = { file: 'e2e/a.spec.ts', title: 'd > slow', reason: 'r [measured 2026-11-19]', shownAt: 'abc1234', date: '2026-11-19' }
+  const known = { red: [{ file: 'e2e/a.spec.ts', title: 'd > red' }], flaky: [], host: [entry] }
+  const fail = (title: string) => ({ file: 'e2e/a.spec.ts', title, error: 'x' })
+
+  test('a host-listed failure is set aside, and any other failure of the same file is still refused', () => {
+    const alone = sortFailures([fail('d > slow')], [], known)
+    expect(alone.refused).toEqual([])
+    expect(alone.hostFailed.map((test) => test.title)).toEqual(['d > slow'])
+    const withOther = sortFailures([fail('d > slow'), fail('d > other'), fail('d > red')], [], known)
+    expect(withOther.refused.map((test) => test.title)).toEqual(['d > other'])
+    expect(withOther.known.map((test) => test.title)).toEqual(['d > red'])
+    expect(sortFailures([fail('d > slow 2')], [], known).refused.map((test) => test.title)).toEqual(['d > slow 2'])
+  })
+
+  test('every entry is printed under "Not checked on this host" on every run, with what it did, even when no step ran it', () => {
+    const none = hostLines(known.host, [])
+    expect(none[0]).toStartWith('Not checked on this host')
+    expect(none.join('\n')).toContain('e2e/a.spec.ts > d > slow')
+    expect(none.join('\n')).toContain('not run by this gate')
+    expect(none.join('\n')).toContain('abc1234, 2026-11-19')
+    expect(hostLines(known.host, [sortFailures([fail('d > slow')], [], known)]).join('\n')).toContain('failed here this run')
+    expect(hostLines(known.host, [sortFailures([], [{ file: 'e2e/a.spec.ts', title: 'd > slow' }], known)]).join('\n')).toContain('passed here this run')
+    expect(hostLines([], [])).toEqual(['Not checked on this host: none (scripts/gate/known-red.json lists no test under host)'])
   })
 })
