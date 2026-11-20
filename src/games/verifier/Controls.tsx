@@ -145,6 +145,9 @@ function Weights({ run }: { run: VerifierRun }) {
   const inputs = useRef<(HTMLInputElement | null)[]>([])
   const base = useId()
   const meter = showMeter(run)
+  // The first move's ring ends with the first weight typed, and the field it wraps would be built again without its focus: the ring stays
+  // on the field that had it until focus leaves, so a digit typed after the first lands in the same field.
+  const [typingIn, setTypingIn] = useState<number | null>(null)
   const submit = () => {
     if (view.weightTotal > 0) dispatch({ t: 'submit' })
   }
@@ -153,7 +156,7 @@ function Weights({ run }: { run: VerifierRun }) {
       <ol className="es-vf-recipe" aria-label="Resample weights, one for each token" data-vf-recipe="">
         {view.dishes.map((name, token) => (
           <li key={name} className="es-vf-dish">
-            <Ringed on={ringOn(run, { t: 'sculpt', token, delta: 1 })}>
+            <Ringed on={typingIn === token || ringOn(run, { t: 'sculpt', token, delta: 1 })}>
               <Stepper
                 id={`${base}-${token}`}
                 label={name}
@@ -168,6 +171,8 @@ function Weights({ run }: { run: VerifierRun }) {
                   inputs.current[token] = element
                 }}
                 autoFocusTarget={token === 0}
+                onFieldFocus={() => setTypingIn(ringOn(run, { t: 'sculpt', token, delta: 1 }) ? token : null)}
+                onFieldBlur={() => setTypingIn(null)}
                 onChange={(next) => dispatch({ t: 'sculpt', token, delta: next - view.weights[token] })}
                 onArrow={(direction) => inputs.current[Math.max(0, Math.min(view.dishes.length - 1, token + direction))]?.focus()}
                 onEnter={submit}
