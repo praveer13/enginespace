@@ -196,6 +196,48 @@ test.describe('a keyboard-only walk', () => {
   })
 })
 
+/** Lays one stage with the mouse: its tile is brought to the middle of the screen first and must not be covered; returns the page's scroll before and after the press. */
+async function pointerLay(page: Page, id: string) {
+  const tile = stage(page, id)
+  await tile.evaluate((element) => element.scrollIntoView({ block: 'center' }))
+  const clear = await tile.evaluate((element) => {
+    const box = element.getBoundingClientRect()
+    const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+    return hit !== null && element.contains(hit)
+  })
+  expect(clear, `the tile of ${id} is covered before the press`).toBe(true)
+  const before = await page.evaluate(() => window.scrollY)
+  const box = await tile.boundingBox()
+  if (box === null) throw new Error(`the tile of ${id} has no box`)
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+  await expect(stage(page, id)).toHaveCount(0)
+  // Any animated scroll that a lay could start is given its time before the page's position is read.
+  await page.waitForTimeout(300)
+  return { before, after: await page.evaluate(() => window.scrollY) }
+}
+
+test.describe('a pointer lay', () => {
+  for (const [width, height] of [[1440, 900], [1280, 800]] as const) {
+    test.describe(`at ${width} x ${height}`, () => {
+      test.use({ viewport: { width, height } })
+
+      test('twenty lays by the mouse leave the page where it was', async ({ page }) => {
+        test.setTimeout(180_000)
+        await open(page, 'abort')
+        await commit(page, 2)
+        const path = reference('abort').slice(0, 20)
+        expect(path).toHaveLength(20)
+        const moves: string[] = []
+        for (const [index, id] of path.entries()) {
+          const { before, after } = await pointerLay(page, id)
+          if (before !== after) moves.push(`lay ${index + 1} (${id}): ${before} to ${after}`)
+        }
+        expect(moves).toEqual([])
+      })
+    })
+  }
+})
+
 test.describe('the swimlane on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 

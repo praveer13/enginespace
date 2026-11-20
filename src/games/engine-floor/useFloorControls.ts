@@ -85,7 +85,8 @@ export interface FloorControls {
   readonly tabStop: number
   readonly tray: RefObject<HTMLUListElement | null>
   readonly chips: RefObject<HTMLDivElement | null>
-  readonly lay: (id: string, index: number) => void
+  /** `byPointer`: the press came from a pointer, so the next tile already stands where the learner is looking and the page stays still. */
+  readonly lay: (id: string, index: number, byPointer?: boolean) => void
   readonly onTrayKey: (event: KeyboardEvent<HTMLUListElement>) => void
   readonly move: (index: number, by: -1 | 1) => void
   readonly takeBack: (to: number) => void
@@ -102,6 +103,7 @@ export function useFloorControls(run: FloorRun): FloorControls {
   const tray = useRef<HTMLUListElement>(null)
   const chips = useRef<HTMLDivElement>(null)
   const focusAfterLay = useRef<number | null>(null)
+  const revealAfterLay = useRef(true)
   const focusAfterCommit = useRef(false)
   const focusAfterTakeBack = useRef(false)
 
@@ -119,7 +121,7 @@ export function useFloorControls(run: FloorRun): FloorControls {
     const buttons = tray.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)')
     const next = buttons && buttons.length > 0 ? buttons[Math.min(at, buttons.length - 1)] : chips.current?.querySelector('button')
     next?.focus({ preventScroll: true })
-    reveal(next)
+    if (revealAfterLay.current) reveal(next)
   }, [view.tray])
 
   // After the prediction is committed, focus goes to the stage list: the next decision.
@@ -145,8 +147,9 @@ export function useFloorControls(run: FloorRun): FloorControls {
     dispatch({ t: 'commit', prediction: pick })
   }, [pick, dispatch, lesson])
 
-  const lay = (id: string, index: number) => {
+  const lay = (id: string, index: number, byPointer = false) => {
     focusAfterLay.current = index
+    revealAfterLay.current = !byPointer
     setStop(index)
     dispatch({ t: 'lay', stage: id })
   }
