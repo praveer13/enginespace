@@ -21,6 +21,9 @@
  *   9. The same seed and the same actions give the same state hash in the browser as under Node (A§5.10), draws included.
  *  10. axe finds no serious or critical violation on the game's pages at 360 and 1280 px, and nothing is cut off at the right edge at 320
  *      (WCAG 1.4.10).
+ *  11. Prove mode (W2b-T42, ASSESSMENT §7.2): the panel takes the attestation by keyboard before any game is drawn, the run's seed is drawn
+ *      as it starts, the readouts are hidden until the result, a pass is recorded as proved and closes the window for 24 hours, and a
+ *      failed attempt is played again at once on fresh numbers at practice weight. Sections 8 and 10 read the panel and the run too.
  *
  * Every walk but section 5's opens the page as a learner who has met every part (the intro flag holds them all), so that its own first run
  * does not stand in the way; section 5 opens it as a learner who has met none.
@@ -363,6 +366,108 @@ test.describe('a graded run', () => {
   })
 })
 
+/** Opens `exact` in Prove mode (W2b-T42, ASSESSMENT §7.2), as a learner who has met every part, and waits for the ledger's answer. */
+async function openProve(page: Page) {
+  await page.addInitScript((flag) => {
+    try {
+      localStorage.setItem('es:intro', flag)
+    } catch {
+      // No storage: the intro shows, and the walk Tabs past it.
+    }
+  }, MET)
+  await page.goto(`${origin}/play/verifier?mode=prove`, { waitUntil: 'networkidle' })
+  await page.evaluate(() => document.fonts.ready)
+  await expect(page.locator('[data-prove-panel]')).toBeVisible()
+  await expect(page.locator('[data-prove-panel]')).not.toHaveAttribute('data-stake', 'reading')
+}
+
+/** Ticks the attestation and starts the Prove run, by keyboard alone: Tab to the box, Space, Tab to Start, Enter. */
+async function startProve(page: Page) {
+  await expect(game(page)).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Start the Prove run' })).toBeDisabled()
+  await tabTo(page, /^My coding agent and any AI chat are closed\.$/)
+  await page.keyboard.press('Space')
+  await tabTo(page, /^Start the Prove run$/, 3)
+  await page.keyboard.press('Enter')
+  await expect(game(page)).toBeVisible()
+  await expect.poll(() => page.evaluate(() => document.activeElement?.matches('section[data-game]') ?? false)).toBe(true)
+}
+
+const seedOf = async (page: Page) => Number(await game(page).getAttribute('data-seed'))
+
+/** Ends a Prove run on whatever a weight of one on token 0 makes of it, and waits for the note on what the attempt was worth. */
+async function submitAnyWeights(page: Page) {
+  await page.getByLabel('Resample weight for token 0', { exact: true }).fill('1')
+  await page.getByRole('button', { name: 'Submit the weights' }).click()
+  await expect(page.locator('[data-prove-after]')).toBeVisible()
+}
+
+test.describe('Prove mode (ASSESSMENT §7.2)', () => {
+  test('by keyboard: the attestation, a graded run on fresh numbers with the readouts hidden, a pass recorded as proved, and the window closed', async ({ page }) => {
+    await openProve(page)
+    await expect(page.locator('[data-prove-stake]')).toHaveText('This attempt counts: a pass is recorded as proved.')
+    await startProve(page)
+    await expect(game(page)).toHaveAttribute('data-mode', 'graded')
+    await expect(game(page)).toHaveAttribute('data-level', 'exact')
+    await expect(game(page).locator('[data-level-words]')).toHaveText('Resample from the residual · Prove run')
+    // The readouts are hidden until the result; the drawing and the table are not.
+    await expect(page.locator('[data-readout-hidden]')).toHaveText('Readouts are hidden until your answer is in.')
+    await expect(page.locator('[data-vf-readout]')).toHaveCount(0)
+    await expect(page.locator('[data-prove-foot]')).toContainText('This attempt counts.')
+    await expect(page.getByRole('button', { name: 'Start a graded run' })).toHaveCount(0)
+    const { p, q } = await readPlates(page)
+    await typeRecipe(page, p.map((px, x) => Math.max(0, px - q[x])))
+    await page.keyboard.press('Enter')
+    await atTheResult(page, 'Passed')
+    await expect(page.locator('[data-prove-after]')).toHaveAttribute('data-prove-after', 'proved')
+    await expect(page.locator('[data-prove-after]')).toContainText('Proved, with your agent closed.')
+    await expect(page.locator('[data-vf-readout]')).toBeVisible()
+    // The ledger holds the attempt: a Prove run now counts as practice until 24 hours have passed.
+    await openProve(page)
+    await expect(page.locator('[data-prove-panel]')).toHaveAttribute('data-stake', 'practice')
+    await expect(page.locator('[data-prove-stake]')).toContainText('You have proved this level. The next attempt that counts opens at ')
+  })
+
+  test('the seed is drawn when the Prove run starts, and a failed attempt is played again at once on fresh numbers, recorded as practice', async ({ page }) => {
+    await openProve(page)
+    await startProve(page)
+    const first = await seedOf(page)
+    const plates = await readPlates(page)
+    const residual = plates.p.map((px, x) => Math.max(0, px - plates.q[x]))
+    const heavy = residual.indexOf(Math.max(...residual))
+    await typeRecipe(page, residual.map((w, x) => (x === heavy ? w + 1 : w)))
+    await page.keyboard.press('Enter')
+    await atTheResult(page, 'Not yet')
+    await expect(page.locator('[data-prove-after]')).toHaveAttribute('data-prove-after', 'missed')
+    await page.getByRole('button', { name: 'Run again' }).click()
+    await expect(page.locator('[data-prove-foot]')).toContainText('Recorded as practice; the next attempt that counts opens at ')
+    expect(await seedOf(page)).not.toBe(first)
+    const { p, q } = await readPlates(page)
+    await typeRecipe(page, p.map((px, x) => Math.max(0, px - q[x])))
+    await page.keyboard.press('Enter')
+    await atTheResult(page, 'Passed')
+    await expect(page.locator('[data-prove-after]')).toHaveAttribute('data-prove-after', 'practice')
+    // Another visit's Prove run draws its own seed as it starts, too.
+    await openProve(page)
+    await expect(page.locator('[data-prove-stake]')).toContainText('Your last attempt that counted did not pass.')
+    await startProve(page)
+    expect(await seedOf(page)).not.toBe(first)
+  })
+
+  test('the way in from the practice page, and Leave Prove mode back to it', async ({ page }) => {
+    await open(page, 'exact')
+    await page.locator('[data-prove-entry]').click()
+    await expect(page).toHaveURL(/\/play\/verifier\?level=exact&mode=prove$/)
+    await expect(page.locator('[data-prove-panel]')).toBeVisible()
+    await page.getByLabel('My coding agent and any AI chat are closed.').check()
+    await page.getByRole('button', { name: 'Start the Prove run' }).click()
+    await page.getByRole('link', { name: 'Leave Prove mode' }).click()
+    await expect(page).toHaveURL(/\/play\/verifier\?level=exact$/)
+    await expect(game(page)).toHaveAttribute('data-mode', 'practice')
+    await expect(page.locator('[data-vf-readout]')).toBeVisible()
+  })
+})
+
 /** The words a learner meets on the page: its text, its aria labels, its titles and its alt text. */
 const pageWords = (page: Page) =>
   page.evaluate(() => {
@@ -574,6 +679,14 @@ test.describe('the copy', () => {
     expect(findBanned(await pageWords(page))).toEqual([])
     await open(page, 'overlap', { intro: 'fresh' })
     expect(findBanned(await pageWords(page))).toEqual([])
+    await openProve(page)
+    expect(findBanned(await page.locator('[data-prove-panel]').innerText())).toEqual([])
+    await page.getByLabel('My coding agent and any AI chat are closed.').check()
+    await page.getByRole('button', { name: 'Start the Prove run' }).click()
+    await expect(game(page)).toBeVisible()
+    expect(findBanned(await pageWords(page))).toEqual([])
+    await submitAnyWeights(page)
+    expect(findBanned(await pageWords(page))).toEqual([])
     expect(findBanned(said.join('\n'))).toEqual([])
   })
 })
@@ -693,6 +806,15 @@ test.describe('accessibility', () => {
         await audit(page, `exact result at ${width} px`)
         await open(page, 'overlap', { intro: 'fresh' })
         await audit(page, `overlap, first run, at ${width} px`)
+        await openProve(page)
+        await audit(page, `the Prove panel at ${width} px`)
+        await page.getByLabel('My coding agent and any AI chat are closed.').check()
+        await audit(page, `the Prove panel, attested, at ${width} px`)
+        await page.getByRole('button', { name: 'Start the Prove run' }).click()
+        await expect(game(page)).toBeVisible()
+        await audit(page, `exact, Prove run, at ${width} px`)
+        await submitAnyWeights(page)
+        await audit(page, `exact, Prove result, at ${width} px`)
       })
     })
   }
