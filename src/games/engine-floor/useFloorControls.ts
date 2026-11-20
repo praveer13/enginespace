@@ -1,4 +1,4 @@
-import { useContext, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
+import { useContext, useCallback, useEffect, useLayoutEffect, useRef, useState, type FocusEvent, type KeyboardEvent, type RefObject } from 'react'
 import { LessonGuessContext } from '@/games/kit/lessonGuess'
 import { MAX_PREDICTION } from '@es/play/engine-floor/facts'
 import type { FloorView, TileView } from '@es/play/engine-floor/types'
@@ -57,12 +57,83 @@ export function reveal(tile: HTMLElement | null | undefined): void {
 /*
  * A stage laid leaves the list a row shorter, and the page with it. Where the page stands near its foot the browser then pulls the page up
  * to its new foot, and the list slides down under the pointer: the tile above the one laid comes under it. So the list keeps its height
- * through a lay, and gives the room back only where nobody sees it go: the part below the screen's foot, as the page scrolls up, or all of
- * it once the list is long enough again (Remove last, Restart).
+ * through a lay, and gives the room back where nobody sees it go: the part below the screen's foot, as the page scrolls up, or all of it
+ * once the list is long enough again (Remove last, Restart). Nothing gives it back while the pointer is over the list, where it may be
+ * about to press: the wheel does (the learner is moving the page), a key in the list does, and so does the pointer leaving the list after a
+ * lay by the pointer. Lay after lay from the page's foot without either once left the band between the pinned filters and Run the path
+ * empty, with the stages left all above it and nothing to say so; the band now says "More above" over the room whenever it holds no tile.
  */
 interface Hold {
   readonly list: HTMLUListElement
   height: number
+  /** Laid by the pointer: the pointer leaving the list gives the room back. */
+  readonly byPointer: boolean
+}
+
+/*
+ * On a phone the list is its own scroll box. A stage laid with the box at its foot shortens it, the box is pulled up to its new foot, and
+ * the tile above the one laid comes under the finger. So the box keeps the laid row's room at its end while it stands there, and gives it
+ * back as the box is scrolled up, only as much of it as has gone out of sight, so the box never moves by itself. The room says that the
+ * stages left are above it. The box does not snap to a tile while it keeps room: the tile it stood on may be the one laid.
+ */
+interface BoxHold {
+  readonly list: HTMLUListElement
+  room: number
+  /** Stops listening to the box's scroll. */
+  readonly stop: () => void
+}
+
+/** How much of a box's kept room is still in sight: the room, less what its scroll has taken out of view. `null` once none is. */
+export function roomInSight(room: number, scrollTop: number, clientHeight: number, scrollHeight: number): number | null {
+  const seen = Math.min(room, scrollTop + clientHeight - (scrollHeight - room))
+  return seen > 0.5 ? seen : null
+}
+
+/** Gives back what of a box's kept room the box's scroll has taken out of sight. Returns whether any room is still kept. */
+function trimBox(hold: BoxHold): boolean {
+  const { list } = hold
+  if (!list.isConnected) return false
+  const keep = roomInSight(hold.room, list.scrollTop, list.clientHeight, list.scrollHeight)
+  if (keep === null) {
+    unkeep(list)
+    return false
+  }
+  hold.room = keep
+  list.style.setProperty('--es-floor-kept', `${keep}px`)
+  return true
+}
+
+/** The box keeps `room` px at its end, where it says that the stages are above (floor.css), and stands still rather than snap. */
+function keepRoom(list: HTMLUListElement, room: number): void {
+  list.style.setProperty('--es-floor-kept', `${room}px`)
+  list.style.scrollSnapType = 'none'
+  list.dataset.kept = ''
+}
+
+function unkeep(list: HTMLUListElement): void {
+  list.style.removeProperty('--es-floor-kept')
+  list.style.scrollSnapType = ''
+  delete list.dataset.kept
+}
+
+/** Whether the band under the pinned filters holds no whole tile of the list: where the tile last in the list starts above the bar's foot. */
+export function bandEmpty(lastTop: number | null, barBottom: number): boolean {
+  return lastTop === null || lastTop < barBottom - 0.5
+}
+
+/**
+ * Marks the pinned filters bar while the list keeps a lay's room and the band under the bar holds no tile, so the bar says the stages
+ * are above (floor.css). Under 700 px of height the bar is not pinned, and says nothing.
+ */
+function markAbove(list: HTMLUListElement | null, kept: boolean): void {
+  const bar = list?.closest('.es-floor-stages')?.querySelector<HTMLElement>('.es-floor-filters')
+  if (list === null || bar === null || bar === undefined) return
+  let above = false
+  if (kept && getComputedStyle(bar).position === 'sticky') {
+    const last = list.lastElementChild
+    above = bandEmpty(last === null ? null : last.getBoundingClientRect().top, bar.getBoundingClientRect().bottom)
+  }
+  if (above !== bar.hasAttribute('data-above')) bar.toggleAttribute('data-above', above)
 }
 
 /** The list's height while it keeps a lay's room: what it held, cut to the screen's foot; `null` once the list fills that by itself. */
@@ -120,6 +191,8 @@ export interface FloorControls {
   readonly tabStop: number
   readonly tray: RefObject<HTMLUListElement | null>
   readonly chips: RefObject<HTMLDivElement | null>
+  /** A filter chip that the keys reach is scrolled whole into its row, clear of the field beside it. */
+  readonly onChipFocus: (event: FocusEvent<HTMLDivElement>) => void
   /** `byPointer`: the press came from a pointer, so the next tile already stands where the learner is looking and the page stays still. */
   readonly lay: (id: string, index: number, byPointer?: boolean) => void
   readonly onTrayKey: (event: KeyboardEvent<HTMLUListElement>) => void
@@ -142,6 +215,7 @@ export function useFloorControls(run: FloorRun, ring: string | null = null): Flo
   const focusAfterCommit = useRef(false)
   const focusAfterTakeBack = useRef(false)
   const hold = useRef<Hold | null>(null)
+  const boxHold = useRef<BoxHold | null>(null)
   const filtersHeld = useRef<HTMLElement | null>(null)
   const listTop = useRef<number | null>(null)
 
@@ -175,7 +249,10 @@ export function useFloorControls(run: FloorRun, ring: string | null = null): Flo
 
   // Before the screen is drawn after any change, and as the page scrolls or the window changes size, the held room is cut to what is seen.
   const keepHeld = useCallback(() => {
-    if (hold.current !== null && !giveBack(hold.current)) hold.current = null
+    const held = hold.current
+    if (held === null) return
+    if (!giveBack(held)) hold.current = null
+    markAbove(held.list, hold.current !== null)
   }, [])
   useLayoutEffect(keepHeld)
   useEffect(() => {
@@ -186,6 +263,50 @@ export function useFloorControls(run: FloorRun, ring: string | null = null): Flo
       window.removeEventListener('resize', keepHeld)
     }
   }, [keepHeld])
+
+  // The held room goes when the learner moves the page with the wheel, uses a key in the list, or takes the pointer off the list after a
+  // lay by the pointer; never while the pointer is over the list, where a press may be coming.
+  useEffect(() => {
+    const release = () => {
+      const held = hold.current
+      if (held === null) return
+      hold.current = null
+      held.list.style.minHeight = ''
+      markAbove(held.list, false)
+    }
+    const within = (event: Event) => event.target instanceof Node && hold.current !== null && hold.current.list.contains(event.target)
+    const moved = (event: PointerEvent) => {
+      if (hold.current?.byPointer === true && !within(event)) release()
+    }
+    const key = (event: globalThis.KeyboardEvent) => {
+      if (within(event)) release()
+    }
+    window.addEventListener('pointermove', moved, { passive: true })
+    window.addEventListener('wheel', release, { passive: true })
+    window.addEventListener('keydown', key, { capture: true })
+    return () => {
+      release()
+      window.removeEventListener('pointermove', moved)
+      window.removeEventListener('wheel', release)
+      window.removeEventListener('keydown', key, { capture: true })
+    }
+  }, [])
+
+  // The phone's box gives back its kept room as its own scroll takes it out of sight; a new filter or a restart gives it all back.
+  const releaseBox = useCallback(() => {
+    const held = boxHold.current
+    if (held === null) return
+    boxHold.current = null
+    held.stop()
+    unkeep(held.list)
+  }, [])
+  useEffect(() => releaseBox, [releaseBox])
+  useEffect(() => {
+    releaseBox()
+  }, [chosen, text, releaseBox])
+  useEffect(() => {
+    if (view.laid.length === 0) releaseBox()
+  }, [view.laid.length, releaseBox])
 
   // A list that is its own scroll box (a phone) snaps to a tile; the tile laid was the one it stood on, so after a pointer lay it would
   // settle a tile higher and slide under the pointer. It goes back to where it stood.
@@ -242,12 +363,29 @@ export function useFloorControls(run: FloorRun, ring: string | null = null): Flo
     const list = tray.current
     const ownBox = list !== null && getComputedStyle(list).overflowY !== 'visible'
     listTop.current = byPointer && ownBox ? list.scrollTop : null
-    // A list that is its own scroll box (a phone) holds no room: its height is its own.
+    const item = list?.querySelector<HTMLElement>(`[data-stage="${CSS.escape(id)}"]`)?.closest('li') ?? null
     if (list !== null && !ownBox) {
       // The list's height now, a held room included: the lay's row stays in it until it can go unseen.
       const height = list.getBoundingClientRect().height
-      hold.current = { list, height }
+      hold.current = { list, height, byPointer }
       list.style.minHeight = `${height}px`
+    } else if (list !== null && byPointer && item !== null && list.scrollTop > 0 && list.scrollTop >= list.scrollHeight - list.clientHeight - 1) {
+      // A box at its foot keeps the laid row's room at its end (the row and the gap that goes with it), so its foot stays where it is.
+      const gapOf = item.previousElementSibling !== null ? item : item.nextElementSibling
+      const room = item.getBoundingClientRect().height + (gapOf === null ? 0 : parseFloat(getComputedStyle(gapOf).marginTop))
+      const held = boxHold.current
+      if (held !== null && held.list === list) held.room += room
+      else {
+        releaseBox()
+        const trim = () => {
+          const kept = boxHold.current
+          if (kept !== null && kept.list === list && !trimBox(kept)) releaseBox()
+        }
+        list.addEventListener('scroll', trim, { passive: true })
+        boxHold.current = { list, room, stop: () => list.removeEventListener('scroll', trim) }
+      }
+      const kept = boxHold.current
+      if (kept !== null) keepRoom(list, kept.room)
     }
     const bar = chips.current?.closest<HTMLElement>('.es-floor-filters') ?? null
     if (!byPointer) releaseFilters()
@@ -285,5 +423,19 @@ export function useFloorControls(run: FloorRun, ring: string | null = null): Flo
     if (view.canRun) dispatch({ t: 'run' })
   }
 
-  return { run, view, choices, pick, setPick, commit, platforms, filter, setFilter, query, setQuery, tiles, tabStop, tray, chips, lay, onTrayKey, move, takeBack, unlay, sendIt }
+  // Chrome brings a focused control into view only when none of it shows, and the chips' row scrolls sideways beside the field on a phone:
+  // a chip reached by the keys could take focus with most of it out of the row, or under the field. A pointer's press is left alone, so a
+  // chip half in view does not slide out from under it.
+  const onChipFocus = (event: FocusEvent<HTMLDivElement>) => {
+    const row = event.currentTarget
+    const chip = event.target
+    if (!(chip instanceof HTMLElement) || chip === row || !chip.matches(':focus-visible')) return
+    const pad = parseFloat(getComputedStyle(row).paddingInlineStart)
+    const box = chip.getBoundingClientRect()
+    const seen = row.getBoundingClientRect()
+    if (box.left < seen.left + pad) row.scrollLeft -= seen.left + pad - box.left
+    else if (box.right > seen.right - pad) row.scrollLeft += box.right - (seen.right - pad)
+  }
+
+  return { run, view, choices, pick, setPick, commit, platforms, filter, setFilter, query, setQuery, tiles, tabStop, tray, chips, onChipFocus, lay, onTrayKey, move, takeBack, unlay, sendIt }
 }

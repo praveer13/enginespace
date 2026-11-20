@@ -889,6 +889,10 @@
   list-style: none;
   scrollbar-color: var(--es-edge) var(--es-paper);
   scrollbar-width: thin;
+  /* A tile laid takes its row out of the list: the browser must not keep a neighbour in place by moving the page or the box under the
+     pointer (at 1280 x 620 a tile laid at the screen's top edge moved the page 48 px and brought the tile above under it). The list keeps
+     its own place through a lay (useFloorControls.ts). */
+  overflow-anchor: none;
 }
 
 .es-floor-tiles__item + .es-floor-tiles__item {
@@ -1325,6 +1329,22 @@
   .es-floor-tiles__item {
     scroll-snap-align: start;
   }
+
+  /* The room the box keeps at its end after a lay at its foot (useFloorControls.ts) says where the stages left are. It stands where the
+     laid rows stood, so it covers no tile; it scrolls away with the box, and goes as the box gives the room back. */
+  .es-floor-tiles[data-kept]::after {
+    content: 'More above' / '';
+    display: flex;
+    flex: none;
+    align-items: center;
+    height: var(--es-floor-kept, 0);
+    padding-inline: var(--es-space-2);
+    overflow: hidden;
+    color: var(--es-text-2);
+    font-size: var(--es-size-caption);
+    font-weight: 700;
+    line-height: 1.4;
+  }
 }
 
 
@@ -1434,6 +1454,25 @@
     padding: var(--es-space-2) var(--es-space-4);
     border-bottom: 1px solid var(--es-paper-rule);
     background: var(--es-paper);
+  }
+
+  /* Lays from the page's foot under a still pointer can leave the band under the bar with no whole tile in it, the stages left all above:
+     the band's top edge says so, as the dock's foot says "More below" (useFloorControls.ts marks the bar), and the last tile's edge that
+     still shows under the bar fades into the paper under the words. */
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-filters[data-above]::after {
+    content: 'More above' / '';
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    height: 2.75rem;
+    padding: var(--es-space-2) var(--es-space-4) 0;
+    background: linear-gradient(var(--es-paper) 80%, transparent);
+    color: var(--es-text-2);
+    font-size: var(--es-size-caption);
+    font-weight: 700;
+    line-height: 1.4;
+    pointer-events: none;
   }
 }
 
