@@ -470,6 +470,19 @@ export const poolNightWith = (level: PoolLevelId, hooks: PoolHooks = {}): Walker
   const verdict = page.locator('[data-result] [data-result-heading]')
   await expect(verdict).toHaveText(built.graded ? 'Passed' : 'Finished (practice)')
   await expect.poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-result-heading') ?? false)).toBe(true)
+  // Focus lands on the verdict before the page has scrolled to it: for a frame or two on a phone the verdict is still below the fold, under
+  // the readout strip, and the scroll that follows brings it clear. Read the stop once the page has done that, as a learner sees it; a
+  // verdict that stays covered is still read as covered, because the wait ends at the poll's own limit and the stop is then read as it is.
+  await expect
+    .poll(() => page.evaluate(() => {
+      const active = document.activeElement
+      if (active === null) return false
+      const box = active.getBoundingClientRect()
+      const hit = document.elementFromPoint((box.left + box.right) / 2, (box.top + box.bottom) / 2)
+      return hit !== null && (active.contains(hit) || hit.contains(active))
+    }))
+    .toBe(true)
+    .catch(() => undefined)
   await walk.see()
 }
 

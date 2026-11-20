@@ -11,12 +11,6 @@
       "note": "no page links this file until the first lab page that uses it is built"
     }
   ],
-  "flaky": [
-    {
-      "file": "e2e/walks.spec.ts",
-      "title": "at 360 px > KV page pool (pool), \"One page size for every group\" (same-size): the keys alone play it to its debrief, with focus in view at every stop",
-      "note": "fails some runs on the wave base"
-    }
-  ],
+  "flaky": [],
   "host": []
 }
