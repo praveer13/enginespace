@@ -3,8 +3,12 @@
  * five filters. The regeneration (a browser run) is the merge script's, and is not started here.
  */
 import { describe, expect, test } from 'bun:test'
+import { spawnSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import { deflateSync } from 'node:zlib'
-import { both, compare, countDiff, decodePng } from '../../scripts/gate/baselines'
+import { both, compare, countDiff, decodePng, repoRoot } from '../../scripts/gate/baselines'
 
 const crcTable = Array.from({ length: 256 }, (_, n) => {
   let c = n
@@ -130,5 +134,41 @@ describe('countDiff and compare', () => {
       { path: 'c.png', count: 5, total: 10 },
     ]
     expect(both(one, two)).toEqual([{ path: 'b.png', count: 2, total: 10 }])
+  })
+})
+
+describe('the root of the run', () => {
+  const main = mkdtempSync(path.join(os.tmpdir(), 'es-baselines-'))
+  const second = `${main}-second`
+  const git = (cwd: string, ...args: string[]) => {
+    const run = spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', '-c', 'commit.gpgsign=false', ...args], { cwd, encoding: 'utf8' })
+    if (run.status !== 0) throw new Error(run.stderr)
+    return run.stdout
+  }
+  const script = path.resolve(import.meta.dirname, '../../scripts/gate/baselines.ts')
+
+  test('is the git top level of the working directory, in a second worktree and in a folder inside it', () => {
+    git(main, 'init', '-q', '-b', 'base')
+    writeFileSync(path.join(main, 'a.txt'), 'a\n')
+    git(main, 'add', '-A')
+    git(main, 'commit', '-q', '-m', 'base')
+    git(main, 'worktree', 'add', '-q', '-b', 'other', second)
+    mkdirSync(path.join(second, 'e2e/deep'), { recursive: true })
+    try {
+      expect(repoRoot(second)).toBe(realpathSync(second))
+      expect(repoRoot(path.join(second, 'e2e/deep'))).toBe(realpathSync(second))
+      expect(repoRoot(main)).toBe(realpathSync(main))
+      // The script lives in this checkout; run with the second worktree as the working directory, its root is the second worktree.
+      const run = spawnSync('bun', ['-e', `import { repoRoot } from ${JSON.stringify(script)}; console.log(repoRoot())`], { cwd: second, encoding: 'utf8' })
+      expect(run.stderr).toBe('')
+      expect(run.stdout.trim()).toBe(realpathSync(second))
+    } finally {
+      rmSync(second, { recursive: true, force: true })
+      rmSync(main, { recursive: true, force: true })
+    }
+  })
+
+  test('on this checkout is the checkout that holds the script', () => {
+    expect(repoRoot()).toBe(realpathSync(path.resolve(import.meta.dirname, '../..')))
   })
 })

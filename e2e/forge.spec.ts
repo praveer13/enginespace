@@ -23,6 +23,7 @@ import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import type { Page } from '@playwright/test'
 import { buildLabModule } from '../tests/forge/wasm'
+import { chooserOpenedByEnter } from './support/chooser'
 import { clipped, expect, open, quiet, test } from './support/site'
 
 const FIXTURES = path.resolve(import.meta.dirname, '../tests/fixtures/forge/toy')
@@ -366,11 +367,8 @@ test.describe('how a file arrives', () => {
   test('the keyboard reaches the file chooser: Tab to Choose a file, Enter opens it', async ({ page }) => {
     await open(page, '/labs/toy')
     const choose = page.getByRole('button', { name: 'Choose a file' })
-    await choose.focus()
+    const picked = await chooserOpenedByEnter(page, choose)
     await expect(choose).toBeFocused()
-    const chooser = page.waitForEvent('filechooser')
-    await page.keyboard.press('Enter')
-    const picked = await chooser
     await picked.setFiles(fixture('solved'))
     await finished(page)
     expect(await statusOf(page)).toEqual(['pass', 'pass', 'pass', 'pass', 'pass'])
