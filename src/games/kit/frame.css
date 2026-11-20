@@ -536,6 +536,17 @@
   }
 }
 
+/*
+ * On a phone's first run the dock is the parts walk's while it names the parts (intro.css): the level's own controls come up at the next step.
+ * The coach strip is a lazy chunk, so for the moment it takes the dock holds back what is not the strip, and the controls that the strip
+ * is about to hide do not show and go.
+ */
+@media (max-width: 63.999rem) {
+  .es-frame[data-placement='page'][data-phase='play'][data-intro='parts'] .es-frame__dock-main > :not(.es-intro) {
+    display: none;
+  }
+}
+
 /* Narrow and at least 700 px tall: the dock is pinned to the foot and holds the decision over one readout line, on the game's page and in a
    lesson alike, so the drawing, the control and the readout share the screen (P5). */
 @media (max-width: 63.999rem) and (min-height: 700px) {
