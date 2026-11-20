@@ -829,9 +829,10 @@ function buildMap(course: Course, modules: ReadonlyMap<string, ModuleResult>, gr
     }
   }
   const lessons: MapLesson[] = []
-  for (const entry of course.modules) {
+  const startAt = course.start === undefined ? 0 : Math.max(0, course.modules.findIndex((entry) => entry.id === course.start))
+  for (const [at, entry] of course.modules.entries()) {
     for (const lesson of modules.get(entry.id)?.lessons ?? []) {
-      const row = lessonRow(lesson.front, lesson.slug, lesson.rev, lesson.body.blocks)
+      const row = { ...lessonRow(lesson.front, lesson.slug, lesson.rev, lesson.body.blocks), ...(at < startAt ? { before: true as const } : {}) }
       // An authoring rule (REDESIGN §2.5, rule 4): every lesson has a Test, and the way on calls a lesson done when its Test is passed.
       if (row.test.questions.length === 0 && row.test.graded.length === 0) {
         out.push(problem('content', 'warning', 'no-test', `content/modules/${entry.id}/lessons/${lesson.slug}.md`, 1, `lesson ${lesson.front.id} has no Test: put an item block or a graded game block under its last ## heading, or the lesson can never be done`))
@@ -877,7 +878,8 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
   const indexModules: IndexModule[] = []
   const lessonRows: Record<string, IndexLesson[]> = {}
   let firstLesson: FirstLesson | undefined
-  for (const entry of course.modules) {
+  const startAt = course.start === undefined ? 0 : Math.max(0, course.modules.findIndex((entry) => entry.id === course.start))
+  for (const [at, entry] of course.modules.entries()) {
     const module = modules.get(entry.id)
     const lessons: IndexLesson[] = (module?.lessons ?? []).map(({ slug, front }) => ({
       id: front.id,
@@ -900,7 +902,7 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
     })
     lessonRows[entry.id] = lessons
     const head = lessons[0]
-    if (firstLesson === undefined && head !== undefined) firstLesson = { module: entry.id, title: head.title, route: head.route, minutes: head.minutes, needs: head.needs }
+    if (firstLesson === undefined && head !== undefined && at >= startAt) firstLesson = { module: entry.id, title: head.title, route: head.route, minutes: head.minutes, needs: head.needs }
     if (module === undefined) continue
 
     const moduleSource = `content/modules/${entry.id}/module.md`

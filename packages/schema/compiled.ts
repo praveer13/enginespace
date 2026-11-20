@@ -267,6 +267,8 @@ export const mapLessonSchema = z.strictObject({
   checkpoints: z.array(familyCountSchema),
   test: z.strictObject({ questions: z.array(familyCountSchema), graded: z.array(refSchema) }),
   anchors: z.strictObject({ read: z.string().min(1).optional(), test: z.string().min(1).optional() }),
+  /** True for a lesson of a module that stands before the course's start in course order: the way on offers it last. */
+  before: z.literal(true).optional(),
 })
 
 /**
