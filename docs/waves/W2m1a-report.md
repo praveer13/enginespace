@@ -214,11 +214,6 @@ Before wave 1a ended the coordinator put three questions to the owner, each with
 | **N4.** What may an agent download or install? | "2. what are best options", then "b". Option B, as it was put to the owner: agents may install the locked CPU environment on the build machine (CPU-only torch 2.14.0, transformers 5.19.0 and the Triton 3.8.0 wheel, in an isolated uv environment at the lockfile's pins) and nothing else; no model weights on the build machine; the TR0 argmax bank stays the owner's step; if torch cannot load on the build machine, the work falls back to CI and the owner is told | Not the default this report first gave (nothing installed, W2b-T49 not starting, TR0 lesson 4 without the interpreter walk-through). Under option B the locked CPU environment is installed, W2b-T49 starts, and TR0 lesson 4 has its interpreter walk-through. The weights job of `labs.yml` still waits for the owner's dispatch, and `labs.yml` on the wave's pull request remains the evidence for W2-T13, W2b-T48 and W2b-T31 where torch cannot load here |
 | **N5.** The pass rule of a lesson's Test: every question right (the built page) or 2 of 3 with one numeric (ASSESSMENT 4.2) | "3. keep the currnt" | The page's rule stays: every question right. Every Test holds three questions, with at least one numeric |
 
----|---|
-| **N8.** Does TR0 become the course's start? | No. TR0 is an advised primer, the course starts at TR1 lesson 1, and the map says TR0 helps. W2b-T41 made the start one key of `content/course.yaml` (`start: tr1`); changing it later means new front-page copy, about twenty expectation edits and re-shot baselines |
-| **N4.** What may an agent download? | Nothing is installed on the build machine. `labs.yml` on the wave's pull request syncs the locked CPU environment and is the evidence for W2-T13, W2b-T48 and W2b-T31; W2b-T49 (the Triton CPU wheel) does not start, and TR0 lesson 4 ships without the interpreter walk-through and says so; the weights job waits for the owner's dispatch |
-| **N5.** The pass rule of a lesson's Test: every question right (the built page) or 2 of 3 with one numeric (ASSESSMENT 4.2) | The page's rule stays, and every new Test holds three questions with at least one numeric, which fits both rules |
-
 ---
 
 ## 12. Decisions the coordinator took in the close, for the owner to overturn
@@ -228,3 +223,38 @@ Before wave 1a ended the coordinator put three questions to the owner, each with
 3. **Three re-shot baselines** (§6) merged without the owner's look that W2b-T03's rule asks of a re-blessed image: W2b-T19's two merged before the rule existed, and W2b-T54's was allowed by the coordinator. On 2026-11-20 the coordinator read the old and the new image of all three: in `course-1440.png` and `course-390.png`, TR0's row gained its outcome sentence and nothing else moved; in `tr1-lesson-1-1440.png`, two pixels in the crumb's underline are lighter. The owner has not looked yet.
 4. **W2b-T08 was not run** (§1).
 5. **The wave's pull request goes into `main`**, not into `wave-r2`, which has merged.
+
+---
+
+## 13. After this check: the final independent check and a second nightly run
+
+Sections 1 to 10 describe `114ded7`. Three merges followed: this report (`eb2f9ea`), the correction of §11 to the owner's answers (W2b-T56, `98643c1`), and W2b-T57 (`527a80a`), which is the wave's last change to what a learner meets. This section was added on 2026-11-20 by the coordinator and supersedes §10 where the two differ.
+
+**The final check.** Two fresh checkers tested `eb2f9ea`, each with its own scripts and no task's report to lean on.
+
+- **Request path (opus):** 972 mouse lays (8 levels at 6 sizes) and 3,357 keyboard stops played to the debrief. The five merges of the wave hold at the sizes their tasks name. The verdict was still "fix first", for five faults it classed broken. One was new: W2b-T04's fix traded the 48 px page jump at the page's foot for an empty list window after 3 to 5 lays in a row there, with 11 to 28 stages left and no cue. Four were as old as the wave's base (`wave-r` at `845e022`): on a phone, a lay at the foot of the list box brought the tile above under the finger (129 of 162 lays); at 1280 x 620, laying the top tile in view moved the page 48 px; on a phone, 2 to 5 Tab stops on filter chips per level were hidden; on a phone, the head of the stop message was cut off.
+- **Every other screen the wave touched (sonnet), beside `wave-r2` at `168e09d`:** 57 documents at 1440, 390 and 320 px with no console error, no failed request and no sideways scroll; nothing slower to appear than on the base. Nothing was classed broken. One rough finding is new on the wave: at 320 x 700 and 360 x 640 a lesson's "Next part" bar is hidden for about 90 px of scroll while the section strip passes under it (from W2b-T11). Eight other findings behave the same on the base.
+
+**W2b-T57 fixed all five broken faults** (`527a80a`), each first reproduced on the tip by a test that failed there (12 of 13 new browser tests failed before the change; the 13th is a control case). No existing test line, expectation, timeout or baseline moved. A second fresh checker tested `527a80a` from a pristine export and found all five gone at their steps and sizes. `/play/engine-floor` is now 195,141 B, 4,859 B under its 200 KB gate [measured by W2b-T57].
+
+How each is fixed, in a learner's terms: at a desk the list no longer moves while the pointer is over it, and when the visible band holds no whole stage the pinned bar says "More above"; one notch of the wheel then brings back three or more stages. On a phone, a lay at the foot of the list box keeps the laid row's room, so nothing moves under the finger. A filter chip that takes keyboard focus is scrolled whole into its row. The stop message shows its head first.
+
+**What the final check leaves open on the Request path** (none classed broken; wave 1b takes them as one task):
+- At a desk, the emptied band shows a bare "More above" in a blank area; on a phone, three lays in a row from the box's foot leave the box showing only "More above" until it is swiped.
+- The pinned filters keep the height of a vanished chip row (a 64 px gap that drops 128 px on the first letter typed); typing at the page's foot moves the field 69 to 137 px; clearing the field can move the dock 300 px.
+- On a phone: the pinned parts move 13 to 26 px as the drawing grows; "Run the path" is half covered; "Remove last" jumps 244 px after a stop; the widest chip is clipped at 360 px and chips are cut at the screen's edge at 320 px.
+- At 1280 x 800 the first run's guess is cut off and Commit is below the dock's fold.
+- The first checker's judgement on the cause: the page is the list's scroller, the list shrinks as stages are laid, and two pinned parts stand over a band of only 181 to 245 px. A list box of fixed height at desk sizes would make the hold logic of W2b-T04 and W2b-T57 unnecessary. Wave 1b decides that as a design task, with the measurements of both checkers.
+- Not tested by either checker: the game inside a TR1 lesson (the lesson's Run part did not load on a cold visit in the checker's script; the nightly's lesson-games tests do play it).
+
+**The second nightly run on a runner** (dispatched by the coordinator on `eb2f9ea`, before W2b-T57; run 44770006410):
+
+| Job | Result |
+|---|---|
+| `browsers` | 1,664 passed, 2 failed, 2 flaky, 2 skipped. The 2 failures are the two `known-red.json` entries of §5 (the GPU kit and the grader wheel, linked from no page yet). The 2 flaky tests: `e2e/forge.spec.ts:366` (the file chooser race W2b-T55 described) and `e2e/lesson-games.spec.ts:105` at 1280 px on TR2 lesson 3 |
+| `properties` | failed on the same two tests as the first run, each over its own frozen timeout: the blind-strategy bound of `tests/play/loop-close.test.ts` (139,326 ms against 120 s) and the judge on 10,000 seeds of `tests/sim/tiers.test.ts` (61,448 ms against 60 s) |
+| `lab-rates`, `lab-profile`, `reports` | passed |
+
+So the first run's other failures are gone on a runner, and the two flaky tests §10 names (`e2e/a11y.spec.ts` at 360 px, `e2e/ledger-conformance.spec.ts`) did not recur in this run. The nightly stays red until the two `properties` tests fit their timeouts (wave 1b splits their seeds across tests; no timeout is raised) and until TR0's lab page links the two files. The nightly was not dispatched again on `527a80a`: the pull request's own twelve checks passed there.
+
+**Corrections to §10.** Its sentence that no checker had looked again at W2b-T04 and W2b-T06 since their fix rounds no longer holds (above). Its list of what was open on the Request path is replaced by the list above.
