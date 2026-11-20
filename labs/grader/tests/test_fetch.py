@@ -893,6 +893,18 @@ class Command(Folder):
             self.assertIn("there is no manifest at ~/nope.json", err)
             self.assertNotIn(str(home), err)
 
+    def test_a_home_folder_that_is_a_link_is_printed_from_the_tilde_in_either_spelling(self) -> None:
+        real = self.folder / "disk" / "learner"
+        real.mkdir(parents=True)
+        link = self.folder / "home"
+        link.symlink_to(real, target_is_directory=True)
+        with mock.patch.dict(os.environ, {"HOME": str(link), "USERPROFILE": str(link)}):
+            self.assertEqual(fetch.shown(link / ".cache" / "enginespace" / "references"), "~/.cache/enginespace/references")
+            self.assertEqual(fetch.shown(real / ".cache" / "enginespace" / "references"), "~/.cache/enginespace/references")
+            self.assertEqual(fetch.shown(real), "~")
+            self.assertEqual(fetch.shown(self.folder / "elsewhere"), str(self.folder / "elsewhere"))
+            self.assertNotIn(str(real), fetch.shown(real / "notes.json"))
+
     def test_a_manifest_that_is_not_there_is_status_3(self) -> None:
         status, out, err = run("fetch", "tr0.forward", "--manifest", str(self.folder / "nope.json"), "--cache", str(self.cache))
         self.assertEqual((status, out), (3, ""))
