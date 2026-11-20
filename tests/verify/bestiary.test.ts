@@ -67,11 +67,11 @@ describe('the honest synthetic fixtures', () => {
     ])
   })
 
-  test('the replay is credited in full: its grader-attested check is attested, and the thirteen checks of the replay are re-checked here, after the check that its claim names its log', async () => {
+  test('the replay is credited in full: its grader-attested check is attested, and the thirteen checks of the replay are re-checked here', async () => {
     const outcome = await run(replayFixture())
     expect(outcome.verdict).toMatchObject({ provenance: 'gpu-verified', reasons: [] })
     const rechecked = outcome.verdict.checks.filter((check) => check.how === 're-checked').map((check) => check.id)
-    expect(rechecked).toEqual(['claims-backed', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B12', 'B14', 'P3'])
+    expect(rechecked).toEqual(['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B12', 'B14', 'P3'])
     expect(outcome.verdict.checks.filter((check) => check.how === 'attested')).toEqual([expect.objectContaining({ id: 'teacher-forced', verdict: 'attested', required: true })])
   })
 
@@ -140,8 +140,10 @@ describe('the forged bestiary', () => {
     describe(`from the ${honest.name} fixture`, () => {
       for (const forgery of forgeriesFor(honest)) {
         test(`${forgery.title} fails ${forgery.fails.check} (rule ${forgery.fails.rule}), with the bound it broke printed, and the receipt is not credited`, async () => {
-          const control = found(await run(make()), forgery.fails.rule, forgery.fails.check)
-          expect(control.status).toBe('pass')
+          // The honest control passes the check, or shows nothing for it: a check that is silent unless something is bare (claims-backed) leaves no row on an honest receipt.
+          const controlOutcome = await run(make())
+          const silent = forgery.fails.rule === 7 && !(controlOutcome.rules[6].checks ?? []).some((entry) => entry.id === forgery.fails.check)
+          if (!silent) expect(found(controlOutcome, forgery.fails.rule, forgery.fails.check).status).toBe('pass')
 
           const forged = forgery.forge(make())
           const outcome = await run(forged)

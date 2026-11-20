@@ -250,9 +250,9 @@ describe('claims-backed', () => {
     return { ...edited(fixture, (bundle) => { if (bundle.receipt.performance !== undefined) bundle.receipt.performance.claimed[key] = { ratePermille: 1000 } }), context: fixture.context }
   }
 
-  test('passes when every claimed key is an artifact of the receipt', async () => {
+  test('says nothing when every claimed key is an artifact of the receipt', async () => {
     const outcome = await run(claiming('acceptance'))
-    expect(checkOf(outcome, 'claims-backed')).toEqual({ id: 'claims-backed', status: 'pass', bound: 'All 2 claims name an artifact of the receipt.' })
+    expect(checkOf(outcome, 'claims-backed')).toBeUndefined()
   })
 
   test('fails a key that names no artifact, and prints the key', async () => {

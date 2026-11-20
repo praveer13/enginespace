@@ -10,7 +10,7 @@
  *                      browser re-tallies the sequences; the gap is the grader's, since a log-probability is not recomputed without the logits.
  *   acceptance-counts  TR6's raw per-round counts (`enginespace/acceptance@1`): accepted is at most proposed in every round, tokens out are accepted
  *                      plus the bonus token, and a claimed acceptance (`performance.claimed[<id>]`: `{ rounds, proposed, accepted, ratePermille }`) equals the totals.
- *   claims-backed      every key of `performance.claimed` names an artifact of the receipt: a claim under any other key has nothing behind it and fails.
+ *   claims-backed      silent unless a claim is bare: every key of `performance.claimed` names an artifact of the receipt: a claim under any other key has nothing behind it and fails.
  *   argmax-bank        TR0's argmax token ids (`enginespace/argmax@1`) at the positions of the owner's pinned bank (W2-T17), which the site holds.
  *
  * A re-check over nothing is not a pass (the review of W2's grader track). An artifact with no sequence, no round or no position, and a bank with no position, say nothing
@@ -158,7 +158,7 @@ function claimsBacked(run: Run): Outcome {
     const named = bare.slice(0, 3).map((key) => `"${cut(key, 40)}"`).join(', ')
     return fail('claims-backed', cut(`${plural(bare.length, 'claim')} (${named}${bare.length > 3 ? ', and more' : ''}) names no artifact of the receipt, so nothing was recomputed from it: a claim with nothing behind it.`, PROBLEM_CHARS))
   }
-  return pass('claims-backed', `All ${plural(Object.keys(claimed).length, 'claim')} name an artifact of the receipt.`)
+  return na('every claim of the receipt names an artifact of it')
 }
 
 const RECHECKS: Readonly<Record<string, (run: Run) => Outcome>> = { 'identity-tally': identityTally, 'acceptance-counts': acceptanceCounts, 'argmax-bank': argmaxBank, 'claims-backed': claimsBacked }
