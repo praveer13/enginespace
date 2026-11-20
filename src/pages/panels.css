@@ -330,6 +330,25 @@
   white-space: nowrap;
 }
 
+/* Calibration: a group's name is a row of its own, in the readout face, and the groups are set apart. */
+.es-calibration .es-calibration__group {
+  padding-top: var(--es-space-6);
+  font-family: var(--es-font-readout);
+  font-size: 0.9375rem;
+  font-weight: var(--es-font-readout-weight);
+  letter-spacing: var(--es-font-readout-tracking);
+}
+
+.es-calibration .es-ledger__n {
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 30rem) {
+  .es-calibration td:nth-child(2) {
+    min-width: 8rem;
+  }
+}
+
 .es-ledger .es-readout {
   flex-wrap: nowrap;
 }

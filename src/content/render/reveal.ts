@@ -19,9 +19,9 @@ import type { BlockRun } from './runs'
  * (ASSESSMENT §4.7): the event is stamped as practice, an authored question that every learner has seen, and it earns nothing.
  *
  * Who reads the event: the module page's Predict step and the course map's practised KCs (src/progress, through the ref the compiler writes
- * for the lesson's prediction), and the Evidence page's count of events by kind. Two readers do not exist yet, and W2-T44 builds them: Today,
- * which may reschedule an idea that is earned by a prediction and never earn one (src/items/today/kcs.ts maps no `predict:` ref to a KC),
- * and the Mirror's calibration, which sets each confidence tap against its outcome.
+ * for the lesson's prediction), the Evidence page's count of events by kind, Review (src/items/today/kcs.ts maps the ref to the lesson's KCs,
+ * so a prediction reschedules an idea that is earned and never earns one), and Progress's calibration (src/evidence/calibration.ts), which sets
+ * each confidence tap against its outcome. A prediction read a run when its event has a seed; one revealed at commit has none.
  */
 
 type PredictBlock = Extract<CompiledBlock, { type: 'predict' }>

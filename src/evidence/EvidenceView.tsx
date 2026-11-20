@@ -4,6 +4,8 @@ import { ContinueLink, type ContinueTarget } from '@/design/components/Header'
 import { TextLink } from '@/design/components/TextLink'
 import { LEGENDS, ATTEMPT_WORDS, SKILL_WORDS } from '@/progress/words'
 import { Button } from '@/design/components/Button'
+import { countWords, CONF_WORDS, rateWords, SOURCE_WORDS, SOURCES } from './calibration'
+import type { CalibrationRow } from './calibration'
 import { KIND_FACTS } from './counts'
 import { Count } from './Count'
 import type { EventCounts, Tally } from './counts'
@@ -28,6 +30,8 @@ export interface EvidenceViewProps {
   /** How the skills and the attempts stand; null while the map has not loaded. */
   skills: SkillCounts | null
   attempts: AttemptCounts
+  /** How sure the learner said they were, and how often they were right; empty when no tap has been written. */
+  calibration?: readonly CalibrationRow[]
   /** The course's modules in order, with their titles; null when the course index has not loaded. */
   modules: readonly { id: string; title: string }[] | null
   /** The way on: where Continue goes, with the sentence that tells the last time's work back. */
@@ -146,6 +150,47 @@ export function AttemptsTable({ attempts }: { attempts: AttemptCounts }) {
   )
 }
 
+/**
+ * Calibration: for each tap (guess, think so, sure) on a question or a prediction, how often it was right, in words, and then the count it
+ * rests on. A prediction's two reveals are two groups. It is read from the events and moves nothing: a guess earns no credit.
+ */
+export function CalibrationTable({ rows }: { rows: readonly CalibrationRow[] }) {
+  return (
+    <table className="es-ledger es-calibration" data-table="calibration">
+      <caption className="sr-only">How often each of your confidence taps was right</caption>
+      <thead>
+        <tr>
+          <th scope="col">When</th>
+          <th scope="col">How it went</th>
+          <th scope="col" className="es-ledger__n">
+            Count
+          </th>
+        </tr>
+      </thead>
+      {SOURCES.map((source) => {
+        const group = rows.filter((row) => row.source === source)
+        if (group.length === 0) return null
+        return (
+          <tbody key={source} data-source={source}>
+            <tr>
+              <th scope="colgroup" colSpan={3} className="es-calibration__group">
+                {SOURCE_WORDS[source]}
+              </th>
+            </tr>
+            {group.map((row) => (
+              <tr key={row.conf} data-conf={row.conf}>
+                <th scope="row">{CONF_WORDS[row.conf]}</th>
+                <td>{rateWords(row)}</td>
+                <td className="es-ledger__n">{countWords(row)}</td>
+              </tr>
+            ))}
+          </tbody>
+        )
+      })}
+    </table>
+  )
+}
+
 /** The kinds of event, each with its name, what it is, and how many there are. */
 export function KindTable({ all }: { all: Tally }) {
   return (
@@ -240,7 +285,7 @@ export function ModuleTable({ counts, modules }: { counts: EventCounts; modules:
   )
 }
 
-export function EvidenceView({ ready, counts, rows, skills, attempts, modules, step, last, side, files }: EvidenceViewProps) {
+export function EvidenceView({ ready, counts, rows, skills, attempts, calibration = [], modules, step, last, side, files }: EvidenceViewProps) {
   const empty = ready && counts.all.total === 0
   return (
     <div className="es-page" data-page="evidence">
@@ -283,6 +328,17 @@ export function EvidenceView({ ready, counts, rows, skills, attempts, modules, s
                 {skills === null ? null : <SkillsTable skills={skills} />}
                 <AttemptsTable attempts={attempts} />
               </div>
+            </section>
+          ) : null}
+          {ready && calibration.length > 0 ? (
+            <section aria-labelledby="ev-calibration" className="es-panel">
+              <h2 id="ev-calibration" className="es-panel__title">
+                How sure you were
+              </h2>
+              <p className="es-panel__lead">
+                Each time you tapped guess, think so or sure, was the answer right? Sure should be right more often than guess. Guesses earn no credit, so this changes no skill; it is only for you.
+              </p>
+              <CalibrationTable rows={calibration} />
             </section>
           ) : null}
           {ready && !empty ? (

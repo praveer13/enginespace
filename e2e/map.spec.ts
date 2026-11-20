@@ -60,6 +60,20 @@ function labRun(id: string, lab: string, checks: readonly string[], { at = AT }:
   return { id, v: 1, kind: 'lab-check', ref: `lab:${lab}`, at, tz: 0, day: at.slice(0, 10), dev: 'dev-e2e-0001', score: 1, ok: true, provenance: 'unseen', data }
 }
 
+/** A tapped question and a tapped prediction, as the page and the box write them: a prediction read from a run has its seed, one revealed at commit has none. */
+function tapped(id: string, kind: 'item' | 'predict', conf: 'guess' | 'think' | 'sure', ok: boolean, seeded = true): LedgerEvent {
+  const ref = kind === 'item' ? 'item:gen/tr2.bubble-width/async-off' : 'predict:tr2.l3#tr2.l3.p1'
+  const data = kind === 'item' ? { answer: { level: 2, response: { kind: 'numeric', value: 4 } } } : { value: 300, truth: 312 }
+  return { id, v: 1, kind, ref, at: AT, tz: 0, day: AT.slice(0, 10), dev: 'dev-e2e-0001', score: ok ? 1 : 0, ok, provenance: kind === 'item' ? 'unseen' : 'practice', ...(seeded ? { seed: 4242 } : {}), conf, data } as LedgerEvent
+}
+
+const CALIBRATED: LedgerEvent[] = [
+  ...[true, true, true, false].map((ok, index) => tapped(`cal-q${index}`, 'item', 'sure', ok)),
+  tapped('cal-q4', 'item', 'guess', false),
+  ...[true, true, false].map((ok, index) => tapped(`cal-r${index}`, 'predict', 'think', ok)),
+  ...[true, false, false].map((ok, index) => tapped(`cal-c${index}`, 'predict', 'sure', ok, false)),
+]
+
 const exportText = (events: LedgerEvent[]) => serializeExport(buildExport({ ledger: { events, receipts: [] }, device: 'dev-e2e-0001', exportedAt: LATER }))
 
 /** Puts events in the ledger through the Evidence page: choose a file, merge it, and wait for the page to say it is in. */
@@ -121,6 +135,23 @@ for (const width of WIDTHS) {
         const results = await new AxeBuilder({ page }).withTags(TAGS).analyze()
         expect(results.violations.filter((violation) => IMPACTS.has(violation.impact ?? '')).map(summary), route).toEqual([])
       }
+    })
+
+    test('/evidence, with taps on it: the calibration reads in words before counts, in both reveals, and is clean', async ({ page, context }) => {
+      await withSettings(context, { view3d: false })
+      await putIn(page, CALIBRATED)
+      await open(page, '/evidence')
+      await readTheLedger(page)
+      const table = page.locator('table[data-table="calibration"]')
+      await expect(table).toBeVisible()
+      await expect(table.locator('tbody[data-source="question"] tr[data-conf="sure"]')).toContainText('You said sureRight most of the time3 of 4 right')
+      await expect(table.locator('tbody[data-source="after-run"] tr[data-conf="think"]')).toContainText('Right most of the time2 of 3 right')
+      await expect(table.locator('tbody[data-source="at-commit"] tr[data-conf="sure"]')).toContainText('Right less than half the time1 of 3 right')
+      await expect(table.locator('tr[data-conf="guess"]')).toContainText('Too few to say yet0 of 1 right')
+      const found = await clipped(page)
+      expect([found.scrolls <= 0, found.text]).toEqual([true, []])
+      const results = await new AxeBuilder({ page }).withTags(TAGS).analyze()
+      expect(results.violations.filter((violation) => IMPACTS.has(violation.impact ?? '')).map(summary)).toEqual([])
     })
   })
 }
