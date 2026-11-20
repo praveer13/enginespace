@@ -1,11 +1,15 @@
 """Generate tests/fixtures/tensor/torch-vectors.json: what PyTorch answers for the operations that packages/sim/tensor models (W2-T13).
 
-Run it once, with CPU torch, and commit the output; tests/sim/tensor-torch.test.ts replays the file against the model and never runs torch.
+It runs in the locked CPU environment (labs/envs/cpu, torch 2.14.0+cpu), and the labs.yml cpu job runs it there and fails when its cases
+differ from the committed fixture. tests/sim/tensor-torch.test.ts replays the file against the model and never runs torch.
 No dependency beyond torch itself is used, and torch needs no GPU for any of this: every call below is metadata, or a copy of a few cells.
 
-    uv run --no-project --no-python-downloads --python 3.13 --with torch==2.14.0 python -I scripts/tensor-torch-vectors.py
+To regenerate the fixture, commit the output of:
 
-`--out <path>` writes elsewhere (the default is the fixture). The cases are enumerated, never random, so a second run on the same torch
+    UV_PYTHON=3.12 uv run --locked --project labs/envs/cpu python -I scripts/tensor-torch-vectors.py
+
+`--out <path>` writes elsewhere (the default is the fixture). `--compare <fixture>` generates the cases and exits 1 when they, or the torch
+build and device, differ from the fixture; the Python patch version is not compared, since it is the runner's (the labs.yml cpu job uses both). The cases are enumerated, never random, so a second run on the same torch
 gives the same bytes. The header records the torch version that answered, whether CUDA was in use (it never is: nothing here leaves the
 CPU), and the Python version.
 
@@ -167,6 +171,7 @@ BASES = [
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", default="tests/fixtures/tensor/torch-vectors.json")
+    ap.add_argument("--compare", metavar="FIXTURE", help="exit 1 unless the generated cases and torch build equal FIXTURE's")
     args = ap.parse_args()
     cases = []
     seen = set()
@@ -196,7 +201,7 @@ def main():
                 seen.add(sig)
                 cases.append({"base": shape, "prelude": pre, "start": start, "op": o, "torch": answer(t, base, o)})
     doc = {
-        "header": "Golden answers from PyTorch for packages/sim/tensor (W2-T13, ARCHITECTURE 5.8). Written by scripts/tensor-torch-vectors.py, which is run by hand and not by CI, and replayed by tests/sim/tensor-torch.test.ts. Each case: a contiguous `arange` base of the given shape, a prelude that makes the start, the operation under test, and torch's answer. `shared` is whether the result uses the base's storage (a copy does not); `values` are the elements in logical order, and a value is its address in the base.",
+        "header": "Golden answers from PyTorch for packages/sim/tensor (W2-T13, ARCHITECTURE 5.8). Written by scripts/tensor-torch-vectors.py in the locked CPU environment (labs/envs/cpu), checked by the labs.yml cpu job, and replayed by tests/sim/tensor-torch.test.ts. Each case: a contiguous `arange` base of the given shape, a prelude that makes the start, the operation under test, and torch's answer. `shared` is whether the result uses the base's storage (a copy does not); `values` are the elements in logical order, and a value is its address in the base.",
         "torch": {"version": torch.__version__, "cuda_in_use": False, "device": "cpu", "python": platform.python_version()},
         "cases": cases,
     }
@@ -204,6 +209,23 @@ def main():
         json.dump(doc, f, separators=(",", ":"))
         f.write("\n")
     print(f"{len(cases)} cases, torch {torch.__version__}", file=sys.stderr)
+    if args.compare:
+        with open(args.compare) as f:
+            want = json.load(f)
+        mine = doc["torch"]
+        if (want["torch"]["version"], want["torch"]["device"]) != (mine["version"], mine["device"]):
+            print(f"torch build differs: fixture {want['torch']['version']} on {want['torch']['device']}, this run {mine['version']} on {mine['device']}", file=sys.stderr)
+            sys.exit(1)
+        if len(want["cases"]) != len(cases):
+            print(f"case count differs: fixture {len(want['cases'])}, this run {len(cases)}", file=sys.stderr)
+            sys.exit(1)
+        differing = [i for i, (a, b) in enumerate(zip(want["cases"], cases)) if a != b]
+        for i in differing[:10]:
+            print(f"case {i} differs:\n  fixture {json.dumps(want['cases'][i], sort_keys=True)}\n  this run {json.dumps(cases[i], sort_keys=True)}", file=sys.stderr)
+        if differing:
+            print(f"{len(differing)} of {len(cases)} cases differ from the fixture", file=sys.stderr)
+            sys.exit(1)
+        print(f"the {len(cases)} cases match the fixture", file=sys.stderr)
 
 
 if __name__ == "__main__":

@@ -10,6 +10,10 @@ name: Labs
 #           tests/fixtures/grader to be what the grader writes now, and judges the manifests of tests/fixtures/references as the zod schema
 #           does (it downloads from a server on 127.0.0.1 and reaches nothing else); the installed command's own checks; verify:schema and
 #           verify:vectors; and the receipt fixtures (the fixtures pass and the forgeries fail).
+#   cpu     W2-T13: the CPU environment (labs/envs/cpu, torch 2.14.0+cpu) is installed from the hashed export of its lock, and
+#           scripts/tensor-torch-vectors.py run in it must give the cases of tests/fixtures/tensor/torch-vectors.json, which the tensor model
+#           is replayed against. It runs only when a change touches labs/envs/cpu, tests/fixtures/tensor, the script or the TR0 lab's files
+#           (detect says which), and it needs no GPU.
 #
 # A job switches on when its lab lands (labs/forge/Cargo.toml from W1-T10, labs/grader/pyproject.toml from W2-T02), and this
 # file does not change for that. Until then the detect job prints "pending: <task>" for the lab that is missing, and the job
@@ -42,6 +46,8 @@ on:
       - 'tests/fixtures/grader/**'
       - 'tests/fixtures/references/**'
       - 'tests/fixtures/receipts/**'
+      - 'tests/fixtures/tensor/**'
+      - 'scripts/tensor-torch-vectors.py'
       - 'tests/verify/**'
       - 'tests/schema/receipt-support.ts'
       - 'src/receipts/atlas.ts'
@@ -67,10 +73,13 @@ jobs:
     outputs:
       forge: ${{ steps.labs.outputs.forge }}
       grader: ${{ steps.labs.outputs.grader }}
+      cpu: ${{ steps.labs.outputs.cpu }}
     steps:
+      # Two commits deep, so that a pull request's merge commit has its first parent (the base) to diff against.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 2
 
       - name: Look for the labs
         id: labs
@@ -87,6 +96,19 @@ jobs:
             echo 'grader=false' >> "$GITHUB_OUTPUT"
             echo 'pending: W2-T02'
           fi
+          # W2-T13: the cpu job runs when its inputs exist and a change touched one of them. With no first parent to diff against (a first
+          # commit, or a checkout without history), it runs.
+          cpu=false
+          if [ -f labs/envs/cpu/uv.lock ] && [ -f scripts/tensor-torch-vectors.py ] && [ -f tests/fixtures/tensor/torch-vectors.json ]; then
+            if git rev-parse --verify --quiet HEAD^1 >/dev/null && git diff --quiet HEAD^1 HEAD -- labs/envs/cpu tests/fixtures/tensor scripts/tensor-torch-vectors.py 'labs/grader/src/enginespace_grader/labs/tr0*' 'labs/grader/tests/cpu' 'labs/grader/tests/test_tr0*'; then
+              echo 'cpu: no change under the CPU environment, the vectors, the script or the TR0 lab'
+            else
+              cpu=true
+            fi
+          else
+            echo 'cpu: the CPU environment, its fixture or the script is missing, so the cpu job is skipped'
+          fi
+          echo "cpu=$cpu" >> "$GITHUB_OUTPUT"
 
   forge:
     needs: detect
@@ -227,3 +249,31 @@ jobs:
       # which the same tests then forge from. The tests run under Bun, as the unit suite does.
       - name: Receipt fixtures and forgeries
         run: bun test tests/verify/bestiary.test.ts tests/verify/fixtures.test.ts
+
+  cpu:
+    needs: detect
+    if: needs.detect.outputs.cpu == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up the pinned Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+
+      # The environment is the hashed export of its lock, labs/envs/cpu/requirements.txt, which the grader's job checks against uv.lock (relock.sh
+      # --check) before this job runs, and it installs with pip --require-hashes, so every file is the one the lock names. The CPU torch wheel comes
+      # from PyTorch's CPU index. The grader is not in the export (it is a path, and the script does not import it), so --no-deps keeps the set exact.
+      - name: Install the CPU environment from its lock's export
+        run: |
+          python3 -m venv "$RUNNER_TEMP/cpu-venv"
+          "$RUNNER_TEMP/cpu-venv/bin/python" -m pip install --no-input --no-deps --require-hashes --extra-index-url https://download.pytorch.org/whl/cpu -r labs/envs/cpu/requirements.txt
+      # The vectors are regenerated in that environment and compared with the committed fixture: a different case, or another torch build, fails
+      # the job. The job writes to RUNNER_TEMP and never the fixture; the Python patch version is the runner's and is not compared.
+      - name: The vectors are what the CPU environment's torch gives
+        run: |
+          "$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/tensor-torch-vectors.py --out "$RUNNER_TEMP/torch-vectors.json" --compare tests/fixtures/tensor/torch-vectors.json
