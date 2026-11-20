@@ -1437,6 +1437,14 @@
   }
 }
 
+/* Under 700 px of height the bar flows and Run the path stands pinned over the screen's foot, so a chip the keyboard reaches is scrolled
+   clear of that dock: the dock stands about 185 px tall at 1280 x 620 [measured 2026-11-20, headless Chromium], and 12rem (192 px) clears it. */
+@media (min-width: 64rem) and (max-height: 699px) {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-filters :is(.es-floor-filter, button) {
+    scroll-margin-bottom: 12rem;
+  }
+}
+
 /* On a phone the readout's four counts are cells, each parted from the next by a rule, so no count runs into the next one's word; where a
    delta beside a number leaves its word no room, the word goes under the number rather than into the next cell. */
 @media (max-width: 63.999rem) {

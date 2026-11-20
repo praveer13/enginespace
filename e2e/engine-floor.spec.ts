@@ -589,6 +589,34 @@ test.describe('the filter field', () => {
   }
 })
 
+test.describe('the filter controls by keyboard on a short desk', () => {
+  test('no focused chip or field is covered by the dock at 1280 x 620 on the map', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 620 })
+    await open(page, 'map')
+    await commit(page, 2)
+    await lay(page, reference('map').slice(0, 1))
+    await page.locator('[data-floor-tray] [data-stage]').first().focus()
+    const covered: string[] = []
+    for (let step = 0; step < 140; step += 1) {
+      await page.keyboard.press(step < 70 ? 'Tab' : 'Shift+Tab')
+      await settled(page)
+      const bad = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement | null
+        if (el === null || el.closest('.es-floor-filters') === null) return ''
+        const at = el.getBoundingClientRect()
+        // The control's whole box and its 3 px focus ring must be clear: test the top and the foot edge, not only the centre.
+        const covers = [at.top + 1, at.bottom - 1, at.bottom + 3].some((y) => {
+          const hit = document.elementFromPoint(at.left + at.width / 2, y)
+          return hit !== null && !(hit === el || el.contains(hit)) && hit.closest('.es-floor-actions') !== null
+        })
+        return covers ? `${el.textContent ?? ''} at ${Math.round(at.top)}` : ''
+      })
+      if (bad !== '') covered.push(bad)
+    }
+    expect(covered.join('; '), 'a focused filter control under the dock').toBe('')
+  })
+})
+
 test.describe('the stage list', () => {
   test('filters by process and by typed text, by keyboard', async ({ page }) => {
     await open(page, 'vllm')
