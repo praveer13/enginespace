@@ -249,6 +249,7 @@ async function commitBoundaries(page: Page, walk: Walk, n: number): Promise<void
   await tabTo(walk, /^Commit the prediction$/)
   await page.keyboard.press('Enter')
   await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-stage') !== null)).toBe(true)
+  await walk.see()
 }
 
 /** The whole level: the first run's intro if it shows, the prediction (the true count), the engine's path laid tile by tile, the run, and the result. */
