@@ -539,10 +539,11 @@
 /*
  * On a phone's first run the dock is the parts walk's while it names the parts (intro.css): the level's own controls come up at the next step.
  * The coach strip is a lazy chunk, so for the moment it takes the dock holds back what is not the strip, and the controls that the strip
- * is about to hide do not show and go.
+ * is about to hide do not show and go. The hold ends after a moment, so a chunk that does not come or a ledger
+ * that does not answer leaves the controls.
  */
 @media (max-width: 63.999rem) {
-  .es-frame[data-placement='page'][data-phase='play'][data-intro='parts'] .es-frame__dock-main > :not(.es-intro) {
+  .es-frame[data-placement='page'][data-phase='play'][data-intro='parts'][data-intro-wait] .es-frame__dock-main > :not(.es-intro) {
     display: none;
   }
 }
