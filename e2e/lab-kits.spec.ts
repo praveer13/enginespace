@@ -38,6 +38,9 @@ const manifest = JSON.parse(readFileSync(path.join(root, 'public/labs/manifest.j
 const sha256 = (data: Uint8Array) => createHash('sha256').update(data).digest('hex')
 const hasSha256sum = spawnSync('sh', ['-c', 'command -v sha256sum']).status === 0
 
+/** The page that links each kind of file. The GPU kit and the grader wheel have none until the first lab page that uses them is built. */
+const pageOf = (file: ManifestFile): string | null => (file.kind === 'forge-lab' ? `/labs/${file.lab}` : null)
+
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
 
 async function audit(page: Page, label: string): Promise<void> {
@@ -78,14 +81,20 @@ const ledger = (page: Page): Promise<Stored[]> =>
   )
 
 test.describe('every file in the manifest is linked from its lab page', () => {
-  test('the manifest lists forge labs and nothing else, so that a file of another kind must be given its page and its row here', () => {
-    expect(manifest.files.map((file) => file.kind)).toEqual(manifest.files.map(() => 'forge-lab'))
-    expect(manifest.files.length).toBeGreaterThanOrEqual(3)
+  test('every entry of the manifest is a forge lab, the GPU kit or the grader wheel, and each forge lab names its lab', () => {
+    const kinds = ['forge-lab', 'gpu-kit', 'grader-wheel']
+    expect(manifest.files.map((file) => kinds.includes(file.kind))).toEqual(manifest.files.map(() => true))
+    expect(manifest.files.filter((file) => file.kind === 'forge-lab').every((file) => typeof file.lab === 'string' && file.lab.length > 0)).toBe(true)
+    expect(manifest.files.filter((file) => file.kind === 'forge-lab').length).toBeGreaterThanOrEqual(3)
+    expect(manifest.files.filter((file) => file.kind === 'gpu-kit')).toHaveLength(1)
+    expect(manifest.files.filter((file) => file.kind === 'grader-wheel')).toHaveLength(1)
   })
 
   for (const file of manifest.files) {
-    test(`${file.name}: linked from /labs/${file.lab} with its size and hash, and the bytes behind the link are the manifest's, fetched and downloaded`, async ({ page }) => {
-      await open(page, `/labs/${file.lab}`)
+    test(`${file.name}: linked from ${pageOf(file) ?? 'no page yet'} with its size and hash, and the bytes behind the link are the manifest's, fetched and downloaded`, async ({ page }) => {
+      const where = pageOf(file)
+      expect(where, `${file.name} (${file.kind}): no page links this file yet`).not.toBeNull()
+      await open(page, where!)
       const link = page.getByRole('link', { name: file.name, exact: true })
       await expect(link).toHaveCount(1)
       await expect(link).toHaveAttribute('href', `/labs/${file.name}`)
