@@ -1,4 +1,4 @@
-import { useContext, useCallback, useEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
+import { useContext, useCallback, useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent, type RefObject } from 'react'
 import { LessonGuessContext } from '@/games/kit/lessonGuess'
 import { MAX_PREDICTION } from '@es/play/engine-floor/facts'
 import type { FloorView, TileView } from '@es/play/engine-floor/types'
@@ -54,6 +54,41 @@ export function reveal(tile: HTMLElement | null | undefined): void {
   tile?.scrollIntoView({ block: 'nearest', inline: 'nearest' })
 }
 
+/*
+ * A stage laid leaves the list a row shorter, and the page with it. Where the page stands near its foot the browser then pulls the page up
+ * to its new foot, and the list slides down under the pointer: the tile above the one laid comes under it. So the list keeps its height
+ * through a lay, and gives the room back only where nobody sees it go: the part below the screen's foot, as the page scrolls up, or all of
+ * it once the list is long enough again (Remove last, Restart).
+ */
+interface Hold {
+  readonly list: HTMLUListElement
+  height: number
+}
+
+/** The list's height while it keeps a lay's room: what it held, cut to the screen's foot; `null` once the list fills that by itself. */
+export function heldHeight(held: number, top: number, contentBottom: number, screen: number): number | null {
+  const keep = Math.min(held, screen - top)
+  return keep <= contentBottom - top ? null : keep
+}
+
+/** Gives back as much of the held room as lies under the screen's foot. Returns whether any room is still held. */
+function giveBack(hold: Hold): boolean {
+  const { list } = hold
+  if (!list.isConnected) return false
+  const box = list.getBoundingClientRect()
+  const style = getComputedStyle(list)
+  const last = list.lastElementChild
+  const contentBottom = (last === null ? box.top : last.getBoundingClientRect().bottom) + parseFloat(style.paddingBottom) + parseFloat(style.borderBottomWidth)
+  const keep = heldHeight(hold.height, box.top, contentBottom, window.innerHeight)
+  if (keep === null) {
+    list.style.minHeight = ''
+    return false
+  }
+  hold.height = keep
+  list.style.minHeight = `${keep}px`
+  return true
+}
+
 /** The announcement for every change of the view, once the first one has been seen. The diagram calls it: it is drawn for the whole run. */
 export function useAnnouncements(run: Pick<FloorRun, 'view' | 'announce'>): void {
   const seen = useRef<FloorView | null>(null)
@@ -106,12 +141,27 @@ export function useFloorControls(run: FloorRun): FloorControls {
   const revealAfterLay = useRef(true)
   const focusAfterCommit = useRef(false)
   const focusAfterTakeBack = useRef(false)
+  const hold = useRef<Hold | null>(null)
 
   const platforms = platformsOf(view.tray, view.present)
   const filter = chosen !== null && platforms.some((platform) => platform.key === chosen) ? chosen : null
   const tiles = view.tray.filter((tile) => (filter === null || platformOf(tile.from) === filter) && matches(tile, query))
   const tabStop = Math.min(stop, Math.max(tiles.length - 1, 0))
   const choices = Array.from({ length: MAX_PREDICTION + 1 }, (_, i) => i)
+
+  // Before the screen is drawn after any change, and as the page scrolls or the window changes size, the held room is cut to what is seen.
+  const keepHeld = useCallback(() => {
+    if (hold.current !== null && !giveBack(hold.current)) hold.current = null
+  }, [])
+  useLayoutEffect(keepHeld)
+  useEffect(() => {
+    window.addEventListener('scroll', keepHeld, { passive: true })
+    window.addEventListener('resize', keepHeld, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', keepHeld)
+      window.removeEventListener('resize', keepHeld)
+    }
+  }, [keepHeld])
 
   // After a stage is laid, focus follows to the next tile in the list, or to the chips when the filters leave none.
   useEffect(() => {
@@ -150,6 +200,13 @@ export function useFloorControls(run: FloorRun): FloorControls {
   const lay = (id: string, index: number, byPointer = false) => {
     focusAfterLay.current = index
     revealAfterLay.current = !byPointer
+    const list = tray.current
+    if (list !== null) {
+      // The list's height now, a held room included: the lay's row stays in it until it can go unseen.
+      const height = list.getBoundingClientRect().height
+      hold.current = { list, height }
+      list.style.minHeight = `${height}px`
+    }
     setStop(index)
     dispatch({ t: 'lay', stage: id })
   }

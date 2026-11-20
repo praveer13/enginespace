@@ -36,7 +36,7 @@ import { floorKit, floorStep, partRows } from '@/games/engine-floor/kit'
 import { Mirror } from '@/games/engine-floor/Mirror'
 import { handoffWords, permalink, plain, readoutOf, splitCode } from '@/games/engine-floor/text'
 import type { FloorOutcome } from '@/games/engine-floor/types'
-import { matches, platformsOf } from '@/games/engine-floor/useFloorControls'
+import { heldHeight, matches, platformsOf } from '@/games/engine-floor/useFloorControls'
 import { FloorLegend, StageFacts, Swimlane } from '@/games/engine-floor/View2D'
 import { fakeRun, laidTo, levelOf, ranTo, truthOf, walk } from './engine-floor-support'
 
@@ -167,6 +167,19 @@ describe('the stage list', () => {
     const markup = dock(laidTo(vllm, 2))
     expect(markup).toMatch(/class="es-primary-button" data-state="default".*?Run the path/)
     expect(markup).toContain('Remove last')
+  })
+
+  test('a lay keeps the list\'s height where the page would else be pulled up: the room it held, cut to the screen\'s foot, until the list fills it', () => {
+    // A list of 600 px from 300 px down a screen of 900 px loses a row of 48 px at the page's foot: it keeps all 600 px.
+    expect(heldHeight(600, 300, 852, 900)).toBe(600)
+    // Scrolled up by 30 px, the 30 px of the room below the screen's foot go: nobody sees them go, and the page cannot be pulled up.
+    expect(heldHeight(600, 330, 882, 900)).toBe(570)
+    // Scrolled up by a row or more, the list ends under the screen's foot by itself, and the room is given back whole.
+    expect(heldHeight(600, 348, 900, 900)).toBeNull()
+    // A list that ends below the screen's foot keeps nothing: the page has room under it.
+    expect(heldHeight(600, 100, 1000, 900)).toBeNull()
+    // Remove last puts the row back, and the list fills the room again by itself.
+    expect(heldHeight(600, 300, 900, 900)).toBeNull()
   })
 })
 
