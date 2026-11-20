@@ -317,6 +317,73 @@ test.describe('a pointer lay', () => {
   }
 })
 
+/*
+ * The stage list's neighbours stay put whatever level is laid from: a lay that takes the last stage of a process takes its filter chip,
+ * and the pinned bar once got a row shorter, so that the tile after the laid one came 40 px away from where the pointer was. And on a phone
+ * the list is its own scroll box, which must keep its place under the pointer.
+ */
+test.describe('a pointer lay on levels whose chips vanish', () => {
+  for (const [width, height] of [[1440, 900], [1280, 800]] as const) {
+    for (const level of ['sglang', 'nano-tp'] as const) {
+      test(`at ${width} x ${height}, on ${level}, the tile after the laid one takes its place`, async ({ page }) => {
+        await page.setViewportSize({ width, height })
+        await open(page, level)
+        await commit(page, 2)
+        const moves: string[] = []
+        for (let index = 0; index < 20; index++) {
+          const picked = await page.evaluate(() => {
+            const tiles = Array.from(document.querySelectorAll<HTMLElement>('[data-floor-tray] [data-stage]'))
+            if (tiles.length < 2) return null
+            const at = Math.min(Math.floor(tiles.length / 2), tiles.length - 2)
+            tiles[at].scrollIntoView({ block: 'center' })
+            return { id: tiles[at].dataset.stage ?? '', next: tiles[at + 1].dataset.stage ?? '' }
+          })
+          if (picked === null) break
+          await settled(page)
+          const { id, next } = picked
+          const top = async (what: string) => stage(page, what).evaluate((element) => element.getBoundingClientRect().top)
+          const at = await top(id)
+          const scroll = await page.evaluate(() => window.scrollY)
+          const bar = () => page.evaluate(() => { const e = document.querySelector<HTMLElement>('[data-floor-stages] .es-floor-filters'); return `${e?.getBoundingClientRect().height}/${e?.style.minHeight}` })
+          const barBefore = await bar()
+          const box = await stage(page, id).boundingBox()
+          if (box === null) throw new Error(`the tile of ${id} has no box`)
+          await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+          await expect(stage(page, id)).toHaveCount(0)
+          await settled(page)
+          const now = await top(next)
+          const scrolled = await page.evaluate(() => window.scrollY)
+          if (Math.abs(now - at) > 1 || scrolled !== scroll) moves.push(`lay ${index + 1} (${id}): next tile ${Math.round(now - at)} px, scroll ${scroll} to ${scrolled}, filters ${barBefore} to ${await bar()}`)
+        }
+        expect(moves).toEqual([])
+      })
+    }
+  }
+
+  test('at 390 x 844 the list, its own scroll box, keeps its place under the pointer', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await open(page, 'abort')
+    await commit(page, 2)
+    const moves: string[] = []
+    for (let index = 0; index < 20; index++) {
+      const id = reference('abort')[index]
+      const list = page.locator('[data-floor-tray]')
+      await stage(page, id).evaluate((element) => element.scrollIntoView({ block: 'center' }))
+      await settled(page)
+      const before = await list.evaluate((element) => element.scrollTop)
+      const box = await stage(page, id).boundingBox()
+      if (box === null) throw new Error(`the tile of ${id} has no box`)
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+      await expect(stage(page, id)).toHaveCount(0)
+      await settled(page)
+      // A list that has become too short to stand where it did can only stand at its new foot: that is the one move allowed.
+      const { after, foot } = await list.evaluate((element) => ({ after: element.scrollTop, foot: element.scrollHeight - element.clientHeight }))
+      if (Math.min(before, foot) !== after) moves.push(`lay ${index + 1} (${id}): list scrollTop ${before} to ${after} (foot ${foot})`)
+    }
+    expect(moves).toEqual([])
+  })
+})
+
 test.describe('the swimlane on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
