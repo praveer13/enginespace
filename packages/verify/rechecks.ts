@@ -22,11 +22,13 @@
  */
 import { divRound } from '@es/sim/core/int'
 import { claimOf, fail, firstDifference, na, pass } from './checks'
-import type { Outcome, Run } from './checks'
+import type { ArgmaxBank, Outcome, Run } from './checks'
 import { ACCEPTANCE_FORMAT, ARGMAX_FORMAT, IDENTITY_FORMAT, readAcceptance, readArgmax, readArtifacts, readIdentity } from './evidence'
-import type { Parsed } from './evidence'
+import type { ArgmaxLog, Parsed } from './evidence'
 import { cut, grouped, plural } from './format'
 import { PROBLEM_CHARS } from './limits'
+import { ARGMAX_KEPT_ROWS } from './report'
+import type { CheckResult } from './report'
 
 /** A near tie: the first run's top-2 gap at the first mismatch is at most this, in thousandths of a nat [estimated] (D-046: 0.05 nats). */
 export const NEAR_TIE_MILLI = 50
@@ -99,24 +101,39 @@ function acceptanceCounts(run: Run): Outcome {
   return pass('acceptance-counts', `${plural(all.length, 'artifact')}: in every round accepted ≤ proposed and tokens out = accepted + bonus, and any claimed acceptance equals the totals.`)
 }
 
-function argmaxBank(run: Run): Outcome {
-  const all = readArtifacts(run, 'outputs', ARGMAX_FORMAT, readArgmax)
-  if (all.length === 0) return na(`the receipt carries no argmax ids (${ARGMAX_FORMAT})`)
-  const bad = unreadable('argmax-bank', all)
-  if (bad !== null) return bad
-  const bank = run.bank
-  if (bank === undefined) return fail('argmax-bank', cut(`this site holds no argmax bank for ${run.receipt.stage} yet, so the ids cannot be compared.`, PROBLEM_CHARS))
-  if (bank.positions.length === 0) return fail('argmax-bank', cut(`this site's argmax bank for ${run.receipt.stage} holds no position, so the ids cannot be compared: every id agrees with a bank of nothing.`, PROBLEM_CHARS))
-  const parsed = all[0]
-  if (!parsed.ok) return fail('argmax-bank', 'the ids could not be read.')
+/** The ids of a receipt against the site's bank, as the check's result. It is the whole of the check once the ids are read, so a stored log can be held to a bank that the site gained later. */
+export function argmaxAgainst(stage: string, log: ArgmaxLog, bank: ArgmaxBank | undefined): CheckResult {
+  if (bank === undefined) return fail('argmax-bank', cut(`this site holds no argmax bank for ${stage} yet, so the ids cannot be compared.`, PROBLEM_CHARS))
+  if (bank.positions.length === 0) return fail('argmax-bank', cut(`this site's argmax bank for ${stage} holds no position, so the ids cannot be compared: every id agrees with a bank of nothing.`, PROBLEM_CHARS))
   const given = new Map<number, number>()
-  parsed.value.positions.forEach((position, i) => given.set(position, parsed.value.ids[i]))
+  log.positions.forEach((position, i) => given.set(position, log.ids[i]))
   for (const [i, position] of bank.positions.entries()) {
     const id = given.get(position)
     if (id === undefined) return fail('argmax-bank', cut(`position ${grouped(position)} of the bank is not among the ${plural(given.size, 'position')} the receipt gives.`, PROBLEM_CHARS))
     if (id !== bank.ids[i]) return fail('argmax-bank', cut(`position ${grouped(position)}: the receipt's argmax is token ${grouped(id)}, and the pinned bank has ${grouped(bank.ids[i])} (every banked position must agree).`, PROBLEM_CHARS))
   }
   return pass('argmax-bank', `All ${plural(bank.positions.length, 'banked position')} have the pinned bank's argmax token.`)
+}
+
+function argmaxBank(run: Run): Outcome {
+  const all = readArtifacts(run, 'outputs', ARGMAX_FORMAT, readArgmax)
+  if (all.length === 0) return na(`the receipt carries no argmax ids (${ARGMAX_FORMAT})`)
+  const bad = unreadable('argmax-bank', all)
+  if (bad !== null) return bad
+  const parsed = all[0]
+  if (!parsed.ok) return fail('argmax-bank', 'the ids could not be read.')
+  return argmaxAgainst(run.receipt.stage, parsed.value, run.bank)
+}
+
+/**
+ * The argmax ids that a stored report keeps, so that the check can be made again against a bank that the site gains after the receipt was brought back
+ * (reread.ts). It is the log that `argmaxBank` reads, and nothing is kept when the receipt carries none, when it cannot be read or when it is longer than a report keeps.
+ */
+export function keptArgmax(run: Run): ArgmaxLog | undefined {
+  const all = readArtifacts(run, 'outputs', ARGMAX_FORMAT, readArgmax)
+  const first = all[0]
+  if (first === undefined || !first.ok || all.some((parsed) => !parsed.ok)) return undefined
+  return first.value.positions.length <= ARGMAX_KEPT_ROWS ? { positions: [...first.value.positions], ids: [...first.value.ids] } : undefined
 }
 
 const RECHECKS: Readonly<Record<string, (run: Run) => Outcome>> = { 'identity-tally': identityTally, 'acceptance-counts': acceptanceCounts, 'argmax-bank': argmaxBank }

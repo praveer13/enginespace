@@ -55,7 +55,7 @@ const guarded = (group: Group, run: Run, id: string): Outcome => {
   }
 }
 
-function summarize(group: Group, checks: readonly CheckResult[]): RuleResult {
+export function summarize(group: Pick<Group, 'rule' | 'id'>, checks: readonly CheckResult[]): RuleResult {
   const failed = checks.filter((check) => check.status === 'fail')
   const base = { rule: group.rule, id: group.id, checks }
   if (checks.length === 0) return { ...base, status: 'pass', summary: 'No check of this rule applies to the receipt.', problems: [] }

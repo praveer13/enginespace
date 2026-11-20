@@ -11,8 +11,9 @@
 // How the pieces fit:
 //   check   verifyBundle(file, { book, nowMs, graders, pins, atlas, stages, banks }) runs rules 1 to 9 and answers `refused` (a file that is not a
 //           receipt) or `checked`, with the verdict of rule 10.
-//   keep    storedReport(outcome.rules, outcome.sizes) is what the ledger's receipts store keeps beside the receipt.
-//   read    readStoredReport(json) gives a stored report back, or null; verdictOf(receipt, report.rules, report.ran) is its verdict, worked out when read.
+//   keep    storedReport(outcome.rules, outcome.sizes, outcome.argmax) is what the ledger's receipts store keeps beside the receipt.
+//   read    readStoredReport(json) gives a stored report back, or null; verdictOfStored(receipt, report, { banks }) is its verdict, worked out when read, with the
+//           re-checks that the site's own data decides made again (reread.ts).
 export * from './limits'
 export * from './report'
 export { cut, grouped, plural, when } from './format'
@@ -50,6 +51,8 @@ export { ALIASES, canonical, isPractice, PENDING, stageRow, STAGES } from './sta
 export type { Stage } from './stages'
 export { CHECK_IDS } from './ids'
 export { attestedBound, verdictOf } from './verdict'
+export { rulesOnRead, verdictOfStored } from './reread'
+export type { SiteData } from './reread'
 export type { Verdict, VerdictCheck, VerdictProvenance } from './verdict'
 export { verifyBundle } from './verify'
 export type { CheckedOutcome, Outcome, RefusedOutcome, VerifyContext } from './verify'

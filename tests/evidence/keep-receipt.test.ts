@@ -27,13 +27,9 @@ const record = (reports: VerificationReport[] = [report('2026-11-04T09:00:00.000
 const event: Draft<'receipt'> = {
   kind: 'receipt',
   ref: 'receipt:tr3.profile.s2',
-  score: 0,
-  ok: false,
-  provenance: 'gpu-unverified',
   data: {
     receiptSha256: SHA,
     challenge: TOKEN,
-    checks: [{ id: 'agreement', verdict: 'attested', bound: 'value 0.995, bound 0.99' }],
     graderVersion: '0.1.0',
     environment: 'Example GPU 24GB, vllm 0.33.0, driver 580.82.07',
   },
@@ -54,7 +50,11 @@ describe('keeping a receipt', () => {
     expect(snapshot.receipts).toHaveLength(1)
     expect(snapshot.events).toHaveLength(1)
     if (kept.ok) {
-      expect(kept.event).toMatchObject({ kind: 'receipt', provenance: 'gpu-unverified', ok: false, score: 0, data: { receiptSha256: SHA, challenge: TOKEN } })
+      expect(kept.event).toMatchObject({ kind: 'receipt', data: { receiptSha256: SHA, challenge: TOKEN } })
+      expect(Object.keys(kept.event ?? {})).not.toEqual(expect.arrayContaining(['ok']))
+      expect(kept.event).not.toHaveProperty('score')
+      expect(kept.event).not.toHaveProperty('provenance')
+      expect(kept.event?.data).not.toHaveProperty('checks')
       expect(kept.event?.dev).toBe(snapshot.deviceId)
       expect(kept.record.reports).toHaveLength(1)
     }

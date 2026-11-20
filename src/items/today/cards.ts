@@ -20,7 +20,7 @@
  * The event-to-KC resolver is passed in (kcs.ts), so this file reads no registry and no content.
  */
 import { GRADED_KINDS, weightOf } from '@es/ledger'
-import type { LedgerEvent, LocalDay } from '@es/ledger'
+import type { CreditedReceiptEvent, LedgerEvent, LocalDay } from '@es/ledger'
 import { addDays, daysBetween } from './days'
 import { afterReview, firstMemory, gradeOf, intervalOf, isRating, recallAfter } from './fsrs'
 import type { MemoryState, Rating } from './fsrs'
@@ -61,9 +61,10 @@ export interface DeriveOptions {
   readonly servable?: (card: Pick<Card, 'kc' | 'memory'>) => boolean
 }
 
-type GradedEvent = Exclude<LedgerEvent, { kind: 'challenge' | 'ack' }>
+/** A graded event: a challenge and an acknowledgement are not, and a receipt is once its worth has been worked out from its record (src/receipts/credit.ts). */
+type GradedEvent = Exclude<LedgerEvent, { kind: 'challenge' | 'ack' | 'receipt' }> | CreditedReceiptEvent
 const GRADED = new Set<string>(GRADED_KINDS)
-const isGraded = (event: LedgerEvent): event is GradedEvent => GRADED.has(event.kind)
+const isGraded = (event: LedgerEvent): event is GradedEvent => GRADED.has(event.kind) && (event.kind !== 'receipt' || ('ok' in event && 'provenance' in event))
 
 /** An event that passed at full weight and is not a prediction: the KCs it is evidence for are earned (ASSESSMENT §3.3, §4.7). */
 export const earns = (event: GradedEvent): boolean => event.kind !== 'predict' && event.ok && weightOf(event.provenance) === 1

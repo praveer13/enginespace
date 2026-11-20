@@ -835,7 +835,7 @@ interface Graded { score: number /* [0,1] */; ok: boolean; provenance: Provenanc
 | `prove` | `prove:<lab>` | the predicted reply and the module's actual reply |
 | `trace-mark` | `trace:<trace>/<task>` | marks, attribution error |
 | `challenge` | `challenge:<lab>.<stage>` | token, seed, nonce, `issuedOn` (not graded) |
-| `receipt` | `receipt:<lab>.<stage>` | `receiptSha256`, challenge token, per-check verdicts with bounds, grader version, environment summary |
+| `receipt` | `receipt:<lab>.<stage>` | `receiptSha256`, challenge token, grader version, environment summary. No `score`, `ok`, `provenance` or per-check verdict since schema version 2: they are worked out when the ledger is read, from the receipt and its newest report (`src/receipts/credit.ts`). A schema-1 event keeps the fields it was written with, and nothing reads them. |
 | `review` | `review:<kc>` | the Today grade |
 | `ack` | `screen:<id>` or `change:<id>` | none |
 
