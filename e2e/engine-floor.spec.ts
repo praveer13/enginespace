@@ -485,6 +485,43 @@ test.describe('after the first run\'s commit', () => {
   }
 })
 
+/*
+ * The filter field leaves the page where it stands (the fourth final check's note: at 1280 x 620 a click in the field moved the page by 11 px
+ * on mini and 39 px on map). The pinned bar lies inside the stage list's box, which ends 450 px above the page's foot (478 on map), so a
+ * screen shorter than the bar and that room (639 px with three rows of chips, 667 with map's) had the page's foot carry the bar up out of the
+ * screen, and a click in the field brought it back by moving the page. From 700 px of height the bar is pinned, and under it nothing is.
+ * Where the bar is pinned the learner clicks from the page's foot; where it is not, from the field in the middle of the screen.
+ */
+test.describe('the filter field', () => {
+  for (const [width, height] of [[1280, 620], [1366, 768], [1440, 900], [1280, 800], [1920, 1080], [1024, 768]] as const) {
+    for (const level of ['mini', 'map']) {
+      test(`a click in the field, a letter and Backspace leave the page where it stood: ${level} at ${width} x ${height}`, async ({ page }) => {
+        await page.setViewportSize({ width, height })
+        await open(page, level)
+        await commit(page, 2)
+        await lay(page, reference(level).slice(0, 1))
+        const field = page.locator('[data-floor-filter]')
+        const pinned = await page.evaluate(() => getComputedStyle(document.querySelector('.es-floor-filters') as Element).position === 'sticky')
+        if (pinned) await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+        else await field.evaluate((element) => element.scrollIntoView({ block: 'center' }))
+        const stood = await settled(page)
+        const box = await field.boundingBox()
+        if (box === null) throw new Error('the filter field has no box')
+        expect(box.y, 'the field is in the screen before the click').toBeGreaterThanOrEqual(0)
+        expect(box.y + box.height, 'the field is in the screen before the click').toBeLessThanOrEqual(height)
+        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+        await expect(field).toBeFocused()
+        expect(await settled(page), 'a click in the field').toBe(stood)
+        await page.keyboard.press('s')
+        await settled(page)
+        await page.keyboard.press('Backspace')
+        expect(await settled(page), 'a letter typed and Backspace').toBe(stood)
+        expect(pinned, 'the bar is pinned from 700 px of height').toBe(height >= 700)
+      })
+    }
+  }
+})
+
 test.describe('the stage list', () => {
   test('filters by process and by typed text, by keyboard', async ({ page }) => {
     await open(page, 'vllm')
