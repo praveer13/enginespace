@@ -67,11 +67,11 @@ describe('the honest synthetic fixtures', () => {
     ])
   })
 
-  test('the replay is credited in full: its grader-attested check is attested, and the thirteen checks of the replay are re-checked here', async () => {
+  test('the replay is credited in full: its grader-attested check is attested, and the thirteen checks of the replay are re-checked here, after the check that its claim names its log', async () => {
     const outcome = await run(replayFixture())
     expect(outcome.verdict).toMatchObject({ provenance: 'gpu-verified', reasons: [] })
     const rechecked = outcome.verdict.checks.filter((check) => check.how === 're-checked').map((check) => check.id)
-    expect(rechecked).toEqual(['B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B12', 'B14', 'P3'])
+    expect(rechecked).toEqual(['claims-backed', 'B1', 'B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B12', 'B14', 'P3'])
     expect(outcome.verdict.checks.filter((check) => check.how === 'attested')).toEqual([expect.objectContaining({ id: 'teacher-forced', verdict: 'attested', required: true })])
   })
 
@@ -105,6 +105,8 @@ describe('the forged bestiary', () => {
       'empty-evidence',
       'faster-gpu-typed',
       'relabelled-trace',
+      'bare-claim',
+      'relabelled-counts',
     ])
     expect(BESTIARY.map((forgery) => forgery.title)).toEqual([
       'an edited p99',
@@ -120,13 +122,15 @@ describe('the forged bestiary', () => {
       'evidence left out and its entry left in: an acceptance artifact with no round',
       "a trace faster than its physics floor, with a faster GPU typed into the receipt's list",
       'a trace faster than its physics floor, with its entry relabelled as a log in the receipt',
+      'a claim under a key that names no artifact of the receipt',
+      'acceptance counts with their entry relabelled as a log in the receipt',
     ])
   })
 
-  test('every forgery has an honest fixture to be made from, and the three kinds of fixture are forged into seven, five and one', () => {
-    expect(forgeriesFor(replayFixture()).map((forgery) => forgery.id)).toEqual(['edited-p99', 'resigned-hash', 'reused-token', 'replayed-receipt', 'closed-loop', 'unknown-grader', 'other-seed'])
+  test('every forgery has an honest fixture to be made from, and the three kinds of fixture are forged into eight, five and two', () => {
+    expect(forgeriesFor(replayFixture()).map((forgery) => forgery.id)).toEqual(['edited-p99', 'resigned-hash', 'reused-token', 'replayed-receipt', 'closed-loop', 'unknown-grader', 'other-seed', 'bare-claim'])
     expect(forgeriesFor(traceFixture()).map((forgery) => forgery.id)).toEqual(['too-fast', 'not-a-partition', 'smaller-model', 'faster-gpu-typed', 'relabelled-trace'])
-    expect(forgeriesFor(proposerFixture()).map((forgery) => forgery.id)).toEqual(['empty-evidence'])
+    expect(forgeriesFor(proposerFixture()).map((forgery) => forgery.id)).toEqual(['empty-evidence', 'relabelled-counts'])
     const covered = new Set([...forgeriesFor(replayFixture()), ...forgeriesFor(traceFixture()), ...forgeriesFor(proposerFixture())].map((forgery) => forgery.id))
     expect(covered.size).toBe(BESTIARY.length)
   })

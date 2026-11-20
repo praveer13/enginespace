@@ -130,6 +130,17 @@ export function claimOf(run: Run, artifactId: string): Record<string, unknown> |
   return isObject(claimed) ? claimed : undefined
 }
 
+/**
+ * The keys of `performance.claimed` that name no artifact of the receipt, in the receipt's order. Each recomputation reads a claim only by an artifact's id, so a key that
+ * is no artifact's is a claim with nothing behind it: nothing is recomputed from it, and the receipts page must not let it read as recomputed.
+ */
+export function bareClaims(run: Run): readonly string[] {
+  const claimed = run.receipt.performance?.claimed
+  if (claimed === undefined) return []
+  const ids = new Set(run.receipt.artifacts.map((entry) => entry.id))
+  return Object.keys(claimed).filter((key) => !ids.has(key))
+}
+
 const show = (value: unknown): string => (typeof value === 'number' ? grouped(value) : cut(JSON.stringify(value) ?? String(value), 40))
 
 /**

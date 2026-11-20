@@ -10,6 +10,7 @@
  *                      browser re-tallies the sequences; the gap is the grader's, since a log-probability is not recomputed without the logits.
  *   acceptance-counts  TR6's raw per-round counts (`enginespace/acceptance@1`): accepted is at most proposed in every round, tokens out are accepted
  *                      plus the bonus token, and a claimed acceptance (`performance.claimed[<id>]`: `{ rounds, proposed, accepted, ratePermille }`) equals the totals.
+ *   claims-backed      every key of `performance.claimed` names an artifact of the receipt: a claim under any other key has nothing behind it and fails.
  *   argmax-bank        TR0's argmax token ids (`enginespace/argmax@1`) at the positions of the owner's pinned bank (W2-T17), which the site holds.
  *
  * A re-check over nothing is not a pass (the review of W2's grader track). An artifact with no sequence, no round or no position, and a bank with no position, say nothing
@@ -21,7 +22,7 @@
  * and arrive with their labs, which define the artifacts they read.
  */
 import { divRound } from '@es/sim/core/int'
-import { claimOf, fail, firstDifference, na, pass } from './checks'
+import { bareClaims, claimOf, fail, firstDifference, na, pass } from './checks'
 import type { ArgmaxBank, Outcome, Run } from './checks'
 import { ACCEPTANCE_FORMAT, ARGMAX_FORMAT, IDENTITY_FORMAT, readAcceptance, readArgmax, readArtifacts, readIdentity } from './evidence'
 import type { ArgmaxLog, Parsed } from './evidence'
@@ -41,11 +42,19 @@ const unreadable = (id: string, all: readonly Parsed<unknown>[]): Outcome | null
   return bad === undefined || bad.ok ? null : fail(id, cut(`the artifact "${bad.id}" could not be read: ${bad.problem}.`, PROBLEM_CHARS))
 }
 
+/** The first artifact of a kind whose receipt entry does not say what its own data says, as the sentence a check fails with; null when none. */
+const relabelledIn = (id: string, all: readonly Parsed<unknown>[]): Outcome | null => {
+  const bad = all.find((parsed) => parsed.ok && parsed.relabelled !== undefined)
+  return bad === undefined || !bad.ok ? null : fail(id, cut(`the artifact "${bad.id}": ${bad.relabelled}.`, PROBLEM_CHARS))
+}
+
 function identityTally(run: Run): Outcome {
   const all = readArtifacts(run, 'outputs', IDENTITY_FORMAT, readIdentity)
   if (all.length === 0) return na(`the receipt carries no sequence comparison (${IDENTITY_FORMAT})`)
   const bad = unreadable('identity-tally', all)
   if (bad !== null) return bad
+  const relabelled = relabelledIn('identity-tally', all)
+  if (relabelled !== null) return relabelled
   for (const parsed of all) {
     if (parsed.ok && parsed.value.first.length === 0) {
       return fail('identity-tally', cut(`the artifact "${parsed.id}" holds no sequence, so no run was compared with another: an identity over no sequence is no identity.`, PROBLEM_CHARS))
@@ -74,6 +83,8 @@ function acceptanceCounts(run: Run): Outcome {
   if (all.length === 0) return na(`the receipt carries no acceptance counts (${ACCEPTANCE_FORMAT})`)
   const bad = unreadable('acceptance-counts', all)
   if (bad !== null) return bad
+  const relabelled = relabelledIn('acceptance-counts', all)
+  if (relabelled !== null) return relabelled
   for (const parsed of all) {
     if (parsed.ok && parsed.value.proposed.length === 0) {
       return fail('acceptance-counts', cut(`the artifact "${parsed.id}" holds no round of speculation, so there is nothing to count: accepted ≤ proposed and tokens out = accepted + bonus say nothing about no round.`, PROBLEM_CHARS))
@@ -120,6 +131,8 @@ function argmaxBank(run: Run): Outcome {
   if (all.length === 0) return na(`the receipt carries no argmax ids (${ARGMAX_FORMAT})`)
   const bad = unreadable('argmax-bank', all)
   if (bad !== null) return bad
+  const relabelled = relabelledIn('argmax-bank', all)
+  if (relabelled !== null) return relabelled
   const parsed = all[0]
   if (!parsed.ok) return fail('argmax-bank', 'the ids could not be read.')
   return argmaxAgainst(run.receipt.stage, parsed.value, run.bank)
@@ -136,7 +149,19 @@ export function keptArgmax(run: Run): ArgmaxLog | undefined {
   return first.value.positions.length <= ARGMAX_KEPT_ROWS ? { positions: [...first.value.positions], ids: [...first.value.ids] } : undefined
 }
 
-const RECHECKS: Readonly<Record<string, (run: Run) => Outcome>> = { 'identity-tally': identityTally, 'acceptance-counts': acceptanceCounts, 'argmax-bank': argmaxBank }
+/** Every key of a performance run's claim names an artifact the receipt carries; a key that names none is a claim with nothing behind it, and the browser recomputes nothing from it. */
+function claimsBacked(run: Run): Outcome {
+  const claimed = run.receipt.performance?.claimed
+  if (claimed === undefined || Object.keys(claimed).length === 0) return na('the receipt claims nothing for a performance run')
+  const bare = bareClaims(run)
+  if (bare.length > 0) {
+    const named = bare.slice(0, 3).map((key) => `"${cut(key, 40)}"`).join(', ')
+    return fail('claims-backed', cut(`${plural(bare.length, 'claim')} (${named}${bare.length > 3 ? ', and more' : ''}) names no artifact of the receipt, so nothing was recomputed from it: a claim with nothing behind it.`, PROBLEM_CHARS))
+  }
+  return pass('claims-backed', `All ${plural(Object.keys(claimed).length, 'claim')} name an artifact of the receipt.`)
+}
+
+const RECHECKS: Readonly<Record<string, (run: Run) => Outcome>> = { 'identity-tally': identityTally, 'acceptance-counts': acceptanceCounts, 'argmax-bank': argmaxBank, 'claims-backed': claimsBacked }
 
 /** The re-checks of this file, by id: ids.ts lists them, and a test holds the two together. */
 export const RECHECKS_BUILT: readonly string[] = Object.keys(RECHECKS)

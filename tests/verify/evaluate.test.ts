@@ -42,13 +42,14 @@ describe('a stage that lists checks as captured', () => {
   test('runs the ones the evidence supports and leaves out the ones it does not: a trace is not a benchmark', async () => {
     const outcome = await verify(traceFixture().bundle, traceFixture().context)
     const ids = outcome.rules.flatMap((rule) => (rule.checks ?? []).map((check) => check.id))
-    expect(ids).toEqual(['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'X4', 'P1'])
+    expect(ids).toEqual(['claims-backed', 'T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'X4', 'P1'])
     expect(ids.some((id) => id.startsWith('B'))).toBe(false)
   })
 
   test('runs rule 7\'s re-checks whatever the stage, when the receipt has their artifact, and a stage that asks for none leaves them out otherwise', async () => {
     const outcome = await verify(replayFixture().bundle, replayFixture().context)
-    expect(outcome.rules[6]).toMatchObject({ rule: 7, id: 'rechecks', status: 'pass', summary: 'No check of this rule applies to the receipt.' })
+    // The only check of rule 7 that the replay has is the one that its claim names its log: it holds no counts, no comparison and no argmax ids.
+    expect(outcome.rules[6]).toMatchObject({ rule: 7, id: 'rechecks', status: 'pass', summary: '1 check, 1 passed and 0 failed.', checks: [{ id: 'claims-backed', status: 'pass' }] })
   })
 })
 
@@ -121,7 +122,7 @@ describe('a stage this version does not list', () => {
     })
     const outcome = await verify(fixture.bundle, fixture.context)
     expect(outcome.rules.slice(0, 6).every((rule) => rule.status === 'pass')).toBe(true)
-    expect(outcome.rules.slice(6).map((rule) => (rule.checks ?? []).length)).toEqual([0, 0, 0])
+    expect(outcome.rules.slice(6).map((rule) => (rule.checks ?? []).length)).toEqual([1, 0, 0])
     expect(outcome.verdict.provenance).toBe('gpu-unverified')
     expect(outcome.verdict.reasons).toEqual(['This version of the site lists no stage called tr8.replay.s9, so it cannot say what the stage requires.'])
   })
@@ -155,12 +156,13 @@ describe('the registry', () => {
     expect([...RECHECKS_BUILT].sort()).toEqual([...RECHECK_IDS].sort())
   })
 
-  test('lists the checks of the three rules in the order they run: rule 7\'s three, then evidence, the benchmark\'s and the trace\'s, then the floors', () => {
+  test('lists the checks of the three rules in the order they run: rule 7\'s four, then evidence, the benchmark\'s and the trace\'s, then the floors', () => {
     expect(EVIDENCE_CHECK_IDS).toEqual(['evidence'])
     expect(CHECK_IDS).toEqual([
       'identity-tally',
       'acceptance-counts',
       'argmax-bank',
+      'claims-backed',
       'evidence',
       'B1',
       'B2',

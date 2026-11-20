@@ -24,6 +24,9 @@
  *                       so P1 still holds it to its floor, and T1 names the mismatch.
  *   empty-evidence      The evidence left out and the entry for it left in: an acceptance artifact with its four columns empty, beside the grader's own check of the identity
  *                       as passed. A count over no round is no count: acceptance-counts (rule 7).
+ *   bare-claim          A claim under a key that names no artifact of the receipt, a faster p99 than the log's, beside the honest claim: nothing is recomputed from it, and claims-backed
+ *                       (rule 7) fails it, so that the receipts page does not show a claim with nothing behind it as recomputed.
+ *   relabelled-counts   The acceptance counts of a proposer, with the entry's kind written as `log` and its format as `json` in the receipt alone: the artifact is read by its own schema tag, and acceptance-counts (rule 7) fails it for the relabelling.
  *
  * What none of them is: a consistent forgery, in which the forger edits the rows and recomputes every summary that follows from them (A§8.6). That one passes,
  * and tests/verify/bestiary.test.ts says so in a test, so that the limit of the design is in the code and not only in the prose.
@@ -374,8 +377,38 @@ const emptyEvidence: Forgery = {
     }),
 }
 
-/** Every forgery: the nine of ASSESSMENT §13 in the order it lists them, then the two that the review of W2's grader track added, and the one that the second review added. */
-export const BESTIARY: readonly Forgery[] = [editedP99, resignedHash, reusedToken, replayedReceipt, closedLoop, tooFast, unknownGrader, notAPartition, otherSeed, smallerModel, emptyEvidence, fasterGpuTyped, relabelledTrace]
+const bareClaim: Forgery = {
+  id: 'bare-claim',
+  title: 'a claim under a key that names no artifact of the receipt',
+  from: 'bench',
+  fails: { rule: 7, check: 'claims-backed' },
+  bound: /1 claim \("p99-better"\) names no artifact of the receipt, so nothing was recomputed from it: a claim with nothing behind it/,
+  forge: (honest) =>
+    edited(honest, (bundle) => {
+      const performance = bundle.receipt.performance
+      if (performance === undefined) throw new Error(`${honest.name} claims nothing`)
+      performance.claimed['p99-better'] = { latency: { ttftFromDue: { p99Us: 1 } } }
+    }),
+}
+
+/** The proposer's counts with the receipt's entry relabelled (the artifact and its hash are untouched): it is read as the counts it is, and fails for the label. */
+const relabelledCounts: Forgery = {
+  id: 'relabelled-counts',
+  title: 'acceptance counts with their entry relabelled as a log in the receipt',
+  from: 'counts',
+  fails: { rule: 7, check: 'acceptance-counts' },
+  bound: /The artifact "[^"]+": the receipt lists it as kind "log", format "json", and its own data says enginespace\/acceptance@1/,
+  forge: (honest) =>
+    edited(honest, (bundle) => {
+      const entry = bundle.receipt.artifacts.find((artifact) => artifact.kind === 'counts')
+      if (entry === undefined) throw new Error(`${honest.name} carries no counts`)
+      entry.kind = 'log'
+      entry.format = 'json'
+    }),
+}
+
+/** Every forgery: the nine of ASSESSMENT §13 in the order it lists them, then the two that the review of W2's grader track added, the one that the second review added, and the two of the check of the claims. */
+export const BESTIARY: readonly Forgery[] = [editedP99, resignedHash, reusedToken, replayedReceipt, closedLoop, tooFast, unknownGrader, notAPartition, otherSeed, smallerModel, emptyEvidence, fasterGpuTyped, relabelledTrace, bareClaim, relabelledCounts]
 
 /** The forgeries that an honest fixture can be forged into: those that read the kind of evidence it carries. */
 export function forgeriesFor(fixture: Fixture): readonly Forgery[] {
