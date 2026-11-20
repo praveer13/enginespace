@@ -14,7 +14,8 @@
  *     because a practice level writes at most practice credit and the front page writes nothing (D-038);
  *   - `planned` names a task that docs/TRACKER.md does not have;
  *   - an item, game level or lab check names no KC, or a KC that is not in the graph (§10.2: "an item, level or check without a KC");
- *   - a lab's row of packages/sim/forge/kcs.ts names a check that the lab does not have.
+ *   - a lab's row of packages/sim/forge/kcs.ts names a check that the lab does not have;
+ *   - a row of packages/verify/stage-kcs.ts names a stage that src/receipts/labs.ts does not list.
  * It warns, and never fails, when a KC still says `planned` although a graded reference exists, and when a KC that four others lean on
  * is not flagged `threshold`.
  *
@@ -33,6 +34,8 @@
  *   lab check    a check of a graded forge lab, for the KCs that `LAB_CHECK_KCS` (packages/sim/forge/kcs.ts) maps it to, read under
  *                `root` as the item families are. A lab is passed on seeds drawn at grade time (ASSESSMENT §4.5), so its checks are
  *                graded. W1-T38 added this source when it removed the placeholders that the labs of W1-T22 and W1-T27 answer.
+ *   stage        a stage of a grader lab, for the KCs that `STAGE_KCS` (packages/verify/stage-kcs.ts) maps it to, named `receipt:<stage>`. The
+ *                table is empty until a lab's task adds its rows, and then a stage is a reference as a forge lab's check is.
  *
  * `checkKc` is the whole gate over what it is given: the graph's text, the references, and the lists it checks names against. The
  * tests call it with a graph held in memory; the command line gives it this checkout.
@@ -193,6 +196,47 @@ export async function labReferences(root: string): Promise<LabSource> {
       const named = Array.isArray(kcs) ? kcs.filter((kc): kc is string => typeof kc === 'string') : []
       references.push({ kind: 'check', name: `lab:${lab}/${check}`, file: LABS_FILE, kcs: named, graded: true })
     }
+  }
+  return { references, diagnostics, note: null }
+}
+
+/** Where the grader labs' stages map to KCs, and where the stages are listed. */
+export const STAGES_FILE = 'packages/verify/stage-kcs.ts'
+export const STAGE_LIST_FILE = 'src/receipts/labs.ts'
+
+/**
+ * The stages of the grader labs under `root`, as references: one for each stage that `STAGE_KCS` (STAGES_FILE) maps to KCs, named
+ * `receipt:<stage>`. A row for a stage that STAGE_LIST_FILE does not list fails, so a renamed stage cannot leave its KCs behind. A stage
+ * is graded when its receipt is credited (the event is `ok`), so it is a graded reference.
+ */
+export async function stageReferences(root: string): Promise<LabSource> {
+  if (!existsSync(path.join(root, STAGES_FILE))) {
+    return { references: [], diagnostics: [], note: `stages: ${STAGES_FILE} does not exist, so no stage names a KC` }
+  }
+  const fail = (code: string, message: string, file = STAGES_FILE): LabSource => ({ references: [], diagnostics: [problem('kc', 'error', code, file, 1, message)], note: null })
+  const load = async (file: string, name: string): Promise<{ value: unknown } | { error: string }> => {
+    try {
+      return { value: ((await import(pathToFileURL(path.join(root, file)).href)) as Record<string, unknown>)[name] }
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error) }
+    }
+  }
+  const table = await load(STAGES_FILE, 'STAGE_KCS')
+  if ('error' in table) return fail('stage-import', `cannot be imported to read the stages' KCs: ${table.error}`)
+  if (!isRecord(table.value)) return fail('stage-table', 'exports no STAGE_KCS: a record of stage ids, each with the KCs a receipt of the stage earns')
+  const listed = await load(STAGE_LIST_FILE, 'RECEIPT_STAGES')
+  if ('error' in listed) return fail('stage-list-import', `${STAGE_LIST_FILE} cannot be imported to read the stages: ${listed.error}`, STAGE_LIST_FILE)
+  if (!Array.isArray(listed.value)) return fail('stage-list', `${STAGE_LIST_FILE} exports no RECEIPT_STAGES list`, STAGE_LIST_FILE)
+  const ids = new Set(listed.value.map((stage) => (isRecord(stage) ? stage.id : undefined)))
+  const references: Reference[] = []
+  const diagnostics: Diagnostic[] = []
+  for (const [stage, kcs] of Object.entries(table.value)) {
+    if (!ids.has(stage)) {
+      diagnostics.push(problem('kc', 'error', 'stage-unknown', STAGES_FILE, 1, `receipt:${stage} maps a stage to KCs, and ${STAGE_LIST_FILE} does not list that stage`))
+      continue
+    }
+    const named = Array.isArray(kcs) ? kcs.filter((kc): kc is string => typeof kc === 'string') : []
+    references.push({ kind: 'check', name: `receipt:${stage}`, file: STAGES_FILE, kcs: named, graded: true })
   }
   return { references, diagnostics, note: null }
 }
@@ -452,16 +496,17 @@ export async function main(argv: readonly string[]): Promise<number> {
   const snapshot = readKernelspace(root)
   const items = await itemReferences(root)
   const labs = await labReferences(root)
+  const stages = await stageReferences(root)
   const result = checkKc({
     text,
-    references: [...gameReferences(GAMES.games), ...items.references, ...labs.references],
+    references: [...gameReferences(GAMES.games), ...items.references, ...labs.references, ...stages.references],
     modules: courseModules(root),
     tasks: trackerTasks(root),
     kernelspace: snapshot.snapshot,
     final,
   })
 
-  const diagnostics = [...result.diagnostics, ...snapshot.diagnostics, ...items.diagnostics, ...labs.diagnostics]
+  const diagnostics = [...result.diagnostics, ...snapshot.diagnostics, ...items.diagnostics, ...labs.diagnostics, ...stages.diagnostics]
   if (snapshot.absent && (result.stats?.kernelspaceKcs ?? 0) > 0) {
     diagnostics.push(problem('kc', 'error', 'ks-snapshot', SNAPSHOT_FILE, 1, `${SNAPSHOT_FILE} does not exist, and the graph has ks: edges: bun scripts/kc/kernelspace.ts print > ${SNAPSHOT_FILE} writes it`))
   }
@@ -471,6 +516,7 @@ export async function main(argv: readonly string[]): Promise<number> {
     ...GAMES.games.filter((game) => !game.levels.some((level) => level.graded)).map((game) => `games: ${game.id} has no graded level yet, so it cannot earn its KCs`),
     ...(items.note === null ? [] : [items.note]),
     ...(labs.note === null ? [] : [labs.note]),
+    ...(stages.note === null ? [] : [stages.note]),
   ]
   for (const note of notes) console.log(`note: ${note}`)
 

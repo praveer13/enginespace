@@ -10,7 +10,7 @@
  *   item:gen/<family>/<v>       the KCs of that variant of the family (A§8.2: a variant assesses its own, as the item it makes carries
  *                               them in `Item.kcs`), the same rule as Today's (src/items/today/kcs.ts)
  *   lab:<lab>, prove:<lab>      the KCs the lab's checks assess
- *   receipt:<stage>             the KCs of the stage's lab
+ *   receipt:<stage>             the KCs the stage's row names (packages/verify/stage-kcs.ts), then the KCs of its lab
  *   predict:<lesson>#<id>       the KCs the lesson's prediction names, from the exact refs the compiler writes (map.json)
  *   trace:, challenge:, screen:, change:   none: a trace belongs to every module that reads it, and a challenge and an
  *                                          acknowledgement are not graded
@@ -28,6 +28,8 @@ export interface KcSources {
   variant(family: string, variant: string): readonly string[]
   /** The KCs a lab's checks assess, for a forge lab (`hybrid-kv`) and a GPU or local lab (`tr8.replay`) alike. */
   lab(lab: string): readonly string[]
+  /** The KCs a receipt of a stage earns, by the stage's own row (`tr0.forward.s2`). The stage's lab's KCs follow them. */
+  stage?(stage: string): readonly string[]
   /** The exact refs that content assigns to KCs: a prediction's. */
   refs: Readonly<Record<string, readonly string[]>>
 }
@@ -51,7 +53,7 @@ export function kcsOfRef(ref: string, sources: KcSources): readonly string[] {
     case 'prove':
       return unique(sources.lab(parsed.lab))
     case 'receipt':
-      return unique(sources.lab(labOfStage(parsed.stage)))
+      return unique([...(sources.stage?.(parsed.stage) ?? []), ...sources.lab(labOfStage(parsed.stage))])
     case 'predict':
     case 'trace':
     case 'challenge':
