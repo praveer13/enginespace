@@ -281,14 +281,14 @@ test.describe('a phone\'s first run: no decision control shows before the coach 
 test.describe('a phone\'s first run with a ledger that does not answer', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
-  test('Pool, "one-group": a dock control is on the screen and enabled after 3 s', async ({ page }) => {
+  test('Pool, "one-group": a dock control comes on the screen and is enabled', async ({ page }) => {
     await page.addInitScript(() => {
       IDBFactory.prototype.open = () => ({}) as IDBOpenDBRequest
     })
     await openLevel(page, 'pool', 'one-group')
-    await page.waitForTimeout(3000)
     const controls = page.locator('section[data-game="pool"] [data-dock-main] button:not(:disabled)')
     await expect(controls.first()).toBeVisible()
+    await expect(controls.first()).toBeEnabled()
   })
 })
 
