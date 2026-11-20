@@ -10,6 +10,7 @@ import path from 'node:path'
 import type { Page } from '@playwright/test'
 import type { MapLesson } from '@es/schema/compiled'
 import { nextStep } from '../../src/progress/next'
+import { pointerOnPage } from '../../src/settings/store'
 import type { Bookmark, Step } from '../../src/progress/next'
 import { ledgerEvents } from './lessons'
 import { bannedOn, readable } from './copy-scan'
@@ -87,10 +88,12 @@ export async function wayOnProblems(page: Page, step: Step, required = true): Pr
   const problems: string[] = []
   const header = controls.find((control) => control.where.startsWith('a.es-header__next'))
   if (header === undefined && required) problems.push('the header has no Continue')
+  // On the lesson the answer points at, the header's Continue says "Continue: this lesson" and not "Start" (pointerOnPage).
+  const here = pointerOnPage(step, new URL(page.url()).pathname)
   for (const control of controls) {
     if (control.href !== step.href) problems.push(`${control.where} "${control.name}" goes to ${control.href}, and nextStep says ${step.href}`)
     // The words of a ContinueLink are the answer's, whole; a phone's header shows the first word alone and keeps the full label as its name.
-    if (control.continueLink && control.name !== step.label) problems.push(`${control.where} says "${control.name}", and nextStep says "${step.label}"`)
+    if (control.continueLink && control.name !== step.label && !(control.where.startsWith('a.es-header__next') && control.name === here.label)) problems.push(`${control.where} says "${control.name}", and nextStep says "${step.label}"`)
   }
   return problems
 }

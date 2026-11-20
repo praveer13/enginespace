@@ -60,11 +60,14 @@ describe('the first-visit intro', () => {
 })
 
 describe('the course, from the index', () => {
-  test('the hours by lane add up to the course\'s hours', () => {
+  test('the hours by lane add up to the hours of the published modules, and the plan is the whole course\'s', () => {
     const hours = courseHours(index)
-    expect(hours?.total).toBe(index.totalHours)
-    expect(hours?.lanes.map((lane) => lane.words)).toEqual(['browser', 'laptop', 'GPU'])
-    expect(hours?.lanes.reduce((sum, lane) => sum + lane.hours, 0)).toBeCloseTo(index.totalHours, 6)
+    const published = index.modules.filter((module) => module.published)
+    expect(hours?.total).toBe(published.reduce((sum, module) => sum + module.hours, 0))
+    expect(hours?.planned).toBe(index.totalHours)
+    const lanesOf = (lane: 'B' | 'L' | 'F') => published.reduce((sum, module) => sum + (module.hours_by_lane[lane] ?? 0), 0)
+    expect(hours?.lanes.map((lane) => lane.words)).toEqual((['B', 'L', 'F'] as const).filter((lane) => lanesOf(lane) > 0).map((lane) => ({ B: 'browser', L: 'laptop', F: 'GPU' })[lane]))
+    expect(hours?.lanes.reduce((sum, lane) => sum + lane.hours, 0)).toBeCloseTo(hours?.total ?? -1, 6)
     expect(courseHours(null)).toBeNull()
   })
 

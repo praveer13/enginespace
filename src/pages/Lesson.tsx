@@ -330,6 +330,9 @@ export function LessonView({ lesson, module, lessons: rows, claims, today, map =
   const testId = sections.test.heading === null ? 'test-title' : (env.headings.get(sections.test.heading) ?? 'test-title')
   const questions = sections.test.questions.reduce((sum, at) => sum + (lesson.blocks[at] as Of<'item'>).count, 0)
   const testName = testLabel(questions, sections.test.graded.length)
+  // What the rail says under "Test": the count of questions, or the graded level's name.
+  const testCount = testName === 'Test' ? undefined : testName.replace(/^Test · /, '')
+  const testMeta = [questions > 0 ? '' : (testCount ?? '').replace(/^./, (first) => first.toUpperCase()), reading?.testWords ?? ''].filter((part) => part !== '').join('. ')
   const toTest = questions > 0 ? `Go to the ${questions === 1 ? 'question' : `${questions} questions`}` : sections.test.graded.length > 0 ? 'Go to the graded level' : 'Go to the Test'
 
   // Where each game block sits, in words, for a guess that waits for it further down.
@@ -360,9 +363,12 @@ export function LessonView({ lesson, module, lessons: rows, claims, today, map =
   const testWords = piecesWords(sections.test.pieces)
   const runWords = piecesWords(sections.run?.pieces ?? []) + piecesWords(sections.intro)
   const total = runWords + partWords.reduce((a, b) => a + b, 0) + testWords
-  const passedTo = here === 'test' || here === 'keep' ? sections.read.length : currentPart
+  // A reader who jumps to the Test (its button, or a link) has read nothing in between: a part counts as done only when the reader has been
+  // through it, so the time left never falls to "1 min" on a lesson that nobody has read.
+  const passedTo = currentPart
+  const pastRun = here !== 'run' && (sections.run === null || seen.has('run'))
   const ahead =
-    (reading?.runDone === true || passedTo >= 0 ? 0 : runWords) +
+    (reading?.runDone === true || pastRun ? 0 : runWords) +
     partWords.reduce((sum, words, at) => (at < passedTo || seen.has(partId(at)) ? sum : sum + words), 0) +
     (reading?.passed === true ? 0 : testWords)
   const counted = total === 0 ? lesson.minutes : Math.max(1, Math.round((lesson.minutes * ahead) / total))
@@ -398,7 +404,7 @@ export function LessonView({ lesson, module, lessons: rows, claims, today, map =
     }
   })
   rail.push({ id: 'read', href: '#read', title: numbered(rail.length + 1, 'Read'), answers: reading?.readAnswers, parts: readParts })
-  rail.push({ id: 'test', href: `#${testId}`, title: numbered(rail.length + 1, testName), state: reading?.testWords ?? undefined })
+  rail.push({ id: 'test', href: `#${testId}`, title: numbered(rail.length + 1, 'Test'), state: reading?.testWords ?? testCount })
   rail.push({ id: 'keep', href: '#keep', title: numbered(rail.length + 1, 'Keep') })
 
   const summary = currentPart >= 0 ? `${name} · Read ${currentPart + 1} of ${sections.read.length}` : `${name} · ${here === 'run' ? 'Run' : here === 'test' ? 'Test' : here === 'keep' ? 'Keep' : 'Read'}`
@@ -524,11 +530,8 @@ export function LessonView({ lesson, module, lessons: rows, claims, today, map =
             <h2 id={testId} className="es-lesson__part-title">
               Test
             </h2>
-            <p className="es-lesson__meta">
-              {testName.replace(/^Test · /, '').replace(/^./, (first) => first.toUpperCase())}
-              {questions > 0 ? ', on new numbers' : ''}
-              {reading?.testWords ? `. ${reading.testWords}` : ''}
-            </p>
+            {/* The count and the pass rule are said once each: the rail names the count, and the rule stands above the questions. Here, only what the learner has done. */}
+            {testMeta === '' ? null : <p className="es-lesson__meta">{testMeta}</p>}
             <div className="es-lesson__prose">
               <Pieces pieces={sections.test.pieces} {...pieceProps} />
             </div>

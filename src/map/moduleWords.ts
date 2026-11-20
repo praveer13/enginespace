@@ -1,5 +1,5 @@
-import type { CompiledBlock, ProseFlow } from '@es/schema'
-import { plainText, sections } from '@/content/render/model'
+import type { CompiledBlock, ProseFlow, ProseInline } from '@es/schema'
+import { kernelspaceLabel, kernelspaceTitle, plainText, sections } from '@/content/render/model'
 
 /*
  * What a module page says about a module that its file does not say in one place (REDESIGN section 3.3), as pure functions: the two
@@ -9,13 +9,30 @@ import { plainText, sections } from '@/content/render/model'
 /** Splits at a full stop, a question mark or an exclamation mark that is followed by a space and a capital, a digit or a quote. */
 const SENTENCE_END = /(?<=[.!?])\s+(?=[A-Z0-9"“`])/
 
+/**
+ * A line as the sentences under the title say it: a kernelspace lesson is named by its title, "“The Production Stack” in kernelspace",
+ * and not by the ref that the file writes it with. Everything else reads as `plainText` reads it.
+ */
+export function sentenceText(nodes: readonly ProseInline[]): string {
+  let out = ''
+  for (const node of nodes) {
+    if (node.type !== 'ks') {
+      out += plainText([node])
+      continue
+    }
+    const title = kernelspaceTitle(node.ref, true)
+    out += title === null ? kernelspaceLabel(node.ref) : `“${title}” in kernelspace`
+  }
+  return out
+}
+
 /** The module's first two sentences: the first paragraph of its prose, which says what the module is and why it is there. */
 export function twoSentences(blocks: readonly CompiledBlock[]): string {
   for (const block of blocks) {
     if (block.type !== 'prose') continue
     const first = block.body.find((flow) => flow.type !== 'heading')
     if (first === undefined || first.type !== 'paragraph') return ''
-    const text = plainText(first.children).replace(/\s+/g, ' ').trim()
+    const text = sentenceText(first.children).replace(/\s+/g, ' ').trim()
     return text.split(SENTENCE_END).slice(0, 2).join(' ')
   }
   return ''
@@ -67,3 +84,10 @@ export function referenceParts(blocks: readonly CompiledBlock[]): Part[] {
 
 /** True when the file already says its credit and its hours, so the page does not say them twice. */
 export const saysHours = (parts: readonly Part[]): boolean => parts.some((part) => part.kind === 'prose' && CREDIT.test(part.title))
+
+/** The heading over a model's card: "What the step loop leaves out", "What a request's lifecycle leaves out". The title's first word is lowered where it stands inside the sentence. */
+export function leavesOut(title: string | undefined): string {
+  // An article, or a plain capitalised word ("Prefix caching"), is lowered where the title stands inside the sentence; "KV pages" and "vLLM" are not.
+  const name = title === undefined ? 'the model' : title.replace(/^(?:A|An|[A-Z][a-z]+)(?= )/, (word) => word.toLowerCase())
+  return `What ${name} leaves out`
+}

@@ -292,7 +292,9 @@ test.describe('the lesson template, at 1440 x 900', () => {
     // The rail: a nav with an ordered list, the current entry marked as the step.
     const rail = page.getByRole('navigation', { name: 'This lesson' })
     await expect(rail.locator('[aria-current="step"]')).toHaveCount(1)
-    await expect(rail).toContainText('Test · 3 questions')
+    // The entry is one word, with its count under it, so that it never wraps and moves the entries below.
+    await expect(rail.locator('.es-srail__title', { hasText: /^3\s*Test$/ })).toHaveCount(1)
+    await expect(rail.locator('.es-srail__state', { hasText: '3 questions' })).toHaveCount(1)
 
     const walk = walkOf(page)
     const inGame = () => page.evaluate(() => document.activeElement?.closest('[data-game]') != null)

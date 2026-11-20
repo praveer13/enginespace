@@ -10,6 +10,7 @@ import type { ReactNode } from 'react'
 import type { Claim, CompiledBlock, CompiledKeptCard, IndexLesson, ProseFlow, ProseInline } from '@es/schema'
 import type { ReadoutUnit } from '@/design/components/Readout'
 import { LAB_TITLES } from '@/forge/titles'
+import { KERNELSPACE_TITLES } from './ksTitles'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* What every component of the renderer is handed                                                                     */
@@ -32,6 +33,8 @@ export interface RenderEnv {
    * from here, so a page carries the code of the one it draws and not the other's.
    */
   claim?: (id: string, inSentence?: boolean) => ReactNode
+  /** A kernelspace lesson in a sentence is named by its title, "“The Production Stack” in kernelspace", and not by its place in kernelspace's numbering. */
+  ksTitles?: boolean
 }
 
 /** The environment for a page: the claims and the day, and an id for every heading in `blocks`. */
@@ -241,6 +244,17 @@ export function kernelspaceUrl(ref: string): string | null {
 
 /** What a kernelspace ref reads as on the page: `kernelspace T5.L7`. */
 export const kernelspaceLabel = (ref: string): string => `kernelspace ${ref.replace(/^ks:/, '')}`
+
+/**
+ * A kernelspace lesson's title, or null for a ref with none (a KC, or a lesson the table does not hold). `short` cuts a subtitle after
+ * a colon, for a title that stands inside a sentence: "The Production Stack" for "The Production Stack: vLLM, SGLang, TRT-LLM, Dynamo".
+ */
+export function kernelspaceTitle(ref: string, short = false): string | null {
+  const key = ref.replace(/^ks:/, '')
+  if (!Object.hasOwn(KERNELSPACE_TITLES, key)) return null
+  const title = KERNELSPACE_TITLES[key]
+  return short ? title.split(':')[0] : title
+}
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Lanes, lessons                                                                                                     */

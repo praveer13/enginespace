@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { ProseFlow, ProseInline } from '@es/schema'
 import { TextLink } from '@/design/components/TextLink'
-import { kernelspaceLabel, kernelspaceUrl, plainText, type RenderEnv } from './model'
+import { kernelspaceLabel, kernelspaceTitle, kernelspaceUrl, plainText, type RenderEnv } from './model'
 import { TagChip } from './TagChip'
 
 /*
@@ -203,6 +203,13 @@ function Span({ node, env }: { node: ProseInline; env: RenderEnv }) {
     case 'ks': {
       // A kernelspace lesson links out to kernelspace's site. A KC has no page there, so it is named and not linked.
       const url = kernelspaceUrl(node.ref)
+      const title = env.ksTitles === true ? kernelspaceTitle(node.ref, true) : null
+      if (title !== null)
+        return (
+          <span className="es-ks">
+            {url === null ? `“${title}”` : <TextLink href={url}>{`“${title}”`}</TextLink>} in kernelspace
+          </span>
+        )
       return (
         <span className="es-ks">
           {url === null ? kernelspaceLabel(node.ref) : <TextLink href={url}>{kernelspaceLabel(node.ref)}</TextLink>}

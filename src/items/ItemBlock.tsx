@@ -94,9 +94,7 @@ export function ItemBlock({ block, scope, families, quiet = false, practice = fa
   if (run === null) {
     return (
       <Frame scope={scope} family={block.family} phase="idle" stub={quiet ? <Button onClick={start}>Start questions</Button> : <PrimaryButton onClick={start}>Start questions</PrimaryButton>}>
-        <p>
-          {block.count} {block.count === 1 ? 'question' : 'questions'} on fresh numbers, drawn when you start. Answer, say how sure you are, and read why. Nothing is timed.
-        </p>
+        <p>The numbers are drawn when you start. Answer, say how sure you are, and read why. Nothing is timed.</p>
         <p className="es-c-line">
           <SheetLine qty={`${block.count}x`} note={LEVEL_NAMES[level]}>
             {variantTitle === undefined ? gen.title : `${gen.title}: ${variantTitle}`}
