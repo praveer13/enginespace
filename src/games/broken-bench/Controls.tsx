@@ -111,6 +111,10 @@ function ReportForm({ run }: { run: BenchRun }) {
         event.preventDefault()
         file()
       }}
+      // A key brings a field into view by the scroll-margin on it; a pointer's focus does not scroll in Chromium, so a click on the sliver of a field that shows would leave it under the readout. Bring it in the same way.
+      onFocus={(event) => {
+        if (event.target instanceof HTMLInputElement && event.target.type !== 'radio') event.target.scrollIntoView({ block: 'nearest' })
+      }}
       // Three fields and a button that is not a submit, so a browser does not submit on Enter by itself: Enter in a field files the report when it can be filed.
       onKeyDown={(event) => {
         if (event.key !== 'Enter' || !(event.target instanceof HTMLInputElement) || event.target.type === 'radio') return
