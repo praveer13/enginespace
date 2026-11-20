@@ -9,6 +9,11 @@ outcomes:
   - Say which of five mechanisms joins two stages of a request's path, and which stage waits for the GPU
   - Find where a box of an older engine post lives in the pinned code, and say which of the post's statements have gone stale
   - Name the states of a vLLM request, and trace an abort from the client to the engine core and on to the freed blocks
+outcome_kcs:
+  - ['tr1.five-mechanisms', 'tr1.small-engine-anatomy', 'tr1.phases-vs-one-budget', 'tr1.vllm-lifecycle', 'tr1.sglang-lifecycle']
+  - ['tr1.five-mechanisms']
+  - ['tr1.read-at-the-pin']
+  - ['tr1.request-states', 'tr1.abort-path']
 artifacts:
   - id: engine-floor
     lane: B

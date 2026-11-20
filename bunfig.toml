@@ -5,3 +5,5 @@ root = "./tests"
 # changed nothing in a probe [measured 2026-11-09, Bun 1.3.14]. Bun's default is 5 s, and on a GitHub runner the suite runs about half as
 # fast as on the laptop: the deploy of 9b7736c failed on two tests that took 5.16 and 5.28 s there and pass well inside 5 s here, and 29
 # tests took over 4 s on that runner [measured 2026-11-09, deploy.yml's run on main]. A test that needs longer still sets its own limit.
+# tests/ci/temp-preload.ts removes the scratch projects that tempDir made, once when each run ends (W2b-T21).
+preload = ["./tests/ci/temp-preload.ts"]

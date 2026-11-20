@@ -96,6 +96,11 @@ export const moduleFrontMatterSchema = z
     /** The hours split by lane. When given, they add up to `hours`. */
     hours_by_lane: z.strictObject({ B: hours.optional(), L: hours.optional(), F: hours.optional() }).optional(),
     outcomes: z.array(nonBlank).min(1),
+    /**
+     * The KCs each outcome rests on, one list for each outcome in the order of `outcomes`. The module page draws a tick beside an outcome
+     * when every KC in its list is passed. An empty list is an outcome that no question grades (a lesson of reading): it has no tick to gain.
+     */
+    outcome_kcs: z.array(z.array(kcIdSchema)),
     artifacts: z.array(artifactSchema).min(1),
     /** The notional-machine cards the module uses, by card id (`content/cards/<id>.md`). */
     worlds: uniqueList(slugSchema),
@@ -113,6 +118,9 @@ export const moduleFrontMatterSchema = z
       if (Math.abs(total - module.hours) > 1e-9) {
         ctx.addIssue({ code: 'custom', message: `the lanes add up to ${total} hours, and hours says ${module.hours}`, path: ['hours_by_lane'] })
       }
+    }
+    if (module.outcome_kcs.length !== module.outcomes.length) {
+      ctx.addIssue({ code: 'custom', message: `outcome_kcs has ${module.outcome_kcs.length} lists, and the module has ${module.outcomes.length} outcomes: one list each, empty for an outcome no question grades`, path: ['outcome_kcs'] })
     }
     const seen = new Set<string>()
     module.artifacts.forEach((artifact, index) => {
@@ -193,6 +201,8 @@ const itemShape = {
   family: familyIdSchema,
   level: z.int().min(0).max(3),
   count: z.int().positive(),
+  /** Optional: the one variant of the family the block draws, so a checkpoint can ask the kind of question its part taught. Without it the seed picks. */
+  variant: slugSchema.optional(),
 }
 
 /** `game` embeds `src/games/<id>` at one level and writes `play` events. */
@@ -299,22 +309,52 @@ export const CARD_PARTS = ['Models', 'Ignores', 'Calibrated against'] as const
 export type CardPart = (typeof CARD_PARTS)[number]
 
 /**
- * The front matter of a card kept in its own file, `content/cards/<id>.md` (A§4.3, A§5.9). The file's name is the card's id.
- * Like a lesson's, the card's `rev` is added by the compiler, so an authored one is refused.
+ * The front matter of a notional-machine card kept in its own file, `content/cards/<id>.md` (A§4.3, A§5.9). The file's name is the
+ * card's id. Like a lesson's, the card's `rev` is added by the compiler, so an authored one is refused.
  *
- * Only the notional-machine card has a format so far. The In-production and Build-this cards arrive with W1-T13 and the change
- * card with W3-T06, and each brings its own front matter and parts, so a file of another kind is refused until then.
+ * The In-production and Build-this cards have front matters of their own, below, and the change card arrives with W3-T06, so a file of
+ * that kind is refused until then.
  */
 export const cardFrontMatterSchema = z.strictObject({
   id: slugSchema,
   kind: z.literal('notional-machine', {
-    error: 'must be notional-machine: the other cards kept in a file arrive with W1-T13 (In-production, Build-this) and W3-T06 (change)',
+    error: 'must be notional-machine, in-production or build-this: the change card arrives with W3-T06',
   }),
   title: nonBlank,
   /** The model in `packages/sim` that the card describes, by its module name: `steploop`, `kv`, `spec` (A§5.2). */
   world: slugSchema,
   status,
 })
+
+/**
+ * The engines an In-production card may speak of, in the order their parts come. A card has one part or both: the flags and the source
+ * lines of the engine as the course pins it, each as a list whose every item cites a claim.
+ */
+export const ENGINE_PARTS = ['vLLM', 'SGLang'] as const
+export type EnginePart = (typeof ENGINE_PARTS)[number]
+
+/** The front matter of an In-production card, shown in a lesson as "In vLLM today" (REDESIGN §2.5). `title` names the lever the card is about. */
+export const inProductionFrontMatterSchema = z.strictObject({
+  id: slugSchema,
+  kind: z.literal('in-production'),
+  title: nonBlank,
+  status,
+})
+
+/**
+ * The front matter of a Build-this card, shown in Keep as the Build row (REDESIGN §2.5): the lab the lesson leads to and the stages this
+ * lesson prepares. `title` names what the learner builds. The words of the file say what the lab asks and what it needs.
+ */
+export const buildThisFrontMatterSchema = z.strictObject({
+  id: slugSchema,
+  kind: z.literal('build-this'),
+  title: nonBlank,
+  lab: labIdSchema,
+  stages: uniqueList(z.string().regex(/^s[0-9]+$/, 'must be a stage such as s1')).min(1),
+  status,
+})
+export type InProductionFrontMatter = z.infer<typeof inProductionFrontMatterSchema>
+export type BuildThisFrontMatter = z.infer<typeof buildThisFrontMatterSchema>
 
 /** The block types: prose, which is the Markdown between directives, and the seven directives. The cap is eight (A§4.3). */
 export const DIRECTIVES = ['predict', 'item', 'game', 'trace', 'lab', 'card', 'figure'] as const

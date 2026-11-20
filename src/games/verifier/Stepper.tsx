@@ -34,6 +34,9 @@ export interface StepperProps {
   onChange: (next: number) => void
   onEnter?: () => void
   onArrow?: (direction: -1 | 1) => void
+  /** The field gained or lost focus (the dock holds a first-move ring on a field while it is being typed in). */
+  onFieldFocus?: () => void
+  onFieldBlur?: () => void
   layout?: 'column' | 'row'
   inputRef?: Ref<HTMLInputElement>
   /** Marks the field the controls move focus to when this step begins. */
@@ -43,7 +46,7 @@ export interface StepperProps {
   className?: string
 }
 
-export function Stepper({ id, label, name, moreLabel, lessLabel, value, min, max, big = 8, onChange, onEnter, onArrow, layout = 'column', inputRef, autoFocusTarget = false, dish, className }: StepperProps) {
+export function Stepper({ id, label, name, moreLabel, lessLabel, value, min, max, big = 8, onChange, onEnter, onArrow, onFieldFocus, onFieldBlur, layout = 'column', inputRef, autoFocusTarget = false, dish, className }: StepperProps) {
   const [draft, setDraft] = useState<string | null>(null)
   const clamp = (n: number) => Math.max(min, Math.min(max, n))
   /** A step from the number, or from none for a field that is empty. What was typed gives way to the number the step makes. */
@@ -92,8 +95,14 @@ export function Stepper({ id, label, name, moreLabel, lessLabel, value, min, max
           value={shown}
           data-vf-autofocus={autoFocusTarget || undefined}
           data-vf-dish={dish}
-          onFocus={(event) => event.currentTarget.select()}
-          onBlur={() => setDraft(null)}
+          onFocus={(event) => {
+            event.currentTarget.select()
+            onFieldFocus?.()
+          }}
+          onBlur={() => {
+            setDraft(null)
+            onFieldBlur?.()
+          }}
           onKeyDown={onKeyDown}
           onChange={(event) => {
             const text = event.target.value

@@ -9,7 +9,9 @@
  *   - a 2D view, a mirror, a debrief and controls, as the files `src/games/<id>/{View2D,Mirror,Debrief,Controls}.tsx`, and a
  *     `Game.tsx` that renders each of them. A 3D game also has `Scene3D.tsx`, which `Game.tsx` reaches only through `import()`
  *     (the scene is its own chunk, §6.10); a game without 3D has none;
- *   - an entry in the component registry (`src/games/registry.ts`) and the reverse: the two registries list the same ids;
+ *   - an entry in the component registry (`src/games/registry.ts`) and the reverse: the two registries list the same ids. The component
+ *     registry also has a loader of each game's record, which the game's page loads instead of every record; the loaders list the same
+ *     ids again, and each brings the very record that `GAMES` holds for its id;
  *   - a session that keeps the contract (GAMES.md §2.5): on each level's pinned practice seed it builds, starts unfinished, and is
  *     in band; the reference finishes, passes its own grade, and gives the same state twice; and over the first 400 seeds [estimated,
  *     the count of GAMES.md §3's prototype] at least 20% are in band [estimated floor, kernelspace's EPLB figure] (GAMES.md §2.1).
@@ -47,7 +49,8 @@ import ts from 'typescript'
 import { GAMES, COMMON_KEYS, keyProblems, stateHash } from '../packages/play'
 import type { AnySession, GameEntry } from '../packages/play'
 import { claimIdSchema, gameIdSchema, kcIdSchema, levelIdSchema, moduleIdSchema, slugSchema } from '../packages/schema/refs'
-import { GAME_COMPONENTS } from '../src/games/registry'
+import { GAME_COMPONENTS, GAME_RECORDS } from '../src/games/registry'
+import type { RecordLoader } from '../src/games/registry'
 import { compileContent } from './content/build.ts'
 import { BLIND_PROBES, MIN_BLIND_SAMPLE, checkBlind, measureAside, measuredBy } from './games/blind.ts'
 import type { BlindCheck, BlindMeasure } from './games/blind.ts'
@@ -77,6 +80,12 @@ export interface GateInput {
   games: readonly GameEntry[]
   /** The ids in `src/games/registry.ts`. */
   componentIds: readonly string[]
+  /**
+   * The loaders of the games' records in `src/games/registry.ts`, which `/play/:game` loads one of. Given, they list the same ids as the
+   * games and the components, and each brings the record that `games` holds for its id. The command line always gives them; a test of
+   * another part of the gate may leave them out.
+   */
+  records?: Readonly<Record<string, RecordLoader>>
   files: Files
   world: World
   candidates?: number
@@ -345,6 +354,22 @@ export function checkSession(entry: GameEntry, session: AnySession, candidates =
   return { problems, lines }
 }
 
+/**
+ * What is wrong with the loader of a game's record (src/games/registry.ts): there is none, it fails, or it brings a record other than the
+ * one the registry holds, so that the game's page would show another game's name, keys or levels.
+ */
+export async function checkRecordLoader(entry: GameEntry, records: Readonly<Record<string, RecordLoader>>): Promise<string[]> {
+  if (!Object.hasOwn(records, entry.id)) return ['it has no loader of its record in src/games/registry.ts (GAME_RECORDS)']
+  try {
+    const loaded = await records[entry.id]()
+    if (loaded === entry) return []
+    const id = typeof loaded?.id === 'string' ? `"${loaded.id}"` : 'no id'
+    return [`the loader of its record in src/games/registry.ts brings a record with ${id} that is not the one packages/play/registry.ts lists`]
+  } catch (error) {
+    return [`the loader of its record in src/games/registry.ts failed: ${error instanceof Error ? error.message : String(error)}`]
+  }
+}
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The gate                                                                                                           */
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -362,6 +387,11 @@ export async function checkGames(input: GateInput): Promise<Report> {
     seen.add(game.id)
   }
   for (const id of componentIds) if (!seen.has(id)) add(null, [`src/games/registry.ts has a component for "${id}", which packages/play/registry.ts does not list`])
+  const { records } = input
+  if (records !== undefined) {
+    for (const id of Object.keys(records)) if (!seen.has(id)) add(null, [`src/games/registry.ts has a record loader for "${id}", which packages/play/registry.ts does not list`])
+    for (const id of componentIds) if (!Object.hasOwn(records, id)) add(null, [`src/games/registry.ts has a component for "${id}" and no loader of its record`])
+  }
 
   if (world.claimIds === undefined) notes.push('claims: content/claims has no files yet (W0-T08 builds the claims registry), so claim ids are not checked')
   if (world.kcIds === undefined) notes.push('KCs: content/kc/graph.yaml does not exist yet (W1-T03 builds the KC graph), so KC ids are not checked')
@@ -371,6 +401,7 @@ export async function checkGames(input: GateInput): Promise<Report> {
     lines.set(entry.id, out)
     add(entry.id, checkEntry(entry))
     if (!componentIds.includes(entry.id)) add(entry.id, ['it has no component in src/games/registry.ts'])
+    if (records !== undefined) add(entry.id, await checkRecordLoader(entry, records))
     add(entry.id, checkFiles(entry, files))
     for (const shell of lazyShells(entry, files)) out.push(shellLine(shell, files))
     // A card that is missing was reported by checkFiles. One that is there and does not compile is not a card yet.
@@ -451,11 +482,12 @@ export async function main(root = path.resolve(path.dirname(fileURLToPath(import
   const report = await checkGames({
     games,
     componentIds: Object.keys(GAME_COMPONENTS),
+    records: GAME_RECORDS,
     files: filesAt(root),
     world: worldAt(root),
     ...(options.blind === true ? { blind: (entry: GameEntry, session: AnySession) => aside.get(entry.id) ?? checkBlind(entry, session, undefined) } : {}),
   })
-  console.log(`verify-games: ${games.length} game${games.length === 1 ? '' : 's'} registered, ${Object.keys(GAME_COMPONENTS).length} component${Object.keys(GAME_COMPONENTS).length === 1 ? '' : 's'}`)
+  console.log(`verify-games: ${games.length} game${games.length === 1 ? '' : 's'} registered, ${Object.keys(GAME_COMPONENTS).length} component${Object.keys(GAME_COMPONENTS).length === 1 ? '' : 's'}, ${Object.keys(GAME_RECORDS).length} record loader${Object.keys(GAME_RECORDS).length === 1 ? '' : 's'}`)
   for (const game of games) {
     console.log(`  ${game.id}`)
     for (const line of report.lines.get(game.id) ?? []) console.log(`    ${line}`)

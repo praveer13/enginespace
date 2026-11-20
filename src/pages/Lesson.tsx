@@ -1,24 +1,26 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useParams } from 'react-router'
 import { rosterEntry } from '@es/play/roster'
-import type { Claim, CompiledBlock, CompiledLesson, CourseMap, IndexModule, ProseFlow, ProseInline } from '@es/schema'
+import type { Claim, CompiledBlock, CompiledLesson, CourseMap, IndexLesson, IndexModule, ProseFlow, ProseInline } from '@es/schema'
 import { NextStep } from '@/design/components/NextStep'
 import { Note } from '@/design/components/Note'
 import { SectionRail, type RailPart, type RailSection } from '@/design/components/SectionRail'
 import { TextLink } from '@/design/components/TextLink'
 import { TitleBlock } from '@/design/components/TitleBlock'
 import { publicUrl, useClaims, useDocumentTitle, useIndex } from '@/content/load'
-import { useCard, useLesson } from '@/content/load-lessons'
+import { useCard, useLesson, useLessonRows } from '@/content/load-lessons'
 import { useMap } from '@/content/load-map'
 import type { Of } from '@/content/render/BlockFrame'
 import { ClaimInline, ClaimMark, Sources } from '@/content/render/Claims'
 import { Instrument } from '@/content/render/Instrument'
+import { BuildRowFromCard, InEngineNote } from '@/content/render/KeptCards'
 import { useLevelNames } from '@/content/render/levelNames'
 import type { LedgerReading } from '@/content/render/LessonLedger'
 import { citedClaimIds, claimNumbers, kernelspaceLabel, kernelspaceUrl, labName, pendingLab, plainText, renderEnv, titled, todayIso, type RenderEnv } from '@/content/render/model'
 import { PredictLoading } from '@/content/render/PredictLoading'
 import { Prose } from '@/content/render/Prose'
 import { Tagged } from '@/content/render/Tagged'
+import { TraceRun } from '@/content/render/TraceRun'
 import type { LessonOnward } from '@/games/kit/lessonRun'
 import { useHasRun, useLatestRun } from '@/games/kit/RunContext'
 import { groupSections, proseWords, runAnchor, testLabel, type LessonSections, type Piece } from '@/content/render/sections'
@@ -59,6 +61,7 @@ export function Component() {
   const { module = '', lesson: slug = '' } = useParams()
   const index = useIndex()
   const lesson = useLesson(module, slug)
+  const rows = useLessonRows(module)
   const map = useMap()
   const loaded = lesson.status === 'ready' ? lesson.value : null
   const cites = loaded !== null && citedClaimIds(loaded.blocks).size > 0
@@ -67,11 +70,11 @@ export function Component() {
   useDocumentTitle(loaded === null ? null : titled(loaded.title))
 
   if (lesson.status === 'error') return <Notice title="The lesson did not load" message="The lesson would not load. Check your connection and reload the page." />
-  if (lesson.status === 'loading' || index.status === 'loading' || (cites && claims.status === 'loading')) return <Notice title="Lesson" message="Loading the lesson…" loading />
+  if (lesson.status === 'loading' || index.status === 'loading' || rows.status === 'loading' || (cites && claims.status === 'loading')) return <Notice title="Lesson" message="Loading the lesson…" loading />
   if (loaded === null) return <Notice title="Lesson not found" message={`No lesson called ${slug} in module ${module}.`} back={{ to: `/m/${module}`, label: 'Open module' }} />
   const entry = index.status === 'ready' ? index.value.modules.find((candidate) => candidate.id === module) : undefined
   // Keyed by the lesson: a lesson opened from another starts with its own state (where the reader is, the minutes, the runs), never the last one's.
-  return <LessonView key={loaded.id} lesson={loaded} module={entry} claims={claims.status === 'ready' ? claims.value : null} today={today} map={map.status === 'ready' ? map.value : null} />
+  return <LessonView key={loaded.id} lesson={loaded} module={entry} lessons={rows.status === 'ready' ? rows.value : undefined} claims={claims.status === 'ready' ? claims.value : null} today={today} map={map.status === 'ready' ? map.value : null} />
 }
 
 /** The page while the lesson loads, when there is none at the address, and when it did not load: its name as the `h1`, and a sentence. */
@@ -92,6 +95,8 @@ export interface LessonViewProps {
   lesson: CompiledLesson
   /** The module's entry in the course index, for its title, its route and the lessons beside this one. */
   module?: IndexModule
+  /** The module's lesson rows from the lesson index, in order: the position, and the lesson after this one. Undefined if they did not load. */
+  lessons?: readonly IndexLesson[]
   /** The claims by id, or null when they did not load. */
   claims: ReadonlyMap<string, Claim> | null
   today: string
@@ -271,7 +276,7 @@ function promise(sentence: string | undefined): string | null {
 
 const LANE_WORDS: Readonly<Record<string, string>> = { B: 'in the browser', L: 'on a laptop', F: 'on a GPU' }
 
-export function LessonView({ lesson, module, claims, today, map = null, reading: given = null }: LessonViewProps) {
+export function LessonView({ lesson, module, lessons: rows, claims, today, map = null, reading: given = null }: LessonViewProps) {
   const sections = useMemo(() => groupSections(lesson.blocks), [lesson.blocks])
   const marks = useMemo(() => claimNumbers(lesson.blocks), [lesson.blocks])
   const env: RenderEnv = useMemo(() => {
@@ -281,7 +286,7 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
   }, [lesson.blocks, claims, today, marks])
   const route = `/m/${lesson.module}/${lesson.slug}`
   const moduleRoute = module?.route ?? `/m/${lesson.module}`
-  const lessons = module?.lessons ?? []
+  const lessons = rows ?? []
   const position = lessons.findIndex((candidate) => candidate.slug === lesson.slug)
   const name = position < 0 ? lesson.title : `Lesson ${position + 1}`
   const row = map?.lessons.find((candidate) => candidate.route === route)
@@ -295,6 +300,28 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
   const names = useLevelNames()
   const levelTitle = (game: string, level: string) => names(game, level) ?? rosterEntry(game)?.title ?? 'A level'
   const wide = useWide()
+  // On a narrow, short-enough page the strip's own place in the flow can fall into the bar's zone at the top of the page, and the bar would
+  // cover half of the strip's button. While it does, the bar steps aside (hidden, so it is neither seen nor tabbed to); once the page has
+  // scrolled, or the strip is stuck at the top, the two never meet.
+  useEffect(() => {
+    if (wide) return
+    const settle = () => {
+      const foot = document.querySelector<HTMLElement>('.es-lesson__foot')
+      const strip = document.querySelector<HTMLElement>('.es-lesson__strip')
+      if (foot === null || strip === null) return
+      const bar = foot.getBoundingClientRect()
+      const at = strip.getBoundingClientRect()
+      if (at.top < bar.bottom && at.bottom > bar.top) foot.setAttribute('data-over-strip', '')
+      else foot.removeAttribute('data-over-strip')
+    }
+    settle()
+    window.addEventListener('scroll', settle, { passive: true })
+    window.addEventListener('resize', settle)
+    return () => {
+      window.removeEventListener('scroll', settle)
+      window.removeEventListener('resize', settle)
+    }
+  })
   // The dock stands beside Read only once there is a run to show: an empty "Your run appears here" box would narrow the text for nothing.
   const hasRun = useHasRun(lesson.id)
   const docked = useDocked() && hasRun
@@ -502,13 +529,14 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
               {questions > 0 ? ', on new numbers' : ''}
               {reading?.testWords ? `. ${reading.testWords}` : ''}
             </p>
-            {questions > 0 ? <p className="es-lesson__rule">{passRule(lesson, sections)}</p> : null}
             <div className="es-lesson__prose">
               <Pieces pieces={sections.test.pieces} {...pieceProps} />
             </div>
             {sections.test.graded.map((at) => (
               <Instrument key={at} block={lesson.blocks[at] as Of<'game'>} at={at} blocks={lesson.blocks} scope={lesson.id} rev={lesson.rev} kind="graded" />
             ))}
+            {/* The rule stands after the last prose and graded run, directly above the questions it governs: it is read where it is used. */}
+            {questions > 0 ? <p className="es-lesson__rule">{passRule(lesson, sections)}</p> : null}
             {sections.test.questions.map((at, nth) => (
               <Suspense key={at} fallback={<p className="es-lesson__meta es-lesson__reserve-set">Setting up the questions…</p>}>
                 <ItemBlock
@@ -521,7 +549,7 @@ export function LessonView({ lesson, module, claims, today, map = null, reading:
             ))}
           </section>
 
-          <Keep lesson={lesson} sections={sections} kcs={kcs} reading={reading} module={module} position={position} testHref={`#${testId}`} toTest={toTest} />
+          <Keep lesson={lesson} env={env} sections={sections} kcs={kcs} reading={reading} module={module} next={lessons[position + 1]} position={position} testHref={`#${testId}`} toTest={toTest} />
           <Sources env={env} />
         </article>
       </div>
@@ -705,7 +733,6 @@ const lower = (title: string): string => title.charAt(0).toLowerCase() + title.s
 
 function BlockPiece({ at, lesson, env, whereOf, sections }: PieceProps & { at: number }): ReactNode {
   const block: CompiledBlock = lesson.blocks[at]
-  void env
   switch (block.type) {
     case 'predict': {
       const below = sections.answeredBelow.get(at)
@@ -753,9 +780,10 @@ function BlockPiece({ at, lesson, env, whereOf, sections }: PieceProps & { at: n
             </p>
           </Note>
         )
+      if (block.kind === 'in-production') return <InEngineNote id={block.id} env={env} />
       return null
     case 'trace':
-      return <p className="es-lesson__meta">A trace sits here. It is not published yet.</p>
+      return <TraceRun block={block} scope={lesson.id} rev={lesson.rev} />
     case 'lab':
     case 'prose':
       return null
@@ -764,18 +792,20 @@ function BlockPiece({ at, lesson, env, whereOf, sections }: PieceProps & { at: n
 
 interface KeepProps {
   lesson: CompiledLesson
+  env: RenderEnv
   sections: LessonSections
   kcs: readonly string[]
   reading: LedgerReading | null
   module?: IndexModule
+  /** The lesson after this one in the module, if any. */
+  next?: IndexLesson
   position: number
   testHref: string
   toTest: string
 }
 
 /** Keep: what to carry, the Build row, the lesson record, and the way on. */
-function Keep({ lesson, sections, kcs, reading, module, position, testHref, toTest }: KeepProps) {
-  const next = module?.lessons[position + 1]
+function Keep({ lesson, env, sections, kcs, reading, module, next, position, testHref, toTest }: KeepProps) {
   const labs = sections.labs.map((at) => lesson.blocks[at] as Of<'lab'>)
   const fallback = [position < 0 ? lesson.title : `${moduleCode(lesson.module)} lesson ${position + 1}`, 'reading your record…']
   return (
@@ -798,6 +828,10 @@ function Keep({ lesson, sections, kcs, reading, module, position, testHref, toTe
       {labs.map((lab) => (
         <BuildRow key={lab.id} lab={lab} />
       ))}
+      {sections.builds.map((at) => {
+        const block = lesson.blocks[at]
+        return block.type === 'card' && block.kind === 'build-this' ? <BuildRowFromCard key={at} id={block.id} env={env} /> : null
+      })}
       <h3 id="keep-record" className="es-lesson__keep-title">
         Your record of this lesson
       </h3>

@@ -131,16 +131,20 @@ function StopNote({ controls }: { controls: FloorControls }) {
   const { view, takeBack } = controls
   const stop = view.stop
   const note = useRef<HTMLElement>(null)
-  // A run that stopped brings its reason into view in the dock, where the list may have scrolled it away.
+  const head = useRef<HTMLParagraphElement>(null)
+  // A run that stopped brings its reason into view in the dock, where the list may have scrolled it away. A note taller than the room
+  // (a phone's pinned dock) is read from its head, so the head comes into view last: the rest is a scroll down.
   const at = stop?.at ?? null
   const runs = view.runs
   useEffect(() => {
-    if (at !== null) note.current?.scrollIntoView({ block: 'nearest' })
+    if (at === null) return
+    note.current?.scrollIntoView({ block: 'nearest' })
+    head.current?.scrollIntoView({ block: 'nearest' })
   }, [at, runs])
   if (stop === null) return null
   return (
     <section ref={note} aria-label="Why the request stopped" className="es-floor-stop" data-stop={stop.failure} data-floor-stop="">
-      <p className="es-floor-stop__head">
+      <p ref={head} className="es-floor-stop__head">
         <Icon name="alert" className="es-floor-stop__icon" />
         <span>
           Stopped at stage <span className="font-numeric">{stop.at + 1}</span>. {stop.failure === 'path' ? PATH_HEAD : RULES[stop.failure]}
@@ -172,7 +176,7 @@ function StopNote({ controls }: { controls: FloorControls }) {
 }
 
 /** A tile of the stage list: its mark and mechanism, its name as code, and where it runs. A press lays it. */
-function Tile({ tile, onLay, tabIndex }: { tile: TileView; onLay: () => void; tabIndex: number }) {
+function Tile({ tile, onLay, tabIndex }: { tile: TileView; onLay: (byPointer: boolean) => void; tabIndex: number }) {
   return (
     <button
       type="button"
@@ -180,7 +184,7 @@ function Tile({ tile, onLay, tabIndex }: { tile: TileView; onLay: () => void; ta
       tabIndex={tabIndex}
       data-stage={tile.id}
       aria-label={`Lay ${handoffWords(tile.mechanism)}: ${plain(tile.label)}. From ${placeName(tile.from)} to ${placeName(tile.to)}.`}
-      onClick={onLay}
+      onClick={(event) => onLay(event.detail > 0)}
     >
       <span className="es-floor-tile__line">
         <HandoffGlyph mechanism={tile.mechanism} className="es-floor-tile__glyph" />
@@ -197,7 +201,7 @@ function Tile({ tile, onLay, tabIndex }: { tile: TileView; onLay: () => void; ta
 
 /** The stage list (the session's tray): what can happen next, filtered by a process and by typed text. */
 export function StageList({ controls, ring }: { controls: FloorControls; ring: string | null }) {
-  const { view, platforms, filter, setFilter, query, setQuery, tiles, tabStop, tray, chips, onTrayKey, lay } = controls
+  const { view, platforms, filter, setFilter, query, setQuery, tiles, tabStop, tray, chips, onChipFocus, onTrayKey, lay } = controls
   const headId = useId()
   const fieldId = useId()
   // The stage the first run points at is brought into view where the list or the page has it out of sight: the ring is the move to make.
@@ -261,7 +265,7 @@ export function StageList({ controls, ring }: { controls: FloorControls; ring: s
           }}
           data-floor-filter=""
         />
-        <div ref={chips} role="group" aria-label="Show the stages that start in" className="es-floor-chips">
+        <div ref={chips} role="group" aria-label="Show the stages that start in" className="es-floor-chips" onFocus={onChipFocus}>
           <button type="button" className="es-floor-chip" aria-pressed={filter === null} onClick={() => setFilter(null)}>
             All
           </button>
@@ -296,10 +300,10 @@ export function StageList({ controls, ring }: { controls: FloorControls; ring: s
           <li key={tile.id} className="es-floor-tiles__item">
             {ring === tile.id ? (
               <Marker kind="ring" word="first move" className="es-floor-ring">
-                <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={() => lay(tile.id, index)} />
+                <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={(byPointer) => lay(tile.id, index, byPointer)} />
               </Marker>
             ) : (
-              <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={() => lay(tile.id, index)} />
+              <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={(byPointer) => lay(tile.id, index, byPointer)} />
             )}
           </li>
         ))}
@@ -344,7 +348,7 @@ function GradedNote({ view, mode }: { view: FloorView; mode: FloorRun['mode'] })
 
 /** The dock, in its order. `ring` is the stage the first run points at, if any. */
 export function Controls({ run, ring = null }: { run: FloorRun; ring?: string | null }) {
-  const controls = useFloorControls(run)
+  const controls = useFloorControls(run, ring)
   const { view } = controls
   return (
     <div className="es-floor-dock" data-floor-controls="" data-step={view.step}>

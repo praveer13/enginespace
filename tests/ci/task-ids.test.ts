@@ -14,7 +14,7 @@
  * verify:kc's reader to the same set.
  */
 import { describe, expect, test } from 'bun:test'
-import { markedTasks, read, TASK_ID, taskHeadings, tasksIn, trackerTasks, unreadTaskIds } from './support'
+import { between, markedTasks, read, TASK_ID, taskHeadings, tasksIn, trackerTasks, unreadTaskIds } from './support'
 
 const tracker = read('docs/TRACKER.md')
 /** The pattern of before the close-out: a digit for the wave, and nothing after it. */
@@ -125,5 +125,67 @@ describe('what the readers do with a tracker', () => {
     expect(taskHeadings(odd).map(({ id }) => id)).toEqual(['W1b-T05'])
     expect(unreadTaskIds(odd)).toEqual(['W1c-T01', 'W1b-T8', 'W1b-T100'])
     expect(unreadTaskIds(text)).toEqual([])
+  })
+})
+
+describe('the markers of W2, which are set to the tree (W2b-T01)', () => {
+  /** The lines of a W2 task that hold its checks: the Accept and Open check fields, to the next field of the task. */
+  const checksOf = (text: string): string => {
+    const kept: string[] = []
+    let inside = false
+    for (const line of text.split('\n')) {
+      if (/^- \*\*(Accept|Open check)/.test(line)) inside = true
+      else if (/^- \*\*/.test(line) || /^#{2,4} /.test(line)) inside = false
+      if (inside) kept.push(line)
+    }
+    return kept.join('\n')
+  }
+  /** The done tasks of W2 whose checks name the owner, a GPU or W2-T12: none may be done. */
+  const wrongDone = (section: string): string[] =>
+    [...tasksIn(section)]
+      .filter(([id, text]) => id.startsWith('W2-') && /^#### \[x\]/.test(text))
+      .filter(([, text]) => /owner|GPU|W2-T12/.test(checksOf(text)))
+      .map(([id]) => id)
+
+  test('no task of W2 is done while a check of it names the owner, a GPU or W2-T12', () => {
+    const w2 = between(tracker, '\n## W2: ', '\n## W2b: ')
+    expect(markedTasks(w2, 'x').length).toBeGreaterThan(5)
+    expect(wrongDone(w2)).toEqual([])
+  })
+
+  test('would find one: a done task whose check names the owner, a GPU or W2-T12, and not one whose Goal does', () => {
+    const text = [
+      '#### [x] W2-T90 · Needs the owner · S · sonnet · deps: —',
+      '- **Goal:** the owner reads it.',
+      '- **Accept:**',
+      "  1. The Dockerfile builds are left to the owner's smoke run (W2-T12).",
+      '',
+      '#### [x] W2-T91 · Needs a GPU · S · sonnet · deps: —',
+      '- **Accept:** `selftest --gpu` passes on a GPU.',
+      '',
+      '#### [x] W2-T92 · Holds · S · sonnet · deps: —',
+      '- **Goal:** runs on a GPU, owner or not.',
+      '- **Accept:** the unit tests pass on a CPU.',
+      '',
+      '#### [~] W2-T93 · Open · S · sonnet · deps: —',
+      '- **Accept:** waits for W2-T12.',
+      '',
+    ].join('\n')
+    expect(wrongDone(text)).toEqual(['W2-T90', 'W2-T91'])
+  })
+
+  test('hold a State line on each task that is built and not done: W2-T02, T04, T07, T08, T11, T13 and T19', () => {
+    const tasks = trackerTasks()
+    for (const id of ['W2-T02', 'W2-T04', 'W2-T07', 'W2-T08', 'W2-T11', 'W2-T13', 'W2-T19']) {
+      const text = tasks.get(id) ?? ''
+      expect([id, text.startsWith('#### [~] ')]).toEqual([id, true])
+      expect([id, /\n- \*\*State \(2026-11-19\):\*\* built; open check: .+, closes with W2b?-T\d\d/.test(text)]).toEqual([id, true])
+    }
+  })
+
+  test('has a heading for each task of wave 1 and none for a later wave: W2b-T01 to T37 and T39 to T53', () => {
+    const w2b = taskHeadings(tracker).map(({ id }) => id).filter((id) => id.startsWith('W2b-'))
+    const want = [...Array.from({ length: 37 }, (_, at) => at + 1), ...Array.from({ length: 15 }, (_, at) => at + 39)].map((n) => `W2b-T${String(n).padStart(2, '0')}`)
+    expect([...w2b].sort()).toEqual(want)
   })
 })

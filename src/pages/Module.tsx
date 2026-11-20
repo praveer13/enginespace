@@ -5,7 +5,7 @@ import { ContinueLink } from '@/design/components/Header'
 import { Readout } from '@/design/components/Readout'
 import { TextLink } from '@/design/components/TextLink'
 import { useClaims, useDocumentTitle, useIndex } from '@/content/load'
-import { useModule } from '@/content/load-lessons'
+import { useLessonRows, useModule } from '@/content/load-lessons'
 import { useMap } from '@/content/load-map'
 import { citedClaimIds, decimals, pendingLab, renderEnv, titled, todayIso } from '@/content/render/model'
 import { MODULE } from '@/map/copy'
@@ -35,6 +35,7 @@ export function Component() {
   const { module: id = '' } = useParams()
   const index = useIndex()
   const module = useModule(id)
+  const rows = useLessonRows(id)
   const loaded = module.status === 'ready' ? module.value : null
   const cites = loaded !== null && citedClaimIds(loaded.blocks).size > 0
   const claims = useClaims(cites)
@@ -48,7 +49,7 @@ export function Component() {
   if (module.status === 'error' || (index.status === 'error' && loaded === null)) {
     return <Notice title="The module did not load" message="The module would not load. Check your connection and reload the page." />
   }
-  if (module.status === 'loading' || index.status === 'loading' || map.status === 'loading' || (cites && claims.status === 'loading')) {
+  if (module.status === 'loading' || index.status === 'loading' || rows.status === 'loading' || map.status === 'loading' || (cites && claims.status === 'loading')) {
     return <Notice title="Module" message="Loading the module" loading />
   }
   if (loaded === null && entry === undefined) {
@@ -61,6 +62,7 @@ export function Component() {
       id={id}
       module={loaded}
       entry={entry}
+      lessons={rows.status === 'ready' ? rows.value : undefined}
       claims={claims.status === 'ready' ? claims.value : null}
       today={today}
       kcs={kcs}
@@ -89,8 +91,10 @@ export interface ModuleViewProps {
   id: string
   /** The module's compiled page, or null for a planned module that has no `module.md`. */
   module: CompiledModule | null
-  /** The module's entry in the course index: its lessons, and everything a planned module has. Undefined if the index did not load. */
+  /** The module's entry in the course index, and everything a planned module has. Undefined if the index did not load. */
   entry?: IndexModule
+  /** The module's lesson rows from the lesson index, in order. Undefined if they did not load. */
+  lessons?: readonly IndexLesson[]
   /** The claims by id, or null when they did not load: the Reference then says so. */
   claims: ReadonlyMap<string, Claim> | null
   today: string
@@ -174,14 +178,14 @@ function HoursPart({ hours, byLane }: { hours: number | undefined; byLane: { B?:
   )
 }
 
-export function ModuleView({ id, module, entry, claims, today, kcs, progress, ready = false, way }: ModuleViewProps) {
+export function ModuleView({ id, module, entry, lessons: rows, claims, today, kcs, progress, ready = false, way }: ModuleViewProps) {
   const env = useMemo(() => renderEnv(module?.blocks ?? [], claims, today), [module, claims, today])
   const title = module?.title ?? entry?.title ?? id
   const status = module?.status ?? entry?.status ?? 'planned'
   const hours = module?.hours ?? entry?.hours
   const byLane = module?.hours_by_lane ?? entry?.hours_by_lane
   const games = module?.games ?? entry?.games ?? []
-  const lessons = entry?.lessons ?? null
+  const lessons = rows ?? null
   const sentences = module === null ? '' : twoSentences(module.blocks)
   const size = [moduleCode(id), hours === undefined ? null : `${hoursText(hours)} h estimated`, needsLine(byLane, hoursText) || null].filter((part) => part !== null)
   const labs: LabRef[] = (module?.labs ?? []).map((lab) => ({
@@ -190,7 +194,7 @@ export function ModuleView({ id, module, entry, claims, today, kcs, progress, re
     waiting: pendingLab(lab) !== null,
   }))
   const states = useMemo(() => new Map<string, KcState>((progress?.kcs ?? []).map((kc) => [kc.id, kc.state])), [progress])
-  const passed = useMemo(() => outcomesPassed(id, module?.outcomes.length ?? 0, states, ready && kcs !== undefined), [id, module, states, ready, kcs])
+  const passed = useMemo(() => outcomesPassed(module?.outcome_kcs ?? [], module?.outcomes.length ?? 0, states, ready && kcs !== undefined), [module, states, ready, kcs])
   const mark = lessons === null ? undefined : nextLesson(id, way, lessons)
   const parts = useMemo(() => (module === null ? [] : referenceParts(module.blocks)), [module])
   const cited = useMemo(() => (module === null ? [] : [...citedClaimIds(module.blocks)]), [module])

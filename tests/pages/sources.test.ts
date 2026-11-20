@@ -19,7 +19,7 @@ describe('loadSources', () => {
     expect(listed.length).toBeGreaterThan(10)
     expect(sources.index.modules.map((module) => module.id)).toEqual(listed)
     expect(sources.index.modules.every((module) => module.route === `/m/${module.id}`)).toBe(true)
-    expect(sources.index.modules.flatMap((module) => module.lessons).length).toBeGreaterThan(0)
+    expect(Object.values(sources.lessons.modules).flat().length).toBeGreaterThan(0)
   })
 
   test('reads the games from the registry, and the labs from the lab list of the content compiler', () => {

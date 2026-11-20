@@ -24,6 +24,7 @@ import { GAMES, drawInBand, levelOf } from '../packages/play'
 import { POOL_PARTS } from '../packages/play/pool/copy'
 import { benchSession } from '../packages/play/broken-bench/session'
 import { PR_WIDTHS } from './routes'
+import { TOTAL_GAME_BLOCKS, TOTAL_LESSONS } from '../tests/content/module-counts'
 import { walkOf } from './support/front'
 import { embedOf, lessonGames, openerOfRoute, playEvents, startBlock, ticketOf, type LessonGame, type StoredPlay } from './support/lessons'
 import { expect, open, quiet, test, withSettings } from './support/site'
@@ -56,9 +57,9 @@ async function tabToLocator(walk: Walk, target: Locator, limit: number): Promise
 }
 
 test.describe('the blocks', () => {
-  test('are the 42 that the course holds, in 26 of the 27 lessons', () => {
-    expect(BLOCKS.length).toBe(42)
-    expect(lessonsOf(BLOCKS).length).toBe(26)
+  test('are the game blocks that the course holds (42 today), in all its lessons but one', () => {
+    expect(BLOCKS.length).toBe(TOTAL_GAME_BLOCKS)
+    expect(lessonsOf(BLOCKS).length).toBe(TOTAL_LESSONS - 1)
   })
 })
 
@@ -169,10 +170,15 @@ test.describe('a graded block writes the same play event as the game\'s own page
     const block: LessonGame = { route: '/m/tr8/l1-due-time-not-send-time', game: 'broken-bench', level: 'due', mode: 'graded' }
     expect(BLOCKS).toContainEqual(block)
     await open(page, block.route)
+    // The block draws in its first render, and React throws a render away when something below it is still loading (the game's chunk) and
+    // renders it again: on a slow machine the block draws twice, a moment apart, and the second draw would be the browser's own entropy.
+    // Entropy for every draw that the block can make is the same word, so that the seed the lesson settles on is the one that is asked.
     await page.evaluate((entropy) => {
-      window.__queue = [entropy]
+      window.__queue = Array.from({ length: 8 }, () => entropy)
     }, ENTROPY)
     const game = await startBlock(page, block)
+    // Wait for the lesson to have set its seed (the page has stopped changing) before the seed is read and the run is played.
+    await quiet(page)
     await expect(game).toHaveAttribute('data-seed', String(seed))
     await benchLevelWalk('due', seed)(page, walk)
     await expect.poll(async () => (await playEvents(page)).length).toBe(1)

@@ -57,6 +57,8 @@ import {
 } from './tr8-demos.ts'
 import { SLIP_SCALE, SLIP_X0 } from './authored-figures.ts'
 import { read, repo } from './support.ts'
+import { moduleKit } from './module-kit.ts'
+import { MODEL_TABLES } from './tr8-demos.ts'
 
 const SLOW = 120_000
 
@@ -816,4 +818,28 @@ describe('the commit that the numbers name', () => {
       expect(git('merge-base', '--is-ancestor', sha, 'HEAD').status).toBe(0)
     }
   })
+})
+
+/* W2b-T18: the checks every built module runs, and the rule that each model table is held by the demos file. */
+moduleKit({
+  id: 'tr8',
+  result,
+  lessonFiles: LESSON_FILES,
+  moduleFile: MODULE_FILE,
+  claimsFile: CLAIMS_FILE,
+  titles: [
+    "Due time, not send time: open loop, closed loop and coordinated omission",
+    "Warm-up, sample size, and an interval on p99",
+    "The tools' defaults, flag by flag: vllm bench serve and sglang.bench_serving",
+    "Replay a trace in time, not just in shape, and name your goodput's denominator",
+  ],
+  labs: [{ id: 'tr8.replay', lane: 'F', stages: ['s1', 's2', 's3'] }],
+  announces: 'It runs on a GPU, outside the browser, so this page shows what the lab asks and does not grade it.',
+  demosFile: 'tests/content/tr8-demos.ts',
+  modelTables: MODEL_TABLES,
+  // The one pacing line that this module's own test names (lesson 1 has a guess and a level to practise, and nothing assesses its three KCs): listed for wave 4.
+  // Lessons 1 and 2 end in a graded game, because no question family assesses their KCs yet: listed for wave 4.
+  gameTests: ['tr8.l1', 'tr8.l2'],
+  browserMinutesBesideLessons: 0,
+  allowedDiagnostics: ["l1-due-time-not-send-time.md warning pacing-gap"],
 })

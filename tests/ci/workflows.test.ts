@@ -623,6 +623,8 @@ describe('reserved steps', () => {
     'W1b-T13', 'W1b-T14', 'W1b-T15', 'W1b-T16',
     // W2, in wave-2: the tasks that have built a reserved step.
     'W2-T08',
+    // W2's grader track, whose checks the tree meets in files (W2b-T01 set their markers to it), and W2b-T01 itself.
+    'W2-T01', 'W2-T03', 'W2-T05', 'W2-T06', 'W2-T09', 'W2-T10', 'W2-T28', 'W2-T43', 'W2b-T01',
   ]
 
   /** A reserved step is one whose whole command is the echo. A step that echoes it only where a file is missing (the content compile, prepare-pages, the labs) switches on by file, and is not reserved. */

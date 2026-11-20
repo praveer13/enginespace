@@ -18,6 +18,7 @@ import { CORPUS_SERVER, CORPUS_SLO, SEC, capacityPerSMilli, lengthsOf } from '..
 import { below, expDelayUs, rngFor } from '../../packages/sim/core'
 import { parseSlice } from '../../packages/sim/workload'
 import { binomialCdf, exactCoverage } from '../sim/bench-support'
+import type { ModelTable } from './module-kit'
 
 /** The traffic of every demo: prompts of 200 to 800 tokens, replies of 60 to 200. */
 export const TRAFFIC = { promptLo: 200, promptHi: 800, outLo: 60, outHi: 200 } as const
@@ -364,3 +365,79 @@ export const PREDICTIONS: Readonly<Record<string, { readonly unit: string; reado
   'tr8.l3.p1': { unit: 'requests/s', reference: () => sendRate(10, 8, 1.2) },
   'tr8.l4.p1': { unit: 'requests/s', reference: () => goodputPerS(600, 100) },
 }
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The model tables                                                                                                   */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+const fmt = (x: number, digits = 0): string => x.toLocaleString('en-US', { minimumFractionDigits: digits, maximumFractionDigits: digits })
+
+/**
+ * Every table of TR8's lessons whose header or caption carries [synthetic]: the header row word for word, tags included, and the rows that the
+ * model recomputes. The module kit (`module-kit.ts`) finds each such table in a lesson and fails unless it is held here and its rows are these.
+ */
+export const MODEL_TABLES: readonly ModelTable[] = [
+  {
+    lesson: 'tr8.l1',
+    header: '| Harness | The run | Timer starts at | p99 time to first token, ms [synthetic] |',
+    rows: () => {
+      const demo = freezeDemo()
+      return [
+        ['Open loop', 'no freeze', 'the send, which is the due time', fmt(demo.open.calm.dueMs)],
+        ['Open loop', 'freeze', 'the send, which is the due time', fmt(demo.open.freeze.dueMs)],
+        ['Capped', 'no freeze', 'the send', fmt(demo.capped.calm.sentMs)],
+        ['Capped', 'no freeze', 'the due time', fmt(demo.capped.calm.dueMs)],
+        ['Capped', 'freeze', 'the send', fmt(demo.capped.freeze.sentMs)],
+        ['Capped', 'freeze', 'the due time', fmt(demo.capped.freeze.dueMs)],
+      ]
+    },
+  },
+  {
+    lesson: 'tr8.l2',
+    header: '| First requests left out [estimated] | 12 s warm-up: p99, ms [synthetic] | Settled? | 20 s warm-up: p99, ms [synthetic] | Settled? |',
+    rows: () => {
+      const demo = warmDemo()
+      const yes = (settled: boolean): string => (settled ? 'yes' : 'no')
+      const cuts = ['0', '20', "128, the rule's window", '400']
+      return demo.rows.map((row, at) => {
+        const long = demo.longCold.rows[at]
+        return [cuts[at], fmt(row.p99Ms), yes(row.settled), fmt(long.p99Ms), yes(long.settled)]
+      })
+    },
+  },
+  {
+    lesson: 'tr8.l2',
+    header: '| Requests, n [estimated] | Seeds [estimated] | Median width of the interval, ms [synthetic] |',
+    rows: () => widthDemo().map((cell) => [fmt(cell.n), String(cell.seeds), fmt(cell.medianMs)]),
+  },
+  {
+    lesson: 'tr8.l4',
+    header: '| Replay | p50, ms [synthetic] | p90, ms [synthetic] | p99, ms [synthetic] |',
+    rows: () => {
+      const demo = rushDemo()
+      return [
+        ["in time, at the trace's own pace", fmt(demo.inTime.p50Ms), fmt(demo.inTime.p90Ms), fmt(demo.inTime.p99Ms)],
+        ["at the trace's mean rate", fmt(demo.steady.p50Ms), fmt(demo.steady.p90Ms), fmt(demo.steady.p99Ms)],
+      ]
+    },
+  },
+  {
+    lesson: 'tr8.l4',
+    header: '| Load, times capacity [estimated] | Offered [synthetic] | Met both [synthetic] | Over the arrival window, requests/s [synthetic] | Over the whole run, requests/s [synthetic] | The whole run, s [synthetic] |',
+    rows: () => {
+      const loads = ['0.5', '1', '2', '3']
+      return goodputDemo().map((row, at) => [loads[at], fmt(row.rows), fmt(row.met), fmt(row.windowPerS, 2), fmt(row.wholePerS, 2), fmt(row.endS, 1)])
+    },
+  },
+  {
+    lesson: 'tr8.l4',
+    header: '| Load, times capacity [estimated] | In flight, L [synthetic] | Throughput times mean latency [synthetic] | Residual [synthetic] |',
+    rows: () => {
+      const loads = ['0.5', '1', '2', '3']
+      return goodputDemo().map((row, at) => {
+        const residual = row.residualPermille / 10
+        return [loads[at], fmt(row.inFlight, 1), fmt(row.lambdaW, 1), `${fmt(residual, residual < 10 ? 1 : 0)}%`]
+      })
+    },
+  },
+]

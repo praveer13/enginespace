@@ -13,7 +13,7 @@ import { createElement as h, type ReactElement } from 'react'
 import { renderToString } from 'react-dom/server'
 import { StaticRouter } from 'react-router'
 import { BLOCK_TYPES } from '@es/schema'
-import type { Claim, CompiledBlock, CompiledCard, CompiledLesson, CompiledModule, ContentIndex, ProseFlow, ProseInline } from '@es/schema'
+import type { Claim, CompiledBlock, CompiledCard, CompiledLesson, CompiledModule, ContentIndex, LessonIndex, ProseFlow, ProseInline } from '@es/schema'
 import { Blocks, NotionalMachineView } from '@/content/render/Blocks'
 import { renderEnv } from '@/content/render/model'
 import { PageNotice } from '@/content/render/Page'
@@ -32,6 +32,8 @@ const module = json<CompiledModule>('src/content/generated/modules/tr2.json')
 const index = json<ContentIndex>('src/content/generated/index.json')
 const claims: ReadonlyMap<string, Claim> = new Map(json<{ claims: Claim[] }>('public/claims.json').claims.map((claim) => [claim.id, claim]))
 const entry = (id: string) => index.modules.find((candidate) => candidate.id === id)
+const lessonIndex = json<LessonIndex>('src/content/generated/lesson-index.json')
+const rows = (id: string) => lessonIndex.modules[id] ?? []
 
 /** A page as the server renders it inside a router, with React's text-node markers taken out. */
 const render = (element: ReactElement, location = '/') => renderToString(h(StaticRouter, { location }, element)).replaceAll('<!-- -->', '')
@@ -57,7 +59,7 @@ const drawn = (...body: ProseFlow[]) => render(h(Prose, { body, env: renderEnv([
 const drawnBlocks = (...blocks: CompiledBlock[]) => render(h(Blocks, { blocks, env: renderEnv(blocks, claims, TODAY), scope: 'tr9.l1' }))
 
 describe('/m/tr2/l0-sample, the lesson template (REDESIGN §2.5)', () => {
-  const html = render(h(LessonView, { lesson, module: entry('tr2'), claims, today: TODAY }), '/m/tr2/l0-sample')
+  const html = render(h(LessonView, { lesson, module: entry('tr2'), lessons: rows('tr2'), claims, today: TODAY }), '/m/tr2/l0-sample')
 
   test('the sample lesson uses all eight block types, so the page has something of each to draw', () => {
     const used = new Set(lesson.blocks.map((block) => block.type))
@@ -170,8 +172,8 @@ describe('/m/tr2/l0-sample, the lesson template (REDESIGN §2.5)', () => {
   test('Keep: with the Test not passed, the way to the questions and the next lesson are both outlines: the Test\'s own control, just above, is the one amber fill (R-T47)', () => {
     const own = entry('tr2')
     if (own === undefined) throw new Error('the sample module is not in the index')
-    const around = { ...own, lessons: [...own.lessons, { id: 'tr2.l9', slug: 'l9-after', title: 'The lesson after', route: '/m/tr2/l9-after', minutes: 10, status: 'draft' as const }] }
-    const page = render(h(LessonView, { lesson, module: around, claims, today: TODAY }))
+    const around = [...rows('tr2'), { id: 'tr2.l9', slug: 'l9-after', title: 'The lesson after', route: '/m/tr2/l9-after', minutes: 10, status: 'draft' as const }]
+    const page = render(h(LessonView, { lesson, module: own, lessons: around, claims, today: TODAY }))
     const keep = /<section id="keep"[\s\S]*?<\/section>/.exec(page)?.[0] ?? ''
     expect(keep).toMatch(/<a class="es-next__action" data-emphasis="outline" href="#the-bubble">[\s\S]*?Go to the 3 questions/)
     expect(keep).toMatch(/<a class="es-next__action" data-emphasis="outline" href="\/m\/tr2\/l9-after"[\s\S]*?Next: lesson 2, The lesson after/)
@@ -181,7 +183,7 @@ describe('/m/tr2/l0-sample, the lesson template (REDESIGN §2.5)', () => {
   test('Keep: with the Test passed, the one amber control is nextStep’s answer', () => {
     const step = { href: '/m/tr2/l9-after', label: 'Continue: TR2 lesson 2', word: 'Continue', needs: ['B'], reason: '', skipped: 0, place: 'lesson', lesson: 'tr2.l9', module: 'tr2' } as const
     const reading = { step, passed: true, runDone: null, runAnswers: [], readAnswers: [], testWords: '3 of 3: passed', record: ['TR2 lesson 1', 'questions 3 of 3 passed'] }
-    const page = render(h(LessonView, { lesson, module: entry('tr2'), claims, today: TODAY, reading }))
+    const page = render(h(LessonView, { lesson, module: entry('tr2'), lessons: rows('tr2'), claims, today: TODAY, reading }))
     const keep = /<section id="keep"[\s\S]*?<\/section>/.exec(page)?.[0] ?? ''
     expect(keep).toMatch(/<a class="es-next__action" data-emphasis="primary" href="\/m\/tr2\/l9-after"[\s\S]*?Continue: TR2 lesson 2/)
     expect(keep.match(/data-emphasis="primary"/g)?.length).toBe(1)
@@ -190,7 +192,7 @@ describe('/m/tr2/l0-sample, the lesson template (REDESIGN §2.5)', () => {
   })
 
   test('when the claims did not load the page still stands, and each mark says so in its sheet and in Sources', () => {
-    const without = render(h(LessonView, { lesson, module: entry('tr2'), claims: null, today: TODAY }))
+    const without = render(h(LessonView, { lesson, module: entry('tr2'), lessons: rows('tr2'), claims: null, today: TODAY }))
     expect(without.match(/The sources did not load\./g)?.length).toBe(3)
   })
 
@@ -200,8 +202,30 @@ describe('/m/tr2/l0-sample, the lesson template (REDESIGN §2.5)', () => {
   })
 })
 
+describe('the Test of a lesson: the pass rule stands with its questions', () => {
+  const heading = (label: string): ProseFlow => ({ type: 'heading', depth: 2, children: [text(label)] })
+  const item = (extra: Record<string, unknown> = {}): CompiledBlock => ({ type: 'item', family: 'tr2.bubble-width', level: 2, count: 3, ...extra }) as CompiledBlock
+  const fixture = (...blocks: CompiledBlock[]): CompiledLesson => ({ ...lesson, blocks: [prose(paragraph(text('Opening.')), heading('Read'), paragraph(text('Body.')), heading('Check yourself'), paragraph(text('Lead-in to the questions.')), paragraph(text('Last prose of the lesson.'))), ...blocks] })
+  const page = (made: CompiledLesson) => render(h(LessonView, { lesson: made, module: entry('tr2'), lessons: rows('tr2'), claims, today: TODAY }), '/m/tr2/l0-sample')
+  const testSection = (html: string) => /<section id="test"[\s\S]*?<\/section>/.exec(html)?.[0] ?? ''
+
+  test('the rule renders after the Test\'s last prose and before its question set, in the Test', () => {
+    const html = testSection(page(fixture(item())))
+    const rule = html.indexOf('class="es-lesson__rule"')
+    expect(rule).toBeGreaterThan(html.indexOf('Last prose of the lesson.'))
+    expect(rule).toBeLessThan(html.indexOf('data-block="item"'))
+    expect(html.slice(rule, html.indexOf('data-block="item"'))).not.toContain('es-lesson__prose')
+    expect(html).toContain('It is passed when your last three answers to this kind of question are all right.')
+    expect(html.match(/class="es-lesson__rule"/g)?.length).toBe(1)
+  })
+
+  test('a Test with no question set states no rule', () => {
+    expect(testSection(page(fixture()))).not.toContain('es-lesson__rule')
+  })
+})
+
 describe('/m/tr2', () => {
-  const html = render(h(ModuleView, { id: 'tr2', module, entry: entry('tr2'), claims, today: TODAY }), '/m/tr2')
+  const html = render(h(ModuleView, { id: 'tr2', module, entry: entry('tr2'), lessons: rows('tr2'), claims, today: TODAY }), '/m/tr2')
 
   test('has one h1, the module\'s title, and the outline never skips a level', () => {
     expect([...html.matchAll(/<h1[^>]*>(.*?)<\/h1>/g)].map((match) => match[1])).toEqual(['The step loop'])
@@ -239,7 +263,7 @@ describe('/m/tr2', () => {
   })
 
   test('a module that is only planned shows what the index knows of it, and says nobody has written it', () => {
-    const planned = render(h(ModuleView, { id: 'tr0', module: null, entry: entry('tr0'), claims: null, today: TODAY }), '/m/tr0')
+    const planned = render(h(ModuleView, { id: 'tr0', module: null, entry: entry('tr0'), lessons: rows('tr0'), claims: null, today: TODAY }), '/m/tr0')
     expect(planned).toContain('<h1 class="es-module__title">PyTorch for the Rust-first, and reading Triton</h1>')
     expect(planned).toContain('Not published yet.')
     expect(planned).toContain('No lessons yet.')
@@ -450,7 +474,7 @@ describe('the blocks, one at a time', () => {
     expect(drawnBlocks(lab('tr8.replay', 'F'))).toContain('stage · s2')
   })
 
-  test('cards: a warning and an isomorphism are drawn in full, a notional-machine card is printed when it loads, and the other cards kept in their own files wait for their tasks', () => {
+  test('cards: a warning and an isomorphism are drawn in full, the cards kept in a file are printed when they load, and the change card waits for its task', () => {
     const iso = drawnBlocks({ type: 'card', kind: 'isomorphism', title: 'A queue', body: 'A ring buffer is a queue.', breaks: 'Eviction has no ring.' })
     expect(iso).toContain('<h2 class="es-sheet__title">A queue</h2>')
     expect(iso).toContain('where it breaks')
@@ -461,8 +485,9 @@ describe('the blocks, one at a time', () => {
     const kept = (kind: 'notional-machine' | 'in-production' | 'build-this' | 'change') => placeholders(drawnBlocks({ type: 'card', kind, id: 'trace-room-steploop' }))
     // A notional-machine card is no placeholder: it prints while it loads, and the next test draws it once it has.
     expect(kept('notional-machine')).toEqual({})
-    expect(kept('in-production')).toEqual({ card: 'W2-T42' })
-    expect(kept('build-this')).toEqual({ card: 'W2-T42' })
+    // The In-production and Build-this cards (W2-T42) are printed the same way, and name no task.
+    expect(kept('in-production')).toEqual({})
+    expect(kept('build-this')).toEqual({})
     expect(kept('change')).toEqual({ card: 'W3-T06' })
   })
 
@@ -470,7 +495,7 @@ describe('the blocks, one at a time', () => {
     const html = drawnBlocks({ type: 'item', family: 'tr2.bubble-width', level: 1, count: 5 })
     expect(html).toContain('<span class="es-sheet-line__qty">5x</span>')
     expect(html).toContain('data-family="tr2.bubble-width"')
-    expect(html).toContain('faded')
+    expect(html).toContain('part-worked')
     expect(html).toContain('data-phase="idle"')
     expect(html).toContain('Start questions')
     expect(html).not.toContain('data-seed')

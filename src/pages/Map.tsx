@@ -18,7 +18,7 @@ export function Component() {
   const map = useMap()
   const { ready, progress, next, last, lessons } = useProgress(map.status === 'ready' ? map.value : null)
   const { events } = useEvidence()
-  const due = useDue(events, ready)
+  const due = useDue(events, ready, map.status === 'ready' ? map.value.refs : undefined)
 
   if (index.status === 'error' || map.status === 'error') {
     return <PageNotice kind="failed" title={MAP.notice.failedTitle} ticket="course" message={MAP.notice.failedMessage} />

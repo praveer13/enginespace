@@ -18,7 +18,7 @@ import { NotionalMachineView } from '@/content/render/Blocks'
 import { cardClaimIds, renderEnv } from '@/content/render/model'
 import { GAME_IDS } from '../../scripts/content/directives.ts'
 import { splitCard, unsourcedRules } from '../../scripts/content/cards.ts'
-import { CARD_IDS, compile, errors, output, read, report } from './support.ts'
+import { CARD_IDS, WORLD_CARD_IDS, compile, errors, output, read, report } from './support.ts'
 import { parseContentFile } from '../../scripts/content/parse.ts'
 import type { Diagnostic } from '../../scripts/content/parse.ts'
 
@@ -87,7 +87,7 @@ describe('the cards of the repo compile', () => {
   })
 
   test('and they are the six worlds of W1, each with the file name that the model it describes exports or will export', () => {
-    expect([...CARD_IDS]).toEqual(Object.keys(WORLDS).sort())
+    expect([...WORLD_CARD_IDS]).toEqual(Object.keys(WORLDS).sort())
   })
 
   test.each(Object.entries(WORLDS))('%s is the card of the world %s, built by %s', (id, { world }) => {
@@ -175,7 +175,7 @@ describe('each card is drawn', () => {
 
 describe('the words of the cards', () => {
   test('say that the real engine is authoritative, and that a card is wrong where it disagrees', () => {
-    for (const id of CARD_IDS) expect(read(`content/cards/${id}.md`)).toContain('The real engine is authoritative: when it disagrees with this card, the card is wrong.')
+    for (const id of WORLD_CARD_IDS) expect(read(`content/cards/${id}.md`)).toContain('The real engine is authoritative: when it disagrees with this card, the card is wrong.')
   })
 
   test('name no build-log id, wave or task of the project, and say whether the model is built or this card is its specification', () => {

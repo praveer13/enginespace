@@ -66,6 +66,8 @@ import {
 import { cells } from './figure-kit.ts'
 import { FIGURES } from './tr5a-figures.ts'
 import { read, repo } from './support.ts'
+import { moduleKit } from './module-kit.ts'
+import { MODEL_TABLES } from './tr5a-demos.ts'
 
 const SLOW = 120_000
 
@@ -844,4 +846,23 @@ describe('the commit that the numbers name', () => {
       expect(git('merge-base', '--is-ancestor', sha, 'HEAD').status).toBe(0)
     }
   })
+})
+
+/* W2b-T18: the checks every built module runs, and the rule that each model table is held by the demos file. */
+moduleKit({
+  id: 'tr5a',
+  result,
+  lessonFiles: LESSON_FILES,
+  moduleFile: MODULE_FILE,
+  claimsFile: CLAIMS_FILE,
+  titles: [
+    "Why one model needs several KV caches",
+    "One pool, one page size: vLLM's hybrid manager and its five cases",
+    "A prefix hit must hold in every group",
+    "Adapters as pages: S-LoRA's design, and upstream's slots",
+  ],
+  labs: [{ id: 'hybrid-kv', lane: 'B', stages: ['s1', 's2', 's3', 's4', 's5', 's6'] }],
+  announces: 'TR5a has no GPU part',
+  demosFile: 'tests/content/tr5a-demos.ts',
+  modelTables: MODEL_TABLES,
 })

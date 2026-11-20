@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { GAMES } from '@es/play'
 import { useMap } from '@/content/load-map'
 import { useIndex } from '@/content/load'
+import { calibrationRows } from '@/evidence/calibration'
 import { countEvents } from '@/evidence/counts'
 import { EvidenceView } from '@/evidence/EvidenceView'
 import { LedgerFiles } from '@/evidence/LedgerFiles'
@@ -30,6 +31,7 @@ export function Component() {
   const rows = useMemo(() => (mapValue === null ? null : activityRows(evidence.events, { lessons: mapValue.lessons, levelName, itemName })), [evidence.events, mapValue])
   const skills = useMemo(() => (progress === null ? null : skillCounts(progress.counts)), [progress])
   const attempts = useMemo(() => attemptCounts(evidence.events), [evidence.events])
+  const calibration = useMemo(() => calibrationRows(evidence.events), [evidence.events])
   const modules = index.status === 'ready' ? index.value.modules.map(({ id, title }) => ({ id, title })) : null
   return (
     <EvidenceView
@@ -38,6 +40,7 @@ export function Component() {
       rows={rows}
       skills={skills}
       attempts={attempts}
+      calibration={calibration}
       modules={modules}
       step={next}
       last={last}

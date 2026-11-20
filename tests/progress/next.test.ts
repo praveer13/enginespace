@@ -316,3 +316,36 @@ describe('on the compiled map', () => {
     }
   })
 })
+
+/*
+ * The course's start is a key of content/course.yaml (`start: tr1`): a lesson of a module that stands before it in course order carries
+ * `before`, and the way on starts at the first lesson without it, never counts a `before` lesson as an earlier lesson not finished, and
+ * offers one only when no lesson from the start on is left.
+ */
+describe('a module before the start', () => {
+  const P1 = lesson('tr0.l1', 'l1-primer', { before: true, test: { questions: [{ family: 'tr0.q1', count: 3 }], graded: [] }, rev: REV(5) })
+  const WITH_PRIMER = [P1, L1, L2, L5]
+
+  test('rule 1 starts at the first lesson from the start on, and the pointer is that answer', () => {
+    expect(nextStep([], WITH_PRIMER, null)).toMatchObject({ lesson: 'tr1.l1', word: 'Start', label: 'Start: TR1 lesson 1', skipped: 0 })
+  })
+
+  test('TR1 lessons 1 to 3 done show no earlier lesson unfinished', () => {
+    const L3 = lesson('tr1.l3', 'l3-third', { test: { questions: [{ family: 'tr1.q3', count: 3 }], graded: [] }, rev: REV(13) })
+    const course = [P1, L1, L2, L3, L5]
+    const events = [...doneWith(L1, 0), ...doneWith(L2, 1), ...doneWith(L3, 2)]
+    expect(nextStep(events, course, null)).toMatchObject({ lesson: 'tr2.l5', skipped: 0 })
+    expect(nextStep(doneWith(L2), course, null)).toMatchObject({ lesson: 'tr1.l3', skipped: 1 })
+  })
+
+  test('rule 5 offers the primer only when every lesson from the start on is done', () => {
+    const events = [...doneWith(L1, 0), ...doneWith(L2, 1)]
+    expect(nextStep(events, [P1, L1, L2], null)).toMatchObject({ lesson: 'tr0.l1', skipped: 0 })
+    expect(nextStep(doneWith(L5), WITH_PRIMER, null)).toMatchObject({ lesson: 'tr1.l1' })
+    expect(nextStep(doneWith(L2), WITH_PRIMER, null)).toMatchObject({ lesson: 'tr2.l5' })
+  })
+
+  test('without a before lesson the answers are the plain ones', () => {
+    expect(nextStep([], [L1, L2], null)).toMatchObject({ lesson: 'tr1.l1' })
+  })
+})

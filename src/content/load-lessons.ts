@@ -11,13 +11,23 @@
  * inside functions, as load.ts's does, so that the server renderer of the tests, which has no `import.meta.glob`, can import
  * this module.
  */
-import type { CompiledCard, CompiledLesson, CompiledModule } from '@es/schema'
+import type { CompiledCard, CompiledKeptCard, CompiledLesson, CompiledModule, IndexLesson, LessonIndex } from '@es/schema'
 import { once, pick, useSource } from './load'
 import type { Loaded, Source } from './load'
 
 const lessonFiles = () => import.meta.glob<CompiledLesson>('./generated/lessons/*.json', { import: 'default' })
 const moduleFiles = () => import.meta.glob<CompiledModule>('./generated/modules/*.json', { import: 'default' })
-const cardFiles = () => import.meta.glob<CompiledCard>('./generated/cards/*.json', { import: 'default' })
+const lessonIndexFiles = () => import.meta.glob<LessonIndex>('./generated/lesson-index.json', { import: 'default' })
+const cardFiles = () => import.meta.glob<CompiledKeptCard>('./generated/cards/*.json', { import: 'default' })
+
+/** Every module's lesson rows (id, title, route, minutes, lanes, status), in course order. The front page does not read it: the course index holds its first lesson. */
+export function loadLessonIndex(): Promise<LessonIndex> {
+  return once('lesson-index', async () => {
+    const index = await pick(lessonIndexFiles(), './generated/lesson-index.json')
+    if (index === null) throw new Error('the lesson index was not compiled: run `bun scripts/content/build.ts`')
+    return index
+  })
+}
 
 /** A module's page, or null when `id` has no `module.md` (a planned module, or no module at all). */
 export function loadModule(id: string): Promise<CompiledModule | null> {
@@ -31,14 +41,25 @@ export function loadLesson(module: string, slug: string): Promise<CompiledLesson
 
 /** A notional-machine card (A§5.9), or null when `id` has no card. The compiler checks every card a block names, so null means a stale build. */
 export function loadCard(id: string): Promise<CompiledCard | null> {
+  return loadKeptCard(id).then((card) => (card?.kind === 'notional-machine' ? card : null))
+}
+
+/** A card kept in a file of any kind (a notional-machine card, "In vLLM today" or a Build-this card), or null when `id` has none. */
+export function loadKeptCard(id: string): Promise<CompiledKeptCard | null> {
   return once(`card:${id}`, () => pick(cardFiles(), `./generated/cards/${id}.json`))
 }
 
 const MODULE: Source<CompiledModule | null> = { ask: (name) => loadModule(name) }
 const LESSON: Source<CompiledLesson | null> = { ask: (name) => loadLesson(...(name.split('/') as [string, string])) }
+const LESSON_ROWS: Source<readonly IndexLesson[]> = { ask: async (name) => Object.hasOwn((await loadLessonIndex()).modules, name) ? (await loadLessonIndex()).modules[name] : [] }
 const CARD: Source<CompiledCard | null> = { ask: (name) => loadCard(name) }
+const KEPT_CARD: Source<CompiledKeptCard | null> = { ask: (name) => loadKeptCard(name) }
 
 export const useModule = (id: string): Loaded<CompiledModule | null> => useSource(MODULE, id)
 export const useLesson = (module: string, slug: string): Loaded<CompiledLesson | null> => useSource(LESSON, `${module}/${slug}`)
 /** A card, loaded when the page shows the block that names it. */
 export const useCard = (id: string): Loaded<CompiledCard | null> => useSource(CARD, id)
+/** A card of any kind kept in a file: the Build row and "In vLLM today" read their cards with this. */
+export const useKeptCard = (id: string): Loaded<CompiledKeptCard | null> => useSource(KEPT_CARD, id)
+/** A module's lesson rows in course order: empty for a module with none. */
+export const useLessonRows = (module: string): Loaded<readonly IndexLesson[]> => useSource(LESSON_ROWS, module)

@@ -4,7 +4,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 import { createElement as h } from 'react'
-import type { CompiledModule, ContentIndex, CourseMap } from '@es/schema'
+import type { CompiledModule, ContentIndex, CourseMap, LessonIndex } from '@es/schema'
 import { findBanned } from '@/copy/banned'
 import { ModuleView, type ModuleWay } from '@/pages/Module'
 import { deriveProgress } from '@/progress/derive'
@@ -18,6 +18,7 @@ import { render, textOf } from '../map/support'
 const compiled = compileContent({ root: repo })
 const json = <T>(file: string): T => JSON.parse(output(compiled, file)) as T
 const INDEX = json<ContentIndex>('src/content/generated/index.json')
+const LESSON_INDEX = json<LessonIndex>('src/content/generated/lesson-index.json')
 const MAP = json<CourseMap>('src/content/generated/map.json')
 const mod = (id: string) => json<CompiledModule>(`src/content/generated/modules/${id}.json`)
 const events = (...list: ReturnType<typeof made>[]) => list
@@ -30,7 +31,7 @@ function page(id: string, ledger: readonly ReturnType<typeof made>[] | null) {
   const states = new Map([...standings(list, index)].map(([lesson, standing]) => [lesson, standing.state]))
   const way: ModuleWay = { step: ready ? nextStep(list, MAP.lessons, null) : null, last: null, states: ready ? states : new Map(), lessons: MAP.lessons.filter((lesson) => lesson.module === id) }
   return render(
-    h(ModuleView, { id, module: mod(id), entry: INDEX.modules.find((entry) => entry.id === id), claims: null, today: '2026-11-16', kcs: MAP.kcs.filter((kc) => kc.module === id), progress: progress.modules.get(id), ready, way }),
+    h(ModuleView, { id, module: mod(id), entry: INDEX.modules.find((entry) => entry.id === id), lessons: LESSON_INDEX.modules[id], claims: null, today: '2026-11-16', kcs: MAP.kcs.filter((kc) => kc.module === id), progress: progress.modules.get(id), ready, way }),
     `/m/${id}`,
   )
 }
@@ -86,7 +87,7 @@ describe('the amber button', () => {
     // The learner's last work was in TR1, so the way on points there and TR2's button is a local one.
     const html = page('tr2', events(made('play', 'play:engine-floor/map')))
     const button = way(html)
-    const first = INDEX.modules.find((entry) => entry.id === 'tr2')?.lessons[0]
+    const first = LESSON_INDEX.modules.tr2?.[0]
     expect(textOf(button)).toContain(`Open lesson 1: ${first?.title}`)
     expect(textOf(button)).toContain(`about ${first?.minutes} min`)
     expect(textOf(button)).not.toContain('Continue')
@@ -113,7 +114,7 @@ describe('the amber button', () => {
 
 describe('the lessons', () => {
   const html = page('tr2', [])
-  const lessons = INDEX.modules.find((entry) => entry.id === 'tr2')?.lessons ?? []
+  const lessons = LESSON_INDEX.modules.tr2 ?? []
 
   test('each row shows its number, title, minutes, what it needs and its state as a word', () => {
     expect(lessons.length).toBeGreaterThan(0)

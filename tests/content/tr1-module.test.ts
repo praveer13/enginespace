@@ -50,8 +50,12 @@ import {
   vllmStepTokens,
 } from './tr1-demos.ts'
 import { read, repo } from './support.ts'
+import { moduleKit } from './module-kit.ts'
+import { MODEL_TABLES } from './tr1-demos.ts'
 import {
   CLAIMS_FILE,
+  LESSON_FILES,
+  MODULE_FILE,
   IN_TEMPLATE,
   PIN_OF,
   codeSpans,
@@ -843,4 +847,28 @@ describe(`the claims of ${CLAIMS_FILE}`, () => {
     expect(byId.get('vllm.request.states')?.text).toMatch(/six finished states/)
     expect(byId.get('inside-vllm.request-states')?.text).toMatch(/one of 9 states/)
   })
+})
+
+/* W2b-T18: the checks every built module runs, and the rule that each model table is held by the demos file. */
+moduleKit({
+  id: 'tr1',
+  result,
+  lessonFiles: LESSON_FILES,
+  moduleFile: MODULE_FILE,
+  claimsFile: CLAIMS_FILE,
+  titles: [
+    "Five mechanisms: queue, IPC, copy, sync, compute",
+    "nano-vllm in one sitting: the engine, the scheduler, the block manager and the model runner",
+    "Mini-SGLang: one request through four processes",
+    "\"Inside vLLM\" and what moved by v0.33.0",
+    "vLLM at the pin, by symbol: from create_completion to sample_tokens",
+    "SGLang at the pin: the overlap loop, result_queue, FutureMap, three streams and the Rust pieces",
+    "Abort inside the engine: where the news goes and who frees the blocks",
+  ],
+  labs: [{ id: 'tr1.fork', lane: 'F', stages: ['s1', 's2', 's3'] }],
+  announces: 'does not run it',
+  // The questions of lessons 1, 3, 4 and 6 are all choices, none numeric: listed for wave 4.
+  noNumeric: ['tr1.l1', 'tr1.l3', 'tr1.l4', 'tr1.l6'],
+  demosFile: 'tests/content/tr1-demos.ts',
+  modelTables: MODEL_TABLES,
 })

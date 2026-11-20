@@ -637,6 +637,76 @@
   min-height: clamp(30rem, 100svh - 6rem, 52rem);
 }
 
+/* ---------------------------------------------------------------------------------------------- a trace */
+
+/* A trace block is a run in the same frame (W2-T42): the same head, the same dashed place where it waits, and the tape under it. */
+.es-trace-run__loading {
+  min-height: 20rem;
+}
+
+.es-trace-run__tape {
+  display: grid;
+  gap: var(--es-space-4);
+  min-width: 0;
+}
+
+.es-trace-run__check {
+  display: grid;
+  margin-top: var(--es-space-2);
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--es-space-2) var(--es-space-4);
+  align-items: center;
+}
+
+.es-trace-run__hint,
+.es-trace-run__result {
+  margin: 0;
+  max-width: var(--lesson-measure);
+}
+
+.es-trace-run__hint {
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+/* The verdict takes the whole row under the button, and keeps its room whether or not it has spoken: nothing under it moves when it does. */
+.es-trace-run__result {
+  grid-column: 1 / -1;
+  min-height: 3em;
+}
+
+@media (max-width: 40rem) {
+  .es-trace-run__check {
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: start;
+  }
+}
+
+/* "In vLLM today" ends a run's debrief: the engines are named in the note, a list under each. */
+.es-inprod__engine {
+  font-weight: 700;
+}
+
+.es-inprod ul {
+  display: grid;
+  gap: var(--es-space-2);
+  padding-inline-start: 1.2em;
+}
+
+.es-inprod__wait {
+  color: var(--es-text-2);
+}
+
+/* The Build row from a card keeps the measure of the row it stands in for. */
+.es-build {
+  display: grid;
+  gap: var(--es-space-2);
+}
+
+.es-build > * {
+  margin: 0;
+}
+
 /* ---------------------------------------------------------------------------------------------- a guess */
 
 .es-guess {
@@ -862,6 +932,11 @@
   }
 }
 
+/* While the strip's place in the flow lies under the bar (Lesson.tsx), the bar waits: it would cover the strip's button. */
+.es-lesson__foot[data-over-strip] {
+  visibility: hidden;
+}
+
 /* The label names its target in full: a long part title wraps to a second line inside the bar, and is never cut at either end. */
 .es-lesson__foot-action {
   display: flex;
@@ -1031,9 +1106,9 @@
   overflow-x: auto;
 }
 
-/* The Test's pass rule: one sentence, stated once, above the questions it governs. */
+/* The Test's pass rule: one sentence, stated once, directly above the questions it governs (after the Test's prose). */
 .es-lesson__rule {
-  margin: var(--es-space-3) 0 0;
+  margin: 0 0 var(--es-space-4);
   max-width: 68ch;
   color: var(--es-text-1);
 }

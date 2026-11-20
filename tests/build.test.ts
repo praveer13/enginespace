@@ -180,26 +180,53 @@ describe('the app build', () => {
     // ledger, because it brings the deck and the item catalog with it.
     // or the "Show on the machine" button of a figure that has a replay (src/content/render/ShowOnMachine.tsx, R-T45), which the lesson loads with
     // that figure alone, and which loads the game's replay of the figure's state (src/games/<id>/replayDock.tsx, a part of the game, as above) on a click.
+    // or the tape of a lesson's trace block (src/content/render/TraceTape.tsx, W2-T42), which the lesson loads when the learner opens the trace, because it
+    // brings the trace viewer and the step-loop model that makes the synthetic tape.
     // A part's source in a game's popover (src/games/kit/PartSource.tsx, R-T11) is a part of a game, as above.
+    // or a game's record (src/games/<id>/record.ts, W2b-T40), which the game's page loads by itself, so that a game's page carries no other
+    // game's record.
     // The compiled content is lazy too, but it is not a page: the next test holds it to account.
     const named = Object.entries(app.manifest)
       .filter(([key, chunk]) => chunk.isDynamicEntry && chunk.src !== undefined && !key.startsWith(CONTENT))
       .map(([key]) => key)
     const onDemand =
-      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/Attempt\.tsx|src\/map\/dueCount\.ts|src\/content\/render\/(?:GameEmbed\.tsx|reveal\.ts|Predict\.tsx|LessonLedger\.tsx|levels\.ts|Dock\.tsx|ShowOnMachine\.tsx)|src\/items\/ItemBlock\.tsx|packages\/play\/predictions\/(?:commit-)?tr[0-8][ab]?\.ts|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
+      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/games\/[^/]+\/record\.ts|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/Attempt\.tsx|src\/map\/dueCount\.ts|src\/content\/render\/(?:GameEmbed\.tsx|reveal\.ts|Predict\.tsx|LessonLedger\.tsx|levels\.ts|Dock\.tsx|ShowOnMachine\.tsx|TraceTape\.tsx)|src\/items\/ItemBlock\.tsx|packages\/play\/predictions\/(?:commit-)?tr[0-8][ab]?\.ts|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
     expect(named.filter((key) => !pages.includes(key) && !onDemand.test(key))).toEqual([])
   })
 
-  test('makes the course index, the course map, and each module, lesson and card, a lazy chunk of its own that the entry never loads (ARCHITECTURE §4.6)', () => {
+  test("keeps every game's record out of the game page's static closure: /play/<id> loads its own record and no other game's (W2b-T40)", () => {
+    const sourcesOf = (keys: Iterable<string>) => [...keys].flatMap((key) => app.sources.get(app.manifest[key].file) ?? [])
+    // The game records and the registry that lists them all, named from the repository's root.
+    const records = (sources: string[]) =>
+      sources.map((source) => source.replace(/^.*?(?=packages\/play\/)/, '')).filter((source) => /^packages\/play\/(?:[^/]+\/entry|registry)\.ts$/.test(source))
+    const [pageKey] = Object.entries(app.manifest).find(([, chunk]) => chunk.src === 'src/pages/Game.tsx') ?? []
+    expect(pageKey).toBeDefined()
+    const page = staticClosure(app, pageKey ?? 'no Game page chunk')
+    expect(sourcesOf(page).some((source) => source.endsWith('/src/pages/Game.tsx'))).toBe(true)
+    expect(records(sourcesOf(page))).toEqual([])
+    // Each game's record is a lazy chunk of its own (src/games/<id>/record.ts), which the page loads when it opens that game, and which
+    // brings that game's entry.ts and no other.
+    const games = readdirSync(path.join(root, 'src/games'), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && existsSync(path.join(root, 'src/games', entry.name, 'Game.tsx')))
+      .map((entry) => entry.name)
+    expect(games.length).toBeGreaterThanOrEqual(5)
+    for (const id of games) {
+      const record = Object.entries(app.manifest).find(([, chunk]) => chunk.src === `src/games/${id}/record.ts`)
+      expect([id, record?.[1].isDynamicEntry]).toEqual([id, true])
+      expect([id, records(sourcesOf(staticClosure(app, record?.[0] ?? 'none')))]).toEqual([id, [`packages/play/${id}/entry.ts`]])
+    }
+  })
+
+  test('makes the course index, the lesson index, the course map, and each module, lesson and card, a lazy chunk of its own that the entry never loads (ARCHITECTURE §4.6)', () => {
     // The build compiled content/ into src/content/generated/ before it bundled anything, so the folder is what the chunks must match.
     const compiled = (folder: string): string[] =>
       readdirSync(path.join(root, CONTENT, folder))
         .filter((file) => file.endsWith('.json'))
         .map((file) => `${CONTENT}${folder}${file}`)
-    const expected = [`${CONTENT}index.json`, `${CONTENT}map.json`, ...compiled('modules/'), ...compiled('lessons/'), ...compiled('cards/')]
+    const expected = [`${CONTENT}index.json`, `${CONTENT}lesson-index.json`, `${CONTENT}map.json`, ...compiled('modules/'), ...compiled('lessons/'), ...compiled('cards/')]
     const content = Object.entries(app.manifest).filter(([key]) => key.startsWith(CONTENT))
     expect(content.map(([key]) => key).sort()).toEqual(expected.sort())
-    expect(content.length).toBeGreaterThanOrEqual(5) // the index, the map, the sample module and lesson, and a card
+    expect(content.length).toBeGreaterThanOrEqual(5) // the index, the lesson index, the map, the sample module and lesson, and a card
     const loadedFirst = new Set([...staticClosure(app, entryKeyOf(app))].map((key) => app.manifest[key].file))
     for (const [, chunk] of content) {
       expect(chunk.isDynamicEntry).toBe(true)

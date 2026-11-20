@@ -64,6 +64,24 @@ for (const width of PR_WIDTHS) {
       expect(walk.problems(), 'a focus stop that a keyboard user cannot see').toEqual([])
     })
 
+    test('focus is on the result the moment the level ends, even while the result\'s words are still loading', async ({ page }) => {
+      // Hold back the chunk that draws the result's words: the box that holds them is there at once, and focus must be on it, not left on
+      // the instrument (it was, for as long as the chunk took).
+      await page.route('**/DemoResult*', async (route) => {
+        await new Promise((resolve) => setTimeout(resolve, 1500))
+        await route.continue()
+      })
+      const walk = walkOf(page)
+      await walk.tabTo('Admit request R1 into a batch slot', 16)
+      for (let admitted = 0; admitted < 4; admitted++) await walk.press('Enter')
+      const after = await walk.press('Enter')
+      expect(after.tag).toBe('div')
+      expect(after.offscreen, 'the result\'s box, off screen').toBe(false)
+      await expect(front.verdict(page)).toHaveText('Passed.')
+      expect((await walk.see()).tag).toBe('div')
+      expect(walk.problems(), 'a focus stop that a keyboard user cannot see').toEqual([])
+    })
+
     test('the game\'s own keys win it too: 1 admits the first waiting request, and . steps', async ({ page }) => {
       await front.game(page).focus()
       // Six requests wait and four slots are free: each press takes the first of those that still wait, so two are left at the end.

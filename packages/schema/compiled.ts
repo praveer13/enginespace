@@ -14,9 +14,9 @@ import { z } from './zod'
 import { PROSE_TAGS, claimSchema } from './claims'
 import type { ProseTag } from './claims'
 import { nonBlank, sha256Hex } from './common'
-import { artifactSchema, blockSchema, cardFrontMatterSchema, LANES, lessonFrontMatterSchema, moduleFrontMatterSchema, STATUSES } from './content'
+import { artifactSchema, blockSchema, buildThisFrontMatterSchema, cardFrontMatterSchema, ENGINE_PARTS, inProductionFrontMatterSchema, LANES, lessonFrontMatterSchema, moduleFrontMatterSchema, STATUSES } from './content'
 import type { Block } from './content'
-import { familyIdSchema, gameIdSchema, kcIdSchema, kcRefSchema, labIdSchema, lessonIdSchema, moduleIdSchema, prereqSchema, refSchema } from './refs'
+import { familyIdSchema, gameIdSchema, kcIdSchema, kcRefSchema, labIdSchema, lessonIdSchema, moduleIdSchema, prereqSchema, refSchema, slugSchema } from './refs'
 
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* Prose                                                                                                              */
@@ -96,13 +96,19 @@ export const proseFlowSchema: z.ZodType<ProseFlow> = z.lazy(() =>
 
 /** A compiled prose block holds the token tree of the Markdown between two directives, where a source block holds `md`. */
 export type CompiledProse = { type: 'prose'; body: ProseFlow[] }
-export type CompiledBlock = CompiledProse | Exclude<Block, { type: 'prose' }>
+/**
+ * A block that names an In-production or a Build-this card, as the compiler writes it: the block and the claims the card's words cite, in
+ * order (always written, and checked by the schema below; the type leaves it optional so that a block as authored is one too), so that a lesson numbers its marks and lists its Sources before the card's file has loaded.
+ */
+export type CompiledKeptCardBlock = { type: 'card'; kind: 'in-production' | 'build-this'; id: string; cites?: string[] }
+export type CompiledBlock = CompiledProse | CompiledKeptCardBlock | Exclude<Block, { type: 'prose' }>
 
 const compiledProseSchema = z.strictObject({ type: z.literal('prose'), body: z.array(proseFlowSchema).min(1) })
 const directiveBlockSchema = blockSchema.refine((block) => block.type !== 'prose', { message: 'a compiled prose block has a body, not md' })
 
 // The refine keeps the source `Block` type, which still includes prose with `md`; the union below is the compiled set.
-export const compiledBlockSchema = z.union([compiledProseSchema, directiveBlockSchema]) as unknown as z.ZodType<CompiledBlock> // the union parses only CompiledBlock, and the refine leaves the type of the source Block, whose prose holds md
+const keptCardBlockSchema = z.strictObject({ type: z.literal('card'), kind: z.enum(['in-production', 'build-this']), id: slugSchema, cites: z.array(z.string().min(1)) })
+export const compiledBlockSchema = z.union([compiledProseSchema, keptCardBlockSchema, directiveBlockSchema]) as unknown as z.ZodType<CompiledBlock> // the union parses only CompiledBlock, and the refine leaves the type of the source Block, whose prose holds md
 
 /** A lesson's file name without `.md`: `l3-async-overlap`. It is the last part of the lesson's route, and the lesson's id is `<module>.l3`. */
 export const lessonSlugSchema = z.string().regex(/^l[0-9]+(?:-[a-z0-9]+)*$/, 'must be a lesson file name such as l3-async-overlap')
@@ -138,6 +144,25 @@ export const compiledCardSchema = cardFrontMatterSchema.extend({
   calibrated: z.array(proseFlowSchema).min(1),
 })
 
+/**
+ * An In-production card, compiled: its front matter, the words before the first part, and the parts it has (one for each engine it
+ * speaks of, in `ENGINE_PARTS` order), each a list of items that cite claims.
+ */
+export const compiledInProductionSchema = inProductionFrontMatterSchema.extend({
+  rev: sha256Hex,
+  intro: z.array(proseFlowSchema),
+  engines: z.array(z.strictObject({ engine: z.enum(ENGINE_PARTS), words: z.array(proseFlowSchema).min(1) })).min(1),
+})
+
+/** A Build-this card, compiled: its front matter and its words. */
+export const compiledBuildThisSchema = buildThisFrontMatterSchema.extend({
+  rev: sha256Hex,
+  intro: z.array(proseFlowSchema).min(1),
+})
+
+/** Any card kept in a file that a lesson's block can name. */
+export const compiledKeptCardSchema = z.discriminatedUnion('kind', [compiledCardSchema, compiledInProductionSchema, compiledBuildThisSchema])
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* The index and the claims file                                                                                      */
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -161,22 +186,40 @@ export const indexModuleSchema = z.strictObject({
   route: z.string().regex(/^\/m\/[a-z0-9]+$/),
   /** `planned` is a module in `course.yaml` with no `module.md` yet. */
   status: z.enum(['planned', ...STATUSES]),
+  /** True when the module has at least one lesson. The front page reads this where it once counted the module's lessons. */
+  published: z.boolean(),
   hours,
   hours_by_lane: z.strictObject({ B: hours.optional(), L: hours.optional(), F: hours.optional() }),
   /** From `module.md`, so a planned module has neither. */
   prereqs: z.array(prereqSchema).optional(),
   games: z.array(gameIdSchema).optional(),
-  lessons: z.array(indexLessonSchema),
+})
+
+/** The course's first lesson as the front page names it: only what the page prints, so the index does not grow with the lessons. */
+export const firstLessonSchema = z.strictObject({
+  module: moduleIdSchema,
+  title: nonBlank,
+  route: indexLessonSchema.shape.route,
+  minutes: indexLessonSchema.shape.minutes,
+  needs: indexLessonSchema.shape.needs,
 })
 
 /**
- * The course index: modules, lessons, titles, routes and hours. It is in the entry's closure (A§4.6), so it stays small, and
- * `verify:content` holds it to 6 KB gz.
+ * The course index: the modules, whether each is published, and the course's first lesson. It is in the front page's first-paint
+ * closure (A§4.6), so it holds nothing that grows with the number of lessons: those rows are in the lesson index, which a page
+ * loads when it shows a module or a lesson. `verify:content` holds it to 6 KB gz.
  */
 export const contentIndexSchema = z.strictObject({
   /** The sum of the modules' hours, [derived]. */
   totalHours: hours,
+  /** Absent while no module has a lesson. */
+  firstLesson: firstLessonSchema.optional(),
   modules: z.array(indexModuleSchema).min(1),
+})
+
+/** The lesson index: each module's lessons in course order, a second generated file that the pages that list lessons load on demand. */
+export const lessonIndexSchema = z.strictObject({
+  modules: z.record(moduleIdSchema, z.array(indexLessonSchema)),
 })
 
 /** `public/claims.json`, for the claim chips and the about page. Claims are sorted by id. */
@@ -200,7 +243,7 @@ export const mapModuleSchema = z.strictObject({
   labs: z.array(labIdSchema),
   /** Its KCs, in the order of the graph. */
   kcs: z.array(kcIdSchema),
-  /** The first of the module's outcomes, which Course prints on the module's row. A planned module has none. */
+  /** The first of the module's outcomes, which Course prints on the module's row. A planned module's is the sentence `course.yaml` holds for it. */
   outcome: nonBlank.optional(),
 })
 
@@ -249,6 +292,8 @@ export const mapLessonSchema = z.strictObject({
   checkpoints: z.array(familyCountSchema),
   test: z.strictObject({ questions: z.array(familyCountSchema), graded: z.array(refSchema) }),
   anchors: z.strictObject({ read: z.string().min(1).optional(), test: z.string().min(1).optional() }),
+  /** True for a lesson of a module that stands before the course's start in course order: the way on offers it last. */
+  before: z.literal(true).optional(),
 })
 
 /**
@@ -268,7 +313,12 @@ export const courseMapSchema = z.strictObject({
 export type CompiledLesson = z.infer<typeof compiledLessonSchema>
 export type CompiledModule = z.infer<typeof compiledModuleSchema>
 export type CompiledCard = z.infer<typeof compiledCardSchema>
+export type CompiledInProduction = z.infer<typeof compiledInProductionSchema>
+export type CompiledBuildThis = z.infer<typeof compiledBuildThisSchema>
+export type CompiledKeptCard = z.infer<typeof compiledKeptCardSchema>
 export type IndexLesson = z.infer<typeof indexLessonSchema>
+export type FirstLesson = z.infer<typeof firstLessonSchema>
+export type LessonIndex = z.infer<typeof lessonIndexSchema>
 export type IndexModule = z.infer<typeof indexModuleSchema>
 export type ContentIndex = z.infer<typeof contentIndexSchema>
 export type ClaimsOutput = z.infer<typeof claimsOutputSchema>

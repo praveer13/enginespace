@@ -1,0 +1,16 @@
+{
+  "red": [
+    {
+      "file": "e2e/lab-kits.spec.ts",
+      "title": "every file in the manifest is linked from its lab page > enginespace-gpu-kit-0.1.0.zip: linked from no page yet with its size and hash, and the bytes behind the link are the manifest's, fetched and downloaded",
+      "note": "no page links this file until the first lab page that uses it is built"
+    },
+    {
+      "file": "e2e/lab-kits.spec.ts",
+      "title": "every file in the manifest is linked from its lab page > enginespace_grader-0.1.0-py3-none-any.whl: linked from no page yet with its size and hash, and the bytes behind the link are the manifest's, fetched and downloaded",
+      "note": "no page links this file until the first lab page that uses it is built"
+    }
+  ],
+  "flaky": [],
+  "host": []
+}

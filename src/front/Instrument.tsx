@@ -365,11 +365,14 @@ function DemoRun({ levelAt, levelId, seed, refocus, next, onNext, onAgain, intro
   }, [refocus, container])
   // The run's end puts the result in the dock and focus on it.
   const result = useRef<HTMLDivElement>(null)
+  // The box is there as soon as the outcome is, whether or not the result's words have loaded, so focus goes to it at once: waiting for
+  // the words left focus on the instrument for as long as their chunk took.
   useEffect(() => {
-    if (outcome === null || held === null) return
-    result.current?.focus({ preventScroll: true })
-    // On a short screen the result is under the diagram: bring its way on into view.
-    result.current?.scrollIntoView({ block: 'nearest' })
+    if (outcome !== null) result.current?.focus({ preventScroll: true })
+  }, [outcome])
+  // On a short screen the result is under the diagram: bring its way on into view, once the words that make it tall have come.
+  useEffect(() => {
+    if (outcome !== null && held !== null) result.current?.scrollIntoView({ block: 'nearest' })
   }, [outcome, held])
 
   // Escape ends the intro, unless it closes something of its own first.
@@ -487,7 +490,7 @@ function DemoRun({ levelAt, levelId, seed, refocus, next, onNext, onAgain, intro
           {outcome === null ? (
             <DockControls controls={controls} view={view} intro={introShown} waitingButtons={mount3d} />
           ) : (
-            <div ref={result} tabIndex={-1} className="es-front-result" data-result="" aria-labelledby={`${coachId}-verdict`}>
+            <div ref={result} tabIndex={-1} className="es-front-result" data-result="" style={held === null ? { minHeight: 1 } : undefined} aria-labelledby={`${coachId}-verdict`}>
               {held === null ? null : (
                 <held.Result verdictId={`${coachId}-verdict`} ok={outcome.grade.ok} sentence={outcome.debrief.sentence} next={next} onNext={onNext} onAgain={onAgain} course={course} />
               )}

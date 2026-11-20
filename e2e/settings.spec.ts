@@ -413,7 +413,8 @@ test.describe('settings apply live (accept 1)', () => {
   })
 
   test('a quality cap lowers the tier the running scene draws at', async ({ page, context }) => {
-    await open(page, '/design')
+    // Forced to start at T2: a host with four cores or fewer starts every scene at T1 (a small device), and then there is nothing to lower.
+    await open(page, '/design?es-tier=2')
     await page.locator('#scene-kit').scrollIntoViewIfNeeded()
     await settle(page)
     await expect(stage(page)).toHaveAttribute('data-tier', /[23]/)

@@ -13,6 +13,8 @@ import { scenarioOf } from '@es/play/engine-floor/levels'
 import type { PracticeLevelId } from '@es/play/engine-floor/types'
 import { boundaryOf, entryOf, referencePath } from '@es/sim/lifecycle'
 import type { EngineId, Mechanism, Scenario, StageDef } from '@es/sim/lifecycle'
+import type { ModelTable } from './module-kit'
+import { pin } from './tr1-support'
 
 /** The practice level each lesson plays, in the order of the lessons (GAMES.md §5). */
 export const LEVEL_OF_LESSON: Readonly<Record<string, PracticeLevelId>> = {
@@ -158,3 +160,29 @@ export const PREDICTIONS: Readonly<Record<string, { readonly unit: string; reado
   // SGLang marks a running request `to_finish` and the request runs one more forward pass (claim `sglang.abort.running-request`).
   'tr1.l7.p2': { unit: 'passes', reference: () => 1 },
 }
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The model tables                                                                                                   */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** The ref that a lesson's permalink to `repo` is cut at: the tag of an engine whose pin is a release, or the pin's commit. */
+const linkRef = (repoName: string, ref: string): string => (repoName === 'vllm-project/vllm' ? `v${pin('vllm').version}` : repoName === 'sgl-project/sglang' ? `v${pin('sglang').version}` : ref)
+
+/**
+ * Every table of TR1's lessons whose header or caption carries [synthetic]: the header row word for word, tags included, and the rows that the
+ * model recomputes. A cell that is `null` is the lesson's own words, which no model computes (what a stage does). The module kit
+ * (`module-kit.ts`) finds each such table in a lesson and fails unless it is held here and its rows are these.
+ */
+export const MODEL_TABLES: readonly ModelTable[] = [
+  {
+    lesson: 'tr1.l5',
+    header: '| Stage | What happens | Mechanism | Read it at |',
+    rows: () =>
+      levelPath('tr1.l5').map((stage) => {
+        const parts = stage.source.symbol.split('.')
+        const symbol = (parts.at(-1) === '__init__' ? parts.at(-2) : parts.at(-1)) ?? ''
+        const url = `https://github.com/${stage.source.repo}/blob/${linkRef(stage.source.repo, stage.source.ref)}/${stage.source.path}#L${stage.source.line}`
+        return [`\`${stage.id}\``, null, MECHANISM_WORD[stage.mechanism], `[\`${symbol}\`](${url})`]
+      }),
+  },
+]

@@ -7,7 +7,7 @@
  * Nothing here touches the DOM, Vite or React, and nothing reads the clock: `today` is always a parameter.
  */
 import type { ReactNode } from 'react'
-import type { Claim, CompiledBlock, CompiledCard, IndexLesson, IndexModule, ProseFlow, ProseInline } from '@es/schema'
+import type { Claim, CompiledBlock, CompiledKeptCard, IndexLesson, ProseFlow, ProseInline } from '@es/schema'
 import type { ReadoutUnit } from '@/design/components/Readout'
 import { LAB_TITLES } from '@/forge/titles'
 
@@ -127,13 +127,18 @@ export function citedClaimIds(blocks: readonly CompiledBlock[]): ReadonlySet<str
       }
     }
   }
-  for (const block of blocks) if (block.type === 'prose') flow(block.body)
+  for (const block of blocks) {
+    if (block.type === 'prose') flow(block.body)
+    // A block that names an In-production or Build-this card carries the claims that card's file cites (the compiler wrote them there).
+    else if (block.type === 'card' && 'cites' in block) for (const id of block.cites ?? []) ids.add(id)
+  }
   return ids
 }
 
 /** Every claim id that a card's words cite, so that a card fetches the claims file only when it needs it. */
-export function cardClaimIds(card: CompiledCard): ReadonlySet<string> {
-  return citedClaimIds([{ type: 'prose', body: [...card.intro, ...card.models, ...card.ignores, ...card.calibrated] }])
+export function cardClaimIds(card: CompiledKeptCard): ReadonlySet<string> {
+  const words = card.kind === 'notional-machine' ? [...card.intro, ...card.models, ...card.ignores, ...card.calibrated] : card.kind === 'in-production' ? [...card.intro, ...card.engines.flatMap((part) => part.words)] : card.intro
+  return citedClaimIds([{ type: 'prose', body: words }])
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -247,8 +252,8 @@ export const LANE_NAMES: Readonly<Record<string, string>> = { B: 'browser', L: '
 export const laneName = (lane: string): string => (Object.hasOwn(LANE_NAMES, lane) ? LANE_NAMES[lane] : lane)
 
 /** The lessons before and after one, in the order the module lists them. */
-export function neighbours(module: IndexModule | undefined, slug: string): { previous: IndexLesson | null; next: IndexLesson | null } {
-  const lessons = module?.lessons ?? []
+export function neighbours(rows: readonly IndexLesson[] | undefined, slug: string): { previous: IndexLesson | null; next: IndexLesson | null } {
+  const lessons = rows ?? []
   const at = lessons.findIndex((lesson) => lesson.slug === slug)
   if (at < 0) return { previous: null, next: null }
   return { previous: lessons[at - 1] ?? null, next: lessons[at + 1] ?? null }
@@ -308,9 +313,6 @@ export const LAB_TASKS: Readonly<Record<string, string>> = {
  * when a task here is gone, is no longer open (`[ ]` or `[~]`), or no longer says the feature.
  */
 export const PENDING = {
-  trace: { task: 'W2-T42', what: 'the trace block' },
-  'in-production': { task: 'W2-T42', what: 'the In-production card' },
-  'build-this': { task: 'W2-T42', what: 'the Build-this card' },
   change: { task: 'W3-T06', what: 'the change card' },
 } as const satisfies Record<string, Pending>
 

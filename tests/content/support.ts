@@ -8,10 +8,11 @@
  *
  * Every test that changes content changes a copy. Nothing here writes into the repository.
  */
-import { afterAll, test } from 'bun:test'
+import { test } from 'bun:test'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { tempDirs } from '../ci/temp-preload'
 import { compileContent } from '../../scripts/content/build.ts'
 import type { CompileResult } from '../../scripts/content/build.ts'
 import { formatDiagnostic } from '../../scripts/content/parse.ts'
@@ -63,6 +64,8 @@ export const CARD_IDS: readonly string[] = readdirSync(path.join(repo, 'content/
   .map((name) => name.slice(0, -3))
   .sort()
 export const CARD_COUNT = CARD_IDS.length
+/** The cards of the repo's worlds: the notional-machine cards. The In-production and Build-this cards (W2-T42) are cards too, and are not a world's. */
+export const WORLD_CARD_IDS: readonly string[] = CARD_IDS.filter((id) => /^kind: notional-machine$/m.test(readFileSync(path.join(repo, 'content/cards', `${id}.md`), 'utf8').split('\n---\n')[0]))
 
 /** The modules of the repo's content, a folder of `content/modules/` with a `module.md`, and the lessons in them, the `.md` files of a `lessons/` folder. */
 function contentCounts(): { modules: number; lessons: number } {
@@ -83,18 +86,13 @@ export const REPO_LESSONS = contentCounts().lessons
 const plural = (count: number, one: string, many: string): string => `${count} ${count === 1 ? one : many}`
 /** What the gates and the compiler print for the repo itself, as `2 modules, 5 lessons`. */
 export const REPO_COUNTS = `${plural(REPO_MODULES, 'module', 'modules')}, ${plural(REPO_LESSONS, 'lesson', 'lessons')}`
-/** The files the compiler writes for the repo: the index, the map, the claims and llms.txt, two for each module and each lesson (the export and the JSON), and one JSON for each card. */
-export const REPO_OUTPUT_COUNT = 4 + 2 * REPO_MODULES + 2 * REPO_LESSONS + CARD_COUNT
+/** The files the compiler writes for the repo: the index, the lesson index, the map, the claims and llms.txt, two for each module and each lesson (the export and the JSON), and one JSON for each card. */
+export const REPO_OUTPUT_COUNT = 5 + 2 * REPO_MODULES + 2 * REPO_LESSONS + CARD_COUNT
 
-const scratch: string[] = []
-afterAll(() => {
-  for (const dir of scratch) rmSync(dir, { recursive: true, force: true })
-})
-
-/** A new directory outside the repo, removed when the test file ends. */
+/** A new directory outside the repo, removed when the run ends (tests/ci/temp-preload.ts). */
 export function tempDir(label = 'project'): string {
   const dir = mkdtempSync(path.join(tmpdir(), `enginespace-${label}-`))
-  scratch.push(dir)
+  tempDirs.add(dir)
   return dir
 }
 

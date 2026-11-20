@@ -22,6 +22,8 @@ const KIND_WORDS: Readonly<Record<string, string>> = {
   tool: 'tool',
 }
 
+const kindWord = (kind: string): string => KIND_WORDS[kind] ?? kind
+
 /** A commit as the engines print it: its first seven digits. */
 const shortCommit = (commit: string): string => commit.slice(0, 7)
 
@@ -46,7 +48,9 @@ export function Component() {
               <thead>
                 <tr>
                   <th scope="col">Source</th>
-                  <th scope="col">Kind</th>
+                  <th scope="col" className="es-pins__kindcol">
+                    Kind
+                  </th>
                   <th scope="col">Pinned to</th>
                   <th scope="col">Last read</th>
                 </tr>
@@ -56,13 +60,17 @@ export function Component() {
                   <tr key={entry.key}>
                     <th scope="row">
                       <TextLink href={entry.url}>{entry.name}</TextLink>
+                      {/* A phone has no room for a column of its own: the kind sits under the name. */}
+                      <span className="es-pins__kind">{kindWord(entry.kind)}</span>
                     </th>
-                    <td>{KIND_WORDS[entry.kind] ?? entry.kind}</td>
-                    <td className="es-pins__pin">
-                      {entry.version === undefined ? null : <span>{entry.version}</span>}
-                      {entry.commit === undefined ? null : <code>{shortCommit(entry.commit)}</code>}
-                    </td>
+                    <td className="es-pins__kindcol">{kindWord(entry.kind)}</td>
                     <td>
+                      <div className="es-pins__pin">
+                        {entry.version === undefined ? null : <span>{entry.version}</span>}
+                        {entry.commit === undefined ? null : <code>{shortCommit(entry.commit)}</code>}
+                      </div>
+                    </td>
+                    <td className="es-pins__read">
                       <time dateTime={entry.checkedAt}>{entry.checkedAt}</time>
                     </td>
                   </tr>

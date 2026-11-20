@@ -11,11 +11,13 @@
 # `prereqs` is the kernelspace lessons it names above all or as recommended, and the modules it advises first. The blanket
 # prerequisite, kernelspace T5 lessons 1 to 10, is the course's and not any one module's (PRODUCT.md). Prerequisites advise and
 # never lock (A§1, I9). Once a module has a module.md, the map reads that file's `prereqs` and `artifacts` and ignores these.
+start: tr1 # the course starts at TR1 lesson 1; TR0 is an advised primer and nothing locks
 modules:
   - id: tr0
     title: PyTorch for the Rust-first, and reading Triton
     hours: 7 # [estimated]
     hours_by_lane: { B: 4, L: 3 } # [estimated]
+    outcome: "Read the PyTorch and Triton that engines use"
     prereqs: [ks:T5.L1, ks:T0.L3, ks:T0.L4]
     artifacts:
       - { id: shape-shifter, lane: B, title: 'Tensor layout levels and item families, graded on fresh seeds' }
@@ -39,6 +41,7 @@ modules:
     title: Profile a real engine
     hours: 12 # [estimated]
     hours_by_lane: { B: 5, F: 7 } # [estimated]
+    outcome: "Capture a real engine step, account for all of its time, name the cause of each gap, and test a fix by toggling it"
     prereqs: [ks:T0.L6, ks:T4.L3, tr2]
     artifacts:
       - { id: gap-hunt, lane: B, title: 'Attribution of pinned and synthetic traces, graded on fresh draws' }
@@ -47,6 +50,7 @@ modules:
     title: Attention backends as a consumer
     hours: 7 # [estimated]
     hours_by_lane: { B: 2.5, F: 4.5 } # [estimated]
+    outcome: "Predict which attention backend an engine picks on a given GPU and model, which CUDA graph mode it then runs, and how the backends compare when measured honestly"
     prereqs: [ks:T4.L6, ks:T5.L5, tr0, tr2]
     artifacts:
       - { id: dispatch, lane: B, title: 'Predict-then-reveal reads of backend selection, graded on fresh feature cards' }
@@ -62,6 +66,7 @@ modules:
     title: Offload, the connector's engine side, and the event publisher
     hours: 8 # [estimated]
     hours_by_lane: { B: 5, F: 3 } # [estimated]
+    outcome: "Move KV between GPU, host and storage inside one engine without a block being read before it lands or freed before it is saved, and publish every move so a consumer can rebuild the cache"
     prereqs: [ks:T5.L6, tr5a]
     artifacts:
       - { id: kv-publisher, lane: B, title: 'Publisher conformance tests on your Rust module' }
@@ -79,6 +84,7 @@ modules:
     title: Contribute honestly
     hours: 6 # [estimated]
     hours_by_lane: { B: 2, F: 4 } # [estimated]
+    outcome: "Choose a published number you can check, reproduce it with evidence that stands alone, and file it upstream under that project's rules, including its rules on AI assistance"
     prereqs: [ks:T7.L2, tr8]
     artifacts:
       - { id: tr7.process, lane: B, title: "Items on each project's contribution rules, answered on fresh seeds" }
@@ -95,6 +101,7 @@ modules:
     title: Reproduce a commit pair's delta, attribute it, explain it, price it
     hours: 12 # [estimated]
     hours_by_lane: { B: 2, F: 10 } # [estimated]
+    outcome: "Reproduce the effect of a known change to vLLM on your own GPU, show where in the step it comes from, explain it in roofline terms, and say what it is worth in goodput and in dollars per million tokens"
     prereqs: [ks:T7.L2, ks:T7.L4, tr2, tr3, tr8]
     artifacts:
       - { id: capstone.page, lane: B, title: "The capstone page: it re-verifies both sides, and attributes the owner's pinned traces of the same pair" }

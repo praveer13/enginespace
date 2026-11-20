@@ -27,6 +27,8 @@ export const courseModuleSchema = z
     hours,
     /** The hours split by lane, which add up to `hours`. A module with no hours in a lane leaves it out. */
     hours_by_lane: z.strictObject({ B: hours.optional(), L: hours.optional(), F: hours.optional() }),
+    /** One sentence of what the learner can do after the module, for a module with no `module.md` yet. Its `module.md` takes over with `outcomes`. */
+    outcome: nonBlank.optional(),
     /** Kernelspace lessons and other modules that it leans on. They advise and never lock (A§1, I9). */
     prereqs: uniqueList(prereqSchema).optional(),
     /** What the module asks the learner to build and prove, with the lane each is worked in. */
@@ -52,6 +54,8 @@ export const courseModuleSchema = z
 
 export const courseSchema = z
   .strictObject({
+    /** The module the course starts at: its first lesson is the front page's Start. Modules listed before it are advised first and never lock. */
+    start: moduleIdSchema.optional(),
     modules: z.array(courseModuleSchema).min(1),
   })
   .superRefine((course, ctx) => {
@@ -60,6 +64,7 @@ export const courseSchema = z
       if (seen.has(module.id)) ctx.addIssue({ code: 'custom', message: `module "${module.id}" is listed twice`, path: ['modules', index, 'id'] })
       seen.add(module.id)
     })
+    if (course.start !== undefined && !seen.has(course.start)) ctx.addIssue({ code: 'custom', message: `"${course.start}" is not a module of this course`, path: ['start'] })
     // A prerequisite that is not a kernelspace ref is another module of this course.
     course.modules.forEach((module, index) => {
       module.prereqs?.forEach((prereq, at) => {

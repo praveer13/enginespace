@@ -167,9 +167,9 @@ describe('which keys are required', () => {
     })
   })
 
-  test('a module adds hours (and hours_by_lane), outcomes, artifacts, worlds, prereqs and pins', () => {
+  test('a module adds hours (and hours_by_lane), outcomes and the KCs under each, artifacts, worlds, prereqs and pins', () => {
     expect(keyRoles(moduleFrontMatterSchema, { ...module_, labs: ['hybrid-kv'] })).toEqual({
-      required: ['artifacts', 'hours', 'id', 'outcomes', 'pins', 'prereqs', 'status', 'title', 'worlds'],
+      required: ['artifacts', 'hours', 'id', 'outcome_kcs', 'outcomes', 'pins', 'prereqs', 'status', 'title', 'worlds'],
       optional: ['games', 'hours_by_lane', 'labs', 'lanes'],
     })
   })
@@ -239,8 +239,10 @@ describe('module front matter', () => {
     ['lane hours that do not add up', ['hours_by_lane'], { B: 4, F: 5 }, ['hours_by_lane: custom']],
     ['a lane that is not B, L or F', ['hours_by_lane'], { B: 5, X: 5 }, ['hours_by_lane: unrecognized_keys[X]']],
     ['a lane with no hours', ['hours_by_lane'], { B: 10, F: 0 }, ['hours_by_lane.F: too_small']],
-    ['no outcomes', ['outcomes'], [], ['outcomes: too_small']],
-    ['a blank outcome', ['outcomes'], ['Name the CPU work', ''], ['outcomes.1: invalid_format']],
+    ['no outcomes', ['outcomes'], [], ['outcomes: too_small', 'outcome_kcs: custom']],
+    ['a blank outcome', ['outcomes'], ['Name the CPU work', '', 'Say what a replay saves'], ['outcomes.1: invalid_format']],
+    ['outcome_kcs lists that are not one for each outcome', ['outcome_kcs'], [['tr2.bubble']], ['outcome_kcs: custom']],
+    ['a KC id that is not one', ['outcome_kcs'], [['bubble'], [], []], ['outcome_kcs.0.0: invalid_format']],
     ['no artifacts', ['artifacts'], [], ['artifacts: too_small']],
     ['an artifact in no lane', ['artifacts'], [{ id: 'loop', title: 'The sim' }], ['artifacts.0.lane: invalid_value']],
     [
@@ -302,10 +304,8 @@ describe('card front matter (A§5.9, W1-T07)', () => {
     test(`refuses ${name}`, () => expect(problems(cardFrontMatterSchema, withKey(card, path, to))).toEqual(expected))
   }
 
-  test('says why a kind is refused: the other cards kept in a file arrive with the tasks that decide their format', () => {
-    expect(messages(cardFrontMatterSchema, withKey(card, ['kind'], 'build-this'))).toEqual([
-      'must be notional-machine: the other cards kept in a file arrive with W1-T13 (In-production, Build-this) and W3-T06 (change)',
-    ])
+  test('says why a kind is refused: the change card arrives with the task that decides its format, and the two others have front matters of their own', () => {
+    expect(messages(cardFrontMatterSchema, withKey(card, ['kind'], 'build-this'))).toEqual(['must be notional-machine, in-production or build-this: the change card arrives with W3-T06'])
   })
 
   test('has three parts, in the order of A§5.9', () => {
@@ -339,6 +339,7 @@ describe('the blocks', () => {
     ['a level that is a word', 'item', ['level'], 'hard', ['level: invalid_type']],
     ['no items', 'item', ['count'], 0, ['count: too_small']],
     ['half an item', 'item', ['count'], 1.5, ['count: invalid_type']],
+    ['a variant in capitals', 'item', ['variant'], 'Close It', ['variant: invalid_format']],
     // game
     ['a game id in capitals', 'game', ['id'], 'Loop', ['id: invalid_format']],
     ['a level with a space', 'game', ['level'], 'load or recompute', ['level: invalid_format']],

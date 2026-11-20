@@ -9,6 +9,11 @@ outcomes:
   - Write a rejection sampler whose output is exactly the target model's distribution, and test that claim with a chi-square at a stated significance and power
   - Tell the proposers of the pinned engines apart by what each needs, and say which runner a configuration runs on
   - Predict whether a grammar mask's fill hides under the forward, and how long a gap it leaves when it does not
+outcome_kcs:
+  - ['tr6.verify-shape']
+  - ['tr6.exact-acceptance', 'tr6.residual-recovery', 'tr6.exactness-testing']
+  - ['tr6.proposer-families', 'tr6.acceptance-length']
+  - ['tr6.mask-phases', 'tr6.mask-overlap']
 artifacts:
   - id: rejection-sampler
     lane: B

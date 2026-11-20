@@ -27,6 +27,8 @@ import { build } from 'vite'
 import { TRACE_KEYS } from '../src/trace/keys'
 import type { TraceProbe } from '../src/trace/test-hook'
 import { bannedOn } from './support/copy-scan'
+import { KEPT_LESSON, KEPT_TRACE, serveKeptLesson } from './support/kept-blocks'
+import { ledgerEvents } from './support/lessons'
 
 const root = path.resolve(import.meta.dirname, '..')
 const ORIGIN = 'http://localhost:4177'
@@ -727,5 +729,127 @@ test.describe('the specimen page', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Traces' })).toBeVisible()
     await expect(page.getByText('Trace id: sample')).toBeVisible()
     await expect(page.locator('[data-trace-view]')).toHaveCount(0)
+  })
+})
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// 5. A lesson's trace block (W2-T42)
+
+test.describe("a lesson's trace block", () => {
+  const trace = (page: Page) => page.locator('[data-block="trace"]')
+  const checkButton = (page: Page) => page.getByRole('button', { name: 'Check my marks' })
+
+  /** Presses Tab from the page's top until focus is on `target`: nothing but the keyboard is used to get there. */
+  async function tabToButton(page: Page, name: string): Promise<void> {
+    for (let i = 0; i < 200; i++) {
+      await press(page, 'Tab')
+      if (await page.evaluate((label) => document.activeElement?.textContent?.trim() === label, name)) return
+    }
+    throw new Error(`Tab never reached "${name}"`)
+  }
+
+  test('loads the viewer when the learner opens it, by keys, and a check of the marks writes one trace-mark event with the lesson’s rev', async ({ page, requests }) => {
+    await serveKeptLesson(page, dist)
+    await page.goto(`${ORIGIN}${KEPT_LESSON.route}`)
+    await expect(trace(page).locator('.es-run__title')).toHaveText('Mark the tape')
+    // Nothing of the viewer or of the model that makes the tape comes with the lesson.
+    await expect(page.locator('[data-trace-view]')).toHaveCount(0)
+    expect(requests.filter((request) => /TraceTape|TraceView/.test(request))).toEqual([])
+
+    await tabToButton(page, 'Open the trace')
+    await press(page, 'Enter')
+    await expect(trace(page).locator('[data-trace-view]')).toBeVisible({ timeout: 30_000 })
+    expect(requests.some((request) => /TraceTape/.test(request))).toBe(true)
+    // The learner asked for the tape, so the keys are on it already.
+    await expect(trace(page).locator('[data-trace-view]')).toBeFocused()
+    await expect(checkButton(page)).toBeDisabled()
+
+    // M, a category, K, M: one mark, a kernel, from an edge to the next on the lane the cursor is on.
+    await press(page, 'KeyM')
+    await press(page, 'Digit1')
+    await press(page, 'KeyK')
+    await press(page, 'KeyM')
+    await expect(trace(page).locator('[data-trace-marks] tbody tr')).toHaveCount(1)
+    await expect(checkButton(page)).toBeEnabled()
+    expect(await ledgerEvents(page).then((events) => (events as { kind: string }[]).filter((event) => event.kind === 'trace-mark'))).toEqual([])
+
+    await checkButton(page).focus()
+    await press(page, 'Enter')
+    // The button keeps focus while the check is written, and after it.
+    await expect(checkButton(page)).toBeFocused()
+    const result = trace(page).locator('[data-trace-result]')
+    await expect(result).toContainText('Saved to your record.')
+    await expect(result).toContainText(/Your marks name the right category for \d+% of the time you marked\./)
+
+    const written = ((await ledgerEvents(page)) as { kind: string; ref: string; rev?: string; seed?: number; ok: boolean; score: number; provenance: string; data: { marks: { kind: string; category?: string }[]; error: number } }[]).filter((event) => event.kind === 'trace-mark')
+    expect(written).toHaveLength(1)
+    const lessonRev = await page.locator('.es-lesson').getAttribute('data-rev')
+    expect(written[0]).toMatchObject({ ref: `trace:${KEPT_TRACE.id}/${KEPT_TRACE.task}`, rev: lessonRev, seed: KEPT_TRACE.seed, provenance: 'practice' })
+    expect(written[0].data.marks).toHaveLength(1)
+    expect(written[0].data.marks[0]).toMatchObject({ kind: 'range', category: 'kernel' })
+    expect(Number.isFinite(written[0].data.error) && written[0].data.error >= 0).toBe(true)
+    expect(written[0].score).toBeGreaterThanOrEqual(0)
+    expect(written[0].score).toBeLessThanOrEqual(1)
+    // A mark moved after the check takes the verdict away: it is no longer what was checked.
+    await trace(page).locator('[data-command="category-copy"]').click()
+    await expect(result).toHaveText('')
+    await expect(result).toHaveAttribute('data-trace-result', 'none')
+  })
+
+  test('"In vLLM today" ends the run it follows and cites its claims as numbered marks that open their source, and the Build row is in Keep', async ({ page }) => {
+    await serveKeptLesson(page, dist)
+    await page.goto(`${ORIGIN}${KEPT_LESSON.route}`)
+    const note = page.locator('.es-inprod')
+    await expect(note).toBeVisible()
+    await expect(note.locator('.es-note__title')).toHaveText('In vLLM today')
+    const marks = note.locator('a.es-pop__trigger[data-claim]')
+    await expect(marks).toHaveCount(3)
+    // The marks are numbered in the order the lesson first cites them, and the same numbers stand in Sources.
+    const numbers = await marks.locator('.es-claimmark__n').allInnerTexts()
+    expect(numbers.every((n) => /^\d+$/.test(n))).toBe(true)
+    await marks.first().focus()
+    await press(page, 'Enter')
+    const sheet = page.getByRole('dialog', { name: `Source ${numbers[0]}` })
+    await expect(sheet).toContainText('Prefix caching is on by default')
+    await press(page, 'Escape')
+    await expect(sheet).toHaveCount(0)
+    for (const n of numbers) await expect(page.locator(`#source-${n}`)).toBeVisible()
+    const keep = page.locator('#keep')
+    await expect(keep.locator('.es-build')).toContainText('This lesson prepares stages s1, s2.')
+    await expect(keep.getByRole('link', { name: 'Open the lab' })).toHaveAttribute('href', '/labs/hybrid-kv')
+  })
+
+  for (const width of [390, 1280]) {
+    test.describe(`at ${width} px`, () => {
+      test.use({ viewport: { width, height: 844 } })
+
+      test('axe finds no violation on the lesson with the trace open and marked, and the page does not scroll sideways', async ({ page }) => {
+        await serveKeptLesson(page, dist)
+        await page.goto(`${ORIGIN}${KEPT_LESSON.route}`)
+        await trace(page).getByRole('button', { name: 'Open the trace' }).click()
+        await expect(trace(page).locator('[data-trace-view]')).toBeVisible({ timeout: 30_000 })
+        await trace(page).locator('[data-command="mark"]').click()
+        await trace(page).locator('[data-command="category-kernel"]').click()
+        await trace(page).locator('[data-command="edge-next"]').click()
+        await trace(page).locator('[data-command="mark"]').click()
+        await checkButton(page).click()
+        await expect(trace(page).locator('[data-trace-result]')).toContainText('Saved to your record.')
+        await audit(page, `the lesson's trace block at ${width} px`)
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+      })
+    })
+  }
+
+  test.describe('with reduced motion', () => {
+    test.use({ reducedMotion: 'reduce' })
+
+    test('nothing on the block moves', async ({ page }) => {
+      await serveKeptLesson(page, dist)
+      await page.goto(`${ORIGIN}${KEPT_LESSON.route}`)
+      await trace(page).getByRole('button', { name: 'Open the trace' }).click()
+      await expect(trace(page).locator('[data-trace-view]')).toBeVisible({ timeout: 30_000 })
+      const moving = await trace(page).evaluate((root) => root.getAnimations({ subtree: true }).filter((animation) => animation.playState === 'running').length)
+      expect(moving).toBe(0)
+    })
   })
 })

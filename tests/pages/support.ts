@@ -6,7 +6,7 @@
 import { spawnSync } from 'node:child_process'
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
-import type { ContentIndex } from '../../packages/schema/compiled'
+import type { ContentIndex, LessonIndex } from '../../packages/schema/compiled'
 import { insertCsp } from '../../scripts/pages/csp'
 import type { Sources } from '../../scripts/pages/plan'
 import { root } from '../ci/support'
@@ -97,19 +97,23 @@ export function templateHtml(base = '/', { title = 'enginespace', description = 
 export const fakeSources: Sources = {
   index: {
     totalHours: 15,
+    firstLesson: { module: 'tr2', title: 'The first "lesson"', route: '/m/tr2/l1-first', minutes: 10 },
     modules: [
-      { id: 'tr1', title: 'Read the engines', route: '/m/tr1', status: 'planned', hours: 5, hours_by_lane: { B: 5 }, lessons: [] },
+      { id: 'tr1', title: 'Read the engines', route: '/m/tr1', status: 'planned', published: false, hours: 5, hours_by_lane: { B: 5 } },
       {
         id: 'tr2',
         title: "The step loop & its bubbles",
         route: '/m/tr2',
         status: 'draft',
+        published: true,
         hours: 10,
         hours_by_lane: { B: 10 },
-        lessons: [{ id: 'tr2.l1', slug: 'l1-first', title: 'The first "lesson"', route: '/m/tr2/l1-first', minutes: 10, status: 'draft' }],
       },
     ],
   } satisfies ContentIndex,
+  lessons: {
+    modules: { tr1: [], tr2: [{ id: 'tr2.l1', slug: 'l1-first', title: 'The first "lesson"', route: '/m/tr2/l1-first', minutes: 10, status: 'draft' }] },
+  } satisfies LessonIndex,
   games: [
     { id: 'loop', title: 'Step loop', subtitle: 'Keep every slot live, and never make the GPU wait for the CPU.', has3d: true },
     { id: 'gap-hunt', title: 'Trace attribution', subtitle: 'Every nanosecond of a step belongs to a kernel, a copy, a CPU gap or idle.', has3d: false },

@@ -232,6 +232,66 @@ for (const [width, height] of [
   })
 }
 
+/*
+ * A phone's first run holds the dock's decision controls back until the coach strip is there: the strip's chunk is fetched when the first run
+ * opens, and the controls must not show for the moment it takes and then go (the first run walks the parts, and the level's own controls come
+ * up at the next step). The strip's chunk is held for 800 ms here, so that the gap is wide enough to see, and a sampler records each frame in
+ * which a control of the dock outside the strip is on the screen while no strip is.
+ */
+test.describe('a phone\'s first run: no decision control shows before the coach strip', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  for (const game of GAMES.games) {
+    const level = smoke[game.id]
+    if (level === undefined) continue
+    test(`${game.title} (${game.id}), "${level}"`, async ({ page }) => {
+      await page.route(/\/assets\/Intro-[^/]*\.js$/, async (route) => {
+        await new Promise((done) => setTimeout(done, 800))
+        await route.continue()
+      })
+      await page.addInitScript(() => {
+        const seen: string[] = []
+        ;(window as unknown as { __early: string[] }).__early = seen
+        let stripSeen = false
+        const sample = () => {
+          if (!stripSeen) {
+            if (document.querySelector('.es-intro')) stripSeen = true
+            else {
+              for (const control of document.querySelectorAll<HTMLElement>('[data-dock-main] :is(button, input, select, textarea, [role="radio"]):not(:disabled)')) {
+                const box = control.getBoundingClientRect()
+                if (box.width > 0 && box.height > 0 && box.bottom > 0 && box.top < window.innerHeight && control.checkVisibility({ visibilityProperty: true, opacityProperty: true }))
+                  seen.push(`${control.tagName.toLowerCase()} ${(control.getAttribute('aria-label') ?? control.textContent ?? '').trim().slice(0, 40)}`)
+              }
+            }
+          }
+          requestAnimationFrame(sample)
+        }
+        requestAnimationFrame(sample)
+      })
+      await openLevel(page, game.id, level)
+      const frame = page.locator(`section[data-game="${game.id}"]`)
+      await expect(frame.locator('.es-intro[data-intro="parts"]')).toBeVisible()
+      const early = await page.evaluate(() => [...new Set((window as unknown as { __early: string[] }).__early)])
+      expect(early, 'dock controls on the screen before the coach strip').toEqual([])
+    })
+  }
+})
+
+/** A ledger that never answers (an upgrade blocked by an old tab) must not leave a phone's dock without its controls. */
+test.describe('a phone\'s first run with a ledger that does not answer', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('Pool, "one-group": a dock control comes on the screen and is enabled', async ({ page }) => {
+    await page.addInitScript(() => {
+      IDBFactory.prototype.open = () => ({}) as IDBOpenDBRequest
+    })
+    await openLevel(page, 'pool', 'one-group')
+    const controls = page.locator('section[data-game="pool"] [data-dock-main] button:not(:disabled)')
+    await expect(controls.first()).toBeVisible()
+    await expect(controls.first()).toBeEnabled()
+  })
+})
+
 /** Every level that has a pass rule, with its words: the games' copy tables are the list, so a level that gains a rule is held to showing it. */
 const RULES: { game: string; level: string; rule: string }[] = [
   ...Object.entries(FLOOR_COPY).flatMap(([level, copy]) => (copy.passRule === undefined ? [] : [{ game: 'engine-floor', level, rule: copy.passRule }])),

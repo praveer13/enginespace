@@ -18,9 +18,6 @@ const heading = (id: string) => tasks.get(id)?.split('\n', 1)[0] ?? ''
 describe('the features that are not built yet', () => {
   /** Each feature, the words of the tracker that say which task builds it, and where those words are. */
   const features: Record<keyof typeof PENDING, { in: 'heading' | 'body'; words: RegExp }> = {
-    trace: { in: 'body', words: /The `trace` block/ },
-    'in-production': { in: 'body', words: /The In-production card/ },
-    'build-this': { in: 'body', words: /The Build-this card/ },
     change: { in: 'heading', words: /Change cards/ },
   }
 

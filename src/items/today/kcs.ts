@@ -7,10 +7,12 @@
  *   item:gen/<family>/<variant>  the KCs of that variant of the family (A§8.2: a variant assesses its own)
  *   play:<game>/<level>          the KCs the game exercises (the registry's `kcs`; a level names none of its own yet)
  *
+ *   predict:<lesson>#<id>        the KCs the lesson's prediction names, from the compiled map's `refs` (W1-T06; src/progress/kcmap.ts reads
+ *                                the same). A prediction of either reveal, after the run or at commit (D-067), writes the same event. It may
+ *                                reschedule an idea that is already earned (ASSESSMENT §4.7) and never earns one: that is cards.ts's `earns`,
+ *                                which a prediction fails by its kind, so this map only says which ideas it is about. Without `refs` it names none.
+ *
  * Every other ref names none yet, and an event with such a ref moves no card:
- *   - predict:   a prediction's KCs are written in the lesson that asks it, and the compiled map carries them in its `refs` (W1-T06;
- *     src/progress/kcmap.ts reads them there). Predictions may reschedule an idea that is already earned (ASSESSMENT §4.7) and can
- *     never earn one, so leaving them out loses only that;
  *   - lab:, prove:, receipt:   the KCs of a lab's checks are named by the lab tasks (W1-T10, W1-T22, W1-T27);
  *   - trace:, challenge:, screen:, change:   a trace belongs to every module that reads it, and the rest are not graded.
  *
@@ -27,6 +29,8 @@ export interface KcSources {
   variant(family: string, variant: string): readonly string[]
   /** The KCs a game exercises. */
   game(game: string): readonly string[]
+  /** The exact refs that content assigns to KCs: a prediction's (the compiled map's `refs`). Left out, a prediction names no KC. */
+  refs?: Readonly<Record<string, readonly string[]>>
 }
 
 /** The KCs a ref is evidence for, without repeats, or none. */
@@ -46,6 +50,9 @@ export function kcsOfRef(ref: string, sources: KcSources): readonly string[] {
     case 'play':
       kcs = sources.game(parsed.game)
       break
+    case 'predict':
+      kcs = (sources.refs !== undefined && Object.hasOwn(sources.refs, ref) ? sources.refs[ref] : undefined) ?? []
+      break
     default:
       return []
   }
@@ -53,8 +60,9 @@ export function kcsOfRef(ref: string, sources: KcSources): readonly string[] {
 }
 
 /** The sources of this build: the item families and the games of the registries. */
-export function sourcesOf(families: readonly GenFace[] = CATALOG): KcSources {
+export function sourcesOf(families: readonly GenFace[] = CATALOG, refs?: KcSources['refs']): KcSources {
   return {
+    ...(refs === undefined ? {} : { refs }),
     variant: (family, variant) => families.find((gen) => gen.id === family)?.variants.find((spec) => spec.id === variant)?.kcs ?? [],
     game: (game) => GAMES.get(game)?.kcs ?? [],
   }
@@ -62,3 +70,9 @@ export function sourcesOf(families: readonly GenFace[] = CATALOG): KcSources {
 
 /** The resolver the page uses. */
 export const appKcsOfRef: KcsOfRef = (ref) => kcsOfRef(ref, sourcesOf())
+
+/** The resolver once the compiled map is read: the same, with the map's refs, so that a prediction names the ideas its lesson says it is about. */
+export const kcsOfRefWith =
+  (refs: KcSources['refs']): KcsOfRef =>
+  (ref) =>
+    kcsOfRef(ref, sourcesOf(CATALOG, refs))

@@ -12,7 +12,7 @@ import { LOOP } from '@es/play/loop/entry'
 import { FRAME } from '@/front/copy'
 import { courseHours, FIRST_PARTS, introOpens, returningOf, startLabel } from '@/front/way'
 import { START_POINTER } from '@/settings/store'
-import { repo, repoOutput } from '../content/support.ts'
+import { compile, COURSE, output, repo, repoOutput, swap } from '../content/support.ts'
 
 const root = repo
 const index = JSON.parse(repoOutput('src/content/generated/index.json')) as ContentIndex
@@ -95,5 +95,24 @@ describe('the page reads the pointer and the flag, and never the ledger (D-038)'
       const text = readFileSync(path.join(root, 'src/front', file), 'utf8')
       expect(text, file).not.toMatch(/from '\.\/anchors'|loop\/layout|loop\/kitchen|FrameLabels|scene-presets/)
     }
+  })
+})
+
+describe('the start is a key of course.yaml', () => {
+  test('the index names the start module\'s first lesson, and a lesson of a module before the start is marked in the map', () => {
+    const plain = compile()
+    expect(JSON.parse(output(plain, 'src/content/generated/index.json')).firstLesson.module).toBe('tr2')
+    // The sample course's only lessons are TR2's: with the start at TR3 they stand before it.
+    const moved = compile({ [COURSE]: swap('start: tr1', 'start: tr3') })
+    expect(JSON.parse(output(moved, 'src/content/generated/index.json')).firstLesson).toBeUndefined()
+    const lessons = JSON.parse(output(moved, 'src/content/generated/map.json')).lessons as { module: string; before?: true }[]
+    expect(lessons.length).toBeGreaterThan(0)
+    expect(lessons.every((lesson) => lesson.before === true)).toBe(true)
+    expect(JSON.parse(output(plain, 'src/content/generated/map.json')).lessons.some((lesson: { before?: true }) => lesson.before !== undefined)).toBe(false)
+  })
+
+  test('the repo\'s course starts at TR1', () => {
+    expect(readFileSync(path.join(root, 'content/course.yaml'), 'utf8')).toMatch(/^start: tr1\b/m)
+    expect(index.firstLesson?.module).toBe('tr1')
   })
 })

@@ -64,7 +64,7 @@ describe('the real sources', () => {
   })
 
   test('list every module of the course, written or planned, and each lesson of the index', () => {
-    const wanted = sources.index.modules.flatMap((module) => [module.route, ...module.lessons.map((lesson) => lesson.route)])
+    const wanted = sources.index.modules.flatMap((module) => [module.route, ...(sources.lessons.modules[module.id] ?? []).map((lesson) => lesson.route)])
     expect(wanted.length).toBeGreaterThan(10)
     expect(urls(plan.pages).filter((url) => url.startsWith('/m/')).sort()).toEqual([...wanted].sort())
   })
@@ -105,7 +105,7 @@ describe('the real sources', () => {
   test('give a module and a lesson the title that their page sets once its content has loaded', () => {
     for (const module of sources.index.modules) {
       expect(byUrl(plan.pages, module.route)?.title).toBe(titled(module.title))
-      for (const lesson of module.lessons) expect(byUrl(plan.pages, lesson.route)?.title).toBe(titled(lesson.title))
+      for (const lesson of sources.lessons.modules[module.id] ?? []) expect(byUrl(plan.pages, lesson.route)?.title).toBe(titled(lesson.title))
     }
   })
 

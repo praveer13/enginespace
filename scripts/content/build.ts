@@ -18,6 +18,7 @@
  *
  * What it writes:
  *   src/content/generated/index.json              the course index, in the entry's closure (6 KB gz [estimated])
+ *   src/content/generated/lesson-index.json       each module's lesson rows, which the pages that list lessons load on demand
  *   src/content/generated/map.json                what the map and the module pages read: prerequisites, artifacts, KCs and refs
  *   src/content/generated/modules/<id>.json       one per written module
  *   src/content/generated/lessons/<id>.<slug>.json  one per lesson (40 KB gz each [estimated])
@@ -36,15 +37,16 @@ import { claimSchema } from '../../packages/schema/claims.ts'
 import type { Claim } from '../../packages/schema/claims.ts'
 import {
   claimsOutputSchema,
-  compiledCardSchema,
+  compiledKeptCardSchema,
   compiledLessonSchema,
   compiledModuleSchema,
   contentIndexSchema,
+  lessonIndexSchema,
   courseMapSchema,
   lessonRoute,
   moduleRoute,
 } from '../../packages/schema/compiled.ts'
-import type { CompiledBlock, ContentIndex, CourseMap, FamilyCount, IndexLesson, IndexModule, MapLesson, ProseFlow, ProseInline } from '../../packages/schema/compiled.ts'
+import type { CompiledBlock, ContentIndex, CourseMap, FamilyCount, FirstLesson, IndexLesson, IndexModule, LessonIndex, MapLesson, ProseFlow, ProseInline } from '../../packages/schema/compiled.ts'
 import { lessonFrontMatterSchema, moduleFrontMatterSchema } from '../../packages/schema/content.ts'
 import type { LessonFrontMatter, ModuleFrontMatter } from '../../packages/schema/content.ts'
 import { courseSchema } from '../../packages/schema/course.ts'
@@ -136,17 +138,45 @@ function walk(dir: string, accept: (name: string) => boolean): string[] {
   return found
 }
 
+/** Reads one source file as text, or returns `undefined` when the file is gone. A save by rename, as editors make it, can remove a file between the walk and the read. */
+export type Reader = (abs: string) => string | undefined
+
+/** The file system read: the text, or `undefined` for a file that does not exist. Any other error (permission, a folder) throws. */
+export const readText: Reader = (abs) => {
+  try {
+    return readFileSync(abs, 'utf8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
+    throw error
+  }
+}
+
+/**
+ * A reader for one compile. A file that has vanished is read once more (the rename that removed it has usually put the new file
+ * in place by then); if it is still gone, a diagnostic names it and the compile goes on without it, so that the dev server keeps
+ * running and the next save compiles again. The reader returns `null` for such a file.
+ */
+function readSource(read: Reader, root: string, out: Diagnostic[]): (abs: string) => string | null {
+  return (abs) => {
+    const text = read(abs) ?? read(abs)
+    if (text !== undefined) return text
+    out.push(problem('content', 'error', 'file-vanished', rel(root, abs), 1, `${rel(root, abs)} was removed while it was being read (an editor saves by renaming); save it again to compile it`))
+    return null
+  }
+}
+
 const slash = (file: string): string => file.split(path.sep).join('/')
 const rel = (root: string, absolute: string): string => slash(path.relative(root, absolute))
 
-function loadCourse(root: string, out: Diagnostic[]): Course | null {
+function loadCourse(root: string, out: Diagnostic[], read: (abs: string) => string | null): Course | null {
   const file = 'content/course.yaml'
   const abs = path.join(root, file)
   if (!existsSync(abs)) {
     out.push(problem('content', 'error', 'missing-file', file, 1, 'content/course.yaml lists the course\'s modules in order, with their hours (ARCHITECTURE §2.2)'))
     return null
   }
-  const text = readFileSync(abs, 'utf8')
+  const text = read(abs)
+  if (text === null) return null
   const loaded = loadYaml(text, file, 1, 'content', out)
   if (!loaded.ok) return null
   const parsed = courseSchema.safeParse(loaded.value)
@@ -157,11 +187,12 @@ function loadCourse(root: string, out: Diagnostic[]): Course | null {
   return parsed.data
 }
 
-function loadClaims(root: string, out: Diagnostic[]): Map<string, ClaimRecord> {
+function loadClaims(root: string, out: Diagnostic[], read: (abs: string) => string | null): Map<string, ClaimRecord> {
   const claims = new Map<string, ClaimRecord>()
   for (const abs of walk(path.join(root, 'content/claims'), (name) => /\.ya?ml$/.test(name))) {
     const file = rel(root, abs)
-    const text = readFileSync(abs, 'utf8')
+    const text = read(abs)
+    if (text === null) continue
     const loaded = loadYaml(text, file, 1, 'claims', out)
     if (!loaded.ok) continue
     if (!Array.isArray(loaded.value)) {
@@ -189,12 +220,13 @@ function loadClaims(root: string, out: Diagnostic[]): Map<string, ClaimRecord> {
 }
 
 /** The KC ids that lessons name, which are read even from a graph that fails its schema, and the graph itself once it passes. */
-function loadKcs(root: string, out: Diagnostic[]): { ids: Set<string>; graph: Kc[] } {
+function loadKcs(root: string, out: Diagnostic[], read: (abs: string) => string | null): { ids: Set<string>; graph: Kc[] } {
   const file = 'content/kc/graph.yaml'
   const abs = path.join(root, file)
   const ids = new Set<string>()
   if (!existsSync(abs)) return { ids, graph: [] }
-  const text = readFileSync(abs, 'utf8')
+  const text = read(abs)
+  if (text === null) return { ids, graph: [] }
   const loaded = loadYaml(text, file, 1, 'content', out)
   if (!loaded.ok) return { ids, graph: [] }
   const parsed = kcGraphSchema.safeParse(loaded.value)
@@ -229,12 +261,14 @@ interface Cards {
 }
 
 /** Compiles `content/cards/*.md`. A `README.md` there is not a card. */
-function loadCards(root: string, claimIds: ReadonlySet<string>, out: Diagnostic[]): Cards {
+function loadCards(root: string, claimIds: ReadonlySet<string>, out: Diagnostic[], read: (abs: string) => string | null): Cards {
   const cards: Cards = { stems: new Set(), compiled: new Map() }
   for (const abs of walk(path.join(root, 'content/cards'), (name) => name.endsWith('.md') && !/^readme\.md$/i.test(name))) {
     const file = rel(root, abs)
     cards.stems.add(path.basename(abs, '.md'))
-    const card = compileCard(file, readFileSync(abs, 'utf8'), claimIds, out)
+    const text = read(abs)
+    if (text === null) continue
+    const card = compileCard(file, text, claimIds, out)
     if (card !== null) cards.compiled.set(card.front.id, card)
   }
   return cards
@@ -246,6 +280,8 @@ function loadCards(root: string, claimIds: ReadonlySet<string>, out: Diagnostic[
 
 interface Sources {
   root: string
+  /** Reads a source file; `null` once the file has vanished twice, with the diagnostic already filed. */
+  read: (abs: string) => string | null
   course: Course | null
   /** The KC graph, or an empty list while content/kc/graph.yaml is absent or fails its schema (which is reported). */
   kcGraph: readonly Kc[]
@@ -253,6 +289,8 @@ interface Sources {
   claimIds: ReadonlySet<string>
   lockKeys: ReadonlySet<string> | null
   links: LinkEnv
+  /** The claims that each In-production and Build-this card cites, in the order its words first cite them, by card id. */
+  cardCites: ReadonlyMap<string, readonly string[]>
 }
 
 /** A source file after its body is compiled. */
@@ -356,7 +394,13 @@ function compileBody(file: ContentFile, sources: Sources, lessonId: string | und
     if (block.type === 'predict' || block.type === 'game' || block.type === 'item' || block.type === 'trace') {
       body.pace.push({ kind: 'do', what: block.type, line: segment.line, graded: block.type === 'game' && block.mode === 'graded' })
     }
-    body.blocks.push(block)
+    // A block that names an In-production or a Build-this card carries the claims the card cites, so that the lesson numbers its marks and
+    // lists its Sources before the card's file has loaded, and its rev changes with them.
+    const named = block.type === 'card' && (block.kind === 'in-production' || block.kind === 'build-this') ? sources.cardCites.get(block.id) : undefined
+    if (named !== undefined && block.type === 'card' && (block.kind === 'in-production' || block.kind === 'build-this')) {
+      for (const id of named) cited.add(id)
+      body.blocks.push({ type: 'card', kind: block.kind, id: block.id, cites: [...named] })
+    } else body.blocks.push(block)
     body.directives.push(block)
     body.parts.push({ kind: 'block', block })
     minutes += blockMinutes(block)
@@ -412,7 +456,9 @@ function compileLesson(abs: string, moduleId: string, sources: Sources, out: Dia
     out.push(problem('content', 'error', 'bad-file-name', file, 1, `a lesson file is named like l3-async-overlap.md: l, the lesson's number, then words joined by hyphens`))
     return null
   }
-  const parsedFile = parseContentFile(file, readFileSync(abs, 'utf8'), out)
+  const text = sources.read(abs)
+  if (text === null) return null
+  const parsedFile = parseContentFile(file, text, out)
   if (parsedFile === null) return null
 
   const lessonId = `${moduleId}.${/^l\d+/.exec(slug)?.[0]}`
@@ -504,7 +550,9 @@ function compileModule(id: string, sources: Sources, out: Diagnostic[]): ModuleR
     return null
   }
 
-  const parsedFile = parseContentFile(file, readFileSync(abs, 'utf8'), out)
+  const text = sources.read(abs)
+  if (text === null) return null
+  const parsedFile = parseContentFile(file, text, out)
   let front: ModuleFrontMatter | undefined
   if (parsedFile?.frontMatter !== undefined) {
     const parsed = moduleFrontMatterSchema.safeParse(parsedFile.frontMatter)
@@ -558,6 +606,12 @@ function compileModule(id: string, sources: Sources, out: Diagnostic[]): ModuleR
   }
   front.games?.forEach((game, index) => at(unknownGame(game, sources.links, ['games', index]), 'games'))
   front.labs?.forEach((lab, index) => at(unknownLab(lab, sources.links, ['labs', index]), 'labs'))
+  front.outcome_kcs.forEach((row, outcome) => {
+    at(unknownKcs(row, sources.links, ['outcome_kcs', outcome]), 'outcome_kcs')
+    row.forEach((kc, index) => {
+      if (!kc.startsWith(`${id}.`)) at([{ code: 'foreign-kc', path: ['outcome_kcs', outcome, index], message: `outcome ${outcome + 1} rests on "${kc}", which is not a KC of ${id}` }], 'outcome_kcs')
+    })
+  })
   front.worlds.forEach((world, index) => {
     if (!sources.links.cards.has(world)) at([{ code: 'unknown-card', path: ['worlds', index], message: `no card "${world}": a world's card is the file content/cards/${world}.md` }], 'worlds')
   })
@@ -827,9 +881,10 @@ function buildMap(course: Course, modules: ReadonlyMap<string, ModuleResult>, gr
     }
   }
   const lessons: MapLesson[] = []
-  for (const entry of course.modules) {
+  const startAt = course.start === undefined ? 0 : Math.max(0, course.modules.findIndex((entry) => entry.id === course.start))
+  for (const [at, entry] of course.modules.entries()) {
     for (const lesson of modules.get(entry.id)?.lessons ?? []) {
-      const row = lessonRow(lesson.front, lesson.slug, lesson.rev, lesson.body.blocks)
+      const row = { ...lessonRow(lesson.front, lesson.slug, lesson.rev, lesson.body.blocks), ...(at < startAt ? { before: true as const } : {}) }
       // An authoring rule (REDESIGN §2.5, rule 4): every lesson has a Test, and the way on calls a lesson done when its Test is passed.
       if (row.test.questions.length === 0 && row.test.graded.length === 0) {
         out.push(problem('content', 'warning', 'no-test', `content/modules/${entry.id}/lessons/${lesson.slug}.md`, 1, `lesson ${lesson.front.id} has no Test: put an item block or a graded game block under its last ## heading, or the lesson can never be done`))
@@ -846,7 +901,7 @@ function buildMap(course: Course, modules: ReadonlyMap<string, ModuleResult>, gr
         artifacts: written?.artifacts ?? entry.artifacts ?? [],
         labs: written?.labs ?? [],
         kcs: kcs.filter((kc) => kc.module === entry.id).map((kc) => kc.id),
-        ...(written === undefined ? {} : { outcome: written.outcomes[0] }),
+        ...(written === undefined ? (entry.outcome === undefined ? {} : { outcome: entry.outcome }) : { outcome: written.outcomes[0] }),
       }
     }),
     kcs,
@@ -873,7 +928,10 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
   }
 
   const indexModules: IndexModule[] = []
-  for (const entry of course.modules) {
+  const lessonRows: Record<string, IndexLesson[]> = {}
+  let firstLesson: FirstLesson | undefined
+  const startAt = course.start === undefined ? 0 : Math.max(0, course.modules.findIndex((entry) => entry.id === course.start))
+  for (const [at, entry] of course.modules.entries()) {
     const module = modules.get(entry.id)
     const lessons: IndexLesson[] = (module?.lessons ?? []).map(({ slug, front }) => ({
       id: front.id,
@@ -889,11 +947,14 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
       title: entry.title,
       route: moduleRoute(entry.id),
       status: module?.front.status ?? 'planned',
+      published: lessons.length > 0,
       hours: entry.hours,
       hours_by_lane: entry.hours_by_lane,
       ...(module === undefined ? {} : { prereqs: module.front.prereqs, ...(module.front.games === undefined ? {} : { games: module.front.games }) }),
-      lessons,
     })
+    lessonRows[entry.id] = lessons
+    const head = lessons[0]
+    if (firstLesson === undefined && head !== undefined && at >= startAt) firstLesson = { module: entry.id, title: head.title, route: head.route, minutes: head.minutes, needs: head.needs }
     if (module === undefined) continue
 
     const moduleSource = `content/modules/${entry.id}/module.md`
@@ -915,12 +976,14 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
   }
 
   for (const [id, card] of cards) {
-    const compiled = checked(compiledCardSchema, { ...card.front, rev: revOfCard(card, sources), ...card.words }, `card ${id}`, card.file)
+    const compiled = checked(compiledKeptCardSchema, { ...card.front, rev: revOfCard(card, sources), ...card.words }, `card ${id}`, card.file)
     if (compiled !== undefined) emit(`src/content/generated/cards/${id}.json`, json(compiled), card.file, BUDGETS.page)
   }
 
-  const index = checked<ContentIndex>(contentIndexSchema, { totalHours: course.modules.reduce((sum, module) => sum + module.hours, 0), modules: indexModules }, 'course index', 'content/course.yaml')
+  const index = checked<ContentIndex>(contentIndexSchema, { totalHours: course.modules.reduce((sum, module) => sum + module.hours, 0), ...(firstLesson === undefined ? {} : { firstLesson }), modules: indexModules }, 'course index', 'content/course.yaml')
   if (index !== undefined) emit('src/content/generated/index.json', json(index), 'content/course.yaml', BUDGETS.index)
+  const lessonIndex = checked<LessonIndex>(lessonIndexSchema, { modules: lessonRows }, 'lesson index', 'content/course.yaml')
+  if (lessonIndex !== undefined) emit('src/content/generated/lesson-index.json', json(lessonIndex), 'content/course.yaml', BUDGETS.page)
   const courseMap = checked<CourseMap>(courseMapSchema, buildMap(course, modules, sources.kcGraph, out), 'course map', 'content/course.yaml')
   if (courseMap !== undefined) emit('src/content/generated/map.json', json(courseMap), 'content/course.yaml', BUDGETS.map)
   emit('public/llms.txt', llmsText(course, modules))
@@ -937,21 +1000,24 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
 }
 
 /** Compiles `content/` under `root`. It reads files and writes none. */
-export function compileContent({ root, replay }: { root: string; replay?: ReplayCheck }): CompileResult {
+export function compileContent({ root, replay, read = readText }: { root: string; replay?: ReplayCheck; read?: Reader }): CompileResult {
   const out: Diagnostic[] = []
-  const course = loadCourse(root, out)
-  const claims = loadClaims(root, out)
-  const kcs = loadKcs(root, out)
+  const source = readSource(read, root, out)
+  const course = loadCourse(root, out, source)
+  const claims = loadClaims(root, out, source)
+  const kcs = loadKcs(root, out, source)
   const lockKeys = loadLockKeys(root)
   const claimIds: ReadonlySet<string> = new Set(claims.keys())
-  const cards = loadCards(root, claimIds, out)
+  const cards = loadCards(root, claimIds, out, source)
   const sources: Sources = {
     root,
+    read: source,
     course,
     kcGraph: kcs.graph,
     claims,
     claimIds,
     lockKeys,
+    cardCites: new Map([...cards.compiled].filter(([, card]) => card.front.kind !== 'notional-machine').map(([id, card]) => [id, [...card.cited]])),
     links: {
       games: new Set(GAME_IDS),
       labs: new Set(LAB_IDS),
