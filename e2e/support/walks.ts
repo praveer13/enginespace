@@ -193,7 +193,11 @@ const SAMPLER: Record<(typeof WALKED)['verifier'][number], Walker> = {
     const level = sampler('mutants')
     if (level.id !== 'mutants') throw new Error('not the mutants level')
     await throughFirstRun(page, walk)
-    await reach(page, walk, /^Sample 20,000$/)
+    // The first run's ask step leaves focus on the first field of the level, which is card 1's bug name: Shift+Tab goes back over
+    // "Check every draw" to card 1's "Sample 20,000", where a forward Tab would go on to card 2's.
+    await expect.poll(() => activeName(page)).toBe('Name the bug of card 1')
+    for (let back = 0; back < 3 && !/^Sample 20,000$/.test(await activeName(page)); back++) await walk.press('Shift+Tab')
+    await expect.poll(() => activeName(page)).toBe('Sample 20,000')
     await page.keyboard.press('Enter')
     await expect(liveLine(page)).toContainText('Card 1 sampled:')
     await tabTo(walk, /^Check every draw$/, 3)

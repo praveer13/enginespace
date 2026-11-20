@@ -159,9 +159,9 @@ test.describe('a wrong module', () => {
     await drop(page, 'resample-from-p')
     await finished(page)
     expect(await statusOf(page)).toEqual(['pass', 'pass', 'pass', 'fail', 'fail'])
-    await expect(rows(page).nth(3)).toContainText('the first plate is sent back for sure')
+    await expect(rows(page).nth(3)).toContainText('the first draft token is rejected for sure')
     await expect(rows(page).nth(4)).toContainText('over 20000 rounds the first token that goes out should follow p, and it does not: chi-square')
-    await expect(rows(page).nth(4)).toContainText('The dish furthest from its share is token')
+    await expect(rows(page).nth(4)).toContainText('The token furthest from its share is token')
     await expect(rows(page).nth(4)).toContainText('Catches')
   })
 
