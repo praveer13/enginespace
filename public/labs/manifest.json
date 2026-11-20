@@ -5,12 +5,12 @@
       "name": "enginespace-gpu-kit-0.1.0.zip",
       "kind": "gpu-kit",
       "version": "0.1.0",
-      "graderSourceSha256": "52110879f5da04fe43a21b76eb857f4e598ec6050080c7a9abfcf47bba8424ac",
-      "bytes": 2897931,
-      "sha256": "726aa9c5751b1917e83969a071046d075a8167df32a2471b18d15107df93cf93",
+      "graderSourceSha256": "c7a1e341384380a119f54fc28fed494c2d1a3dabf10be86ee7d9dbc94ed6b70e",
+      "bytes": 2898487,
+      "sha256": "a7641e405ba74b9ffacf1ae5a24ca4f30d6f837ec819b6517a9fb5079720b8cb",
       "root": "enginespace-gpu-kit",
       "members": [
-        { "path": "README.md", "bytes": 2096, "sha256": "477305d8e05c9e456ef90f0fac4e771bca3a6080b56bfc761fb3da5b62bda667" },
+        { "path": "README.md", "bytes": 2096, "sha256": "c593f6819b30e1f23ff93d48a6ae49b39311c2bd14165a3d92e09e6e02ee77dc" },
         { "path": "course.lock.json", "bytes": 6041, "sha256": "6d07d5e0a139f3285859832ca282670dd69a876797e59bf649583642d2e05b1f" },
         { "path": "envs/README.md", "bytes": 2577, "sha256": "3b1fc575f037f81292158d90558efb92e72ee83e458867eff39521aa6fddb020" },
         { "path": "envs/cpu/Dockerfile", "bytes": 1875, "sha256": "27a28f86e5c1c3f3099e37149bb38cd7d3bda33eeb7e38651a3a6c38ae76e803" },
@@ -40,7 +40,7 @@
         { "path": "grader/src/enginespace_grader/doctor.py", "bytes": 7651, "sha256": "3222a2446c32d9b56af6d633e7c90be4141fca83272c45357545a6de2803d584" },
         { "path": "grader/src/enginespace_grader/engine_config.py", "bytes": 19517, "sha256": "3050592248f4b96b3dc012e9743492e81fcbe28f45f306938fe6977b0b3b0360" },
         { "path": "grader/src/enginespace_grader/errors.py", "bytes": 551, "sha256": "0fcc1033a6640177240a1501c761abb860f9eaf74b73021680f8a0bcf3d521c5" },
-        { "path": "grader/src/enginespace_grader/fetch.py", "bytes": 35297, "sha256": "02cec8b37fa16dd8135507082d985893b65f194e4527dd2a083f27366bf38a27" },
+        { "path": "grader/src/enginespace_grader/fetch.py", "bytes": 35853, "sha256": "0b7f615ffe3710bbbf0f6534660fbf5cc91308bbb536942fc018fb5e4b2f65d2" },
         { "path": "grader/src/enginespace_grader/fingerprint.py", "bytes": 35074, "sha256": "760bce6dcbba6aec766545115bd77a775caf510a015fc06cce8ced14adf6b6d4" },
         { "path": "grader/src/enginespace_grader/grade.py", "bytes": 12223, "sha256": "804aa13bac69b4b1df477a98ebf11133fa377a181720d932ce975549118727af" },
         { "path": "grader/src/enginespace_grader/hashing.py", "bytes": 4015, "sha256": "12d726f224789e89908f6aa55e81aea8b5edb3857c1a09671fadd8b1ff3b86d1" },
@@ -157,9 +157,9 @@
       "name": "enginespace_grader-0.1.0-py3-none-any.whl",
       "kind": "grader-wheel",
       "version": "0.1.0",
-      "sourceSha256": "52110879f5da04fe43a21b76eb857f4e598ec6050080c7a9abfcf47bba8424ac",
-      "bytes": 396275,
-      "sha256": "7a536de34d45f7fd2b4cb8a56917ad9a8766ec8d12b7463ad87ef1c5c72fba6a",
+      "sourceSha256": "c7a1e341384380a119f54fc28fed494c2d1a3dabf10be86ee7d9dbc94ed6b70e",
+      "bytes": 396831,
+      "sha256": "39230a3415454412e6b7eae4c9e4dd396b73aee55034ba24deb4672534c041b6",
       "members": [
         { "path": "enginespace_grader/__init__.py", "bytes": 1149, "sha256": "d7a646615c62e18881530e2b3605c7feaaa03cc0ef83bdb839831b9579874da0" },
         { "path": "enginespace_grader/__main__.py", "bytes": 122, "sha256": "2cfa516bc17d768d4ba85bd8a1725e3886ef310f46f8cb3cddecc4efc5a9b43b" },
@@ -170,7 +170,7 @@
         { "path": "enginespace_grader/doctor.py", "bytes": 7651, "sha256": "3222a2446c32d9b56af6d633e7c90be4141fca83272c45357545a6de2803d584" },
         { "path": "enginespace_grader/engine_config.py", "bytes": 19517, "sha256": "3050592248f4b96b3dc012e9743492e81fcbe28f45f306938fe6977b0b3b0360" },
         { "path": "enginespace_grader/errors.py", "bytes": 551, "sha256": "0fcc1033a6640177240a1501c761abb860f9eaf74b73021680f8a0bcf3d521c5" },
-        { "path": "enginespace_grader/fetch.py", "bytes": 35297, "sha256": "02cec8b37fa16dd8135507082d985893b65f194e4527dd2a083f27366bf38a27" },
+        { "path": "enginespace_grader/fetch.py", "bytes": 35853, "sha256": "0b7f615ffe3710bbbf0f6534660fbf5cc91308bbb536942fc018fb5e4b2f65d2" },
         { "path": "enginespace_grader/fingerprint.py", "bytes": 35074, "sha256": "760bce6dcbba6aec766545115bd77a775caf510a015fc06cce8ced14adf6b6d4" },
         { "path": "enginespace_grader/grade.py", "bytes": 12223, "sha256": "804aa13bac69b4b1df477a98ebf11133fa377a181720d932ce975549118727af" },
         { "path": "enginespace_grader/hashing.py", "bytes": 4015, "sha256": "12d726f224789e89908f6aa55e81aea8b5edb3857c1a09671fadd8b1ff3b86d1" },
@@ -197,7 +197,7 @@
         { "path": "enginespace_grader-0.1.0.dist-info/METADATA", "bytes": 24641, "sha256": "7cb2c38bd30ca170ecb7b8c963f2e3cb9007d9ac7c31f5f514351be343f73848" },
         { "path": "enginespace_grader-0.1.0.dist-info/WHEEL", "bytes": 91, "sha256": "7dc5290421b702418f108c10ba93d3aacb5845ea0204563e941603cd7422945b" },
         { "path": "enginespace_grader-0.1.0.dist-info/entry_points.txt", "bytes": 60, "sha256": "87aa4dccd7b7e779075e516c5fcd45613a2786066bea579ed87b6b898e839cae" },
-        { "path": "enginespace_grader-0.1.0.dist-info/RECORD", "bytes": 3327, "sha256": "c72a74b24004ce77977ef68be71d44c712fd9c3ed24bb35d64ffe98c865b8ea8" }
+        { "path": "enginespace_grader-0.1.0.dist-info/RECORD", "bytes": 3327, "sha256": "65ddf39fa0de36d8f794ed61c566310a07a158684be2f4b2fc3beb06ec8ced5a" }
       ]
     }
   ]

@@ -16,5 +16,5 @@
 import type { PublishedGrader } from '@es/verify'
 
 export const PUBLISHED_GRADERS: readonly PublishedGrader[] = [
-  { version: '0.1.0', sourceSha256: '52110879f5da04fe43a21b76eb857f4e598ec6050080c7a9abfcf47bba8424ac' },
+  { version: '0.1.0', sourceSha256: 'c7a1e341384380a119f54fc28fed494c2d1a3dabf10be86ee7d9dbc94ed6b70e' },
 ]
