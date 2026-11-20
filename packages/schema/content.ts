@@ -201,6 +201,8 @@ const itemShape = {
   family: familyIdSchema,
   level: z.int().min(0).max(3),
   count: z.int().positive(),
+  /** Optional: the one variant of the family the block draws, so a checkpoint can ask the kind of question its part taught. Without it the seed picks. */
+  variant: slugSchema.optional(),
 }
 
 /** `game` embeds `src/games/<id>` at one level and writes `play` events. */

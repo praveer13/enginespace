@@ -274,7 +274,7 @@ export function blockMarkdown(block: DirectiveBlock): string {
       return quote(`**Predict \`${block.id}\`.** ${block.prompt}\n\nThe learner commits to ${shape} before the reveal. Ask them to commit to an answer and say why before you discuss it.`)
     }
     case 'item':
-      return quote(`**Practice.** Items from the generator family \`${block.family}\`, level \`${block.level}\`, \`${block.count}\` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.`)
+      return quote(`**Practice.** Items from the generator family \`${block.family}\`, level \`${block.level}\`, ${block.variant === undefined ? '' : `the variant \`${block.variant}\`, `}\`${block.count}\` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.`)
     case 'game':
       return quote(`**Play.** The game \`${block.id}\`, level \`${block.level}\`, in \`${block.mode}\` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.`)
     case 'trace':

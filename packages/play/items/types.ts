@@ -26,12 +26,16 @@ export function isLevel(value: unknown): value is Level {
   return typeof value === 'number' && (LEVELS as readonly number[]).includes(value)
 }
 
-/** What each level is called on screen. */
+/**
+ * What each level is called on screen, in plain words (no term of the research it comes from). Four screens show them: a lesson's waiting
+ * sheet and its "no questions yet" line (src/items/ItemBlock.tsx), a question's header (src/items/Attempt.tsx) and Today's work
+ * (src/items/today/Work.tsx). tests/items/level-names.test.ts holds the words and that list.
+ */
 export const LEVEL_NAMES: Readonly<Record<Level, string>> = {
   0: 'worked example',
-  1: 'faded',
+  1: 'part-worked',
   2: 'on your own',
-  3: 'new surface',
+  3: 'new setting',
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

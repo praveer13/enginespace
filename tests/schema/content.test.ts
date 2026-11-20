@@ -341,6 +341,7 @@ describe('the blocks', () => {
     ['a level that is a word', 'item', ['level'], 'hard', ['level: invalid_type']],
     ['no items', 'item', ['count'], 0, ['count: too_small']],
     ['half an item', 'item', ['count'], 1.5, ['count: invalid_type']],
+    ['a variant in capitals', 'item', ['variant'], 'Close It', ['variant: invalid_format']],
     // game
     ['a game id in capitals', 'game', ['id'], 'Loop', ['id: invalid_format']],
     ['a level with a space', 'game', ['level'], 'load or recompute', ['level: invalid_format']],

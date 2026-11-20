@@ -56,6 +56,8 @@ export interface StartOptions {
   readonly seen?: ReadonlySet<string>
   /** Defaults to `unseen`. A `practice` attempt does not skip what was seen. */
   readonly provenance?: ItemProvenance
+  /** Draw only this variant of the family (an `item` block that names one). Without it the seed picks among the variants offered at the level. */
+  readonly variant?: string
 }
 
 /** What makes two questions the same question to a reader: the words and numbers of the stem. */
@@ -82,9 +84,9 @@ export function startAttempt(gen: Gen, level: Level, entropy: readonly number[],
   // A set never shows the same stem twice: a draw whose stem repeats one already in the set is passed over, and the set takes the next seed.
   const stems = new Set<string>()
   for (const value of entropy) {
-    const refused = (candidate: Seed) => met.has(seenKey(gen.id, resolveVariant(gen, candidate, level).id, candidate))
-    const draw = drawFresh(gen, level, value, refused, (candidate) => stems.has(stemKey(gen.make(candidate, level))))
-    const item = gen.make(draw.seed, level)
+    const refused = (candidate: Seed) => met.has(seenKey(gen.id, resolveVariant(gen, candidate, level, options.variant).id, candidate))
+    const draw = drawFresh(gen, level, value, refused, (candidate) => stems.has(stemKey(gen.make(candidate, level, options.variant))))
+    const item = gen.make(draw.seed, level, options.variant)
     stems.add(stemKey(item))
     met.add(seenKey(gen.id, item.variant, draw.seed))
     served.push({ entropy: value, seed: draw.seed, tries: draw.tries, item })

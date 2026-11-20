@@ -202,6 +202,28 @@ describe('/m/tr2/l0-sample, the lesson template (REDESIGN §2.5)', () => {
   })
 })
 
+describe('the Test of a lesson: the pass rule stands with its questions', () => {
+  const heading = (label: string): ProseFlow => ({ type: 'heading', depth: 2, children: [text(label)] })
+  const item = (extra: Record<string, unknown> = {}): CompiledBlock => ({ type: 'item', family: 'tr2.bubble-width', level: 2, count: 3, ...extra }) as CompiledBlock
+  const fixture = (...blocks: CompiledBlock[]): CompiledLesson => ({ ...lesson, blocks: [prose(paragraph(text('Opening.')), heading('Read'), paragraph(text('Body.')), heading('Check yourself'), paragraph(text('Lead-in to the questions.')), paragraph(text('Last prose of the lesson.'))), ...blocks] })
+  const page = (made: CompiledLesson) => render(h(LessonView, { lesson: made, module: entry('tr2'), lessons: rows('tr2'), claims, today: TODAY }), '/m/tr2/l0-sample')
+  const testSection = (html: string) => /<section id="test"[\s\S]*?<\/section>/.exec(html)?.[0] ?? ''
+
+  test('the rule renders after the Test\'s last prose and before its question set, in the Test', () => {
+    const html = testSection(page(fixture(item())))
+    const rule = html.indexOf('class="es-lesson__rule"')
+    expect(rule).toBeGreaterThan(html.indexOf('Last prose of the lesson.'))
+    expect(rule).toBeLessThan(html.indexOf('data-block="item"'))
+    expect(html.slice(rule, html.indexOf('data-block="item"'))).not.toContain('es-lesson__prose')
+    expect(html).toContain('It is passed when your last three answers to this kind of question are all right.')
+    expect(html.match(/class="es-lesson__rule"/g)?.length).toBe(1)
+  })
+
+  test('a Test with no question set states no rule', () => {
+    expect(testSection(page(fixture()))).not.toContain('es-lesson__rule')
+  })
+})
+
 describe('/m/tr2', () => {
   const html = render(h(ModuleView, { id: 'tr2', module, entry: entry('tr2'), lessons: rows('tr2'), claims, today: TODAY }), '/m/tr2')
 
@@ -472,7 +494,7 @@ describe('the blocks, one at a time', () => {
     const html = drawnBlocks({ type: 'item', family: 'tr2.bubble-width', level: 1, count: 5 })
     expect(html).toContain('<span class="es-sheet-line__qty">5x</span>')
     expect(html).toContain('data-family="tr2.bubble-width"')
-    expect(html).toContain('faded')
+    expect(html).toContain('part-worked')
     expect(html).toContain('data-phase="idle"')
     expect(html).toContain('Start questions')
     expect(html).not.toContain('data-seed')
