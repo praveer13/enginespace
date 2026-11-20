@@ -11,6 +11,7 @@
 # `prereqs` is the kernelspace lessons it names above all or as recommended, and the modules it advises first. The blanket
 # prerequisite, kernelspace T5 lessons 1 to 10, is the course's and not any one module's (PRODUCT.md). Prerequisites advise and
 # never lock (A§1, I9). Once a module has a module.md, the map reads that file's `prereqs` and `artifacts` and ignores these.
+start: tr1 # the course starts at TR1 lesson 1; TR0 is an advised primer and nothing locks
 modules:
   - id: tr0
     title: PyTorch for the Rust-first, and reading Triton

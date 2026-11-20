@@ -52,6 +52,8 @@ export const courseModuleSchema = z
 
 export const courseSchema = z
   .strictObject({
+    /** The module the course starts at: its first lesson is the front page's Start. Modules listed before it are advised first and never lock. */
+    start: moduleIdSchema.optional(),
     modules: z.array(courseModuleSchema).min(1),
   })
   .superRefine((course, ctx) => {
@@ -60,6 +62,7 @@ export const courseSchema = z
       if (seen.has(module.id)) ctx.addIssue({ code: 'custom', message: `module "${module.id}" is listed twice`, path: ['modules', index, 'id'] })
       seen.add(module.id)
     })
+    if (course.start !== undefined && !seen.has(course.start)) ctx.addIssue({ code: 'custom', message: `"${course.start}" is not a module of this course`, path: ['start'] })
     // A prerequisite that is not a kernelspace ref is another module of this course.
     course.modules.forEach((module, index) => {
       module.prereqs?.forEach((prereq, at) => {

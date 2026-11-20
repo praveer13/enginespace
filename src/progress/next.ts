@@ -21,7 +21,7 @@
  * is one of them, and otherwise to the earliest of them that is not done.
  *
  * The five rules, in order:
- *   1. no events and no bookmark: the first lesson of the course, "Start";
+ *   1. no events and no bookmark: the first lesson of the course (the start module's, `start` in course.yaml), "Start";
  *   2. `current` is the lesson last worked on: the later of the most recent event and the bookmark;
  *   3. `current` not done: its Run if that is not done, else the bookmark's part if the bookmark is in it, else Read if its Test has no
  *      attempt, else its Test;
@@ -318,7 +318,8 @@ export function nextStep(events: readonly LedgerEvent[], lessons: readonly MapLe
   const places = placeEvents(events, index, bookmark)
   const stand = standings(events, index, bookmark)
   const done = (lesson: MapLesson) => stand.get(lesson.id)?.state === 'done'
-  const skippedBefore = (lesson: MapLesson) => lessons.slice(0, index.order.get(lesson) ?? 0).filter((earlier) => !done(earlier)).length
+  // A lesson of a module that stands before the course's start (`before`) is never an earlier lesson not finished.
+  const skippedBefore = (lesson: MapLesson) => lessons.slice(0, index.order.get(lesson) ?? 0).filter((earlier) => earlier.before !== true && !done(earlier)).length
   const name = (lesson: MapLesson) => lessonName(lesson, lessons)
 
   const at = (lesson: MapLesson, place: StepPlace, href: string, words: string, reason: string, word: 'Start' | 'Continue' = 'Continue'): Step => ({
@@ -335,14 +336,16 @@ export function nextStep(events: readonly LedgerEvent[], lessons: readonly MapLe
   })
   const start = (lesson: MapLesson, word: 'Start' | 'Continue' = 'Continue') => at(lesson, 'lesson', lesson.route, word === 'Start' ? '' : lesson.title, `${name(lesson)}, ${lesson.title}`, word)
 
-  const first = lessons[0]
+  const first = lessons.find((lesson) => lesson.before !== true) ?? lessons[0]
   const placed = bookmark === null ? undefined : lessons.find((lesson) => lesson.route === bookmark.route)
   const mark = placed === undefined ? null : bookmark
 
   // Rule 5, also the answer when nothing a lesson owns has happened yet: the first lesson not done, then Review or Course.
   const fallback = (after?: MapLesson): Step => {
     const from = after === undefined ? 0 : (index.order.get(after) ?? -1) + 1
-    const target = lessons.slice(from).find((lesson) => !done(lesson)) ?? lessons.find((lesson) => !done(lesson))
+    // Lessons before the start are offered only when no lesson from the start on is left.
+    const target =
+      lessons.slice(from).find((lesson) => !done(lesson)) ?? lessons.find((lesson) => lesson.before !== true && !done(lesson)) ?? lessons.find((lesson) => !done(lesson))
     if (target !== undefined) return start(target)
     const due = options.due ?? 0
     if (due > 0) return { href: '/today', label: 'Continue: Review', word: 'Continue', needs: [], reason: `${plural(due, 'review')} due`, skipped: 0, place: 'review', lesson: null, module: null }
