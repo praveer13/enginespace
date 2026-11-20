@@ -304,10 +304,8 @@ describe('card front matter (A§5.9, W1-T07)', () => {
     test(`refuses ${name}`, () => expect(problems(cardFrontMatterSchema, withKey(card, path, to))).toEqual(expected))
   }
 
-  test('says why a kind is refused: the other cards kept in a file arrive with the tasks that decide their format', () => {
-    expect(messages(cardFrontMatterSchema, withKey(card, ['kind'], 'build-this'))).toEqual([
-      'must be notional-machine: the other cards kept in a file arrive with W1-T13 (In-production, Build-this) and W3-T06 (change)',
-    ])
+  test('says why a kind is refused: the change card arrives with the task that decides its format, and the two others have front matters of their own', () => {
+    expect(messages(cardFrontMatterSchema, withKey(card, ['kind'], 'build-this'))).toEqual(['must be notional-machine, in-production or build-this: the change card arrives with W3-T06'])
   })
 
   test('has three parts, in the order of A§5.9', () => {

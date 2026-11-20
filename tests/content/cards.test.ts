@@ -115,7 +115,7 @@ describe('the file and its front matter', () => {
   const schemaCases: [string, Edit, string, RegExp, string][] = [
     ['an unknown key', swap('status: draft', 'status: draft\nspeed: 3'), 'unknown-key', /unknown key "speed" of a card \(a card takes id, kind, title, world, status\)/, 'speed: 3'],
     ['a rev the author wrote', swap('status: draft', 'status: draft\nrev: abc'), 'unknown-key', /the compiler adds rev, a SHA-256 over the authored fields, the words and the claims the card cites/, 'rev: abc'],
-    ['a kind of card that has no format yet', swap('kind: notional-machine', 'kind: in-production'), 'schema', /must be notional-machine: the other cards kept in a file arrive with W1-T13 \(In-production, Build-this\) and W3-T06 \(change\)/, 'kind: in-production'],
+    ['a kind of card that has no format yet', swap('kind: notional-machine', 'kind: change'), 'schema', /must be notional-machine, in-production or build-this: the change card arrives with W3-T06/, 'kind: change'],
     ['a title that is blank', swap('title: A fixture world', 'title: "  "'), 'schema', /title: .*blank/, 'title:'],
     ['a world that is not a slug', swap('world: fixture', 'world: Step Loop'), 'schema', /world: /, 'world:'],
     ['a status that is not one of the three', swap('status: draft', 'status: done'), 'schema', /status: .*draft/, 'status:'],

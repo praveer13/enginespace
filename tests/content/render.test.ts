@@ -474,7 +474,7 @@ describe('the blocks, one at a time', () => {
     expect(drawnBlocks(lab('tr8.replay', 'F'))).toContain('stage · s2')
   })
 
-  test('cards: a warning and an isomorphism are drawn in full, a notional-machine card is printed when it loads, and the other cards kept in their own files wait for their tasks', () => {
+  test('cards: a warning and an isomorphism are drawn in full, the cards kept in a file are printed when they load, and the change card waits for its task', () => {
     const iso = drawnBlocks({ type: 'card', kind: 'isomorphism', title: 'A queue', body: 'A ring buffer is a queue.', breaks: 'Eviction has no ring.' })
     expect(iso).toContain('<h2 class="es-sheet__title">A queue</h2>')
     expect(iso).toContain('where it breaks')
@@ -485,8 +485,9 @@ describe('the blocks, one at a time', () => {
     const kept = (kind: 'notional-machine' | 'in-production' | 'build-this' | 'change') => placeholders(drawnBlocks({ type: 'card', kind, id: 'trace-room-steploop' }))
     // A notional-machine card is no placeholder: it prints while it loads, and the next test draws it once it has.
     expect(kept('notional-machine')).toEqual({})
-    expect(kept('in-production')).toEqual({ card: 'W2-T42' })
-    expect(kept('build-this')).toEqual({ card: 'W2-T42' })
+    // The In-production and Build-this cards (W2-T42) are printed the same way, and name no task.
+    expect(kept('in-production')).toEqual({})
+    expect(kept('build-this')).toEqual({})
     expect(kept('change')).toEqual({ card: 'W3-T06' })
   })
 
