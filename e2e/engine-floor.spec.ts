@@ -196,6 +196,127 @@ test.describe('a keyboard-only walk', () => {
   })
 })
 
+/*
+ * A lay by the mouse leaves the page where it stands (the fourth final check's finding, and what the first fix left open). A stage laid
+ * takes its row out of the list, and the page with it: where the page stood within a row of its foot, the browser pulled it up to the new
+ * foot and the list slid down under the pointer, so that the tile above the one laid came under it. And a click that laid the first stage
+ * under the pinned filters brought the next one 200 px clear of the screen's top. Each place a learner clicks from is laid twenty times.
+ */
+type Where = 'middle' | 'under the filters' | 'at the foot'
+
+/** The pinned filters' foot and the top of what stands pinned at the screen's foot (Run the path, the readout), in the viewport. */
+const pinnedBand = (page: Page) =>
+  page.evaluate(() => {
+    const filters = document.querySelector('[data-floor-stages] .es-floor-filters')?.getBoundingClientRect()
+    const actions = document.querySelector('[data-floor-path]')?.getBoundingClientRect()
+    return { top: filters?.bottom ?? 0, bottom: Math.min(actions?.top ?? window.innerHeight, window.innerHeight) }
+  })
+
+/** Waits until the page's scroll has stood still for ten frames, so that a scroll a lay started is over before the page is read. */
+const settled = (page: Page) =>
+  page.evaluate(
+    () =>
+      new Promise<number>((resolve) => {
+        let last = window.scrollY
+        let still = 0
+        const tick = () => {
+          still = window.scrollY === last ? still + 1 : 0
+          last = window.scrollY
+          if (still >= 10) resolve(last)
+          else requestAnimationFrame(tick)
+        }
+        requestAnimationFrame(tick)
+      }),
+  )
+
+/** Brings a stage's tile to where a learner clicks it from: the screen's middle, 6 px under the pinned filters' foot, or the page's foot. */
+async function place(page: Page, id: string, where: Where) {
+  const tile = stage(page, id)
+  if (where === 'middle') await tile.evaluate((element) => element.scrollIntoView({ block: 'center' }))
+  else if (where === 'at the foot') {
+    // The list keeps each laid row's room, so after many lays at the foot its last tile can stand above the screen: the learner scrolls up to it.
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+    await tile.evaluate((element) => element.scrollIntoView({ block: 'nearest' }))
+  }
+  else
+    for (let i = 0; i < 2; i++) {
+      const { top } = await pinnedBand(page)
+      await tile.evaluate((element, at) => window.scrollBy(0, element.getBoundingClientRect().top - at), top + 6)
+    }
+  await settled(page)
+}
+
+/** Lays one stage with the mouse from `where`; the tile must be clear of every pinned part. Returns the page's scroll before and after the press. */
+async function pointerLay(page: Page, id: string, where: Where) {
+  await place(page, id, where)
+  const tile = stage(page, id)
+  const clear = await tile.evaluate((element) => {
+    const box = element.getBoundingClientRect()
+    const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+    return hit !== null && element.contains(hit)
+  })
+  expect(clear, `the tile of ${id} is covered before the press`).toBe(true)
+  const before = await page.evaluate(() => window.scrollY)
+  const box = await tile.boundingBox()
+  if (box === null) throw new Error(`the tile of ${id} has no box`)
+  await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+  await expect(stage(page, id)).toHaveCount(0)
+  return { before, after: await settled(page) }
+}
+
+/** The stages laid from each place: the level's own path, or at the page's foot the list's last tile, which is the one there under the pointer. */
+async function nextAt(page: Page, where: Where, index: number) {
+  if (where !== 'at the foot') return reference('abort')[index]
+  return page.locator('[data-floor-tray] [data-stage]').last().getAttribute('data-stage')
+}
+
+test.describe('a pointer lay', () => {
+  for (const [width, height] of [[1440, 900], [1280, 800]] as const) {
+    test.describe(`at ${width} x ${height}`, () => {
+      test.use({ viewport: { width, height } })
+
+      for (const where of ['middle', 'under the filters', 'at the foot'] as const) {
+        test(`twenty lays by the mouse, the tile ${where === 'middle' ? 'at the screen’s middle' : where === 'at the foot' ? 'at the page’s foot' : '6 px under the pinned filters'}, leave the page where it was`, async ({ page }) => {
+          await open(page, 'abort')
+          await commit(page, 2)
+          const moves: string[] = []
+          for (let index = 0; index < 20; index++) {
+            const id = await nextAt(page, where, index)
+            if (id === null || id === undefined) throw new Error(`no stage to lay at lay ${index + 1}`)
+            const { before, after } = await pointerLay(page, id, where)
+            if (before !== after) moves.push(`lay ${index + 1} (${id}): ${before} to ${after}`)
+          }
+          expect(moves).toEqual([])
+          await expect(rows(page)).toHaveCount(20)
+        })
+      }
+
+      test('twenty lays by the keys: each next tile takes focus in view, clear of the pinned filters and of Run the path', async ({ page }) => {
+        await open(page, 'abort')
+        await commit(page, 2)
+        const covered: string[] = []
+        for (const [index, id] of reference('abort').slice(0, 20).entries()) {
+          // Every other lay starts from the page's foot, where the list keeps the laid row's room.
+          if (index % 2 === 1) await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+          await lay(page, [id])
+          await settled(page)
+          const band = await pinnedBand(page)
+          const seen = await page.evaluate(({ top, bottom }) => {
+            const element = document.activeElement
+            if (!(element instanceof HTMLElement) || element.dataset.stage === undefined) return 'focus is not on a tile'
+            const box = element.getBoundingClientRect()
+            if (box.top < top - 0.5 || box.bottom > bottom + 0.5) return `${element.dataset.stage} at ${Math.round(box.top)} to ${Math.round(box.bottom)}`
+            const hit = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+            return hit !== null && element.contains(hit) ? '' : `${element.dataset.stage} is covered`
+          }, band)
+          if (seen !== '') covered.push(`lay ${index + 1}: ${seen}`)
+        }
+        expect(covered).toEqual([])
+      })
+    })
+  }
+})
+
 test.describe('the swimlane on a phone', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 

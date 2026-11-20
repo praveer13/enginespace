@@ -172,7 +172,7 @@ function StopNote({ controls }: { controls: FloorControls }) {
 }
 
 /** A tile of the stage list: its mark and mechanism, its name as code, and where it runs. A press lays it. */
-function Tile({ tile, onLay, tabIndex }: { tile: TileView; onLay: () => void; tabIndex: number }) {
+function Tile({ tile, onLay, tabIndex }: { tile: TileView; onLay: (byPointer: boolean) => void; tabIndex: number }) {
   return (
     <button
       type="button"
@@ -180,7 +180,7 @@ function Tile({ tile, onLay, tabIndex }: { tile: TileView; onLay: () => void; ta
       tabIndex={tabIndex}
       data-stage={tile.id}
       aria-label={`Lay ${handoffWords(tile.mechanism)}: ${plain(tile.label)}. From ${placeName(tile.from)} to ${placeName(tile.to)}.`}
-      onClick={onLay}
+      onClick={(event) => onLay(event.detail > 0)}
     >
       <span className="es-floor-tile__line">
         <HandoffGlyph mechanism={tile.mechanism} className="es-floor-tile__glyph" />
@@ -296,10 +296,10 @@ export function StageList({ controls, ring }: { controls: FloorControls; ring: s
           <li key={tile.id} className="es-floor-tiles__item">
             {ring === tile.id ? (
               <Marker kind="ring" word="first move" className="es-floor-ring">
-                <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={() => lay(tile.id, index)} />
+                <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={(byPointer) => lay(tile.id, index, byPointer)} />
               </Marker>
             ) : (
-              <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={() => lay(tile.id, index)} />
+              <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={(byPointer) => lay(tile.id, index, byPointer)} />
             )}
           </li>
         ))}
