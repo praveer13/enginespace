@@ -64,6 +64,8 @@ export const CARD_IDS: readonly string[] = readdirSync(path.join(repo, 'content/
   .map((name) => name.slice(0, -3))
   .sort()
 export const CARD_COUNT = CARD_IDS.length
+/** The cards of the repo's worlds: the notional-machine cards. The In-production and Build-this cards (W2-T42) are cards too, and are not a world's. */
+export const WORLD_CARD_IDS: readonly string[] = CARD_IDS.filter((id) => /^kind: notional-machine$/m.test(readFileSync(path.join(repo, 'content/cards', `${id}.md`), 'utf8').split('\n---\n')[0]))
 
 /** The modules of the repo's content, a folder of `content/modules/` with a `module.md`, and the lessons in them, the `.md` files of a `lessons/` folder. */
 function contentCounts(): { modules: number; lessons: number } {

@@ -37,7 +37,7 @@ import { claimSchema } from '../../packages/schema/claims.ts'
 import type { Claim } from '../../packages/schema/claims.ts'
 import {
   claimsOutputSchema,
-  compiledCardSchema,
+  compiledKeptCardSchema,
   compiledLessonSchema,
   compiledModuleSchema,
   contentIndexSchema,
@@ -255,6 +255,8 @@ interface Sources {
   claimIds: ReadonlySet<string>
   lockKeys: ReadonlySet<string> | null
   links: LinkEnv
+  /** The claims that each In-production and Build-this card cites, in the order its words first cite them, by card id. */
+  cardCites: ReadonlyMap<string, readonly string[]>
 }
 
 /** A source file after its body is compiled. */
@@ -358,7 +360,13 @@ function compileBody(file: ContentFile, sources: Sources, lessonId: string | und
     if (block.type === 'predict' || block.type === 'game' || block.type === 'item' || block.type === 'trace') {
       body.pace.push({ kind: 'do', what: block.type, line: segment.line, graded: block.type === 'game' && block.mode === 'graded' })
     }
-    body.blocks.push(block)
+    // A block that names an In-production or a Build-this card carries the claims the card cites, so that the lesson numbers its marks and
+    // lists its Sources before the card's file has loaded, and its rev changes with them.
+    const named = block.type === 'card' && (block.kind === 'in-production' || block.kind === 'build-this') ? sources.cardCites.get(block.id) : undefined
+    if (named !== undefined && block.type === 'card' && (block.kind === 'in-production' || block.kind === 'build-this')) {
+      for (const id of named) cited.add(id)
+      body.blocks.push({ type: 'card', kind: block.kind, id: block.id, cites: [...named] })
+    } else body.blocks.push(block)
     body.directives.push(block)
     body.parts.push({ kind: 'block', block })
     minutes += blockMinutes(block)
@@ -930,7 +938,7 @@ function buildOutputs(course: Course, modules: ReadonlyMap<string, ModuleResult>
   }
 
   for (const [id, card] of cards) {
-    const compiled = checked(compiledCardSchema, { ...card.front, rev: revOfCard(card, sources), ...card.words }, `card ${id}`, card.file)
+    const compiled = checked(compiledKeptCardSchema, { ...card.front, rev: revOfCard(card, sources), ...card.words }, `card ${id}`, card.file)
     if (compiled !== undefined) emit(`src/content/generated/cards/${id}.json`, json(compiled), card.file, BUDGETS.page)
   }
 
@@ -969,6 +977,7 @@ export function compileContent({ root, replay }: { root: string; replay?: Replay
     claims,
     claimIds,
     lockKeys,
+    cardCites: new Map([...cards.compiled].filter(([, card]) => card.front.kind !== 'notional-machine').map(([id, card]) => [id, [...card.cited]])),
     links: {
       games: new Set(GAME_IDS),
       labs: new Set(LAB_IDS),

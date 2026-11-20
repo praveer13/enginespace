@@ -6,7 +6,7 @@
  *   Read  one part per `##`, from the first heading to the Test. A practice game block renders where it sits, as "Run: <level title>".
  *   Test  the file's last `##` part when it holds an `item` block or a graded game block. Every graded game block belongs here, wherever it
  *         sits in the file.
- *   Keep  generated: the KC sentences, the Build row (the lesson's `lab` blocks), the lesson record and the way on.
+ *   Keep  generated: the KC sentences, the Build row (the lesson's `lab` blocks and its Build-this cards), the lesson record and the way on.
  *
  * The opener is read from the file's shape: A (run first) when at most 60 words of prose precede the first game, B (primer, then run) when
  * more do, C (read first) when there is no Run. The rule and the word count are the compiler's (`lessonRow` in scripts/content/build.ts),
@@ -14,7 +14,9 @@
  *
  * A guess that a run answers sits in that run's guess slot when the run is in the same section or part and follows it, or when the level's
  * own opening guess asks the same quantity (packages/play/predictions/same.ts), so it is asked once; one whose run is further down stays
- * where it was written. A notional-machine card is never inlined: the page draws it as one line of its title block.
+ * where it was written. A notional-machine card is never inlined: the page draws it as one line of its title block. An In-production card
+ * ("In vLLM today") stays where it was written, so a file that sets it right after a game block has it end that run's debrief; a trace block
+ * is a Run-style block and stays where it was written too.
  *
  * Pure: no DOM, no React, no clock.
  */
@@ -67,6 +69,8 @@ export interface LessonSections {
   readonly cards: readonly number[]
   /** `lab` blocks, which Keep's Build row shows. */
   readonly labs: readonly number[]
+  /** Build-this cards, which Keep's Build row shows beside the labs. */
+  readonly builds: readonly number[]
 }
 
 /** Words a reader meets in prose, without code: the compiler's measure (`proseWords`). */
@@ -147,6 +151,7 @@ export function groupSections(blocks: readonly CompiledBlock[]): LessonSections 
 
   const cards: number[] = []
   const labs: number[] = []
+  const builds: number[] = []
   const graded: number[] = []
   const keep = (piece: Piece): boolean => {
     const block = blockAt(piece)
@@ -157,6 +162,10 @@ export function groupSections(blocks: readonly CompiledBlock[]): LessonSections 
     }
     if (block.type === 'lab') {
       labs.push(piece.at)
+      return false
+    }
+    if (block.type === 'card' && block.kind === 'build-this') {
+      builds.push(piece.at)
       return false
     }
     if (isGraded(block)) {
@@ -193,6 +202,7 @@ export function groupSections(blocks: readonly CompiledBlock[]): LessonSections 
     answeredBelow,
     cards,
     labs,
+    builds,
   }
 }
 

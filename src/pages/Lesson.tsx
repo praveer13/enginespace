@@ -13,12 +13,14 @@ import { useMap } from '@/content/load-map'
 import type { Of } from '@/content/render/BlockFrame'
 import { ClaimInline, ClaimMark, Sources } from '@/content/render/Claims'
 import { Instrument } from '@/content/render/Instrument'
+import { BuildRowFromCard, InEngineNote } from '@/content/render/KeptCards'
 import { useLevelNames } from '@/content/render/levelNames'
 import type { LedgerReading } from '@/content/render/LessonLedger'
 import { citedClaimIds, claimNumbers, kernelspaceLabel, kernelspaceUrl, labName, pendingLab, plainText, renderEnv, titled, todayIso, type RenderEnv } from '@/content/render/model'
 import { PredictLoading } from '@/content/render/PredictLoading'
 import { Prose } from '@/content/render/Prose'
 import { Tagged } from '@/content/render/Tagged'
+import { TraceRun } from '@/content/render/TraceRun'
 import type { LessonOnward } from '@/games/kit/lessonRun'
 import { useHasRun, useLatestRun } from '@/games/kit/RunContext'
 import { groupSections, proseWords, runAnchor, testLabel, type LessonSections, type Piece } from '@/content/render/sections'
@@ -547,7 +549,7 @@ export function LessonView({ lesson, module, lessons: rows, claims, today, map =
             ))}
           </section>
 
-          <Keep lesson={lesson} sections={sections} kcs={kcs} reading={reading} module={module} next={lessons[position + 1]} position={position} testHref={`#${testId}`} toTest={toTest} />
+          <Keep lesson={lesson} env={env} sections={sections} kcs={kcs} reading={reading} module={module} next={lessons[position + 1]} position={position} testHref={`#${testId}`} toTest={toTest} />
           <Sources env={env} />
         </article>
       </div>
@@ -731,7 +733,6 @@ const lower = (title: string): string => title.charAt(0).toLowerCase() + title.s
 
 function BlockPiece({ at, lesson, env, whereOf, sections }: PieceProps & { at: number }): ReactNode {
   const block: CompiledBlock = lesson.blocks[at]
-  void env
   switch (block.type) {
     case 'predict': {
       const below = sections.answeredBelow.get(at)
@@ -779,9 +780,10 @@ function BlockPiece({ at, lesson, env, whereOf, sections }: PieceProps & { at: n
             </p>
           </Note>
         )
+      if (block.kind === 'in-production') return <InEngineNote id={block.id} env={env} />
       return null
     case 'trace':
-      return <p className="es-lesson__meta">A trace sits here. It is not published yet.</p>
+      return <TraceRun block={block} scope={lesson.id} rev={lesson.rev} />
     case 'lab':
     case 'prose':
       return null
@@ -790,6 +792,7 @@ function BlockPiece({ at, lesson, env, whereOf, sections }: PieceProps & { at: n
 
 interface KeepProps {
   lesson: CompiledLesson
+  env: RenderEnv
   sections: LessonSections
   kcs: readonly string[]
   reading: LedgerReading | null
@@ -802,7 +805,7 @@ interface KeepProps {
 }
 
 /** Keep: what to carry, the Build row, the lesson record, and the way on. */
-function Keep({ lesson, sections, kcs, reading, module, next, position, testHref, toTest }: KeepProps) {
+function Keep({ lesson, env, sections, kcs, reading, module, next, position, testHref, toTest }: KeepProps) {
   const labs = sections.labs.map((at) => lesson.blocks[at] as Of<'lab'>)
   const fallback = [position < 0 ? lesson.title : `${moduleCode(lesson.module)} lesson ${position + 1}`, 'reading your record…']
   return (
@@ -825,6 +828,10 @@ function Keep({ lesson, sections, kcs, reading, module, next, position, testHref
       {labs.map((lab) => (
         <BuildRow key={lab.id} lab={lab} />
       ))}
+      {sections.builds.map((at) => {
+        const block = lesson.blocks[at]
+        return block.type === 'card' && block.kind === 'build-this' ? <BuildRowFromCard key={at} id={block.id} env={env} /> : null
+      })}
       <h3 id="keep-record" className="es-lesson__keep-title">
         Your record of this lesson
       </h3>

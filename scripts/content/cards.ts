@@ -10,15 +10,22 @@
  *   - each rule under Models says where it comes from: a claim, for a fact about the world's source, or the decision or design
  *     section that made the rule the course's own (`D-044`, `A§5.3`, `WORLD §2.6`). A rule with none is a rule nobody can check.
  *
+ * The two other cards that live in a file have formats of their own, and share the words' gates (REDESIGN §2.5):
+ *   - An In-production card ("In vLLM today") has the lever's words, then one part for each engine it speaks of, `## vLLM` and `## SGLang` in
+ *     that order, each a list: the flags and the source lines of the engine as the course pins it, and every item cites a claim.
+ *   - A Build-this card (the Build row in Keep) is front matter that names a lab and the stages the lesson prepares, and words that say what
+ *     the learner builds and what it needs. It has no parts.
+ *
  * `compileCard` takes the file's text and reports every problem with its line. It reads no file, so the tests and
  * `verify:games` can hand it a card held in memory.
  */
 import { getDefaults, Lexer } from 'marked'
 import type { Tokens } from 'marked'
-import { CARD_PARTS, cardFrontMatterSchema } from '../../packages/schema/content.ts'
-import type { CardFrontMatter } from '../../packages/schema/content.ts'
+import { buildThisFrontMatterSchema, CARD_PARTS, cardFrontMatterSchema, ENGINE_PARTS, inProductionFrontMatterSchema } from '../../packages/schema/content.ts'
+import type { BuildThisFrontMatter, CardFrontMatter, InProductionFrontMatter } from '../../packages/schema/content.ts'
 import type { ProseFlow } from '../../packages/schema/compiled.ts'
 import { slugSchema } from '../../packages/schema/refs.ts'
+import { LAB_IDS } from './directives.ts'
 import { locate, parseContentFile, problem, schemaDiagnostics } from './parse.ts'
 import type { Diagnostic, ProseSegment } from './parse.ts'
 import { compileProse, modelMeasuredSentences, modelMessage, numberMessage, untaggedNumbers, withoutCode } from './prose.ts'
@@ -134,14 +141,28 @@ export interface CardWords {
   calibrated: ProseFlow[]
 }
 
-export interface CardResult {
+/** The words of an In-production card: what comes before the first part, then one part for each engine. */
+export interface InProductionWords {
+  intro: ProseFlow[]
+  engines: { engine: (typeof ENGINE_PARTS)[number]; words: ProseFlow[] }[]
+}
+
+/** The words of a Build-this card. */
+export interface BuildThisWords {
+  intro: ProseFlow[]
+}
+
+interface Cited {
   /** The file, relative to the repository's root. */
   file: string
-  front: CardFrontMatter
-  words: CardWords
-  /** The claims the card cites. */
+  /** The claims the card cites, in the order its words first cite them. */
   cited: ReadonlySet<string>
 }
+
+export type CardResult =
+  | (Cited & { front: CardFrontMatter; words: CardWords })
+  | (Cited & { front: InProductionFrontMatter; words: InProductionWords })
+  | (Cited & { front: BuildThisFrontMatter; words: BuildThisWords })
 
 const list = (words: readonly string[]): string => words.join(', ')
 
@@ -165,6 +186,9 @@ export function compileCard(file: string, source: string, claims: ReadonlySet<st
 
   const parsed = parseContentFile(file, source, out)
   if (parsed === null) return null
+  const kind = typeof parsed.frontMatter === 'object' && parsed.frontMatter !== null ? (parsed.frontMatter as Record<string, unknown>).kind : undefined
+  if (kind === 'in-production') return compileInProduction(file, stem, parsed, claims, out)
+  if (kind === 'build-this') return compileBuildThis(file, stem, parsed, claims, out)
   let usable = true
 
   let front: CardFrontMatter | undefined
@@ -268,4 +292,155 @@ export function compileCard(file: string, source: string, claims: ReadonlySet<st
     },
     cited,
   }
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* In-production and Build-this cards                                                                                 */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+type Parsed = NonNullable<ReturnType<typeof parseContentFile>>
+
+/** The front matter of a card that is not a notional-machine card, read with the schema of its kind. Null when it is wrong, with every problem reported. */
+function readFront<T extends { id: string; title: string }>(
+  schema: { safeParse(value: unknown): { success: true; data: T } | { success: false; error: { issues: Parameters<typeof schemaDiagnostics>[0] } }; shape: object },
+  subject: string,
+  file: string,
+  stem: string,
+  parsed: Parsed,
+  out: Diagnostic[],
+): T | null {
+  const result = schema.safeParse(parsed.frontMatter)
+  const lines = parsed.frontMatterText.split('\n')
+  const frontLine = (key: string): number => parsed.frontMatterLine + locate(lines, [key])
+  if (!result.success) {
+    out.push(
+      ...schemaDiagnostics(result.error.issues, {
+        file,
+        text: parsed.frontMatterText,
+        firstLine: parsed.frontMatterLine,
+        gate: 'content',
+        subject,
+        allowedKeys: Object.keys(schema.shape),
+        hints: COMPILER_KEYS,
+      }),
+    )
+    return null
+  }
+  const front = result.data
+  let usable = true
+  if (front.id !== stem) {
+    out.push(problem('content', 'error', 'id-mismatch', file, frontLine('id'), `the file ${stem}.md is the card "${stem}", and its id says "${front.id}"`))
+    usable = false
+  }
+  for (const sentence of modelMeasuredSentences(withoutCode(front.title))) out.push(problem('numbers', 'error', 'model-number-measured', file, frontLine('title'), modelMessage(sentence.text)))
+  for (const finding of untaggedNumbers(withoutCode(front.title))) out.push(problem('numbers', 'error', 'untagged-number', file, frontLine('title'), numberMessage(finding)))
+  return usable ? front : null
+}
+
+/** The chunks of a card's prose, with the directives refused; each chunk's words compiled. */
+function chunksOf(file: string, parsed: Parsed, out: Diagnostic[]): Chunk[] {
+  for (const segment of parsed.segments) {
+    if (segment.kind === 'directive') out.push(problem('content', 'error', 'card-directive', file, segment.line, `a card is prose: :::${segment.name} does not belong in it`))
+  }
+  return splitCard(parsed.segments.filter((segment): segment is ProseSegment => segment.kind === 'prose'))
+}
+
+/** Compiles the words of a chunk and reports a `##` that the words themselves hold. */
+function wordsOf(file: string, chunk: Chunk, claims: ReadonlySet<string>, cited: Set<string>, out: Diagnostic[]): ProseFlow[] {
+  const ctx: ProseContext = { file, claims, cited, outline: { depth: chunk.name === null ? 1 : 2 }, words: { count: 0 }, out }
+  const flows = compileProse(chunk.md, chunk.firstLine, ctx)
+  if (flows.some((flow) => flow.type === 'heading' && flow.depth === 2)) {
+    out.push(problem('content', 'error', 'bad-heading', file, chunk.headingLine, 'a part of a card has headings of ### and deeper: a ## starts the next part'))
+  }
+  return flows
+}
+
+/** The line of each list item of `md` that cites no claim, and how many lists it has. `first` is the line of the Markdown's first line. */
+function uncitedItems(md: string, first: number): { lists: number; uncited: number[] } {
+  const tokens = Lexer.lex(md, { ...getDefaults(), gfm: true, breaks: false, pedantic: false })
+  const uncited: number[] = []
+  let lists = 0
+  let at = first
+  for (const token of tokens) {
+    const start = at
+    at += newlines(token.raw)
+    if (token.type !== 'list') continue
+    lists += 1
+    let itemAt = start
+    for (const item of (token as Tokens.List).items) {
+      if (!/\{\{\s*claim:/.test(item.raw)) uncited.push(itemAt)
+      itemAt += newlines(item.raw)
+    }
+  }
+  return { lists, uncited }
+}
+
+/** An In-production card (REDESIGN §2.5, "In vLLM today"): its words, then a part for each engine, each item of which cites a claim. */
+function compileInProduction(file: string, stem: string, parsed: Parsed, claims: ReadonlySet<string>, out: Diagnostic[]): CardResult | null {
+  const front = readFront(inProductionFrontMatterSchema, 'an In-production card', file, stem, parsed, out)
+  const chunks = chunksOf(file, parsed, out)
+  const parts = chunks.filter((chunk) => chunk.name !== null)
+  const afterFront = parsed.frontMatterLine + parsed.frontMatterText.split('\n').length + 1
+  let usable = front !== null
+
+  const names = parts.map((chunk) => chunk.name as string)
+  const order = names.map((name) => (ENGINE_PARTS as readonly string[]).indexOf(name))
+  if (names.length === 0 || order.some((place, at) => place < 0 || (at > 0 && place <= order[at - 1]))) {
+    const said = names.length === 0 ? 'it has none' : `it has ${list(names)}`
+    out.push(
+      problem('content', 'error', 'card-parts', file, parts[0]?.headingLine ?? afterFront, `an In-production card has a part for each engine it speaks of, under ## headings and in this order: ${list(ENGINE_PARTS)}, and at least one. ${said}`),
+    )
+    usable = false
+  }
+
+  const cited = new Set<string>()
+  let intro: ProseFlow[] = []
+  const engines: InProductionWords['engines'] = []
+  for (const chunk of chunks) {
+    const flows = wordsOf(file, chunk, claims, cited, out)
+    if (chunk.name === null) {
+      intro = flows
+      continue
+    }
+    if (flows.length === 0) {
+      out.push(problem('content', 'error', 'card-empty-part', file, chunk.headingLine, `the part ${chunk.name} is empty: list the flags and the source lines of ${chunk.name} at the pin, each with its claim`))
+      usable = false
+      continue
+    }
+    const items = uncitedItems(chunk.md, chunk.firstLine)
+    if (items.lists === 0) out.push(problem('content', 'error', 'card-rules', file, chunk.headingLine, `${chunk.name} states what the engine does as a list, one item for each flag or source line, and each item cites its claim`))
+    for (const line of items.uncited) out.push(problem('content', 'error', 'card-rule-unsourced', file, line, 'this item cites no claim: a flag or a source line is a claim, so cite it as {{claim:id}}'))
+    const engine = ENGINE_PARTS.find((name) => name === chunk.name)
+    if (engine !== undefined && !engines.some((entry) => entry.engine === engine)) engines.push({ engine, words: flows })
+  }
+  const mentioned = chunks.some((chunk) => /\{\{\s*claim:/.test(chunk.md))
+  if (cited.size === 0 && !mentioned && usable) out.push(problem('content', 'error', 'card-no-claims', file, parts[0]?.headingLine ?? afterFront, 'the card cites no claim: every flag and every source line is a {{claim:id}} (A§5.9)'))
+  if (!usable || front === null) return null
+  return { file, front, words: { intro, engines }, cited }
+}
+
+/** A Build-this card (REDESIGN §2.5, the Build row): front matter that names the lab and its stages, and words that say what the learner builds. */
+function compileBuildThis(file: string, stem: string, parsed: Parsed, claims: ReadonlySet<string>, out: Diagnostic[]): CardResult | null {
+  const front = readFront(buildThisFrontMatterSchema, 'a Build-this card', file, stem, parsed, out)
+  const chunks = chunksOf(file, parsed, out)
+  let usable = front !== null
+  const lines = parsed.frontMatterText.split('\n')
+  if (front !== null && !LAB_IDS.includes(front.lab)) {
+    out.push(problem('content', 'error', 'unknown-lab', file, parsed.frontMatterLine + locate(lines, ['lab']), `no lab "${front.lab}": the labs are ${list(LAB_IDS)}`))
+    usable = false
+  }
+  for (const chunk of chunks) {
+    if (chunk.name !== null) {
+      out.push(problem('content', 'error', 'card-parts', file, chunk.headingLine, 'a Build-this card has no parts: its words say what the learner builds and what it needs, under no ## heading'))
+      usable = false
+    }
+  }
+  const cited = new Set<string>()
+  const intro = chunks.filter((chunk) => chunk.name === null).flatMap((chunk) => wordsOf(file, chunk, claims, cited, out))
+  if (intro.length === 0) {
+    out.push(problem('content', 'error', 'card-empty-part', file, parsed.frontMatterLine + lines.length + 1, 'a Build-this card says what the learner builds and what it needs'))
+    usable = false
+  }
+  if (!usable || front === null) return null
+  return { file, front, words: { intro }, cited }
 }

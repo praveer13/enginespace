@@ -10,10 +10,13 @@ import { ClaimChip } from './ClaimChip'
 import './content.css'
 import { Frame, PendingLine, Tapes, type Of } from './BlockFrame'
 import { GameBlock } from './GameBlock'
+import { useKept } from './kept'
+import { BuildThisBody, InProductionBody } from './KeptCards'
 import { cardClaimIds, laneName, PENDING, pendingLab, sections, type RenderEnv } from './model'
 import { Inline, Prose } from './Prose'
 import { PredictLoading } from './PredictLoading'
 import { Tagged } from './Tagged'
+import { TraceRun } from './TraceRun'
 
 /*
  * The eight block types (ARCHITECTURE §4.3, D-016), each drawn as what it is on The Pass (D-047): a run of tickets, one per
@@ -21,9 +24,9 @@ import { Tagged } from './Tagged'
  * other block is one ticket, titled by its kind, with its facts on tape labels and the page's id and its own on its foot line.
  * The title leads the paper; the prose before a page's first heading, which has none, opens on the page's id (BlockFrame.tsx).
  *
- * Prose, a warning, an isomorphism, a notional-machine card, a figure, an item set (src/items, W1-T04), a game (GameBlock.tsx, W1b-T01)
- * and a prediction (Predict.tsx, W1b-T02) are complete. A block whose feature a later task builds (a trace, a lab that has no page yet,
- * the other cards kept in their own files, a game no task has built yet, a prediction that no run answers) prints what it is told, then
+ * Prose, a warning, an isomorphism, a notional-machine card, an In-production card, a Build-this card, a trace (TraceRun.tsx, W2-T42), a
+ * figure, an item set (src/items, W1-T04), a game (GameBlock.tsx, W1b-T01) and a prediction (Predict.tsx, W1b-T02) are complete. A block
+ * whose feature a later task builds (a lab that has no page yet, the change card, a game no task has built yet, a prediction that no run answers) prints what it is told, then
  * a red line naming the open task that builds the rest, and a stub for the action it will have, held down. A feature task replaces its
  * block's placeholder below and leaves the others alone.
  */
@@ -68,7 +71,7 @@ function BlockTicket({ block, at, blocks, env, scope, rev }: { block: CompiledBl
     case 'game':
       return <GameBlock block={block} scope={scope} at={at} rev={rev} />
     case 'trace':
-      return <TraceTicket block={block} scope={scope} />
+      return <TraceTicket block={block} scope={scope} rev={rev} />
     case 'lab':
       return <LabTicket block={block} scope={scope} />
     case 'card':
@@ -100,14 +103,13 @@ function ProseTickets({ block, env, scope }: { block: Of<'prose'>; env: RenderEn
 /* trace (the game block is GameBlock.tsx, the prediction is Predict.tsx)                                              */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-function TraceTicket({ block, scope }: { block: Of<'trace'>; scope: string }) {
-  const pending = PENDING.trace
+function TraceTicket({ block, scope, rev }: { block: Of<'trace'>; scope: string; rev?: string }) {
   // A seed draws a synthetic trace, and the site labels every synthetic trace as one (PRODUCT.md, "Evidence on Hand").
   const origin = block.seed === undefined ? ['pinned'] : ['synthetic', `seed · ${block.seed}`]
   return (
-    <Frame block="trace" scope={scope} meta={block.id} title="Trace" pending={pending.task} stub={<PrimaryButton disabled>Open trace</PrimaryButton>}>
+    <Frame block="trace" scope={scope} meta={block.id} title="Trace">
       <Tapes label="About this trace" items={[...origin, ...block.tasks.map((task) => `task · ${task}`)]} />
-      <PendingLine {...pending} />
+      <TraceRun block={block} scope={scope} rev={rev} bare />
     </Frame>
   )
 }
@@ -171,8 +173,12 @@ function CardTicket({ block, env, scope }: { block: Of<'card'>; env: RenderEnv; 
       )
     case 'notional-machine':
       return <NotionalMachine id={block.id} env={env} scope={scope} />
+    case 'in-production':
+      return <InProductionTicket id={block.id} env={env} scope={scope} />
+    case 'build-this':
+      return <BuildThisTicket id={block.id} env={env} scope={scope} />
     default: {
-      // The other three are cards kept in their own files, whose formats a later task decides (the compiler refuses a file of another kind).
+      // The change card is kept in a file of its own, whose format W3-T06 decides (the compiler refuses a file of that kind).
       const pending = PENDING[block.kind]
       return (
         <Frame block="card" kind={block.kind} scope={scope} meta={block.id} title={CARD_TITLES[block.kind]} pending={pending.task}>
@@ -182,6 +188,38 @@ function CardTicket({ block, env, scope }: { block: Of<'card'>; env: RenderEnv; 
       )
     }
   }
+}
+
+/** "In vLLM today" on a page of tickets: the lever's words, then the flags and source lines of each pinned engine, each cited as a chip. */
+function InProductionTicket({ id, env: given, scope }: { id: string; env: RenderEnv; scope: string }) {
+  const env = withChips(given)
+  const kept = useKept(id, 'in-production', env)
+  const frame = { block: 'card', kind: 'in-production', scope, meta: id, title: CARD_TITLES['in-production'] } as const
+  if (kept.status === 'error') return <Frame {...frame} state="error" error="The card would not print. Check your connection and reload the page." />
+  if (kept.status === 'loading') return <Frame {...frame} state="loading" loadingLabel="Printing the card" />
+  if (kept.status === 'empty') return <Frame {...frame} state="empty" empty={`No card called ${id}.`} />
+  return (
+    <Frame {...frame} title={`In ${kept.card.engines[0].engine} today`}>
+      <p className="es-c-card__name">{kept.card.title}</p>
+      <InProductionBody card={kept.card} env={withChips(kept.env)} />
+    </Frame>
+  )
+}
+
+/** The Build row on a page of tickets: the lab, its stages and the way in. */
+function BuildThisTicket({ id, env: given, scope }: { id: string; env: RenderEnv; scope: string }) {
+  const env = withChips(given)
+  const kept = useKept(id, 'build-this', env)
+  const frame = { block: 'card', kind: 'build-this', scope, meta: id, title: CARD_TITLES['build-this'] } as const
+  if (kept.status === 'error') return <Frame {...frame} state="error" error="The card would not print. Check your connection and reload the page." />
+  if (kept.status === 'loading') return <Frame {...frame} state="loading" loadingLabel="Printing the card" />
+  if (kept.status === 'empty') return <Frame {...frame} state="empty" empty={`No card called ${id}.`} />
+  return (
+    <Frame {...frame}>
+      <BuildThisBody card={kept.card} env={withChips(kept.env)} heading={(name) => <p className="es-c-card__name">{name}</p>} />
+      <Tapes label="About this card" items={[`lab · ${kept.card.lab}`, ...kept.card.stages.map((stage) => `stage · ${stage}`)]} />
+    </Frame>
+  )
 }
 
 /**
