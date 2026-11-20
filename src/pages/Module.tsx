@@ -194,7 +194,7 @@ export function ModuleView({ id, module, entry, lessons: rows, claims, today, kc
     waiting: pendingLab(lab) !== null,
   }))
   const states = useMemo(() => new Map<string, KcState>((progress?.kcs ?? []).map((kc) => [kc.id, kc.state])), [progress])
-  const passed = useMemo(() => outcomesPassed(id, module?.outcomes.length ?? 0, states, ready && kcs !== undefined), [id, module, states, ready, kcs])
+  const passed = useMemo(() => outcomesPassed(module?.outcome_kcs ?? [], module?.outcomes.length ?? 0, states, ready && kcs !== undefined), [module, states, ready, kcs])
   const mark = lessons === null ? undefined : nextLesson(id, way, lessons)
   const parts = useMemo(() => (module === null ? [] : referenceParts(module.blocks)), [module])
   const cited = useMemo(() => (module === null ? [] : [...citedClaimIds(module.blocks)]), [module])

@@ -9,6 +9,11 @@ outcomes:
   - Say what async scheduling hides and what it costs, and what a CUDA graph replay saves and for which batches
   - Explain why a batch dispatches to the graph it does, and what the graphs take from the KV cache
   - Read the same loop in SGLang, Mini-SGLang and TensorRT-LLM, and name what differs
+outcome_kcs:
+  - ['tr2.step-calls', 'tr2.one-budget', 'tr2.gpu-dependent-defaults', 'tr2.bubble', 'tr2.mrv2-delta']
+  - ['tr2.async-overlap', 'tr2.graph-replay', 'tr2.capture-padding', 'tr2.graph-modes']
+  - ['tr2.dispatch-keys', 'tr2.graph-memory']
+  - [] # reading only: no question grades it, so it has no tick to gain
 artifacts:
   - id: loop
     lane: B

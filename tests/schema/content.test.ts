@@ -167,9 +167,9 @@ describe('which keys are required', () => {
     })
   })
 
-  test('a module adds hours (and hours_by_lane), outcomes, artifacts, worlds, prereqs and pins', () => {
+  test('a module adds hours (and hours_by_lane), outcomes and the KCs under each, artifacts, worlds, prereqs and pins', () => {
     expect(keyRoles(moduleFrontMatterSchema, { ...module_, labs: ['hybrid-kv'] })).toEqual({
-      required: ['artifacts', 'hours', 'id', 'outcomes', 'pins', 'prereqs', 'status', 'title', 'worlds'],
+      required: ['artifacts', 'hours', 'id', 'outcome_kcs', 'outcomes', 'pins', 'prereqs', 'status', 'title', 'worlds'],
       optional: ['games', 'hours_by_lane', 'labs', 'lanes'],
     })
   })
@@ -239,8 +239,10 @@ describe('module front matter', () => {
     ['lane hours that do not add up', ['hours_by_lane'], { B: 4, F: 5 }, ['hours_by_lane: custom']],
     ['a lane that is not B, L or F', ['hours_by_lane'], { B: 5, X: 5 }, ['hours_by_lane: unrecognized_keys[X]']],
     ['a lane with no hours', ['hours_by_lane'], { B: 10, F: 0 }, ['hours_by_lane.F: too_small']],
-    ['no outcomes', ['outcomes'], [], ['outcomes: too_small']],
-    ['a blank outcome', ['outcomes'], ['Name the CPU work', ''], ['outcomes.1: invalid_format']],
+    ['no outcomes', ['outcomes'], [], ['outcomes: too_small', 'outcome_kcs: custom']],
+    ['a blank outcome', ['outcomes'], ['Name the CPU work', '', 'Say what a replay saves'], ['outcomes.1: invalid_format']],
+    ['outcome_kcs lists that are not one for each outcome', ['outcome_kcs'], [['tr2.bubble']], ['outcome_kcs: custom']],
+    ['a KC id that is not one', ['outcome_kcs'], [['bubble'], [], []], ['outcome_kcs.0.0: invalid_format']],
     ['no artifacts', ['artifacts'], [], ['artifacts: too_small']],
     ['an artifact in no lane', ['artifacts'], [{ id: 'loop', title: 'The sim' }], ['artifacts.0.lane: invalid_value']],
     [

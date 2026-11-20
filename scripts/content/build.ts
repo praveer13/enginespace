@@ -560,6 +560,12 @@ function compileModule(id: string, sources: Sources, out: Diagnostic[]): ModuleR
   }
   front.games?.forEach((game, index) => at(unknownGame(game, sources.links, ['games', index]), 'games'))
   front.labs?.forEach((lab, index) => at(unknownLab(lab, sources.links, ['labs', index]), 'labs'))
+  front.outcome_kcs.forEach((row, outcome) => {
+    at(unknownKcs(row, sources.links, ['outcome_kcs', outcome]), 'outcome_kcs')
+    row.forEach((kc, index) => {
+      if (!kc.startsWith(`${id}.`)) at([{ code: 'foreign-kc', path: ['outcome_kcs', outcome, index], message: `outcome ${outcome + 1} rests on "${kc}", which is not a KC of ${id}` }], 'outcome_kcs')
+    })
+  })
   front.worlds.forEach((world, index) => {
     if (!sources.links.cards.has(world)) at([{ code: 'unknown-card', path: ['worlds', index], message: `no card "${world}": a world's card is the file content/cards/${world}.md` }], 'worlds')
   })
@@ -849,7 +855,7 @@ function buildMap(course: Course, modules: ReadonlyMap<string, ModuleResult>, gr
         artifacts: written?.artifacts ?? entry.artifacts ?? [],
         labs: written?.labs ?? [],
         kcs: kcs.filter((kc) => kc.module === entry.id).map((kc) => kc.id),
-        ...(written === undefined ? {} : { outcome: written.outcomes[0] }),
+        ...(written === undefined ? (entry.outcome === undefined ? {} : { outcome: entry.outcome }) : { outcome: written.outcomes[0] }),
       }
     }),
     kcs,

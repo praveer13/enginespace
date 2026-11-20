@@ -96,6 +96,11 @@ export const moduleFrontMatterSchema = z
     /** The hours split by lane. When given, they add up to `hours`. */
     hours_by_lane: z.strictObject({ B: hours.optional(), L: hours.optional(), F: hours.optional() }).optional(),
     outcomes: z.array(nonBlank).min(1),
+    /**
+     * The KCs each outcome rests on, one list for each outcome in the order of `outcomes`. The module page draws a tick beside an outcome
+     * when every KC in its list is passed. An empty list is an outcome that no question grades (a lesson of reading): it has no tick to gain.
+     */
+    outcome_kcs: z.array(z.array(kcIdSchema)),
     artifacts: z.array(artifactSchema).min(1),
     /** The notional-machine cards the module uses, by card id (`content/cards/<id>.md`). */
     worlds: uniqueList(slugSchema),
@@ -113,6 +118,9 @@ export const moduleFrontMatterSchema = z
       if (Math.abs(total - module.hours) > 1e-9) {
         ctx.addIssue({ code: 'custom', message: `the lanes add up to ${total} hours, and hours says ${module.hours}`, path: ['hours_by_lane'] })
       }
+    }
+    if (module.outcome_kcs.length !== module.outcomes.length) {
+      ctx.addIssue({ code: 'custom', message: `outcome_kcs has ${module.outcome_kcs.length} lists, and the module has ${module.outcomes.length} outcomes: one list each, empty for an outcome no question grades`, path: ['outcome_kcs'] })
     }
     const seen = new Set<string>()
     module.artifacts.forEach((artifact, index) => {
