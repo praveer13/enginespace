@@ -132,8 +132,8 @@ export interface FloorControls {
 export function useFloorControls(run: FloorRun, ring: string | null = null): FloorControls {
   const { view, dispatch } = run
   const [pick, setPick] = useState<number | null>(null)
-  const [chosen, setFilter] = useState<string | null>(null)
-  const [query, setQuery] = useState('')
+  const [chosen, setChosen] = useState<string | null>(null)
+  const [text, setText] = useState('')
   const [stop, setStop] = useState<number | null>(null)
   const tray = useRef<HTMLUListElement>(null)
   const chips = useRef<HTMLDivElement>(null)
@@ -142,6 +142,28 @@ export function useFloorControls(run: FloorRun, ring: string | null = null): Flo
   const focusAfterCommit = useRef(false)
   const focusAfterTakeBack = useRef(false)
   const hold = useRef<Hold | null>(null)
+  const filtersHeld = useRef<HTMLElement | null>(null)
+  const listTop = useRef<number | null>(null)
+
+  // The pinned filters keep the height they had at a pointer lay: a chip that goes (its process has no stage left) would shorten the bar, and
+  // the list under it would slide under the pointer. The learner's own change of the filters, a keyboard lay or a restart gives it back.
+  const releaseFilters = useCallback(() => {
+    if (filtersHeld.current !== null) filtersHeld.current.style.minHeight = ''
+    filtersHeld.current = null
+  }, [])
+  const setFilter = useCallback((key: string | null) => {
+    releaseFilters()
+    setChosen(key)
+  }, [releaseFilters])
+  const setQuery = useCallback((value: string) => {
+    releaseFilters()
+    setText(value)
+  }, [releaseFilters])
+  const query = text
+  useEffect(() => releaseFilters, [releaseFilters])
+  useEffect(() => {
+    if (view.laid.length === 0) releaseFilters()
+  }, [view.laid.length, releaseFilters])
 
   const platforms = platformsOf(view.tray, view.present)
   const filter = chosen !== null && platforms.some((platform) => platform.key === chosen) ? chosen : null
@@ -164,6 +186,14 @@ export function useFloorControls(run: FloorRun, ring: string | null = null): Flo
       window.removeEventListener('resize', keepHeld)
     }
   }, [keepHeld])
+
+  // A list that is its own scroll box (a phone) snaps to a tile; the tile laid was the one it stood on, so after a pointer lay it would
+  // settle a tile higher and slide under the pointer. It goes back to where it stood.
+  useLayoutEffect(() => {
+    const top = listTop.current
+    listTop.current = null
+    if (top !== null && tray.current !== null) tray.current.scrollTop = top
+  }, [view.tray])
 
   // After a stage is laid, focus follows to the next tile in the list, or to the chips when the filters leave none.
   useEffect(() => {
@@ -210,11 +240,21 @@ export function useFloorControls(run: FloorRun, ring: string | null = null): Flo
     focusAfterLay.current = index
     revealAfterLay.current = !byPointer
     const list = tray.current
-    if (list !== null) {
+    const ownBox = list !== null && getComputedStyle(list).overflowY !== 'visible'
+    listTop.current = byPointer && ownBox ? list.scrollTop : null
+    // A list that is its own scroll box (a phone) holds no room: its height is its own.
+    if (list !== null && !ownBox) {
       // The list's height now, a held room included: the lay's row stays in it until it can go unseen.
       const height = list.getBoundingClientRect().height
       hold.current = { list, height }
       list.style.minHeight = `${height}px`
+    }
+    const bar = chips.current?.closest<HTMLElement>('.es-floor-filters') ?? null
+    if (!byPointer) releaseFilters()
+    else if (bar !== null) {
+      // Its height now, a room held at an earlier lay included.
+      bar.style.minHeight = `${bar.getBoundingClientRect().height}px`
+      filtersHeld.current = bar
     }
     setStop(index)
     dispatch({ t: 'lay', stage: id })
