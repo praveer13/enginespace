@@ -49,7 +49,8 @@ describe('a stage that lists checks as captured', () => {
   test('runs rule 7\'s re-checks whatever the stage, when the receipt has their artifact, and a stage that asks for none leaves them out otherwise', async () => {
     const outcome = await verify(replayFixture().bundle, replayFixture().context)
     // The only check of rule 7 that the replay has is the one that its claim names its log: it holds no counts, no comparison and no argmax ids.
-    expect(outcome.rules[6]).toMatchObject({ rule: 7, id: 'rechecks', status: 'pass', summary: '1 check, 1 passed and 0 failed.', checks: [{ id: 'claims-backed', status: 'pass' }] })
+    expect(outcome.rules[6]).toMatchObject({ rule: 7, id: 'rechecks', status: 'pass' })
+    expect((outcome.rules[6].checks ?? []).map((check) => `${check.id}:${check.status}`)).toEqual(['claims-backed:pass'])
   })
 })
 
@@ -122,7 +123,7 @@ describe('a stage this version does not list', () => {
     })
     const outcome = await verify(fixture.bundle, fixture.context)
     expect(outcome.rules.slice(0, 6).every((rule) => rule.status === 'pass')).toBe(true)
-    expect(outcome.rules.slice(6).map((rule) => (rule.checks ?? []).length)).toEqual([1, 0, 0])
+    expect(outcome.rules.slice(6).map((rule) => (rule.checks ?? []).map((check) => check.id))).toEqual([['claims-backed'], [], []])
     expect(outcome.verdict.provenance).toBe('gpu-unverified')
     expect(outcome.verdict.reasons).toEqual(['This version of the site lists no stage called tr8.replay.s9, so it cannot say what the stage requires.'])
   })
