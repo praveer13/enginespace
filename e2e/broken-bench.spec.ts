@@ -344,6 +344,60 @@ test.describe('the first screen', () => {
     })
   }
 
+  // On a desk shorter than about 860 px the form runs under the readout pinned at the screen's foot. A key that brings a field or File the
+  // report into view scrolls it clear of the readout (a scroll-margin on the parts, not a padding of the page), so each is whole and nothing lies over it.
+  for (const viewport of [
+    { width: 1440, height: 800 },
+    { width: 1366, height: 768 },
+    { width: 1280, height: 800 },
+  ]) {
+    test(`at ${viewport.width} x ${viewport.height} the fields and File the report are whole and uncovered under the readout when a key reaches them`, async ({ page }) => {
+      await page.setViewportSize(viewport)
+      await open(page, 'court')
+      await page.locator('[data-bench-flaws] input[value="coordinated-omission"]').evaluate((input: HTMLInputElement) => input.click())
+      await page.getByLabel('Your p99 (ms)').fill('120')
+      await page.getByLabel('Range from (ms)').fill('100')
+      await page.getByLabel('to (ms)').fill('140')
+      const stops = [page.getByLabel('Your p99 (ms)'), page.getByLabel('Range from (ms)'), page.getByLabel('to (ms)'), page.getByRole('button', { name: 'File the report' })]
+      for (const stop of stops) {
+        await stop.focus()
+        const read = await stop.evaluate((element) => {
+          const box = element.getBoundingClientRect()
+          const strip = document.querySelector('[data-bench-readout]')
+          const readout = strip?.parentElement?.getBoundingClientRect()
+          // The "More below" line drawn over the parts above a readout that is stuck to the screen's foot, when it is drawn.
+          const cue = strip?.parentElement && getComputedStyle(strip.parentElement.firstElementChild!, '::before').display !== 'none' ? 36 : 0
+          const points = [
+            [box.left + 2, box.top + 2],
+            [box.right - 2, box.top + 2],
+            [box.left + 2, box.bottom - 2],
+            [box.right - 2, box.bottom - 2],
+            [(box.left + box.right) / 2, (box.top + box.bottom) / 2],
+          ]
+          const hit = points.map(([x, y]) => {
+            const found = document.elementFromPoint(x, y)
+            return found !== null && (element.contains(found) || found.contains(element))
+          })
+          return { whole: box.top >= 0 && box.bottom <= innerHeight && box.left >= 0 && box.right <= innerWidth, clear: readout === undefined || box.bottom <= readout.top - cue + 1, hit }
+        })
+        const name = await stop.evaluate((element) => (element as HTMLElement).getAttribute('aria-label') ?? (element as HTMLInputElement).labels?.[0]?.textContent ?? element.textContent)
+        expect(read.whole, `${name} is on the screen whole`).toBe(true)
+        expect(read.clear, `${name} ends above the readout and the line of its cue`).toBe(true)
+        expect(read.hit, `${name} has nothing over it`).toEqual([true, true, true, true, true])
+      }
+    })
+  }
+
+  test('at 390 x 844 every flaw\'s meaning line takes at most two lines', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await open(page, 'court')
+    for (const flaw of BENCH_FLAWS) {
+      await page.locator(`[data-bench-flaws] input[value="${flaw}"]`).evaluate((input: HTMLInputElement) => input.click())
+      const lines = await page.locator('.es-bench-flaws__means').evaluate((element) => element.getBoundingClientRect().height / Number.parseFloat(getComputedStyle(element).lineHeight))
+      expect(lines, `the meaning of ${flaw}`).toBeLessThanOrEqual(2.05)
+    }
+  })
+
   test('each level shows its title, its goal line and, played graded, its pass rule before the run', async ({ page }) => {
     for (const level of ['due', 'warm', 'sure', 'court'] as const) {
       await open(page, level)

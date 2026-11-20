@@ -39,11 +39,6 @@
       "file": "e2e/walks.spec.ts",
       "title": "at 1280 px > Rejection sampler (verifier), \"Five broken accept rules\" (mutants): the keys alone play it to its debrief, with focus in view at every stop",
       "note": "fails on the wave base"
-    },
-    {
-      "file": "e2e/walks.spec.ts",
-      "title": "at 1280 px > Broken benchmark (broken-bench), \"Five reports\" (court): the keys alone play it to its debrief, with focus in view at every stop",
-      "note": "fails on the wave base"
     }
   ],
   "flaky": [
