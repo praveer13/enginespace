@@ -9,9 +9,12 @@
  * ES_E2E_PORT and ES_CHROMIUM pass through as they are, and playwright.config.ts is not touched. What a test is, here, is its spec file and its
  * title (the describes and the test's own, joined by " > "), so a test of the same name in another project is the same test.
  *
- * scripts/gate/known-red.json holds two lists:
+ * scripts/gate/known-red.json holds three lists:
  *   red    the tests that failed on the base. A failure that is listed does not fail the gate; one that is not listed does.
  *   flaky  the tests that fail some runs on the base. One that fails is run once more, alone, and counts by that run.
+ *   host   the tests that the build host cannot pass and a runner is the place to check (W2b-T55): each names its measured reason, the commit
+ *          at which it was shown to fail as first written, and the date. Its failure does not fail the gate; every entry is printed on every
+ *          run under "Not checked on this host", with what it did this run, and any other test of the same file still fails the gate.
  * An entry leaves a list only after five passes of five with --retries=0 on four pinned cores, in the branch that fixes it: this script says
  * when a red test passed, and never removes an entry. Nothing is ever added to the file by a run.
  *
@@ -32,9 +35,31 @@ export interface KnownTest {
   readonly title: string
   readonly note?: string
 }
+/** A test this host cannot pass: why, by measurement, at which commit it was shown to fail as first written, and when. */
+export interface HostTest {
+  readonly file: string
+  readonly title: string
+  readonly reason: string
+  readonly shownAt: string
+  readonly date: string
+}
 export interface KnownRed {
   readonly red: readonly KnownTest[]
   readonly flaky: readonly KnownTest[]
+  readonly host: readonly HostTest[]
+}
+
+/** The lines the gate prints for the host list on every run: each entry, with what it did in this run's steps (or that no step ran it). */
+export function hostLines(host: readonly HostTest[], results: readonly Pick<StepResult, 'hostFailed' | 'hostPassed'>[]): string[] {
+  if (host.length === 0) return ['Not checked on this host: none (scripts/gate/known-red.json lists no test under host)']
+  const failed = new Set(results.flatMap((result) => result.hostFailed.map(keyOf)))
+  const passed = new Set(results.flatMap((result) => result.hostPassed.map(keyOf)))
+  const lines = [`Not checked on this host (${host.length}; the nightly workflow's browsers job runs them on a runner):`]
+  for (const entry of host) {
+    const ran = failed.has(keyOf(entry)) ? 'failed here this run' : passed.has(keyOf(entry)) ? 'passed here this run' : 'not run by this gate'
+    lines.push(`  ${entry.file} > ${entry.title}`, `    ${ran}; ${entry.reason} (shown failing as first written at ${entry.shownAt}, ${entry.date})`)
+  }
+  return lines
 }
 
 export const keyOf = (test: { file: string; title: string }) => `${test.file}\u0000${test.title}`
@@ -88,9 +113,9 @@ export function failures(report: Json): { failed: Failure[]; passed: { file: str
 
 function readKnown(): KnownRed {
   const file = path.join(ROOT, 'scripts/gate/known-red.json')
-  if (!existsSync(file)) return { red: [], flaky: [] }
+  if (!existsSync(file)) return { red: [], flaky: [], host: [] }
   const data = JSON.parse(readFileSync(file, 'utf8')) as Partial<KnownRed>
-  return { red: data.red ?? [], flaky: data.flaky ?? [] }
+  return { red: data.red ?? [], flaky: data.flaky ?? [], host: data.host ?? [] }
 }
 
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
@@ -144,7 +169,30 @@ export interface StepResult {
   readonly known: readonly Failure[]
   readonly rerun: readonly { test: Failure; passed: boolean }[]
   readonly nowPassing: readonly { file: string; title: string }[]
+  /** The host list's tests that failed, and that passed, in this step: neither counts for the verdict. */
+  readonly hostFailed: readonly Failure[]
+  readonly hostPassed: readonly { file: string; title: string }[]
   readonly crash?: string
+}
+
+/**
+ * Where each failure of a step goes, once the flaky ones have had their re-run: a host-listed test is set aside, a red-listed one is known,
+ * and every other one is refused. The lists are matched by file and title, so a host entry covers its own test and no other of its file.
+ */
+export function sortFailures(
+  stillFailing: readonly Failure[],
+  passed: readonly { file: string; title: string }[],
+  known: KnownRed,
+): Pick<StepResult, 'refused' | 'known' | 'nowPassing' | 'hostFailed' | 'hostPassed'> {
+  const red = new Set(known.red.map(keyOf))
+  const host = new Set(known.host.map(keyOf))
+  return {
+    hostFailed: stillFailing.filter((test) => host.has(keyOf(test))),
+    hostPassed: passed.filter((test) => host.has(keyOf(test))),
+    refused: stillFailing.filter((test) => !red.has(keyOf(test)) && !host.has(keyOf(test))),
+    known: stillFailing.filter((test) => red.has(keyOf(test)) && !host.has(keyOf(test))),
+    nowPassing: passed.filter((test) => red.has(keyOf(test))),
+  }
 }
 
 export function runStep(step: Step, known: KnownRed): StepResult {
@@ -153,7 +201,7 @@ export function runStep(step: Step, known: KnownRed): StepResult {
   const first = execute(step, args)
   if (first.report === undefined || ((first.report.errors?.length ?? 0) > 0 && (first.report.stats?.expected ?? 0) + (first.report.stats?.unexpected ?? 0) === 0)) {
     const why = first.report?.errors?.map((error) => clean(error.message ?? '').split('\n')[0]).join('; ') || first.tail
-    return { step, command: text, total: 0, failed: [], refused: [], known: [], rerun: [], nowPassing: [], crash: `no test result (exit ${first.code}): ${why}` }
+    return { step, command: text, total: 0, failed: [], refused: [], known: [], rerun: [], nowPassing: [], hostFailed: [], hostPassed: [], crash: `no test result (exit ${first.code}): ${why}` }
   }
   const { failed, passed } = failures(first.report)
   const total = (first.report.stats?.expected ?? 0) + (first.report.stats?.unexpected ?? 0) + (first.report.stats?.flaky ?? 0)
@@ -170,10 +218,7 @@ export function runStep(step: Step, known: KnownRed): StepResult {
       if (!ok) stillFailing.push(test)
     } else stillFailing.push(test)
   }
-  const refused = stillFailing.filter((test) => !red.has(keyOf(test)))
-  const knownFailing = stillFailing.filter((test) => red.has(keyOf(test)))
-  const nowPassing = passed.filter((test) => red.has(keyOf(test)))
-  return { step, command: text, total, failed, refused, known: knownFailing, rerun, nowPassing }
+  return { step, command: text, total, failed, rerun, ...sortFailures(stillFailing, passed, known) }
 }
 
 /** The interpreters the grader's requires-python (>=3.11,<3.15) allows, newest tested first: CI pins 3.12, the task names 3.13. */
@@ -268,7 +313,13 @@ function main(argv: readonly string[]): number {
       }
     }
   }
+  const known = readKnown()
+  const printHost = (results: readonly StepResult[]) => {
+    const lines = hostLines(known.host, results)
+    console.log(`\n${lines.join('\n')}`)
+  }
   if (made.steps.length === 0) {
+    printHost([])
     if (labsFailed > 0) {
       console.log(`gate: FAILED (${labsFailed} lab check${labsFailed === 1 ? '' : 's'})`)
       return 1
@@ -276,7 +327,6 @@ function main(argv: readonly string[]): number {
     console.log('gate: no changed path maps to a features spec or a nightly walk; nothing more to run')
     return 0
   }
-  const known = readKnown()
   const results: StepResult[] = []
   for (const step of made.steps) {
     const started = Date.now()
@@ -288,10 +338,12 @@ function main(argv: readonly string[]): number {
     else console.log(`${result.total} tests, ${result.failed.length} failed first time, in ${Math.round((Date.now() - started) / 1000)} s`)
     for (const item of result.rerun) console.log(`${item.passed ? 'FLAKY, passed on its one re-run' : 'FLAKY, failed again'}: ${item.test.file} > ${item.test.title}`)
     for (const test of result.known) console.log(`known red: ${test.file} > ${test.title}`)
+    for (const test of result.hostFailed) console.log(`host list, not counted: ${test.file} > ${test.title}`)
     for (const test of result.refused) console.log(`NEW FAILURE: ${test.file} > ${test.title}\n    ${clean(test.error).split('\n')[0]}`)
     for (const test of result.nowPassing) console.log(`red test passed this run (leaves the list after five of five): ${test.file} > ${test.title}`)
   }
   const bad = results.filter((result) => result.crash !== undefined || result.refused.length > 0)
+  printHost(results)
   console.log('\nsummary')
   if (made.commands.length > 0) console.log(`  lab checks: ${labsFailed === 0 ? 'ok' : `${labsFailed} failed`}`)
   for (const result of results) {

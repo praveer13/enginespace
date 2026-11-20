@@ -3,7 +3,13 @@
  * what the canvas has drawn and what each frame cost, and takes the viewer's commands, so that e2e can pan a tape of 100,000 spans
  * and read the frame rate off the page instead of assuming it. A test build is one made with `VITE_ES_TEST_HOOKS=1`; in any other
  * build `TEST_HOOKS` is the constant false and the bundler drops every line that uses it.
+ *
+ * A command the probe sends is rendered before `dispatch` returns, as a key or a button's is at the end of its event, so that
+ * `window()` read next says where the command left the tape. Sent as a plain dispatch from outside an event, it was rendered a task
+ * later, and a read in between saw the window before it: the 100,000-span spec's zoom loop then read the last window instead of the
+ * whole tape after a fit, stopped at once, and panned a tape that could not move [measured 2026-11-19 at b5bf755, three runs of three].
  */
+import { flushSync } from 'react-dom'
 import { TEST_HOOKS } from '@/scene/test-hook'
 import type { Win } from './model'
 import type { Command } from './state'
@@ -63,7 +69,7 @@ export function registerTraceProbe(parts: { spans: number; window(): Win; dispat
     visited: () => frames.visited,
     spans: () => parts.spans,
     window: parts.window,
-    dispatch: parts.dispatch,
+    dispatch: (command) => flushSync(() => parts.dispatch(command)),
     reset() {
       frames.draws = 0
       frames.costs = []
