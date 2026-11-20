@@ -473,7 +473,7 @@ describe('labs.yml (§10.1)', () => {
     })
   }
 
-  test('runs for a change to what the lab gates read, and by hand: the labs, the schemas and the receipt rules (W0-T04), what verify:labs imports and compares (W1b-T13), the grader\'s fixtures (W2-T02, W2-T05), what the receipt fixtures step reads (W2-T08), and the course lock that the pin checks of the grader read (W2-T04)', () => {
+  test('runs for a change to what the lab gates read, and by hand: the labs, the schemas and the receipt rules (W0-T04), what verify:labs imports and compares (W1b-T13), the grader\'s fixtures (W2-T02, W2-T05), what the receipt fixtures step reads (W2-T08), and the course lock that the pin checks of the grader read (W2-T04), and the tensor vectors and their script that the cpu job compares (W2-T13)', () => {
     expect(labsPaths).toEqual([
       'labs/**',
       'course.lock.json',
@@ -489,6 +489,8 @@ describe('labs.yml (§10.1)', () => {
       'tests/fixtures/grader/**',
       'tests/fixtures/references/**',
       'tests/fixtures/receipts/**',
+      'tests/fixtures/tensor/**',
+      'scripts/tensor-torch-vectors.py',
       'tests/verify/**',
       'tests/schema/receipt-support.ts',
       'src/receipts/atlas.ts',
@@ -496,6 +498,37 @@ describe('labs.yml (§10.1)', () => {
       '.github/workflows/labs.yml',
     ])
     expect('workflow_dispatch' in labsOn).toBe(true)
+  })
+
+  test('has the cpu job (W2-T13): switched on by detect when the CPU environment, its fixture and the script exist and a change touched them, and it syncs from the lock and compares the vectors without writing the fixture', () => {
+    const jobs = Object.fromEntries(jobsOf('labs.yml'))
+    expect([jobs.cpu.needs, jobs.cpu.if]).toEqual(['detect', "needs.detect.outputs.cpu == 'true'"])
+    const detect = jobs.detect.steps?.find((step) => step.id === 'labs')?.run ?? ''
+    // The change is read from the first parent of the merge commit, and the paths are the ones the task names, the TR0 lab's included.
+    expect(detect).toContain('git diff --quiet HEAD^1 HEAD -- labs/envs/cpu tests/fixtures/tensor scripts/tensor-torch-vectors.py')
+    expect(detect).toContain("'labs/grader/src/enginespace_grader/labs/tr0*'")
+    expect(detect).toContain('echo "cpu=$cpu" >> "$GITHUB_OUTPUT"')
+    expect(jobs.detect as unknown as { outputs?: Record<string, string> }).toMatchObject({ outputs: { cpu: '${{ steps.labs.outputs.cpu }}' } })
+    const steps = jobs.cpu.steps ?? []
+    const uses = steps.map((step) => step.uses?.split('@')[0]).filter((name) => name !== undefined)
+    expect(uses).toEqual(['actions/checkout', 'actions/setup-python'])
+    expect(steps.find((step) => step.uses?.startsWith('actions/setup-python@'))?.with?.['python-version']).toBe('3.12')
+    expect(runsOf('labs.yml', 'cpu')).toEqual([
+      'python3 -m venv "$RUNNER_TEMP/cpu-venv"\n"$RUNNER_TEMP/cpu-venv/bin/python" -m pip install --no-input --no-deps --require-hashes --extra-index-url https://download.pytorch.org/whl/cpu -r labs/envs/cpu/requirements.txt',
+      '"$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/tensor-torch-vectors.py --out "$RUNNER_TEMP/torch-vectors.json" --compare tests/fixtures/tensor/torch-vectors.json',
+    ])
+    expect(typeof jobs.cpu['timeout-minutes']).toBe('number')
+    // The fixture is never written by CI: the job's only --out is in RUNNER_TEMP.
+    expect(runsOf('labs.yml', 'cpu').join('\n')).not.toMatch(/--out (?!"\$RUNNER_TEMP)/)
+    expect(runsOf('labs.yml', 'cpu').join('\n')).not.toMatch(/\buv\b/)
+  })
+
+  test('the vectors script has no header that says it is run by hand and never by CI (W2-T13)', () => {
+    const script = read('scripts/tensor-torch-vectors.py')
+    expect(script).not.toContain('by hand')
+    expect(script).not.toContain('never by CI')
+    expect(script).toContain('labs/envs/cpu')
+    expect(read('tests/fixtures/tensor/torch-vectors.json')).not.toContain('run by hand')
   })
 
   test('names every file that verify:labs imports, and every folder that it reads, so that a new dependency of the gate adds its path here (W1b-T13)', () => {
