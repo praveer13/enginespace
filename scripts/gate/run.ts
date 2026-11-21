@@ -1,7 +1,7 @@
 /*
  * The merge gate's browser step (W2b-T02): the features specs and the nightly-width walks that a branch's paths call for.
  *
- *   bun scripts/gate/run.ts --base <ref> --head <ref>    list the paths changed between the two (git diff --name-only base...head, run here),
+ *   bun scripts/gate/run.ts --base <ref> --head <ref>    list the paths changed between the two (git diff --name-only --no-renames base...head, run here: a moved file counts under both names),
  *                                                        ask scripts/gate/touched.ts for the plan, run each step in this checkout
  *   bun scripts/gate/run.ts --base <ref> --head <ref> --plan    print the plan as JSON and run nothing
  *
@@ -272,8 +272,13 @@ function parse(argv: readonly string[]): { base: string; head: string; planOnly:
   return base && head ? { base, head, planOnly } : undefined
 }
 
-function changedPaths(base: string, head: string): string[] {
-  const run = spawnSync('git', ['diff', '--name-only', `${base}...${head}`], { cwd: ROOT, encoding: 'utf8' })
+/**
+ * Every path the range touches, under its old and its new name, unquoted: --no-renames lists a moved file as a delete and an add (a rename is
+ * printed under the new name only, so the feature it left would not be called for), and core.quotePath=false keeps a non-ASCII name as it is.
+ * `cwd` is for the tests' scratch repositories.
+ */
+export function changedPaths(base: string, head: string, cwd: string = ROOT): string[] {
+  const run = spawnSync('git', ['-c', 'core.quotePath=false', 'diff', '--name-only', '--no-renames', `${base}...${head}`], { cwd, encoding: 'utf8' })
   if (run.status !== 0) throw new Error(`git diff failed: ${clean(run.stderr)}`)
   return run.stdout.split('\n').filter(Boolean)
 }

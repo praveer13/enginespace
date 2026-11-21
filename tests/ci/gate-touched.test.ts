@@ -3,10 +3,12 @@
  * decide a verdict. The plan is pure, so nothing here starts a browser.
  */
 import { describe, expect, test } from 'bun:test'
-import { existsSync, readdirSync } from 'node:fs'
+import { spawnSync } from 'node:child_process'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { WALKED } from '../../e2e/levels'
-import { clean, failures, hostLines, keyOf, pickPython, PYTHONS, sortFailures, uvEnv } from '../../scripts/gate/run'
+import { changedPaths, clean, failures, hostLines, keyOf, pickPython, PYTHONS, sortFailures, uvEnv } from '../../scripts/gate/run'
 import { FORGE_COMMANDS, GAMES, GRADER_COMMANDS, LAB_SPEC, plan, RELOCK_NOT_RUN, SMOKE_SPECS, walkGrep, type Step } from '../../scripts/gate/touched'
 import { read, root } from './support'
 
@@ -300,5 +302,81 @@ describe('the host list in a verdict', () => {
     expect(hostLines(known.host, [sortFailures([fail('d > slow')], [], known)]).join('\n')).toContain('failed here this run')
     expect(hostLines(known.host, [sortFailures([], [{ file: 'e2e/a.spec.ts', title: 'd > slow' }], known)]).join('\n')).toContain('passed here this run')
     expect(hostLines([], [])).toEqual(['Not checked on this host: none (scripts/gate/known-red.json lists no test under host)'])
+  })
+})
+
+describe('changedPaths reads every touched path, under its old and its new name, unquoted', () => {
+  const scratch = (): { dir: string; git: (...args: string[]) => void; put: (file: string, text: string) => void; drop: (file: string) => void } => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'es-gate-paths-'))
+    const git = (...args: string[]) => {
+      const run = spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', '-c', 'commit.gpgsign=false', ...args], { cwd: dir, encoding: 'utf8' })
+      if (run.status !== 0) throw new Error(`git ${args.join(' ')}: ${run.stderr}`)
+    }
+    const put = (file: string, text: string) => {
+      mkdirSync(path.dirname(path.join(dir, file)), { recursive: true })
+      writeFileSync(path.join(dir, file), text)
+    }
+    const drop = (file: string) => rmSync(path.join(dir, file))
+    git('init', '-q', '-b', 'main')
+    return { dir, git, put, drop }
+  }
+  const body = Array.from({ length: 30 }, (_, i) => `line ${i} of a file that is long enough for git to pair it`).join('\n')
+
+  test('a file moved out of a game\'s folder to a folder no pattern names still calls for the game\'s specs', () => {
+    const { dir, git, put, drop } = scratch()
+    try {
+      put('src/games/pool/Pool.tsx', body)
+      git('add', '-A')
+      git('commit', '-q', '-m', 'base')
+      git('tag', 'base')
+      put('misc/elsewhere/Pool.tsx', body)
+      drop('src/games/pool/Pool.tsx')
+      git('add', '-A')
+      git('commit', '-q', '-m', 'move')
+      const paths = changedPaths('base', 'HEAD', dir)
+      expect(paths.sort()).toEqual(['misc/elsewhere/Pool.tsx', 'src/games/pool/Pool.tsx'])
+      expect(step(plan(paths, specs), 'features', false)?.specs).toContain('pool')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test('a deletion in a game\'s folder and a similar file added elsewhere in the same range still call for the game\'s specs', () => {
+    const { dir, git, put, drop } = scratch()
+    try {
+      put('src/games/pool/Rack.ts', body)
+      git('add', '-A')
+      git('commit', '-q', '-m', 'base')
+      git('tag', 'base')
+      drop('src/games/pool/Rack.ts')
+      git('add', '-A')
+      git('commit', '-q', '-m', 'delete')
+      put('docs/Rack.ts', `${body}\nlast line`)
+      git('add', '-A')
+      git('commit', '-q', '-m', 'add')
+      const paths = changedPaths('base', 'HEAD', dir)
+      expect(paths.sort()).toEqual(['docs/Rack.ts', 'src/games/pool/Rack.ts'])
+      expect(step(plan(paths, specs), 'features', false)?.specs).toContain('pool')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test('a changed file with a non-ASCII character in its name, inside a game\'s folder, calls for the game\'s specs', () => {
+    const { dir, git, put } = scratch()
+    try {
+      put('README.md', 'x')
+      git('add', '-A')
+      git('commit', '-q', '-m', 'base')
+      git('tag', 'base')
+      put('src/games/pool/café.ts', 'x')
+      git('add', '-A')
+      git('commit', '-q', '-m', 'add')
+      const paths = changedPaths('base', 'HEAD', dir)
+      expect(paths).toEqual(['src/games/pool/café.ts'])
+      expect(step(plan(paths, specs), 'features', false)?.specs).toContain('pool')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })
