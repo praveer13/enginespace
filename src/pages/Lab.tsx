@@ -5,15 +5,20 @@ import { labName, laneName, titled } from '@/content/render/model'
 import { TextLink } from '@/design/components/TextLink'
 import { Sheet } from '@/design/components/Sheet'
 import { isForgeLab } from '@/forge/ids'
+import { GRADED_LABS, SPECIMEN_IDS } from '@/labs/published'
 import { printedId } from '@/map/summary'
 import { labById } from '@/receipts/labs'
+import { TEST_HOOKS } from '@/scene/test-hook'
 import { LAB_HOLDS, LAB_STUBS, type LabStub } from '@/unbuilt/copy'
 import { Unbuilt } from '@/unbuilt/Unbuilt'
 
 /*
  * /labs/:lab (ARCHITECTURE §3.1). A forge lab takes a dropped .wasm and shows per-check results (W1-T10); its page, its host and its
- * oracle load together and only when this route is opened with a forge lab's id. A GPU or local lab offers the kit, a challenge and
- * the receipt import, which wave 2 builds: until then its page says what it will hold and which task builds it (src/unbuilt/copy.ts).
+ * oracle load together and only when this route is opened with a forge lab's id. A GPU or local lab with a descriptor in
+ * src/labs/published.ts gets the graded lab's page (src/labs/GradedLabView.tsx: the kit, the inputs, a challenge per stage, the grader's
+ * command, the receipt and the checks), which loads only when this route is opened with its id. A lab with neither says what its page will
+ * hold (src/unbuilt/copy.ts). The dev server and a test build draw the graded page's specimen for the labs of `SPECIMEN_IDS`; a production
+ * build cannot (the constant is fixed when the app is built).
  *
  * Every lab's page sets the title and, until it is built, the heading that its served document has (scripts/pages/plan.ts), so the tab
  * and the heading do not change when the app takes over (WCAG 2.4.2). A lab that the course does not have says so.
@@ -24,6 +29,11 @@ const stageQuery = (lab: string): string => {
   return first === undefined ? '' : `?stage=${first.id}`
 }
 const ForgeLabPage = lazy(() => import('@/forge/ForgeLabPage'))
+const GradedLabPage = lazy(() => import('@/labs/GradedLabPage'))
+
+const SHOW_SPECIMEN = TEST_HOOKS || import.meta.env.MODE === 'development'
+/** A lab of lane L or F whose page is the graded lab's. */
+const isGradedLab = (id: string): boolean => Object.hasOwn(GRADED_LABS, id) || (SHOW_SPECIMEN && SPECIMEN_IDS.includes(id))
 
 function LabStubPage({ id, stub }: { id: string; stub: LabStub }) {
   return (
@@ -49,12 +59,20 @@ function LabStubPage({ id, stub }: { id: string; stub: LabStub }) {
 export function Component() {
   const { lab: labId = '' } = useParams()
   const forge = isForgeLab(labId)
+  const graded = !forge && isGradedLab(labId)
   const stub = Object.hasOwn(LAB_STUBS, labId) ? LAB_STUBS[labId] : undefined
-  useDocumentTitle(titled(forge || stub !== undefined ? labName(labId) : 'Lab not found'))
+  useDocumentTitle(titled(forge || graded || stub !== undefined ? labName(labId) : 'Lab not found'))
   if (forge) {
     return (
       <Suspense fallback={<Sheet as="section" width="wide" head="The forge" state="loading" loadingLabel="Printing the lab" />}>
         <ForgeLabPage labId={labId} />
+      </Suspense>
+    )
+  }
+  if (graded) {
+    return (
+      <Suspense fallback={<Sheet as="section" width="wide" head="The lab" state="loading" loadingLabel="Loading the lab" />}>
+        <GradedLabPage labId={labId} />
       </Suspense>
     )
   }
