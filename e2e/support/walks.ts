@@ -87,6 +87,8 @@ async function tabTo(walk: Walk, name: RegExp, limit = 60): Promise<Focus> {
 
 /** Presses Tab until `target` has focus. */
 async function tabToLocator(walk: Walk, target: Locator, limit = 120): Promise<void> {
+  // The control is waited for before the first key: a walk that starts before it is in the page counts its presses against the wrong page.
+  await target.waitFor({ state: 'attached' })
   for (let presses = 0; presses < limit; presses++) {
     if (await target.evaluate((element) => element === document.activeElement).catch(() => false)) return
     await walk.press('Tab')
@@ -606,6 +608,8 @@ async function firstRun(page: Page, walk: Walk): Promise<void> {
 async function call(page: Page, walk: Walk, answer: number): Promise<void> {
   await firstRun(page, walk)
   const field = page.locator('[data-full-prediction="open"] input')
+  // The open prediction's field or its radios: which of the two this stage asks is read once one of them is in the page.
+  await page.locator('[data-full-prediction="open"] :is(input, [role="radio"])').first().waitFor({ state: 'attached' })
   if ((await field.count()) > 0) {
     await tabToLocator(walk, field)
     await page.keyboard.type(String(answer))
