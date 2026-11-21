@@ -10,8 +10,8 @@ import type { GameEntry, GameMode, RunResult } from '@es/play'
  *
  * packages/play/registry.ts holds what is known about a game without running it: its display name, keys, levels and sources.
  * This file holds the code, and a loader of each game's record (its `entry.ts`) rather than the list of every record: a game's page
- * loads its own record and no other game's, so a game that joins the course costs the other games' pages nothing. A game joins by
- * adding its component and its record's loader below, and its entry to `GAMES` in packages/play/registry.ts. `verify:games` fails
+ * loads its own record and no other game's, so a game that joins the course costs the other games' pages one line of this file. A game
+ * joins by adding its `record.ts` below, and its entry to `GAMES` in packages/play/registry.ts. `verify:games` fails
  * when the three do not list the same ids, or when a loader brings a record of another id.
  */
 
@@ -38,14 +38,28 @@ export interface GameProps {
 
 export type GameComponent = LazyExoticComponent<ComponentType<GameProps>>
 
-/** The lazy component of each game, by id. Each game's task adds its own: `loop` is the first (W0-T16), `verifier` follows (W1-T28), then `engine-floor` (W1-T17), `broken-bench` (W1-T33) and `pool` (W1-T23). */
-export const GAME_COMPONENTS: Readonly<Record<string, GameComponent>> = {
-  loop: lazy(() => import('./loop/Game')),
-  verifier: lazy(() => import('./verifier/Game')),
-  'engine-floor': lazy(() => import('./engine-floor/Game')),
-  'broken-bench': lazy(() => import('./broken-bench/Game')),
-  pool: lazy(() => import('./pool/Game')),
+/**
+ * What the registry loads of a game: its `record.ts`, which holds its record and the loader of its component. A game joins by adding one
+ * line here. Both tables below go through this one chunk per game, so the chunk of this file, which every game's page and the page of
+ * games carry, names one file per game, and the list of the chunks a game's component needs is in that game's own chunk (W2b-T64).
+ */
+interface GameModule {
+  record(): GameEntry
+  game(): Promise<{ default: ComponentType<GameProps> }>
 }
+const GAME_MODULES: Readonly<Record<string, () => Promise<GameModule>>> = {
+  loop: () => import('./loop/record'),
+  verifier: () => import('./verifier/record'),
+  'engine-floor': () => import('./engine-floor/record'),
+  'broken-bench': () => import('./broken-bench/record'),
+  pool: () => import('./pool/record'),
+}
+
+const byGame = <T>(of: (load: () => Promise<GameModule>) => T): Readonly<Record<string, T>> =>
+  Object.fromEntries(Object.entries(GAME_MODULES).map(([id, load]) => [id, of(load)]))
+
+/** The lazy component of each game, by id. Each game's task adds its own: `loop` is the first (W0-T16), `verifier` follows (W1-T28), then `engine-floor` (W1-T17), `broken-bench` (W1-T33) and `pool` (W1-T23). */
+export const GAME_COMPONENTS: Readonly<Record<string, GameComponent>> = byGame((load) => lazy(() => load().then((module) => module.game())))
 
 /**
  * A loader of one game's record: the `record()` of the game's `record.ts`, which returns its `entry.ts` from packages/play, the same object
@@ -56,13 +70,7 @@ export const GAME_COMPONENTS: Readonly<Record<string, GameComponent>> = {
 export type RecordLoader = () => Promise<GameEntry>
 
 /** The loader of each game's record, by id: the same ids as the components above and as `GAMES`. */
-export const GAME_RECORDS: Readonly<Record<string, RecordLoader>> = {
-  loop: () => import('./loop/record').then((module) => module.record()),
-  verifier: () => import('./verifier/record').then((module) => module.record()),
-  'engine-floor': () => import('./engine-floor/record').then((module) => module.record()),
-  'broken-bench': () => import('./broken-bench/record').then((module) => module.record()),
-  pool: () => import('./pool/record').then((module) => module.record()),
-}
+export const GAME_RECORDS: Readonly<Record<string, RecordLoader>> = byGame((load) => () => load().then((module) => module.record()))
 
 export type GameResolution = { kind: 'game'; id: string; record: RecordLoader; Component: GameComponent } | { kind: 'unknown'; id: string }
 
