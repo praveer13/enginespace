@@ -77,6 +77,7 @@ describe('groupSections', () => {
         ...sections.test.graded,
         ...sections.cards,
         ...sections.labs,
+        ...sections.builds,
         ...[...sections.slots.values()].flat().map((slot) => slot.at),
       ].sort((a, b) => a - b)
       expect(blocks).toEqual(lesson.blocks.flatMap((block, at) => (block.type === 'prose' ? [] : [at])))

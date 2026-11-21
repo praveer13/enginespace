@@ -1,5 +1,5 @@
 /*
- * R-T12: the openers of REDESIGN §2.5, one row for each of the 29 built lessons (tests/content/openers-table.ts). The lesson's opener is
+ * R-T12: the openers of REDESIGN §2.5, one row for each of the 31 built lessons (tests/content/openers-table.ts). The lesson's opener is
  * read from the file's shape (`groupSections`), and the map's lessons table says the same; each row is held to its letter, the levels it opens
  * on, its word limit (A at most 60, B 61 to 200) and its graded levels.
  *
@@ -51,11 +51,11 @@ function holdsRow(id: string): void {
 }
 
 describe('the openers table of REDESIGN §2.5', () => {
-  test('has a row for each built lesson (29 today): 4 A, 15 B and 10 C, and every built lesson is one of them', () => {
+  test('has a row for each built lesson (31 today): 5 A, 15 B and 11 C, and every built lesson is one of them', () => {
     expect(OPENERS.length).toBe(TOTAL_LESSONS)
-    expect(OPENERS.filter((row) => row.opener === 'A').length).toBe(4)
+    expect(OPENERS.filter((row) => row.opener === 'A').length).toBe(5)
     expect(OPENERS.filter((row) => row.opener === 'B').length).toBe(15)
-    expect(OPENERS.filter((row) => row.opener === 'C').length).toBe(10)
+    expect(OPENERS.filter((row) => row.opener === 'C').length).toBe(11)
     expect([...lessons.keys()].sort()).toEqual(OPENERS.map((row) => row.lesson).sort())
   })
 

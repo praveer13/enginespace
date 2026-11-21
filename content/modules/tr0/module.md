@@ -37,7 +37,7 @@ Most of what engine code does to a tensor is bookkeeping over a buffer: a shape,
 
 ## The browser part
 
-The browser part is five lessons and a game, and none of it needs a GPU. The first and the fourth lessons are published, and the other three are not yet.
+The browser part is five lessons and a game, and none of it needs a GPU. The first four lessons are published, and the fifth is not yet.
 
 1. PyTorch in Rust terms: storage, shape, strides, dtype, device.
 2. Views, copies, and the syncs you cannot see.
@@ -53,7 +53,15 @@ Prove: Tensor views' Fewest copies, in Prove mode, on three new targets with you
 
 ## The part on your laptop
 
-The laptop part is a lab: Qwen3-0.6B's forward pass, written in plain PyTorch and run on your laptop's CPU, first without a KV cache and then with one. The lab runs on your laptop's CPU, outside the browser, and needs no GPU. The course's grader runs Hugging Face transformers on the same CPU, in `float32`, and compares your logits with its own. The bar is a largest difference of 0.001 [estimated] in any logit. The lab is not published yet, so this page shows what it asks and grades nothing.
+The laptop part is a lab: Qwen3-0.6B's forward pass, written in plain PyTorch and run on your laptop's CPU, first without a KV cache and then with one. The lab runs on your laptop's CPU, outside the browser, and needs no GPU. The course's grader runs Hugging Face transformers on the same CPU, in `float32`, and compares your logits with its own. The bar is a largest difference of 0.001 [estimated] in any logit.
+
+The lab has three stages, and each is graded by the checks it names:
+
+- **Stage `s1`, one layer.** You write the norm, the attention and the MLP of one decoder layer, and the grader compares the first layer's hidden states with the reference's. The check is `layer0-hidden`, and it shows where an error starts, before the layers above it hide it. The module does not need this stage. Where it stands: built; the course has not yet run this lab on the pinned weights.
+- **Stage `s2`, the whole forward pass.** You write every layer, the final norm and the head, and load the checkpoint into your own modules. `logits-fp32` compares your logits with the reference's at every element, and `import-guard` passes when your file does not import `transformers.models`. A third check, `argmax-bank`, is made by this site from your receipt: it compares your top token at chosen positions with the ids the course recorded. Where it stands: awaiting the course's reference bank. Until those ids are recorded, `argmax-bank` cannot pass, and a receipt of this stage cannot pass.
+- **Stage `s3`, the KV cache.** You decode token by token. `cache-logits` compares each step's logits with a full recompute of the same prefix, and `cache-lengths` checks that the cache holds as many positions as the prefix after every step. Where it stands: built; the course has not yet run this lab on the pinned weights.
+
+Nothing on this page is a run of your machine. The grader runs only on your laptop, and the course has run none of the three stages on the pinned weights, so no logit, difference or time on this page was measured. The lab's own page says where each stage stands, in the same words.
 
 Credit follows the same line. The module is browser-complete when the lessons' Tests and the graded levels of Tensor views are credited. It is complete when the lab's receipts are credited as well, and a Prove run with the agent closed is on record.
 

@@ -16,7 +16,7 @@ export interface ModuleRow {
 }
 
 export const MODULE_ROWS: readonly ModuleRow[] = [
-  { id: 'tr0', curriculum: 'curriculum/TR0-pytorch-for-rust.md', lessons: 2, afterGame: 2, atCommit: 2, gameBlocks: 4 },
+  { id: 'tr0', curriculum: 'curriculum/TR0-pytorch-for-rust.md', lessons: 4, afterGame: 3, atCommit: 4, gameBlocks: 6 },
   { id: 'tr1', curriculum: 'curriculum/TR1-read-the-engines.md', lessons: 7, afterGame: 9, atCommit: 6, gameBlocks: 8 },
   { id: 'tr2', curriculum: 'curriculum/TR2-the-step-loop.md', lessons: 7, afterGame: 4, atCommit: 4, gameBlocks: 9 },
   { id: 'tr3', curriculum: 'curriculum/TR3-profile-a-real-engine.md', lessons: 0, afterGame: 0, atCommit: 0, gameBlocks: 0 },
