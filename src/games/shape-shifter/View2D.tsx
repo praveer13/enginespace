@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState, type CSSProperties, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { Glyph } from '@/design/components/Glyph'
 import { Legend, type LegendEntry } from '@/design/components/Legend'
 import { Marker } from '@/design/components/Marker'
@@ -9,6 +9,7 @@ import { SHIFT_PARTS } from '@es/play/shape-shifter/copy'
 import type { BufferView, GridView, LayoutView, ShiftView } from '@es/play/shape-shifter/view'
 import { COLS } from '@es/play/shape-shifter/view'
 import { cellsLayout, CELL_MAX, CELLS_TALL, CELLS_TALL_PHONE, CELL_FLOOR, flatAt, programAt, selectionOf, type CellsLayout } from './focus'
+import { keepDockNow } from './hand'
 import type { ShiftPick, ShiftRun } from './types'
 
 /*
@@ -31,8 +32,8 @@ import type { ShiftPick, ShiftRun } from './types'
  * A press on a cell selects its element and marks its address in the buffer, and the other way about; a keyboard selects from the table.
  * Each region's name is its part's popover (copy.ts's rows, the same rows the parts list reads).
  *
- * Nothing in the drawing changes the page's height when the tensor changes: the box it stands in has its own height (shape-shifter.css),
- * and the cells grow and shrink inside it.
+ * At a desk the drawing stands beside the dock, so a tensor that grows or shrinks moves nothing in the dock. On a phone it stands in the
+ * page's flow over the pinned dock, and the page takes a change of its height back (hand.ts), so the dock stays where it is.
  */
 
 /** The width of a box, read as it is laid out and again whenever it changes. A first paint takes `initial`. */
@@ -49,6 +50,13 @@ function useRoom(initial: number): [(node: HTMLDivElement | null) => void, numbe
     return () => watch.disconnect()
   }, [node])
   return [setNode, room]
+}
+
+/** The drawing's root: every commit that redraws it runs the dock keeper before anything is painted (hand.ts). */
+function useKeepDock() {
+  const root = useRef<HTMLDivElement>(null)
+  useLayoutEffect(() => keepDockNow(root.current))
+  return root
 }
 
 /** A region's name, as its part's popover. Tensor views' engines are PyTorch and Triton, so the engine line names the right one. */
@@ -266,11 +274,12 @@ function Buffer({ buffer, old = false, selected, onPick, room }: { buffer: Buffe
 
 function LayoutDrawing({ layout, pick, onPick }: { layout: LayoutView; pick: number | null; onPick: (flat: number | null) => void }) {
   const [cellsBox, cellsRoom] = useRoom(480)
-  // On a phone the cells and the buffer share a box about 250 px tall with the table's line: the cells keep to a third of it.
+  // On a phone the table's line, the cells and the buffer stand together over the pinned dock: the cells keep to CELLS_TALL_PHONE.
   const tall = usePhone() ? CELLS_TALL_PHONE : CELLS_TALL
   const chosen = selectionOf(layout, pick)
+  const root = useKeepDock()
   return (
-    <div className="es-shift" data-shift-view="layout" data-status={layout.status} data-callout-after="">
+    <div ref={root} className="es-shift" data-shift-view="layout" data-status={layout.status} data-callout-after="">
       <div className="es-shift__side">
         <Table layout={layout} />
         <Target layout={layout} />
@@ -324,6 +333,7 @@ function GridDrawing({ grid, pick, onPick }: { grid: GridView; pick: ShiftPick |
   const high = usePhone() ? CELLS_TALL_PHONE + 56 : CELLS_TALL
   const size = Math.max(4, Math.min(CELL_MAX, Math.floor(room / wideCols), Math.floor(high / tallRows)))
   const inHand = programAt(grid, pick)
+  const root = useKeepDock()
   const covered = new Set<string>()
   for (const program of grid.programs) for (const cell of program.cells) covered.add(cell.join())
   const cells: ReactNode[] = []
@@ -351,7 +361,7 @@ function GridDrawing({ grid, pick, onPick }: { grid: GridView; pick: ShiftPick |
     )
   })
   return (
-    <div className="es-shift" data-shift-view="grid" data-callout-after="">
+    <div ref={root} className="es-shift" data-shift-view="grid" data-callout-after="">
       <div className="es-shift__side">
         <section className="es-shift__table" aria-label="The launch" data-shift-launch="">
           <h3 className="es-shift__label">

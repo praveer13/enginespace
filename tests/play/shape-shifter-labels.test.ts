@@ -109,7 +109,7 @@ describe('the other levels\' diagrams', () => {
     expect(view.layout?.cells.filter((cell) => cell.marked)).toHaveLength(24)
     expect([view.layout?.target.inPlace, view.layout?.target.of, view.layout?.slices]).toEqual([8, 32, 2])
     expect(view.moments.find((m) => m.id === 'wrong-order')?.line).toBe(
-      'The shape matches the target and the order does not: 8 of 32 elements are in place. `reshape` keeps the buffer\'s order; `permute` changes which dimension moves fastest.',
+      'The shape matches the target and the order does not: 8 of 32 elements are in place. `view` and `reshape` keep the elements in the order you read them, row by row; `permute` changes which dimension moves fastest.',
     )
   })
 
@@ -189,6 +189,16 @@ describe('the named moments (GAMES.md §4.6)', () => {
     const refused = { id: 'view-refused', task: 0, turn: 1, shape: [24] } as const
     expect(momentLine(refused, views)).toBe('`view` cannot give [24] here: the stride order jumps where the new shape needs one stride. `reshape` would copy.')
     expect(momentLine(refused, fewest)).toBe('`view` cannot give [24] here: the stride order jumps where the new shape needs one stride. This target has failed.')
+  })
+
+  test('the wrong order says that view and reshape keep the order read row by row, and names view alone on fewest, which offers no reshape', () => {
+    const wrongOrder = { id: 'wrong-order', task: 0, turn: 1, k: 8, n: 32 } as const
+    expect(momentLine(wrongOrder, practiceOf('three-d'))).toBe(
+      'The shape matches the target and the order does not: 8 of 32 elements are in place. `view` and `reshape` keep the elements in the order you read them, row by row; `permute` changes which dimension moves fastest.',
+    )
+    expect(momentLine(wrongOrder, fewest)).toBe(
+      'The shape matches the target and the order does not: 8 of 32 elements are in place. `view` keeps the elements in the order you read them, row by row; `permute` changes which dimension moves fastest.',
+    )
   })
 })
 

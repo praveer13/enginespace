@@ -13,6 +13,7 @@ import { WorldCard } from './Card'
 import { Words } from './CodeWords'
 import { Controls } from './Controls'
 import { keyAction } from './focus'
+import { guardPresses, keepDock, seatDrawing, showGoalAtResult, showNamedParts } from './hand'
 import { shiftKit, partRows } from './kit'
 import { Mirror } from './Mirror'
 import { ReadoutStrip } from './ReadoutStrip'
@@ -157,59 +158,73 @@ interface LevelProps {
 function ShiftLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, ledger, menu, modeSwitch, next, onNext }: LevelProps) {
   const [pick, setPick] = useState<ShiftPick | null>(null)
   const kit = useCallback((at: number) => shiftKit(levelId, at), [levelId])
+  // What stays under the hand (hand.ts): a second press on a control that came up under the pointer is ignored; on a phone the dock stays
+  // where it is while the drawing over it changes, the part the first run names comes into view over the pinned dock, the first reach into
+  // the dock seats the drawing over it, and the goal line comes into view with the result where it fits.
+  const wrap = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const root = wrap.current
+    const frame = root?.querySelector<HTMLElement>('section[data-game]') ?? null
+    if (root === null || frame === null) return
+    const seat = seatDrawing(frame)
+    const undo = [guardPresses(root), seat.undo, keepDock(frame, seat.again), showNamedParts(frame, partRows(levelId).map((part) => part.id)), showGoalAtResult(frame)]
+    return () => undo.forEach((step) => step())
+  }, [levelId])
   return (
-    <Frame
-      game={SHAPE_SHIFTER}
-      role={ROLE}
-      session={shiftSession}
-      level={levelId}
-      levelTitle={levelTitle}
-      seed={seed}
-      mode={mode}
-      rev={rev}
-      embedded={embedded}
-      onFinish={onFinish}
-      ledger={ledger}
-      kit={kit}
-      menu={menu}
-      modeSwitch={modeSwitch}
-      level3d={false}
-      onCommand={(command, run) => {
-        if (command === 'undo') {
-          if (!run.canUndo) return false
-          run.undo()
+    <div ref={wrap} className="contents">
+      <Frame
+        game={SHAPE_SHIFTER}
+        role={ROLE}
+        session={shiftSession}
+        level={levelId}
+        levelTitle={levelTitle}
+        seed={seed}
+        mode={mode}
+        rev={rev}
+        embedded={embedded}
+        onFinish={onFinish}
+        ledger={ledger}
+        kit={kit}
+        menu={menu}
+        modeSwitch={modeSwitch}
+        level3d={false}
+        onCommand={(command, run) => {
+          if (command === 'undo') {
+            if (!run.canUndo) return false
+            run.undo()
+            return true
+          }
+          const action = keyAction(command, run.view, run.done)
+          if (action === null) return false
+          run.dispatch(action)
           return true
-        }
-        const action = keyAction(command, run.view, run.done)
-        if (action === null) return false
-        run.dispatch(action)
-        return true
-      }}
-      goal={(run) => {
-        const goal = run.view.goal
-        return {
-          aim: <Words line={goal.aim} />,
-          control: <Words line={goal.controls} />,
-          target: <Words line={goal.beat} />,
-          ends: <Words line={goal.ends} />,
-          met: run.done ? (run.score.passed === run.score.of ? 'Every target is reached.' : `${run.score.passed} of ${run.score.of} passed.`) : undefined,
-        }
-      }}
-      diagram={(run) => <View2D run={run} pick={pick} onPick={setPick} />}
-      legend={(run) => <ShiftLegend view={run.view} />}
-      dock={(run) => <Controls run={run} mode={mode} />}
-      // A new target's counts start again: the strip is drawn afresh for it, so no delta runs from one target's counts to the next's.
-      readout={(run) => <ReadoutStrip key={run.view.task.at} view={run.view} />}
-      result={(run, outcome) => (
-        <Suspense fallback={<p role="status">Reading the run…</p>}>
-          <Debrief run={run} outcome={outcome} next={next} onNext={onNext} embedded={embedded} />
-        </Suspense>
-      )}
-      mirror={(run) => <Mirror run={run} pick={pick} onPick={setPick} />}
-      parts={partRows(levelId)}
-      howTo={<HowTo levelId={levelId} />}
-      titleBlock={{ model: 'Model of a tensor, after PyTorch 2.14 and Triton 3.8', clock: 'Clock: operations, synthetic', leavesOut: <WorldCard /> }}
-    />
+        }}
+        goal={(run) => {
+          const goal = run.view.goal
+          return {
+            aim: <Words line={goal.aim} />,
+            control: <Words line={goal.controls} />,
+            target: <Words line={goal.beat} />,
+            ends: <Words line={goal.ends} />,
+            met: run.done ? (run.score.passed === run.score.of ? 'Every target is reached.' : `${run.score.passed} of ${run.score.of} passed.`) : undefined,
+          }
+        }}
+        diagram={(run) => <View2D run={run} pick={pick} onPick={setPick} />}
+        legend={(run) => <ShiftLegend view={run.view} />}
+        dock={(run) => <Controls run={run} mode={mode} />}
+        // A new target's counts start again: the strip is drawn afresh for it, so no delta runs from one target's counts to the next's.
+        readout={(run) => <ReadoutStrip key={run.view.task.at} view={run.view} />}
+        result={(run, outcome) => (
+          <Suspense fallback={<p role="status">Reading the run…</p>}>
+            <Debrief run={run} outcome={outcome} next={next} onNext={onNext} embedded={embedded} />
+          </Suspense>
+        )}
+        mirror={(run) => <Mirror run={run} pick={pick} onPick={setPick} />}
+        parts={partRows(levelId)}
+        howTo={<HowTo levelId={levelId} />}
+        titleBlock={{ model: 'Model of a tensor, after PyTorch 2.14 and Triton 3.8', clock: 'Clock: operations, synthetic', leavesOut: <WorldCard /> }}
+      />
+    </div>
   )
 }
 

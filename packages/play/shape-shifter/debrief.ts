@@ -71,7 +71,7 @@ function layoutDebrief(level: LayoutLevel, mine: ShiftState): Debrief {
   if (run.why === 'refused') {
     const refusal = run.refused[run.refused.length - 1]
     return {
-      sentence: `A ${code('view')} the strides could not express ended this target: the stride order jumps there, and a ${code('view')} can follow only a ${code('contiguous()')} placed before it.`,
+      sentence: `A ${code('view')} the strides could not express ended this target: the stride order jumps there, so this ${code('view')} needs a ${code('contiguous()')} before it.`,
       names: { turn: refusal.turn },
     }
   }
