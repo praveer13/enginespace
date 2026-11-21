@@ -1014,7 +1014,7 @@ labs/
       cli.py  grade.py  verify.py  selftest.py  doctor.py
       challenge.py  rng.py  canonical.py  hashing.py  receipt.py  bundle.py  schemas.py  identity.py  errors.py
       fingerprint.py  redact.py  engine_config.py  pins.py  fetch.py
-      schemas/             the five JSON Schemas of schemas/ (§9.6's four and the references manifest's), copied byte for byte by scripts/export-schemas.ts (the grader is installed alone)
+      schemas/             the six JSON Schemas of schemas/ (§9.6's four, the references manifest's and the five points of TR0's forward pass), copied byte for byte by scripts/export-schemas.ts (the grader is installed alone)
       checks/              allclose, teacher-forced agreement, chi-square from counts, percentiles
       trace/               torch-profiler Chrome JSON → trace@1; nsys SQLite export → trace@1
       bench/               the open-loop client: seeded schedule, per-request records

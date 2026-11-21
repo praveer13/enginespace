@@ -16,7 +16,7 @@
  * shellcheck on the PATH, checks those over .github/workflows. It is not a dependency, so run it by hand when a workflow changes.
  */
 import { describe, expect, test } from 'bun:test'
-import { readdirSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { load } from 'js-yaml'
 import { GATE_NAMES, GATES } from '../../scripts/verify'
@@ -516,11 +516,25 @@ describe('labs.yml (§10.1)', () => {
     expect(runsOf('labs.yml', 'cpu')).toEqual([
       'python3 -m venv "$RUNNER_TEMP/cpu-venv"\n"$RUNNER_TEMP/cpu-venv/bin/python" -m pip install --no-input --no-deps --require-hashes --extra-index-url https://download.pytorch.org/whl/cpu -r labs/envs/cpu/requirements.txt',
       '"$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/tensor-torch-vectors.py --out "$RUNNER_TEMP/torch-vectors.json" --compare tests/fixtures/tensor/torch-vectors.json',
+      '"$RUNNER_TEMP/cpu-venv/bin/python" -m unittest discover -v -s labs/grader/tests/cpu -p "test_*.py"',
     ])
     expect(typeof jobs.cpu['timeout-minutes']).toBe('number')
     // The fixture is never written by CI: the job's only --out is in RUNNER_TEMP.
     expect(runsOf('labs.yml', 'cpu').join('\n')).not.toMatch(/--out (?!"\$RUNNER_TEMP)/)
     expect(runsOf('labs.yml', 'cpu').join('\n')).not.toMatch(/\buv\b/)
+  })
+
+  test('the cpu job also runs the TR0 lab\'s tests in the CPU environment, with CI set so that a missing torch fails them (W2b-T48)', () => {
+    const jobs = Object.fromEntries(jobsOf('labs.yml'))
+    const step = (jobs.cpu.steps ?? []).find((candidate) => candidate.name === 'The TR0 lab, on a small random-weight model')
+    expect(step?.run).toBe('"$RUNNER_TEMP/cpu-venv/bin/python" -m unittest discover -v -s labs/grader/tests/cpu -p "test_*.py"')
+    expect((step as unknown as { env?: Record<string, string> }).env).toEqual({ CI: 'true', PYTHONPATH: 'labs/grader/src' })
+    // It runs in the environment that the lock exports, with no network and no second installer, and it fetches no model.
+    expect(step?.run).not.toMatch(/\buv\b|pip|curl|wget|fetch|huggingface/)
+    const detect = jobs.detect.steps?.find((candidate) => candidate.id === 'labs')?.run ?? ''
+    for (const pathspec of ["'labs/grader/tests/cpu'", "'labs/grader/src/enginespace_grader/checks'", "'labs/grader/tests/test_tr0*'"]) expect(detect).toContain(pathspec)
+    // The tests of that folder are found by this discovery only: the grader job's `python -m unittest` from the root never walks into a folder that is no package.
+    expect(existsSync(path.join(root, 'labs/grader/tests/cpu/__init__.py'))).toBe(false)
   })
 
   test('the vectors script has no header that says it is run by hand and never by CI (W2-T13)', () => {

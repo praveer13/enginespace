@@ -100,7 +100,7 @@ jobs:
           # commit, or a checkout without history), it runs.
           cpu=false
           if [ -f labs/envs/cpu/uv.lock ] && [ -f scripts/tensor-torch-vectors.py ] && [ -f tests/fixtures/tensor/torch-vectors.json ]; then
-            if git rev-parse --verify --quiet HEAD^1 >/dev/null && git diff --quiet HEAD^1 HEAD -- labs/envs/cpu tests/fixtures/tensor scripts/tensor-torch-vectors.py 'labs/grader/src/enginespace_grader/labs/tr0*' 'labs/grader/tests/cpu' 'labs/grader/tests/test_tr0*'; then
+            if git rev-parse --verify --quiet HEAD^1 >/dev/null && git diff --quiet HEAD^1 HEAD -- labs/envs/cpu tests/fixtures/tensor scripts/tensor-torch-vectors.py 'labs/grader/src/enginespace_grader/labs/tr0*' 'labs/grader/src/enginespace_grader/checks' 'labs/grader/src/enginespace_grader/schemas' 'labs/grader/tests/cpu' 'labs/grader/tests/test_tr0*' 'labs/grader/tests/synthetic/tr0-forward'; then
               echo 'cpu: no change under the CPU environment, the vectors, the script or the TR0 lab'
             else
               cpu=true
@@ -277,3 +277,15 @@ jobs:
       - name: The vectors are what the CPU environment's torch gives
         run: |
           "$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/tensor-torch-vectors.py --out "$RUNNER_TEMP/torch-vectors.json" --compare tests/fixtures/tensor/torch-vectors.json
+
+      # W2b-T48: the TR0 lab's own tests (labs/grader/tests/cpu/), in the CPU environment of the lock. The reference solution passes stages 1 to 3 on a small
+      # random-weight Qwen3 that the tests build from the pinned transformers (no weights are downloaded), a wrong RMSNorm epsilon fails stage 2, a cache that
+      # miscounts fails its length check, and the cache holds as many positions as the prefix at every step. The grader is not installed in this environment
+      # (it is a path dependency, and the export leaves it out), so its source folder is on the path; its one dependency, jsonschema, is in the export.
+      # CI is true here on purpose: a test of this folder that finds no torch fails and never passes by being left out. The tests print the worst difference
+      # of each run, which is the only measurement they make, and none of it says anything about the margin of Qwen3-0.6B (the weights job measures that).
+      - name: The TR0 lab, on a small random-weight model
+        env:
+          CI: 'true'
+          PYTHONPATH: labs/grader/src
+        run: '"$RUNNER_TEMP/cpu-venv/bin/python" -m unittest discover -v -s labs/grader/tests/cpu -p "test_*.py"'

@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$comment": "Written by scripts/export-schemas.ts from packages/schema/bundle.ts. Do not edit it: change the zod schema and run `bun scripts/export-schemas.ts`.",
+  "type": "object",
+  "properties": {
+    "schema": {
+      "type": "string",
+      "const": "enginespace/tr0-points@1"
+    },
+    "stage": {
+      "type": "string",
+      "enum": [
+        "tr0.forward.s2",
+        "tr0.forward.s3"
+      ]
+    },
+    "call": {
+      "type": "string",
+      "enum": [
+        "prompt",
+        "decode-step"
+      ]
+    },
+    "points": {
+      "minItems": 5,
+      "maxItems": 5,
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "enum": [
+                  "embedding",
+                  "attention",
+                  "mlp",
+                  "final-norm",
+                  "logits"
+                ]
+              },
+              "found": {
+                "type": "boolean",
+                "const": true
+              },
+              "shape": {
+                "maxItems": 8,
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000000000
+                }
+              },
+              "strides": {
+                "maxItems": 8,
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "dtype": {
+                "type": "string",
+                "enum": [
+                  "float32",
+                  "float16",
+                  "bfloat16",
+                  "float64",
+                  "int64",
+                  "int32",
+                  "int8",
+                  "uint8",
+                  "bool"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "found",
+              "shape",
+              "strides",
+              "dtype"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "enum": [
+                  "embedding",
+                  "attention",
+                  "mlp",
+                  "final-norm",
+                  "logits"
+                ]
+              },
+              "found": {
+                "type": "boolean",
+                "const": false
+              }
+            },
+            "required": [
+              "name",
+              "found"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
+    }
+  },
+  "required": [
+    "schema",
+    "stage",
+    "call",
+    "points"
+  ],
+  "additionalProperties": false,
+  "title": "enginespace/tr0-points@1",
+  "description": "The shape, strides and dtype of five tensors of a learner's forward pass, recorded by forward hooks (ASSESSMENT §7.2). Checked by the site and not expressible in JSON Schema: the five points come in the order embedding, attention, mlp, final-norm, logits; a tensor has one stride for each dimension; stage 2 records the call over the whole prompt and stage 3 the last decode step."
+}

@@ -1445,6 +1445,15 @@ Before wave 1a of the build that followed wave R ended, the coordinator put thre
 - **Consequences:** `packages/play/roster.ts` sets `has3d: false` for `shape-shifter`, `tests/play/roster.test.ts` counts four games with a 3D scene, and ARCHITECTURE §6.1 and GAMES.md §0, §2.4, §2.6 and §14 say 2D. TR0's lessons never needed the scene (the tracker's note of 2026-11-19 on W2-T18).
 - **Revisit when:** the owner asks for a scene; W2-T15 then starts by naming a camera that passes GAMES.md §4.2's table.
 
+### D-075 · TR0's 1e-3 bar on the logits is [estimated], and no task changes it
+
+- **Status:** proposed (W2b-T48, 2026-11-20); the owner confirms. The owner has not answered it. This records the catalog's bar and the rule around it.
+- **Decision:** `tr0.forward` stage 2 passes the logits when their largest absolute difference from Hugging Face's `transformers` in fp32 on the same CPU is at most 1e-3, and stage 3 holds each cached decode step to the same bound against a full recompute. Stage 1's bound, 1e-4, is practice only. All three are [estimated]: nobody has measured an honest solution's margin under them on the pinned weights. The bar is the catalog's (ASSESSMENT §5.7) and no task changes it; where a run shows a thin margin, that goes to the owner.
+- **Context:** fp32 on one CPU leaves differences from the order of operations alone, which an honest solution must stay under. The checks run on small random-weight models in `labs.yml` (the reference solution passes, and a wrong RMSNorm epsilon fails); that shows the check can tell the two apart on those models and says nothing about the margin on Qwen3-0.6B. The `weights` job (W2-T16, a dispatch) is where the margin is measured.
+- **Alternatives:** a looser bar (1e-2), which a wrong epsilon may pass on the real model; a bar in units of the logits' own spread, which the catalog did not ask for.
+- **Consequences:** the lab page says that the margin is not measured. A change to the bar is the owner's, and it moves the grader, the page, the weights job and this record together.
+- **Revisit when:** the `weights` job has printed the honest solution's worst difference and the mutant's.
+
 ---
 
 ## Open owner questions
