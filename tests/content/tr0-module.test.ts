@@ -14,15 +14,18 @@ import path from 'node:path'
 import type { ContentIndex } from '@es/schema'
 import { compileContent } from '../../scripts/content/build.ts'
 import { findTables, moduleKit } from './module-kit.ts'
-import { MODEL_TABLES, callRows, practiceLevel, strideZeroRun, transposedWalk, viewsRun } from './tr0-demos.ts'
+import { MODEL_TABLES, PREDICTIONS, callRows, courseKernelLines, gridLaunches, practiceGrid, practiceLevel, strideZeroRun, transposedWalk, viewsRun } from './tr0-demos.ts'
 import { read, repo } from './support.ts'
 
-const LESSON_FILES = ['content/modules/tr0/lessons/l1-pytorch-in-rust-terms.md'] as const
+const LESSON_FILES = ['content/modules/tr0/lessons/l1-pytorch-in-rust-terms.md', 'content/modules/tr0/lessons/l4-reading-triton.md'] as const
 const MODULE_FILE = 'content/modules/tr0/module.md'
 const CLAIMS_FILE = 'content/claims/tr0.yaml'
 
 const result = compileContent({ root: repo })
 const lesson1 = read(LESSON_FILES[0])
+const lesson4 = read(LESSON_FILES[1])
+const claimsText = read('content/claims/tr0.yaml')
+const courseKernel = read('scripts/triton-interp/course_kernel.py')
 const moduleText = read(MODULE_FILE)
 
 /** The paragraphs of a text, each on one line, outside the front matter and the directives. */
@@ -87,6 +90,103 @@ describe('TR0 lesson 1: the numbers it prints are the model\'s', () => {
   })
 })
 
+describe("TR0 lesson 4: the grid's numbers are the model's, and the walk-through shows only kernels that ran", () => {
+  test("the reference's launch on `grid`'s practice tensor is BLOCK (16, 4) on a grid of (1, 5), and the table's other two launches mask more", () => {
+    const task = practiceGrid().tasks[0]
+    expect([task.shape, task.block, task.grid, task.programs, task.lanes, task.least]).toEqual([[12, 20], [16, 4], [1, 5], 5, 320, 80])
+    const [reference, one, square] = gridLaunches()
+    expect(reference.masked).toBe(task.least)
+    expect([one.masked, square.masked]).toEqual([task.onePass, task.square])
+    expect(one.masked).toBeGreaterThan(reference.masked)
+    expect(square.masked).toBeGreaterThan(reference.masked)
+  })
+
+  test('the model table carries the day and the commit it was printed at, in the sentence above it', () => {
+    const [table] = findTables(lesson4).filter((t) => t.header === MODEL_TABLES[1].header)
+    expect(table).toBeDefined()
+    expect(table.caption).toMatch(/Printed by the course's model on \d{4}-\d{2}-\d{2} at `[0-9a-f]{7}`\./)
+  })
+
+  test("the prose's figures on the practice tensor are the reference launch's", () => {
+    const task = practiceGrid().tasks[0]
+    const [rows, cols] = task.shape
+    const lanes = task.block[0] * task.block[1]
+    const perProgram = task.least / task.programs
+    expect(cols % task.block[1]).toBe(0)
+    expect(lesson4).toContain(`The ${cols} columns divide by a BLOCK of ${task.block[1]} [synthetic]`)
+    // A BLOCK that fits the rows too would need more programs than the cap.
+    const fit = [1, 2, 4, 8, 16, 32].filter((b) => rows % b === 0 && b > 1).at(-1) ?? 1
+    expect(fit).toBe(4)
+    expect((rows / fit) * (cols / task.block[1])).toBeGreaterThan(practiceGrid().cap)
+    expect(lesson4).toContain(`The ${rows} rows would divide by ${fit} too, but ${rows / fit} programs down and ${cols / task.block[1]} across make ${(rows / fit) * (cols / task.block[1])} [synthetic]`)
+    expect(lesson4).toContain(`The cap of six programs is the level's and not Triton's`)
+    expect(practiceGrid().cap).toBe(6)
+    expect(lesson4).toContain(`covers ${task.block[0]} rows where the tensor has ${rows}, and ${perProgram} of its ${lanes} lanes are masked [synthetic]`)
+  })
+
+  test("the course's own kernel in the lesson is the one in scripts/triton-interp/course_kernel.py, and the lines its run printed are the grid model's", () => {
+    // The lesson's kernel is the file's, its load set on a line of its own and its two print lines left out.
+    for (const line of [
+      'def scale(x_ptr, y_ptr, n, factor, BLOCK: tl.constexpr):',
+      'pid = tl.program_id(0)',
+      'offs = pid * BLOCK + tl.arange(0, BLOCK)',
+      'mask = offs < n',
+      'def scale_2d(x_ptr, y_ptr, m, n, stride_m, stride_n, factor, BM: tl.constexpr, BN: tl.constexpr):',
+      'offs_m = tl.program_id(0) * BM + tl.arange(0, BM)',
+      'offs_n = tl.program_id(1) * BN + tl.arange(0, BN)',
+      'mask = (offs_m[:, None] < m) & (offs_n[None, :] < n)',
+      'ptrs = offs_m[:, None] * stride_m + offs_n[None, :] * stride_n',
+    ]) {
+      expect(courseKernel).toContain(line)
+    }
+    for (const line of ['pid = tl.program_id(0)', 'offs = pid * BLOCK + tl.arange(0, BLOCK)', 'mask = offs < n', 'ptrs = offs_m[:, None] * stride_m + offs_n[None, :] * stride_n']) {
+      expect(lesson4).toContain(line)
+    }
+    expect(courseKernel).toContain('tl.store(y_ptr + offs, tl.load(x_ptr + offs, mask=mask) * factor, mask=mask)')
+    expect(lesson4).toContain('x = tl.load(x_ptr + offs, mask=mask)\n    tl.store(y_ptr + offs, x * factor, mask=mask)')
+    // The launch's sizes in the file, and the lines its run prints from them.
+    expect(courseKernel).toContain('n, block = 10, 4')
+    expect(courseKernel).toContain('m, k, bm, bn = 5, 6, 2, 4')
+    const [one, two] = courseKernelLines(10, 4, [5, 6], [2, 4])
+    expect(one).toBe('1-D: n=10 BLOCK=4 programs=3 lanes=12 masked=2')
+    expect(two).toBe('2-D: shape=(5, 6) strides=(1, 5) BLOCK=(2, 4) grid=(3, 2) masked=18')
+    expect(lesson4).toContain(`${one}\n${two}`)
+    expect(lesson4).toContain('Tiles of `(2, 4)` on a grid of `(3, 2)` cover it, and 18 of the 48 lanes are masked [derived].')
+    expect(lesson4).toContain('offsets `[8, 9, 10, 11]` and mask `[True, True, False, False]`')
+    // The claim of the course's run says the same numbers.
+    expect(claimsText).toContain('its last program held offsets 8, 9, 10, 11 and the mask True, True, False, False')
+  })
+
+  test('every Model Runner V2 kernel the lesson walks through is one the interpreter ran, by a claim that says so, and the rest are named as not run', () => {
+    const kernels = [...lesson4.matchAll(/^- \[`(_[a-z_]+_kernel)`\]\(https:\/\/github\.com\/vllm-project\/vllm\/blob\/4ba787ec9959e566d3b587a796dff07673324da5\/[^)]+\), in `[a-z_/]+\.py`\..*\{\{claim:(vllm\.mrv2\.interp\.[a-z-]+)\}\}$/gm)]
+    expect(kernels.length).toBe(7)
+    for (const [, kernel, claim] of kernels) {
+      const block = claimsText.split('\n- id: ').find((entry) => entry.startsWith(`${claim}\n`)) ?? ''
+      expect([kernel, /^ {2}value: 'ran'$/m.test(block)]).toEqual([kernel, true])
+      expect(block).toContain(`text: '${kernel},`)
+    }
+    expect(lesson4).toContain('{{claim:vllm.mrv2.interp.not-run}}')
+    // A kernel the claims name as not run is never in the lesson.
+    const notRun = claimsText.split('\n- id: ').find((entry) => entry.startsWith('vllm.mrv2.interp.not-run\n')) ?? ''
+    for (const [kernel] of notRun.matchAll(/_[a-z_]+_kernel/g)) expect([kernel, lesson4.includes(kernel)]).toEqual([kernel, false])
+  })
+
+  test('says that a Triton 3.8.0 wheel off Linux is [unverified]', () => {
+    expect(paragraphWith(lesson4, 'off Linux')).toContain('A Triton 3.8.0 wheel off Linux, for macOS or Windows, is one the course has not checked [unverified].')
+  })
+
+  test("the two guesses' figures: the practice tensor's least masked count, and BLOCK 128 over 1000 elements", () => {
+    expect(PREDICTIONS['tr0.l4.p1'].reference()).toBe(practiceGrid().tasks[0].least)
+    expect(PREDICTIONS['tr0.l4.p2'].reference()).toBe(24)
+  })
+
+  test("the lesson's compiled page is under 40 KB, so it loads at once", () => {
+    const out = result.outputs.find((o) => o.path === 'src/content/generated/lessons/tr0.l4-reading-triton.json')
+    expect(out).toBeDefined()
+    expect(Buffer.byteLength(out?.text ?? '')).toBeLessThan(40 * 1024)
+  })
+})
+
 describe('the TR0 module page', () => {
   test('says that TR0 helps before TR1 and locks nothing', () => {
     // The second of the two sentences the page sets under the title.
@@ -125,13 +225,13 @@ moduleKit({
   lessonFiles: LESSON_FILES,
   moduleFile: MODULE_FILE,
   claimsFile: CLAIMS_FILE,
-  titles: ['PyTorch in Rust terms: storage, shape, strides, dtype, device'],
+  titles: ['PyTorch in Rust terms: storage, shape, strides, dtype, device', 'Reading Triton: grids, programs, BLOCK and masks'],
   labs: [{ id: 'tr0.forward', lane: 'L', stages: ['s1', 's2', 's3'] }],
   announces: "The lab runs on your laptop's CPU, outside the browser, and needs no GPU.",
   demosFile: 'tests/content/tr0-demos.ts',
   modelTables: MODEL_TABLES,
   toCome: {
-    kcs: ['tr0.hidden-syncs', 'tr0.module-as-struct', 'tr0.decoder-forward', 'tr0.kv-cache-contract', 'tr0.triton-program-model', 'tr0.triton-masks'],
+    kcs: ['tr0.hidden-syncs', 'tr0.module-as-struct', 'tr0.decoder-forward', 'tr0.kv-cache-contract'],
     claims: [
       // Lesson 2: views and copies in engine code, and the calls that wait for the GPU.
       'torch.views.reshape-unspecified',
@@ -146,34 +246,14 @@ moduleKit({
       'torch.cuda.sync-debug-warns',
       'torch.cuda.sync-debug-partial',
       'torch.cuda.print-waits',
-      // The pins that the laptop part and lesson 4 stand on.
-      'torch.release.triton-pin',
+      // The pins that the laptop part stands on.
       'torch.release.upload',
       'triton.release.upload',
-      'triton.release.python-range',
       'transformers.release.upload',
       'python.vllm.default-3-12',
-      // Lesson 4: Triton's program model and its interpreter.
-      'triton.program-id-axes',
+      // Triton's own documents that no written lesson reads yet: the number of programs, and arange's documented rule.
       'triton.num-programs',
       'triton.arange-power-of-two',
-      'triton.arange-constexpr',
-      'triton.load-other',
-      'triton.interpret-knob',
-      'triton.interpret-swaps-jit',
-      'triton.launch-syntax',
-      'triton.interpret-one-program-at-a-time',
-      'triton.interpret-on-cpu',
-      // Lesson 4's walk-through: the course's own kernel and the Model Runner V2 kernels that ran under the interpreter, and the one that did not.
-      'vllm.mrv2.interp.temperature',
-      'vllm.mrv2.interp.gumbel-sample',
-      'vllm.mrv2.interp.apply-write',
-      'vllm.mrv2.interp.gather-block-tables',
-      'vllm.mrv2.interp.slot-mappings',
-      'vllm.mrv2.interp.prepare-prefill',
-      'vllm.mrv2.interp.pos-seq-lens',
-      'vllm.mrv2.interp.not-run',
-      'triton.course-kernel.ran',
       // Lesson 5: vLLM's Model Runner V2 Triton files, Mini-SGLang's Qwen3 and SGLang's PyO3 example.
       'vllm.mrv2.gumbel-lines',
       'vllm.mrv2.buffer-utils-lines',
@@ -181,13 +261,9 @@ moduleKit({
       'vllm.mrv2.input-batch-lines',
       'vllm.mrv2.rejection-sampler-lines',
       'vllm.mrv2.temperature-grid',
-      'vllm.mrv2.temperature-mask',
       'vllm.mrv2.staged-write-tensor',
-      'vllm.mrv2.apply-write-mask',
-      'vllm.mrv2.block-table-grid',
       'vllm.mrv2.input-batch-kernels',
       'vllm.mrv2.rejection-kernels',
-      'vllm.mrv2.interpreter-run',
       'minisgl.qwen3.lines',
       'minisgl.qwen3.attention-imported',
       'minisgl.qwen3.layer-order',

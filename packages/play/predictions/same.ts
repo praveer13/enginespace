@@ -40,6 +40,14 @@ export const SAME: readonly SamePair[] = [
     levelPrompt: 'The reference makes 1 copy here. How many elements will that copy move?',
   },
   {
+    lesson: 'tr0.l4.p1',
+    game: 'shape-shifter',
+    level: 'grid',
+    quantity: "the lanes that the reference's launch leaves masked on the level's tensor",
+    lessonPrompt: "The level's tensor has shape `(12, 20)`, and the reference covers each of its elements exactly once with at most six programs. How many lanes will it leave masked?",
+    levelPrompt: 'How many lanes will the reference leave masked?',
+  },
+  {
     lesson: 'tr1.l1.p1',
     game: 'engine-floor',
     level: 'nano',

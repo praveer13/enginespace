@@ -6,12 +6,13 @@
  * Every tensor here is synthetic: the model follows PyTorch's view rules for the strides alone, and tests/sim/tensor-torch.test.ts holds it
  * to what torch answered. A lesson tags a number of a level's run [synthetic] and gives the day and the commit it was printed at.
  */
-import { addresses, applyOp, contiguousView, isContiguous } from '../../packages/sim/tensor'
+import { addresses, applyOp, cdiv, contiguousView, gridCoverage, isContiguous } from '../../packages/sim/tensor'
 import type { ShiftOp, TView } from '../../packages/sim/tensor'
 import { SHAPE_SHIFTER } from '../../packages/play/shape-shifter/entry'
 import { opText } from '../../packages/play/shape-shifter/labels'
-import { buildLevel } from '../../packages/play/shape-shifter/levels'
-import type { LayoutLevel, ShiftLevelId } from '../../packages/play/shape-shifter/types'
+import { gridTask, PROGRAM_CAP } from '../../packages/play/shape-shifter/draw'
+import { buildLevel, GRID_PRACTICE_SEED } from '../../packages/play/shape-shifter/levels'
+import type { GridLevel, LayoutLevel, ShiftLevelId } from '../../packages/play/shape-shifter/types'
 import type { ModelTable } from './module-kit'
 
 /** A level of Tensor views on its pinned practice seed, which is the run a lesson's practice block plays. */
@@ -20,6 +21,15 @@ export function practiceLevel(id: Exclude<ShiftLevelId, 'grid'>): LayoutLevel {
   if (seed === undefined) throw new Error(`Tensor views has no practice seed for ${id}`)
   const level = buildLevel(id, seed)
   if (level.kind !== 'layout') throw new Error(`${id} is not a layout level`)
+  return level
+}
+
+/** `grid` on its pinned practice seed: the one tensor, [12, 20], that lesson 4's practice block plays. */
+export function practiceGrid(): GridLevel {
+  const seed = SHAPE_SHIFTER.levels.find((level) => level.id === 'grid')?.practiceSeed
+  if (seed !== GRID_PRACTICE_SEED) throw new Error('the practice seed of `grid` is not the one that plays its pinned tensor')
+  const level = buildLevel('grid', seed)
+  if (level.kind !== 'grid') throw new Error('grid is not a grid level')
   return level
 }
 
@@ -88,6 +98,60 @@ export const PREDICTIONS: Readonly<Record<string, NumericPrediction>> = {
     unit: 'elements',
     reference: () => chain(contiguousView([3, 5]), [{ op: 'slice', dim: 1, start: 0, stop: 5, step: 2 }])[1].view.strides[1],
   },
+  // A (12, 20) tensor covered exactly once in at most six programs: the least masked count of any power-of-two BLOCK within the cap.
+  'tr0.l4.p1': {
+    kind: 'numeric',
+    unit: 'lanes',
+    reference: () => {
+      const task = gridTask([12, 20], 6)
+      if (task === null) throw new Error('(12, 20) in six programs is not a fair question')
+      return task.least
+    },
+  },
+  // BLOCK 128 over 1000 elements on the default grid: cdiv(1000, 128) programs of 128 lanes, less the 1000 that fall inside.
+  'tr0.l4.p2': {
+    kind: 'numeric',
+    unit: 'lanes',
+    reference: () => cdiv(1000, 128) * 128 - 1000,
+  },
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Lesson 4's launches                                                                                                */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** The three launches of lesson 4's table on `grid`'s practice tensor: the reference's, one program for the whole tensor, and square tiles. */
+export function gridLaunches(): { name: string; block: number[]; grid: number[]; programs: number; lanes: number; masked: number }[] {
+  const task = practiceGrid().tasks[0]
+  const pow2 = (n: number) => 2 ** Math.ceil(Math.log2(n))
+  // The squarest tile within the cap: the smallest power of two on both dimensions whose grid has at most the cap's programs.
+  const side = [1, 2, 4, 8, 16, 32].find((p) => {
+    const g = gridCoverage(task.shape, [p, p])
+    return !('error' in g) && g.programs <= PROGRAM_CAP
+  })
+  if (side === undefined) throw new Error('no square tile fits the cap')
+  const launches: [string, number[]][] = [
+    ['The reference', [...task.block]],
+    ['One program', task.shape.map(pow2)],
+    ['Square tiles', [side, side]],
+  ]
+  return launches.map(([name, block]) => {
+    const g = gridCoverage(task.shape, block)
+    if ('error' in g) throw new Error(`the model refuses BLOCK ${block.join(', ')}`)
+    return { name, block, grid: [...g.grid], programs: g.programs, lanes: g.lanes, masked: g.masked }
+  })
+}
+
+/** The course's own kernels, as scripts/triton-interp/course_kernel.py launches them: what its last two lines print, from the grid model. */
+export function courseKernelLines(n: number, block: number, shape: readonly [number, number], tile: readonly [number, number]): [string, string] {
+  const one = gridCoverage([n], [block])
+  const two = gridCoverage([...shape], [...tile])
+  if ('error' in one || 'error' in two) throw new Error('the model refuses the course kernel\'s launch')
+  // The 2-D input is a transposed view: a contiguous (cols, rows) buffer read as (rows, cols), so its strides are (1, rows).
+  return [
+    `1-D: n=${n} BLOCK=${block} programs=${one.programs} lanes=${one.lanes} masked=${one.masked}`,
+    `2-D: shape=(${shape.join(', ')}) strides=(1, ${shape[0]}) BLOCK=(${tile.join(', ')}) grid=(${two.grid.join(', ')}) masked=${two.masked}`,
+  ]
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -132,5 +196,20 @@ export const MODEL_TABLES: readonly ModelTable[] = [
         isContiguous(step.view) ? 'yes' : 'no',
         String(step.moved),
       ]),
+  },
+  {
+    lesson: 'tr0.l4',
+    header: '| Launch | The reference [synthetic] | One program [synthetic] | Square tiles [synthetic] |',
+    // One column per launch, one row per quantity, so that the table fits a phone.
+    rows: () => {
+      const launches = gridLaunches()
+      return [
+        ['BLOCK', ...launches.map((launch) => code(pyTuple(launch.block)))],
+        ['Grid', ...launches.map((launch) => code(pyTuple(launch.grid)))],
+        ['Programs', ...launches.map((launch) => String(launch.programs))],
+        ['Lanes', ...launches.map((launch) => String(launch.lanes))],
+        ['Masked lanes', ...launches.map((launch) => String(launch.masked))],
+      ]
+    },
   },
 ]

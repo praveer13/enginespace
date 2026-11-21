@@ -14,6 +14,7 @@ export const KERNELSPACE_TITLES: Readonly<Record<string, string>> = {
   'T2.L4': 'Scheduling & Admission Control',
   'T3.L6': "Why NVIDIA Dynamo's Data Plane Is Rust",
   'T4.L3': 'The Roofline Model',
+  'T4.L4': 'Occupancy & Coalesced Memory Access',
   'T4.L6': 'Matmul, Tiling & FlashAttention as Cache Blocking',
   'T5.L1': 'Transformer Internals for Systems Engineers',
   'T5.L3': 'Inference vs Training; Prefill vs Decode',
