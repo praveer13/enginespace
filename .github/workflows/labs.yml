@@ -12,7 +12,7 @@ name: Labs
 #           verify:vectors; and the receipt fixtures (the fixtures pass and the forgeries fail).
 #   cpu     W2-T13: the CPU environment (labs/envs/cpu, torch 2.14.0+cpu) is installed from the hashed export of its lock, and
 #           scripts/tensor-torch-vectors.py run in it must give the cases of tests/fixtures/tensor/torch-vectors.json, which the tensor model
-#           is replayed against. It runs only when a change touches labs/envs/cpu, tests/fixtures/tensor, the script or the TR0 lab's files
+#           is replayed against. It runs only when a change touches labs/envs/cpu, tests/fixtures/tensor, the script, scripts/triton-interp or the TR0 lab's files
 #           (detect says which), and it needs no GPU.
 #
 # A job switches on when its lab lands (labs/forge/Cargo.toml from W1-T10, labs/grader/pyproject.toml from W2-T02), and this
@@ -100,8 +100,8 @@ jobs:
           # commit, or a checkout without history), it runs.
           cpu=false
           if [ -f labs/envs/cpu/uv.lock ] && [ -f scripts/tensor-torch-vectors.py ] && [ -f tests/fixtures/tensor/torch-vectors.json ]; then
-            if git rev-parse --verify --quiet HEAD^1 >/dev/null && git diff --quiet HEAD^1 HEAD -- labs/envs/cpu tests/fixtures/tensor scripts/tensor-torch-vectors.py 'labs/grader/src/enginespace_grader/labs/tr0*' 'labs/grader/src/enginespace_grader/checks' 'labs/grader/src/enginespace_grader/schemas' 'labs/grader/tests/cpu' 'labs/grader/tests/test_tr0*' 'labs/grader/tests/synthetic/tr0-forward'; then
-              echo 'cpu: no change under the CPU environment, the vectors, the script or the TR0 lab'
+            if git rev-parse --verify --quiet HEAD^1 >/dev/null && git diff --quiet HEAD^1 HEAD -- labs/envs/cpu tests/fixtures/tensor scripts/tensor-torch-vectors.py 'labs/grader/src/enginespace_grader/labs/tr0*' 'labs/grader/src/enginespace_grader/checks' 'labs/grader/src/enginespace_grader/schemas' 'labs/grader/tests/cpu' 'labs/grader/tests/test_tr0*' 'labs/grader/tests/synthetic/tr0-forward' scripts/triton-interp; then
+              echo 'cpu: no change under the CPU environment, the vectors, the script, the TR0 lab or the interpreter scripts'
             else
               cpu=true
             fi
@@ -289,3 +289,20 @@ jobs:
           CI: 'true'
           PYTHONPATH: labs/grader/src
         run: '"$RUNNER_TEMP/cpu-venv/bin/python" -m unittest discover -v -s labs/grader/tests/cpu -p "test_*.py"'
+
+      # W2b-T49 (D-072): Triton 3.8.0 is in the CPU environment, for TR0 lesson 4. Its interpreter (TRITON_INTERPRET=1) runs a kernel's programs one after
+      # another in Python, on the CPU, which is how a learner steps one on a laptop. The first step is the tests of scripts/triton-interp/run.py on stand-in
+      # kernels of its own served from 127.0.0.1 (CI is true so that a missing triton fails them), and the second is the course's own kernel, which asserts its
+      # outputs and prints what its last program held. Neither reads vLLM.
+      - name: The interpreter script, on stand-in kernels, and the course's own kernel
+        env:
+          CI: 'true'
+        run: |
+          "$RUNNER_TEMP/cpu-venv/bin/python" -I -m unittest discover -v -s scripts/triton-interp -p "test_*.py"
+          "$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/triton-interp/course_kernel.py
+      # The third step is the one that asks the question. It reads the five candidate files of TR0 at vLLM's pinned commit (raw.githubusercontent.com over
+      # https, a generic User-Agent, no token), keeps their jit functions, and launches each kernel that has an input recipe under the interpreter. The log
+      # names every kernel as ran, failed (with the error's class) or not-attempted; the step ends green whichever way they fall, because a kernel that does not
+      # run is a finding for lesson 4 (content/claims/tr0.yaml) and not a fault of the job. Nothing it reads is kept.
+      - name: Which of vLLM's pinned kernels run under the interpreter
+        run: '"$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/triton-interp/run.py --json "$RUNNER_TEMP/triton-interp.json"'

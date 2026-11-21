@@ -1454,6 +1454,16 @@ Before wave 1a of the build that followed wave R ended, the coordinator put thre
 - **Consequences:** the lab page says that the margin is not measured. A change to the bar is the owner's, and it moves the grader, the page, the weights job and this record together.
 - **Revisit when:** the `weights` job has printed the honest solution's worst difference and the mutant's.
 
+
+### D-076 · Triton 3.8.0 is in the locked CPU environment, on Linux only, and the interpreter's run over vLLM's kernels is the CPU job's
+
+- **Status:** proposed (W2b-T49, 2026-11-20); the owner confirms. It carries out D-072, which the owner decided, and adds nothing that D-072 did not allow.
+- **Decision:** `labs/envs/cpu` pins `triton==3.8.0` for Linux (`sys_platform == 'linux'`), the pin of vLLM v0.33.0's stack (course.lock.json), and the lock and its hashed export carry it. The `cpu` job of `labs.yml` runs three things in that environment: the tests of `scripts/triton-interp/run.py` on stand-in kernels served from 127.0.0.1, the course's own kernel (`scripts/triton-interp/course_kernel.py`, at most 40 lines), and `run.py` itself, which reads the five MRV2 files at vLLM `4ba787ec` (a raw file at the commit, a generic User-Agent, no token), keeps their `@triton.jit` functions and runs each kernel that has an input recipe under `TRITON_INTERPRET=1` on CPU tensors. Its log names each kernel as ran, failed (with the error's class) or not-attempted. The step ends green whichever way they fall.
+- **Context:** the lesson's walk-through may show a kernel only after it has run on Triton 3.8.0, and nobody had run an MRV2 kernel under the interpreter (the research's row E3). The build machine runs only the course's own kernel and the stand-ins; vLLM's files are run in CI.
+- **Alternatives:** no walk-through (the plan's default before the owner answered N4); installing vLLM to import its files whole, which brings a GPU stack the lab never uses; a job that fails when a kernel fails, which would make a finding into a fault.
+- **Consequences:** a kernel that failed is named in `content/claims/tr0.yaml` as one that did not run under the interpreter on Triton 3.8.0, with the error's class, and lesson 4 does not show it stepping. Whether a Triton 3.8.0 wheel installs on macOS or Windows is [unverified] (the lock lists Linux only), and the lesson says so. A failure says nothing about the kernel on a GPU: the recipes are this course's small inputs, and `run.py` keeps only the jit functions and the constants they read, so a kernel that needs anything else of its file does not run here.
+- **Revisit when:** vLLM or Triton is re-pinned, or a wheel for another system is found to work.
+
 ---
 
 ## Open owner questions
