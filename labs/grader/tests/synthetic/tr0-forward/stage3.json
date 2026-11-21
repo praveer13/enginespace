@@ -1,0 +1,135 @@
+{
+ "note": "Synthetic: the reference solution on a two-layer Qwen3 with random weights, recorded by labs/grader/tests/cpu/record_fixtures.py. No learner and no pinned model made it.",
+ "stage": "tr0.forward.s3",
+ "inputs": [
+  {
+   "name": "random Qwen3 config.json",
+   "kind": "model",
+   "sha256": "79f79407bb45bbbd1c98afd67e801bf099152fdc6f33707d5c02e8aed5cbf93c",
+   "bytes": 829
+  },
+  {
+   "name": "random Qwen3 model.safetensors",
+   "kind": "model",
+   "sha256": "9c3b84d64f991c496aaac1a655ee7875f9efa3d735f88908e400c9eff30052c7",
+   "bytes": 429992
+  },
+  {
+   "name": "tr0.forward s3 prompts (synthetic token ids)",
+   "kind": "prompts",
+   "sha256": "4e0580b7d4ca34434e2882b305de8c72bfdb566a2fcbec7a61c64aed140eae4d",
+   "bytes": 90
+  }
+ ],
+ "checks": [
+  {
+   "id": "cache-logits",
+   "kind": "correctness",
+   "pass": true,
+   "value": 5.7220458984375e-06,
+   "bound": 0.001,
+   "n": 17,
+   "detail": "over 17 steps (the prefix, then each decode step), the largest absolute difference is 3.934e-06 against the reference's full recompute and 5.722e-06 against your own uncached forward pass, with the bound 1e-03"
+  },
+  {
+   "id": "cache-lengths",
+   "kind": "property",
+   "pass": true,
+   "value": 0.0,
+   "bound": 0.0,
+   "n": 17,
+   "detail": "after each of the 17 steps the cache holds as many positions as the prefix"
+  }
+ ],
+ "artifacts": [
+  {
+   "id": "points",
+   "kind": "report",
+   "format": "enginespace/tr0-points@1",
+   "encoding": "json",
+   "data": {
+    "schema": "enginespace/tr0-points@1",
+    "stage": "tr0.forward.s3",
+    "call": "decode-step",
+    "points": [
+     {
+      "name": "embedding",
+      "found": true,
+      "shape": [
+       1,
+       1,
+       64
+      ],
+      "strides": [
+       64,
+       64,
+       1
+      ],
+      "dtype": "float32"
+     },
+     {
+      "name": "attention",
+      "found": true,
+      "shape": [
+       1,
+       1,
+       64
+      ],
+      "strides": [
+       64,
+       64,
+       1
+      ],
+      "dtype": "float32"
+     },
+     {
+      "name": "mlp",
+      "found": true,
+      "shape": [
+       1,
+       1,
+       64
+      ],
+      "strides": [
+       64,
+       64,
+       1
+      ],
+      "dtype": "float32"
+     },
+     {
+      "name": "final-norm",
+      "found": true,
+      "shape": [
+       1,
+       1,
+       64
+      ],
+      "strides": [
+       64,
+       64,
+       1
+      ],
+      "dtype": "float32"
+     },
+     {
+      "name": "logits",
+      "found": true,
+      "shape": [
+       1,
+       1,
+       512
+      ],
+      "strides": [
+       512,
+       512,
+       1
+      ],
+      "dtype": "float32"
+     }
+    ]
+   }
+  }
+ ],
+ "notes": null
+}

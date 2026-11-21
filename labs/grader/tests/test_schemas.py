@@ -12,8 +12,8 @@ from .support import load_vectors, vectors_dir
 
 
 class Packaged(unittest.TestCase):
-    def test_the_five_schemas_load_and_are_valid_draft_2020_12(self) -> None:
-        self.assertEqual(schemas.SCHEMA_NAMES, ("receipt", "bundle", "challenge", "trace", "references"))
+    def test_the_six_schemas_load_and_are_valid_draft_2020_12(self) -> None:
+        self.assertEqual(schemas.SCHEMA_NAMES, ("receipt", "bundle", "challenge", "trace", "references", "tr0-points"))
         for name in schemas.SCHEMA_NAMES:
             document = schemas.load_schema(name)
             self.assertEqual(document["$schema"], "https://json-schema.org/draft/2020-12/schema")
