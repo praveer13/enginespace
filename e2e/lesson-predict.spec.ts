@@ -43,6 +43,8 @@ const READING = /\/assets\/(reveal|tr1|tr2|tr5a|commit-tr[0-9a-z]+)-[\w-]+\.js$/
 
 /** Presses Tab until `target` has focus: the walk reads every stop on the way. */
 async function tabToLocator(walk: Walk, target: Locator, limit: number): Promise<void> {
+  // The control is waited for before the first key: a walk that starts before it is in the page leaves it behind (or starts from the top of the page).
+  await target.waitFor({ state: 'attached' })
   for (let presses = 0; presses < limit; presses++) {
     if (await target.evaluate((element) => element === document.activeElement).catch(() => false)) return
     await walk.press('Tab')
