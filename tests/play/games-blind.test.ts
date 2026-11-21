@@ -191,7 +191,9 @@ const gradedOf = (entry: GameEntry): string[] => entry.levels.filter((level) => 
 
 describe('the probes of the five games', () => {
   test('cover the graded levels of every registered game, and no other level', () => {
-    expect(GAMES.games.map((game) => game.id).sort()).toEqual(Object.keys(BLIND_PROBES).sort())
+    // Tensor views has its probes (W2b-T28) and is not registered until W2-T14, which removes it from this list.
+    const unrouted = ['shape-shifter']
+    expect([...GAMES.games.map((game) => game.id), ...unrouted].sort()).toEqual(Object.keys(BLIND_PROBES).sort())
     for (const game of GAMES.games) expect([game.id, Object.keys(BLIND_PROBES[game.id] ?? {}).sort()]).toEqual([game.id, gradedOf(game).sort()])
     // Twelve graded levels: close; exact, chain, gamma; map; due, warm, sure, court; evict, adapters, manager.
     expect(GAMES.games.flatMap(gradedOf)).toHaveLength(12)

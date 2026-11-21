@@ -21,6 +21,11 @@ import { BAR_PERMILLE } from '@es/play/loop/full/close'
 import { FULL_COPY } from '@es/play/loop/full/copy'
 import { buildFullLevel } from '@es/play/loop/full/levels'
 import { POOL_COPY } from '@es/play/pool/copy'
+import { copyOf, SHIFT_TITLES } from '@es/play/shape-shifter/copy'
+import { SHAPE_SHIFTER } from '@es/play/shape-shifter/entry'
+import { buildLevel as shiftLevel } from '@es/play/shape-shifter/levels'
+import type { ShiftLevel } from '@es/play/shape-shifter/types'
+import { numel } from '@es/sim/tensor'
 import { buildLevel as poolLevel, GRADED as POOL_GRADED } from '@es/play/pool/levels'
 import { VERIFIER_COPY } from '@es/play/verifier/copy'
 import { buildLevel as verifierLevel } from '@es/play/verifier/levels'
@@ -196,5 +201,121 @@ describe('each graded level states its pass rule, with the bar the level compute
     const passing = Array.from({ length: GAMMA_MAX }, (_, i) => i + 1).filter((k) => verifierGrade(stateAfter(gamma, { t: 'gamma', k }, { t: 'submit' })).ok)
     expect(passing).toEqual([best])
     expect(VERIFIER_COPY.gamma.passRule).toContain('the best speedup')
+  })
+})
+
+/*
+ * W2b-T28: Tensor views' copy (`packages/play/shape-shifter/copy.ts`) is a function of its level, not a table of constants, because every
+ * figure it prints is the level's own (GAMES.md §4.3: "a sentence that quotes one of them reads it from the level, so a different draw
+ * changes no copy"). The game is not in the registry yet, so these tests read its entry; W2-T14's registration adds it to `COPIES` above.
+ */
+describe('Tensor views: every level has a title, a goal line and its pass rule, with the figures the level computes', () => {
+  /** The levels read: each practice seed, and three dealt seeds of each level. */
+  const levels: readonly ShiftLevel[] = SHAPE_SHIFTER.levels.flatMap((entry) => [entry.practiceSeed, 1000, 1001, 1002].map((seed) => shiftLevel(entry.id, seed)))
+
+  /** The figures a level's own sentences may print: its shapes, its counts, its cap and the number of targets it needs. */
+  function figuresOf(level: ShiftLevel): Set<number> {
+    // 0 is the engine's name of a thing: "stride 0" is what an expanded dimension has.
+    const out = new Set<number>([level.needed, 0])
+    if (level.kind === 'grid') {
+      out.add(level.cap)
+      for (const task of level.tasks) {
+        out.add(task.least)
+        for (const d of task.shape) out.add(d)
+      }
+      return out
+    }
+    for (const task of level.tasks) {
+      out.add(task.copies)
+      for (const d of task.goal.shape) out.add(d)
+      for (const d of task.start.shape) out.add(d)
+      out.add(numel(task.goal.shape))
+      out.add((task.goal.shape[0] ?? 1) * (task.goal.shape[2] ?? 1))
+    }
+    return out
+  }
+
+  const wordsOf = (level: ShiftLevel): string[] => {
+    const words = copyOf(level)
+    return [...Object.values(words.goal), words.prompt, words.predict.ask, words.passRule ?? '', words.practiceRule ?? '']
+  }
+
+  test('the title is the registry\'s, and the goal line has its three parts and an end, in the engine\'s words', () => {
+    for (const level of levels) {
+      const words = copyOf(level)
+      const where = `shape-shifter/${level.id}/${level.seed}`
+      expect([where, words.title]).toEqual([where, SHAPE_SHIFTER.levels.find((entry) => entry.id === level.id)?.title])
+      expect([where, SHIFT_TITLES[level.id]]).toEqual([where, words.title])
+      for (const part of ['aim', 'controls', 'beat', 'ends'] as const) {
+        expect([where, part, words.goal[part].length > 10, /^[A-Z]/.test(words.goal[part]), words.goal[part].endsWith('.')]).toEqual([where, part, true, true, true])
+      }
+      expect([where, words.goal.controls.startsWith('You '), /^Ends /.test(words.goal.ends)]).toEqual([where, true, true])
+      expect([where, findBanned(wordsOf(level).join(' '))]).toEqual([where, []])
+    }
+  })
+
+  test('a pass rule on a graded level and a practice rule on a practice level, and the goal line states the one it has', () => {
+    for (const level of levels) {
+      const words = copyOf(level)
+      const where = `shape-shifter/${level.id}/${level.seed}`
+      expect([where, words.passRule !== undefined, words.practiceRule !== undefined]).toEqual([where, level.graded, !level.graded])
+      if (words.passRule !== undefined) expect([where, words.goal.beat]).toEqual([where, words.passRule])
+      else expect([where, /^The reference /.test(words.goal.beat)]).toEqual([where, true])
+      if (level.graded) expect([where, /^Passes /.test(words.goal.beat)]).toEqual([where, true])
+    }
+  })
+
+  test("each pass rule holds the bar its level computes: the targets it needs, the reference's copies and its least masked lanes", () => {
+    for (const level of levels) {
+      const words = copyOf(level)
+      const where = `shape-shifter/${level.id}/${level.seed}`
+      if (level.kind === 'layout') {
+        if (level.graded) expect([where, words.passRule?.includes(`on each of ${level.needed} new targets`)]).toEqual([where, true])
+        else expect([where, words.practiceRule?.endsWith(`: ${level.tasks[0].copies}.`)]).toEqual([where, true])
+      } else if (level.graded) {
+        expect([where, words.passRule?.includes(`on each of ${level.needed} new tensors`)]).toEqual([where, true])
+        expect([where, words.goal.ends.includes(`all ${level.needed} tensors`)]).toEqual([where, true])
+      } else {
+        expect([where, words.practiceRule?.endsWith(`: ${level.tasks[0].least}.`), words.goal.beat.includes(` ${level.tasks[0].least} lanes`)]).toEqual([where, true, true])
+      }
+    }
+  })
+
+  test('the copy holds no digit of its own: every figure in it is one of the level\'s', () => {
+    for (const level of levels) {
+      const allowed = figuresOf(level)
+      for (const sentence of wordsOf(level)) {
+        for (const match of sentence.matchAll(/\d+/g)) expect([level.id, level.seed, sentence, allowed.has(Number(match[0]))]).toEqual([level.id, level.seed, sentence, true])
+      }
+    }
+  })
+
+  test('a different draw changes the figures a sentence quotes, and nothing else', () => {
+    const a = copyOf(shiftLevel('views', 30))
+    const b = copyOf(shiftLevel('views', 31))
+    expect(a.goal.aim).not.toBe(b.goal.aim)
+    expect(a.goal.aim.replace(/\d+/g, '#')).toBe(b.goal.aim.replace(/\d+/g, '#'))
+    expect(a.goal.controls).toBe(b.goal.controls)
+  })
+
+  test("the practice goal lines are GAMES.md §4.3's, word for word", () => {
+    const goal = (id: string) => copyOf(shiftLevel(id, SHAPE_SHIFTER.levels.find((entry) => entry.id === id)?.practiceSeed ?? 0)).goal
+    expect(goal('views')).toEqual({
+      aim: 'Read this tensor column by column, as one row of 24 elements, with as few copies as you can.',
+      controls: 'You choose one operation at a time: `transpose`, `view`, `reshape` or `contiguous()`.',
+      beat: 'The reference does it with 1 copy.',
+      ends: 'Ends when your tensor matches the target.',
+    })
+    expect(goal('stride-zero').aim).toBe('Make a [4, 6] tensor whose every row is this row of 6, and that you can write to.')
+    expect(goal('three-d').aim).toBe("Turn the projection's [4, 8] output into one contiguous block per head, [2, 4, 4]: heads, tokens, head size.")
+    expect(goal('grid').aim).toBe('Cover every element of this [12, 20] tensor exactly once, with as few masked lanes as you can, in at most 6 programs.')
+    expect(goal('grid').beat).toBe('The reference leaves 80 lanes masked.')
+  })
+
+  test("`fewest`'s pass rule is the fix round's: copies equal the reference's on each of 3 new targets, and no view was refused", () => {
+    const words = copyOf(shiftLevel('fewest', 1000))
+    expect(words.passRule).toBe("Passes when, on each of 3 new targets, your copies equal the reference's and no `view` was refused.")
+    expect(words.goal.controls).toBe('You choose one operation at a time: `view`, `transpose`, `permute` or `contiguous()`. There is no undo, and a `view` the strides cannot express fails that target.')
+    expect(words.goal.ends).toBe('Ends when each of the 3 targets is reached or has failed.')
   })
 })
