@@ -110,5 +110,8 @@ export const TR0_FORWARD: GradedLab = {
       ],
     },
   ],
-  prove: { open: false, asks: 'For this lab they ask the shape or the strides of a tensor at one of the points your run recorded.' },
+  prove: {
+    open: true,
+    asks: "For this lab they ask the shape or the strides of the tensor at one of five points of your forward pass: what leaves the embedding, the first layer's attention, the first layer's MLP, the final norm and the head. A receipt of the stage with a KV cache can be defended as soon as it passes; a receipt of the full forward pass passes once the course's reference bank is in.",
+  },
 }

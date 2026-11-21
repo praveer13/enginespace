@@ -13,6 +13,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { Evidence } from '@/evidence/useEvidence'
+import { holdBundle } from './defend/handoff'
 import { importReceipt } from './importer'
 import type { FileFacts, ImportResult } from './importer'
 import type { Verifier } from './protocol'
@@ -60,6 +61,8 @@ export function useImport(ledger: ImportLedger, verify: Verifier = verifyInWorke
           now,
           cancelled: () => !alive.current,
         })
+        // A kept receipt's file stays with this tab, for the questions of "Defend your receipt", which come from its raw artifacts (src/receipts/defend).
+        if (result.step === 'kept') holdBundle(result.sha256, file)
         if (alive.current) setState(result)
       } finally {
         busy.current = false

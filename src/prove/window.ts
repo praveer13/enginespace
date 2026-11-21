@@ -26,11 +26,14 @@ export interface ProveStake {
 /** The ref a Prove run of this level writes: the level's own `play:` ref, as any run of it does. */
 export const proveRef = (game: string, level: string): string => `play:${game}/${level}`
 
-/** What an attempt made at `now` is worth, from the events the ledger holds. Events of other refs and other provenances are left out. */
-export function stakeOf(events: readonly LedgerEvent[], ref: string, now: number): ProveStake {
+/**
+ * What an attempt made at `now` is worth, from the events the ledger holds. Events of other refs and other provenances are left out. A game's Prove
+ * run is a `play` event; "Defend your receipt" writes a `prove` event of its lab (src/receipts/defend), and reads its window with `kind` `prove`.
+ */
+export function stakeOf(events: readonly LedgerEvent[], ref: string, now: number, kind: 'play' | 'prove' = 'play'): ProveStake {
   let last: { at: number; ok: boolean } | null = null
   for (const event of events) {
-    if (event.kind !== 'play' || event.ref !== ref || event.provenance !== 'proved') continue
+    if (event.kind !== kind || event.ref !== ref || event.provenance !== 'proved') continue
     const at = Date.parse(event.at)
     if (!Number.isFinite(at)) continue
     if (last === null || at > last.at) last = { at, ok: event.ok }

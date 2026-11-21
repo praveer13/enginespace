@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import type { Sha256, VerificationReport } from '@es/ledger'
 import type { Receipt } from '@es/schema/receipt'
 import { readStoredReport, RULES_IN_ALL, rulesOnRead, verdictOfStored } from '@es/verify'
@@ -10,6 +10,7 @@ import { Bytes } from './Bytes'
 import type { HeldChallenge } from './challenge'
 import { RECEIPTS, REPORTS } from './copy'
 import { SITE_DATA } from './credit'
+import { canDefend } from './defend/registry'
 import { stageOf } from './labs'
 import { gpuLine } from './records'
 import type { HeldReceipt } from './records'
@@ -26,7 +27,27 @@ import { formatWhen } from './when'
  * and a single stamp that the eye reads, until this browser has recomputed it. The checks are the grader's attestations. How this browser
  * checked the receipt is its own section, the last: each check that the receipt has had, with the rules it ran and what they came to, and the verdict
  * check by check. Rules 1 to 6 are W2-T07's. Rules 7 to 9 (W2-T08) recompute what the run claimed from the raw records, and print the bound of each check.
+ *
+ * A receipt of a stage that can be defended (src/receipts/defend/registry.ts) has one more part, after the run: "Defend your receipt" (ASSESSMENT §7.2),
+ * questions that only the run's own artifacts answer. Its code is a chunk of its own that loads with such a receipt, so the page carries none of it
+ * otherwise; the part's head is drawn here, so the page does not move when the chunk comes.
  */
+
+const Defend = lazy(() => import('./defend/Defend'))
+
+/** "Defend your receipt": the part's head, and the step itself once its chunk has come. */
+function DefendPart({ receipt, sha256, reports }: { receipt: Receipt; sha256: Sha256; reports: readonly VerificationReport[] }) {
+  return (
+    <section className="es-receipt__part es-defend-part" aria-labelledby="rc-defend" data-defend-part="">
+      <h3 id="rc-defend" className="es-receipt__heading">
+        {RECEIPTS.defend}
+      </h3>
+      <Suspense fallback={<p className="es-receipt__lead">{RECEIPTS.defendLoading}</p>}>
+        <Defend receipt={receipt} sha256={sha256} reports={reports} />
+      </Suspense>
+    </section>
+  )
+}
 
 const none = <span className="es-receipt__none">none</span>
 
@@ -512,6 +533,7 @@ export function ReceiptDetail({ held, challenges }: { held: Extract<HeldReceipt,
     >
       <p className="es-receipt__stamp">Reported by the grader{reports.length === 0 ? ', not checked here' : ''}</p>
       <Run receipt={receipt} sha256={sha256} challenge={challenge} />
+      {canDefend(receipt.stage) ? <DefendPart receipt={receipt} sha256={sha256} reports={reports} /> : null}
       <Environment receipt={receipt} />
       <Pins receipt={receipt} />
       <Files receipt={receipt} />

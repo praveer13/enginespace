@@ -1,4 +1,7 @@
+import { useMemo } from 'react'
+import { useEvidence } from '@/evidence/useEvidence'
 import { TEST_HOOKS } from '@/scene/test-hook'
+import { defendLinks } from './defend-links'
 import { GradedLabView } from './GradedLabView'
 import { useKitFiles } from './kit-files'
 import { GRADED_LABS } from './published'
@@ -25,5 +28,7 @@ function gradedLabOf(id: string): GradedLab | undefined {
 export default function GradedLabPage({ labId }: { labId: string }) {
   const lab = gradedLabOf(labId)
   const files = useKitFiles(lab?.kit ?? [])
-  return lab === undefined ? null : <GradedLabView lab={lab} files={files} />
+  const { events } = useEvidence()
+  const defend = useMemo(() => (lab === undefined ? [] : defendLinks(events, lab.id)), [events, lab])
+  return lab === undefined ? null : <GradedLabView lab={lab} files={files} defend={defend} />
 }
