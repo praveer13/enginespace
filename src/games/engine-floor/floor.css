@@ -619,8 +619,14 @@
 /* ------------------------------------------------------------------------------------------------ the dock */
 
 /*
- * The dock fills the room the frame gives it, and the stage list takes what is left, so the list scrolls inside it and Run the path stays
- * under it, in view (P5). While the intro's strip stands above, the list gives up room down to three tiles, and then the dock scrolls.
+ * The dock, top to bottom: the scenario card, the stage list (its heading, field and chips over a box of tiles that scrolls on its own), why
+ * a run stopped, and the path's actions; the readout strip is the frame's, under it.
+ *
+ * Once the stage list is open the dock holds still. Nothing over the list's box changes height while stages are laid or filtered (the chips
+ * have a room of their own, the line that says no stage matches stands inside the empty box), the box takes the room that is left, and the
+ * actions stand at the dock's foot. A lay, a filter or a typed letter changes what is inside the box and nothing else, so neither the page
+ * nor a control the learner is reaching for moves under the pointer or the caret. The only move a lay could make is the box's own, pulled up
+ * to a new foot, and the box keeps the laid row's room for that (useFloorControls.ts).
  */
 .es-frame[data-game='engine-floor'] .es-frame__dock-main {
   display: flex;
@@ -629,7 +635,7 @@
 
 .es-floor-dock {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 0;
   flex-direction: column;
   gap: var(--es-space-3);
 }
@@ -660,6 +666,19 @@
   font-size: inherit;
 }
 
+/* The level's note and the prediction share the card's last line; the note, opened, takes the card's width. */
+.es-floor-card__foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 var(--es-space-3);
+}
+
+.es-floor-card__note[open] {
+  flex-basis: 100%;
+}
+
 .es-floor-card__note summary {
   min-height: 1.5rem;
   display: flex;
@@ -677,6 +696,11 @@
 .es-floor-said {
   margin: 0;
   color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+}
+
+/* The prediction's own line before the parts are named. */
+.es-floor-said[data-waiting] {
   font-size: var(--es-size-note);
 }
 
@@ -684,6 +708,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--es-space-2);
+  /* Brought into view clear of the dock's "More below" at its foot. */
+  scroll-margin-bottom: 2.5rem;
 }
 
 .es-floor-predict__ask {
@@ -714,6 +740,7 @@
 
 .es-floor-stop {
   display: flex;
+  flex: none;
   flex-direction: column;
   align-items: flex-start;
   gap: var(--es-space-2);
@@ -762,15 +789,8 @@
 
 .es-floor-stages {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 0;
   flex-direction: column;
-  gap: var(--es-space-2);
-}
-
-.es-floor-stages__top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
   gap: var(--es-space-2);
 }
 
@@ -789,16 +809,25 @@
   font-size: var(--es-size-note);
 }
 
-/* The field and the chips share one row; the chips scroll sideways inside it. */
+/*
+ * The heading, the count and the field on the first line, and the chips under them. A level's chips are the same from its first lay to its
+ * last (a process whose stages are all laid keeps its chip, with none to show), each count has room for two digits, and the word that says
+ * where the request is stands on the chip's edge, taking no room in the row: so the rows of chips, and the list under them, never move.
+ */
 .es-floor-filters {
-  display: flex;
+  display: grid;
+  flex: none;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: var(--es-space-2);
+  gap: var(--es-space-2) var(--es-space-3);
   min-width: 0;
 }
 
+.es-floor-stages__count {
+  font-variant-numeric: tabular-nums;
+}
+
 .es-floor-filter {
-  flex: none;
   width: 10rem;
   min-height: 2.5rem;
   padding: 0 var(--es-space-3);
@@ -807,7 +836,6 @@
   background: var(--es-paper);
   color: var(--es-paper-ink);
   font-family: var(--es-font-body);
-  font-size: inherit;
   font-size: var(--es-size-note);
 }
 
@@ -815,18 +843,19 @@
   color: var(--es-text-3);
 }
 
-/* The field and the chips share one row; the chips scroll sideways inside it (in a lesson at a desk they wrap: below). */
 .es-floor-chips {
   display: flex;
-  flex-wrap: nowrap;
-  gap: var(--es-space-1);
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  align-content: flex-start;
+  gap: 0.5rem var(--es-space-1);
   min-width: 0;
-  overflow-x: auto;
-  padding: 4px 2px;
+  padding: 0.5rem 2px 4px;
   scrollbar-width: thin;
 }
 
 .es-floor-chip {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 2px;
@@ -848,18 +877,107 @@
   color: var(--es-paper);
 }
 
-.es-floor-chip:hover:not([aria-pressed='true']) {
+.es-floor-chip:hover:not([aria-pressed='true'], :disabled) {
   background: var(--es-surface-2);
 }
 
+/* A process with no stage left: its edge is dashed, and its count says none. */
+.es-floor-chip:disabled {
+  border-style: dashed;
+  color: var(--es-text-2);
+  cursor: default;
+}
+
+/* "here" sits on the chip's top edge, on a slip of the paper, so moving it from chip to chip changes no chip's width. */
 .es-floor-chip__here {
+  position: absolute;
+  top: -0.55rem;
+  right: var(--es-space-1);
+  padding-inline: 2px;
+  background: var(--es-paper);
+  color: var(--es-text-1);
   font-family: var(--es-font-label);
+  font-size: var(--es-size-micro);
   font-weight: 700;
+  line-height: 1;
+}
+
+.es-floor-chip[aria-pressed='true'] .es-floor-chip__here {
+  color: var(--es-text-1);
+}
+
+/* The " · " before "here" is for a reader; on the edge the word stands alone. */
+.es-floor-chip__dot {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .es-floor-chip__count {
+  min-width: 2ch;
   margin-left: var(--es-space-1);
+  text-align: end;
   opacity: 0.8;
+}
+
+/* On a desk too short for three rows of chips and a list worth reading, the chips are one row that scrolls sideways, the dock's parts sit
+   closer, and the line that says the map allows one run is left to the pass rule over it, which says the same. */
+@media (min-width: 64rem) and (max-height: 759px) {
+  .es-floor-chips {
+    flex-wrap: nowrap;
+    overflow: auto hidden;
+  }
+
+  .es-floor-dock {
+    gap: var(--es-space-2);
+  }
+
+  .es-floor-actions__once {
+    display: none;
+  }
+}
+
+/* On a phone the field and the chips are one row that scrolls sideways: the field first, then every chip, each of which has the row's whole
+   width when it is brought into view (360 px leaves the widest chip room only so). */
+@media (max-width: 63.999rem) {
+  .es-floor-filters {
+    display: flex;
+    gap: var(--es-space-2);
+    overflow: auto hidden;
+    padding: 2px;
+    scrollbar-width: thin;
+  }
+
+  .es-floor-filter {
+    flex: none;
+    width: 8.5rem;
+  }
+
+  .es-floor-chips {
+    flex: none;
+    flex-wrap: nowrap;
+    overflow: visible;
+    padding: 0;
+  }
+
+  /* In the row that scrolls sideways the word stands in the chip, after its name. */
+  .es-floor-chip__here {
+    position: static;
+    padding: 0;
+    background: none;
+    font-size: inherit;
+  }
+
+  .es-floor-chip__dot {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+  }
 }
 
 .es-floor-link {
@@ -875,23 +993,40 @@
   cursor: pointer;
 }
 
-/* The list scrolls inside the dock: six or seven tiles at desk width, three on a phone. */
+/*
+ * The list's box: three tiles at the least, and wherever the dock has a height of its own, all the room left in it (six tiles where it has
+ * none). Its content does not size it (`contain: size`), so the tiles it holds never push the dock. The line that says no stage matches
+ * stands at the top of the empty box.
+ */
+.es-floor-list {
+  position: relative;
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+}
+
+.es-floor-stages__none {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 1;
+  padding: var(--es-space-3) var(--es-space-2);
+}
+
 .es-floor-tiles {
   display: flex;
-  flex: 1 1 auto;
+  flex: 1 1 0;
   flex-direction: column;
-  min-height: calc(2.75rem * 3 + var(--es-space-1) * 2 + 16px);
-  max-height: calc(2.75rem * 7 + var(--es-space-1) * 6 + 16px);
+  min-height: calc(2.75rem * 3 + var(--es-space-1) * 2 + 18px);
   margin: 0;
   overflow-y: auto;
   overscroll-behavior: contain;
   padding: 8px 8px 8px 2px;
+  border-block: 1px solid var(--es-paper-rule);
   list-style: none;
   scrollbar-color: var(--es-edge) var(--es-paper);
   scrollbar-width: thin;
-  /* A tile laid takes its row out of the list: the browser must not keep a neighbour in place by moving the page or the box under the
-     pointer (at 1280 x 620 a tile laid at the screen's top edge moved the page 48 px and brought the tile above under it). The list keeps
-     its own place through a lay (useFloorControls.ts). */
+  contain: size;
+  /* A tile laid takes its row out of the list: the browser must not keep a neighbour in place by moving the box under the pointer. */
   overflow-anchor: none;
 }
 
@@ -899,9 +1034,25 @@
   margin-top: var(--es-space-1);
 }
 
+/* The room the box keeps at its end after a lay at its foot (useFloorControls.ts) says, at its top, how many stages are above. It stands where
+   the laid rows stood, so it covers no tile; it scrolls away with the box, and goes as the box gives the room back. */
+.es-floor-tiles[data-kept]::after {
+  content: 'More above: ' attr(data-above) / '';
+  display: flex;
+  flex: none;
+  align-items: flex-start;
+  padding-top: var(--es-space-3);
+  height: var(--es-floor-kept, 0);
+  padding-inline: var(--es-space-2);
+  overflow: hidden;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
 .es-floor-tile {
-  /* Focus brought into view stays clear of the intro's actions, which stand at the dock's foot while it shows. */
-  scroll-margin-block: 0.5rem 4.5rem;
+  scroll-margin-block: 0.5rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -966,38 +1117,6 @@
   white-space: nowrap;
 }
 
-/*
- * At a desk the dock itself is the one box that scrolls: the stage list is laid out whole in it, rather than through a slit of its own
- * inside it, and the path's actions (Run the path, Remove last) stay pinned at the dock's foot while the list moves under them.
- */
-@media (min-width: 64rem) {
-  .es-frame[data-placement='embed'][data-game='engine-floor'] .es-floor-tiles {
-    max-height: none;
-    overflow: visible;
-  }
-
-  .es-frame[data-placement='embed'][data-game='engine-floor'] .es-floor-actions {
-    position: sticky;
-    z-index: 1;
-    margin-inline: calc(var(--es-space-4) * -1);
-    padding: var(--es-space-2) var(--es-space-4) var(--es-space-3);
-    border-top: 1px solid var(--es-paper-rule);
-    background: var(--es-paper);
-  }
-
-  /* Every place to filter by is in view, and a stage's name and places read whole. */
-  .es-frame[data-placement='embed'][data-game='engine-floor'] :is(.es-floor-filters, .es-floor-chips) {
-    flex-wrap: wrap;
-    overflow-x: visible;
-  }
-
-  .es-frame[data-placement='embed'][data-game='engine-floor'] :is(.es-floor-tile__name, .es-floor-tile__where) {
-    overflow: visible;
-    overflow-wrap: anywhere;
-    white-space: normal;
-  }
-}
-
 .es-floor-ring {
   display: flex;
   flex-direction: column;
@@ -1009,10 +1128,48 @@
   display: block;
 }
 
+/*
+ * The path's actions stand at the dock's foot, over the readout: where the dock scrolls (a stopped run's note in a short dock) they stay
+ * there, and what the dock holds scrolls under them. They are the dock's foot, so the dock's own "More below" is not drawn over them.
+ */
+.es-frame[data-game='engine-floor'] .es-frame__dock-main:has(.es-floor-actions) {
+  padding-bottom: 0;
+}
+
+.es-frame[data-game='engine-floor'] .es-frame__dock-main:has(.es-floor-actions)::after {
+  display: none;
+}
+
 .es-floor-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
   display: flex;
+  flex: none;
   flex-direction: column;
   gap: var(--es-space-2);
+  margin-inline: calc(-1 * var(--es-space-4));
+  padding: var(--es-space-2) var(--es-space-4) var(--es-space-3);
+  border-top: 1px solid var(--es-paper-rule);
+  background: var(--es-paper);
+}
+
+/* In a lesson the dock follows the page where it has no height of its own (a narrow column, a short phone): there the actions follow the
+   list, not the screen's foot. */
+.es-frame[data-placement='embed'] .es-floor-actions {
+  position: static;
+}
+
+@container es-frame (min-width: 56rem) {
+  .es-frame[data-placement='embed'] .es-floor-actions {
+    position: sticky;
+  }
+}
+
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame[data-placement='embed'] .es-floor-actions {
+    position: sticky;
+  }
 }
 
 .es-floor-actions__row {
@@ -1040,7 +1197,8 @@
   color: var(--es-text-1);
 }
 
-/* The readout strip: four counts of the laid path in one row, under one stamp, each change standing over its number for a second. */
+/* The readout strip: four counts of the laid path in one row, under one stamp, each change standing over its number for a second in room
+   the strip keeps for it, so the strip never changes height. */
 .es-floor-strip {
   display: flex;
   align-items: flex-end;
@@ -1089,22 +1247,99 @@
   flex: none;
 }
 
+/*
+ * At a desk, on the game's page, once the stage list is open: the drawing and the dock fill one screen (the page brings it whole into view
+ * at the commit), the dock does not scroll, and the list's box takes what the dock does not need. A named moment stands over the card for
+ * as long as it is said, so it moves nothing either.
+ */
+@media (min-width: 64rem) {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__body {
+    height: clamp(26rem, 100svh - 1rem, 60rem);
+    scroll-margin-block: var(--es-space-2);
+  }
+
+  /* Before the prediction, as while the first run names the parts, the row takes the room down to the readout's foot on the first screen:
+     the scenario card, the question, its numbers and Commit stand in the dock together. */
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='predict']) .es-frame__body {
+    height: clamp(26rem, 100svh - 17.5rem, 46rem);
+  }
+
+  .es-frame[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__dock {
+    position: relative;
+  }
+
+  /* The first run's last step (the ring on the first move) stands under the actions, so that when it goes with the first lay the list
+     over it stays where it is. */
+  .es-frame[data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] {
+    order: 1;
+    margin: var(--es-space-2) 0 0;
+    padding: var(--es-space-2) 0 0;
+    border-top: 2px solid var(--es-paper-ink);
+    border-bottom: 0;
+  }
+}
+
+/* On a short desk the ring's own word says what it marks, and the step keeps to one line: its title and its way out. */
+@media (min-width: 64rem) and (max-height: 759px) {
+  .es-frame[data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] {
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 0;
+    padding-top: var(--es-space-1);
+  }
+
+  .es-frame[data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] .es-intro__lead {
+    display: none;
+  }
+
+  .es-frame[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__moment {
+    position: absolute;
+    top: var(--es-space-2);
+    right: var(--es-space-2);
+    left: var(--es-space-2);
+    z-index: 3;
+    margin: 0;
+    box-shadow: var(--es-shadow-lift);
+  }
+}
 
 /*
- * On a phone the dock is pinned to the foot and holds the decision over one readout line (REDESIGN §3.6): the filter chips in one row that
- * scrolls sideways beside the field, three tiles, and the row with Run the path and Remove last. The card says its engine in one line.
+ * In a lesson's Run, where the column is wide enough for the dock to stand beside the drawing, the dock takes the frame's height for a dock
+ * with a long list (frame.css) as a height of its own, so the list's box fills it just as on the game's page.
+ */
+@container es-frame (min-width: 56rem) {
+  .es-frame[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) > .es-frame__body > .es-frame__dock {
+    height: max(26rem, min(34rem, 100svh - 8rem));
+  }
+}
+
+/* In a lesson's column too narrow for the dock to stand beside the drawing, the dock follows the drawing at its content's height: the list's
+   box is six tiles tall. */
+@media (min-width: 64rem) {
+  @container es-frame (max-width: 55.999rem) {
+    .es-floor-tiles {
+      flex: none;
+      height: calc(2.75rem * 6 + var(--es-space-1) * 5 + 18px);
+    }
+  }
+}
+
+/*
+ * On a phone the dock is pinned to the foot and holds the decision over one readout line (REDESIGN §3.6): the engine's name, the field and
+ * the chips in one row that scrolls sideways, three tiles, and the row with Run the path and Remove last. Its height is its content's, which
+ * a lay or a filter does not change, and the drawing over it has a height of its own, so the dock stands still as the path grows.
  */
 @media (max-width: 63.999rem) {
   .es-floor-dock {
-    gap: var(--es-space-2);
+    gap: var(--es-space-1);
   }
 
   /* The goal line carries the pass rule, the foot strip the mode and the readout line says it has no live readout: the dock keeps to the decision. */
   .es-floor-card__pin,
   .es-floor-card__asks,
-  .es-floor-card__note,
-  .es-floor-said,
-  .es-floor-stages__top,
+  .es-floor-card__foot,
+  .es-floor-filters > :is(.es-floor-stages__head, .es-floor-stages__count),
   .es-floor-graded,
   .es-floor-actions__once {
     display: none;
@@ -1123,14 +1358,17 @@
     gap: var(--es-space-1);
   }
 
-  .es-floor-filter {
-    width: 8.5rem;
-  }
-
   .es-floor-tiles {
     min-height: calc(2.75rem * 3 + 6px);
-    max-height: calc(2.75rem * 3 + 6px);
     padding: 2px 4px 2px 2px;
+    border-block: 0;
+    /* The three tiles stop on a tile's edge, so a scroll never leaves half a tile at the list's top. */
+    scroll-snap-type: y mandatory;
+    scroll-padding-block: 2px;
+  }
+
+  .es-floor-tiles__item {
+    scroll-snap-align: start;
   }
 
   .es-floor-tiles__item + .es-floor-tiles__item {
@@ -1150,9 +1388,19 @@
     display: none;
   }
 
-  /* One readout line: each count with its word beside it. */
+  .es-floor-actions {
+    padding-block: var(--es-space-1);
+  }
+
+  /* Run the path and Remove last share one row down to 360 px. */
+  .es-floor-actions__row .es-primary-button {
+    flex-basis: 9rem;
+  }
+
+  /* One readout line: each count with its word beside it, parted from the next by a rule; a change stands small over the number's corner. */
   .es-floor-strip__list {
     padding-top: 0;
+    gap: 0;
   }
 
   .es-floor-strip__item {
@@ -1162,14 +1410,49 @@
     gap: var(--es-space-1);
   }
 
+  .es-floor-strip__item + .es-floor-strip__item {
+    padding-inline-start: var(--es-space-2);
+    border-inline-start: 1px solid var(--es-paper-rule);
+  }
+
   .es-floor-strip__value {
     font-size: var(--es-size-base);
   }
 
-  /* The delta stands after its number, never over it. */
   .es-floor-strip__delta {
-    position: static;
-    margin-inline-start: 2px;
+    bottom: auto;
+    top: -0.55em;
+    left: calc(100% - 0.125rem);
+    font-size: var(--es-size-micro);
+  }
+}
+
+/* Under 384 px four counts and their words beside them do not fit one line: each word stands under its number (on two lines where it needs
+   them), so no count runs into the next one's word, down to 320 px. */
+@media (max-width: 23.999rem) {
+  .es-floor-strip {
+    gap: var(--es-space-2);
+  }
+
+  .es-floor-strip__list {
+    grid-template-columns: repeat(4, minmax(min-content, 1fr));
+  }
+
+  .es-floor-strip__item {
+    flex-direction: column-reverse;
+    justify-content: flex-end;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  .es-floor-strip__value {
+    align-self: flex-start;
+  }
+
+  .es-floor-strip__delta {
+    top: 50%;
+    left: calc(100% + 2px);
+    translate: 0 -50%;
   }
 }
 
@@ -1180,6 +1463,52 @@
 
   .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__readout {
     padding-block: var(--es-space-1);
+  }
+
+  /* The dock has one height while the path is laid, the list's box taking what the rest leaves (three tiles and a little more); a stopped
+     run's note scrolls under the actions, and a named moment stands over the drawing's foot, just above the dock, so that neither moves
+     what the dock holds. */
+  .es-frame:is([data-placement='page'], [data-placement='embed'])[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__dock {
+    height: max(33svh, 21rem);
+    max-height: none;
+  }
+
+  /* The first run's last step (the ring on the first move) stands over the drawing's foot as the moment does, not in the dock: it goes with
+     the first lay, and the dock does not change. */
+  .es-frame:is([data-placement='page'], [data-placement='embed'])[data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] {
+    position: absolute;
+    right: var(--es-space-2);
+    bottom: calc(100% + var(--es-space-1));
+    left: var(--es-space-2);
+    z-index: 3;
+    margin: 0;
+    padding: var(--es-space-2) var(--es-space-3);
+    border: 1px solid var(--es-paper-ink);
+    border-radius: var(--es-radius-paper);
+    background: var(--es-paper);
+    box-shadow: var(--es-shadow-lift);
+  }
+
+  /* One line over the drawing's legend: the ring's own word says what it marks. */
+  .es-frame:is([data-placement='page'], [data-placement='embed'])[data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] {
+    flex-flow: row wrap;
+    align-items: center;
+    justify-content: space-between;
+    padding-block: 0;
+  }
+
+  .es-frame:is([data-placement='page'], [data-placement='embed'])[data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] .es-intro__lead {
+    display: none;
+  }
+
+  .es-frame:is([data-placement='page'], [data-placement='embed'])[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__moment {
+    position: absolute;
+    right: var(--es-space-2);
+    bottom: calc(100% + var(--es-space-1));
+    left: var(--es-space-2);
+    z-index: 3;
+    margin: 0;
+    box-shadow: var(--es-shadow-lift);
   }
 }
 
@@ -1319,186 +1648,6 @@
   .es-frame .es-lanes[data-floor-lanes][data-done] .es-lanes__scroll {
     flex: none;
   }
-
-  /* The three tiles in the pinned dock stop on a tile's edge, so a scroll never leaves half a tile at the list's top. */
-  .es-floor-tiles {
-    scroll-snap-type: y mandatory;
-    scroll-padding-block: 2px;
-  }
-
-  .es-floor-tiles__item {
-    scroll-snap-align: start;
-  }
-
-  /* The room the box keeps at its end after a lay at its foot (useFloorControls.ts) says where the stages left are. It stands where the
-     laid rows stood, so it covers no tile; it scrolls away with the box, and goes as the box gives the room back. */
-  .es-floor-tiles[data-kept]::after {
-    content: 'More above' / '';
-    display: flex;
-    flex: none;
-    align-items: center;
-    height: var(--es-floor-kept, 0);
-    padding-inline: var(--es-space-2);
-    overflow: hidden;
-    color: var(--es-text-2);
-    font-size: var(--es-size-caption);
-    font-weight: 700;
-    line-height: 1.4;
-  }
-}
-
-
-/*
- * In a lesson's Run at a desk the stage list is read with the page, as the first run's parts list is: the dock grows to hold every stage,
- * the readout stands at the screen's foot, and Run the path stands just over it, so the list, the move and the counts are in view together
- * (the final walk: fourteen stages through a slit of four, with Run the path under it).
- */
-@container es-frame (min-width: 56rem) {
-  .es-frame[data-game='engine-floor'][data-phase='play'] > .es-frame__body > .es-frame__dock {
-    max-height: none;
-  }
-
-  .es-frame[data-game='engine-floor'][data-phase='play'] > .es-frame__body > .es-frame__dock > .es-frame__dock-main {
-    overflow: visible;
-  }
-
-  /* Not while the first run's parts are read with the page: the list ends whole above the readout (the frame's rule, frame.css). */
-  .es-frame[data-game='engine-floor'][data-phase='play']:not([data-intro]) > .es-frame__body > .es-frame__dock > .es-frame__readout {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    background: var(--es-paper);
-  }
-
-  .es-frame[data-placement='embed'][data-game='engine-floor'] .es-floor-actions {
-    bottom: 4.5rem;
-  }
-}
-
-/*
- * On the game's page at a desk, once the parts are named, the stage list is read with the page as it is in a lesson: the dock takes its
- * content's height beside the swimlane, which keeps its own box and stands at the screen's top, the filter field and every process to
- * filter by stand whole over the list, and Run the path and the readout stand at the screen's foot (P5). No row and no tab is cut by an
- * inner box's edge.
- */
-@media (min-width: 64rem) {
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-frame__body {
-    height: auto;
-    align-items: start;
-  }
-
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-frame__diagram {
-    position: sticky;
-    top: var(--es-space-2);
-    height: clamp(26rem, 100svh - 23.5rem, 44rem);
-  }
-
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-frame__dock-main {
-    overflow: visible;
-  }
-
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-frame__readout {
-    position: sticky;
-    bottom: 0;
-    z-index: 2;
-    background: var(--es-paper);
-  }
-
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-tiles {
-    max-height: none;
-    overflow: visible;
-  }
-
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-actions {
-    position: sticky;
-    bottom: 4.5rem;
-    z-index: 1;
-    margin-inline: calc(var(--es-space-4) * -1);
-    padding: var(--es-space-2) var(--es-space-4) var(--es-space-3);
-    border-top: 1px solid var(--es-paper-rule);
-    background: var(--es-paper);
-  }
-
-  /* A stage the keyboard reaches is scrolled clear of Run the path and the readout standing at the screen's foot (WCAG 2.4.11). */
-  html:has(.es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro])),
-  html:has(.es-frame[data-placement='embed'][data-game='engine-floor'][data-phase='play']) {
-    scroll-padding-bottom: 10.5rem;
-  }
-
-  .es-frame[data-placement='page'][data-game='engine-floor'] :is(.es-floor-filters, .es-floor-chips) {
-    flex-wrap: wrap;
-    overflow-x: visible;
-  }
-}
-
-/* The list is read with the page, so the field and the processes to filter by stand at the screen's top over it, as the drawing does beside
-   it: no scroll of the page cuts them (the finish review: the field and the tabs cut at the top). Under 700 px of height nothing is sticky.
-   The bar stands inside the stage list's box, and the box ends 450 px above the page's foot (478 px on the map) with Run the path, the
-   readout and the page's foot under it; on a screen shorter than the bar and that room together (639 px with three rows of chips, 667 on the
-   map) the page's foot carried the bar up by 19 to 47 px, so a click in the field moved the page to bring the field back [measured
-   2026-11-20 at 1280 x 620 on mini and map, headless Chromium]. */
-@media (min-width: 64rem) and (min-height: 700px) {
-  /* A stage the keyboard reaches is scrolled clear of the filters pinned at the screen's top (WCAG 2.4.11). The filters stand 149 px tall
-     (two rows of process chips) or 189 px (three) on every level and at every width from 1024 to 1920 px [measured 2026-11-19 at b2435ba],
-     so the stage's scroll margin of 12.5rem (200 px) clears the taller. The margin is the stage's, not the page's, so a filter control that
-     takes focus does not move the page. */
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-tile {
-    scroll-margin-top: 12.5rem;
-  }
-
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-filters {
-    position: sticky;
-    top: 0;
-    z-index: 2;
-    margin-inline: calc(var(--es-space-4) * -1);
-    padding: var(--es-space-2) var(--es-space-4);
-    border-bottom: 1px solid var(--es-paper-rule);
-    background: var(--es-paper);
-  }
-
-  /* Lays from the page's foot under a still pointer can leave the band under the bar with no whole tile in it, the stages left all above:
-     the band's top edge says so, as the dock's foot says "More below" (useFloorControls.ts marks the bar), and the last tile's edge that
-     still shows under the bar fades into the paper under the words. */
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-filters[data-above]::after {
-    content: 'More above' / '';
-    position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
-    height: 2.75rem;
-    padding: var(--es-space-2) var(--es-space-4) 0;
-    background: linear-gradient(var(--es-paper) 80%, transparent);
-    color: var(--es-text-2);
-    font-size: var(--es-size-caption);
-    font-weight: 700;
-    line-height: 1.4;
-    pointer-events: none;
-  }
-}
-
-/* Under 700 px of height the bar flows and Run the path stands pinned over the screen's foot, so a chip the keyboard reaches is scrolled
-   clear of that dock: the dock stands about 185 px tall at 1280 x 620 [measured 2026-11-20, headless Chromium], and 12rem (192 px) clears it. */
-@media (min-width: 64rem) and (max-height: 699px) {
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:not([data-intro]) .es-floor-filters :is(.es-floor-filter, button) {
-    scroll-margin-bottom: 12rem;
-  }
-}
-
-/* On a phone the readout's four counts are cells, each parted from the next by a rule, so no count runs into the next one's word; where a
-   delta beside a number leaves its word no room, the word goes under the number rather than into the next cell. */
-@media (max-width: 63.999rem) {
-  .es-floor-strip__list {
-    gap: 0;
-  }
-
-  .es-floor-strip__item:has(.es-floor-strip__delta) {
-    flex-wrap: wrap;
-  }
-
-  .es-floor-strip__item + .es-floor-strip__item {
-    padding-inline-start: var(--es-space-2);
-    border-inline-start: 1px solid var(--es-paper-rule);
-  }
 }
 
 /* The swimlane's legend runs to three rows on a phone, a row more than the frame's room under the pinned dock allows for: the box gives
@@ -1506,5 +1655,35 @@
 @media (max-width: 63.999rem) and (min-height: 700px) {
   .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__view {
     max-height: calc(67svh - 22.5rem);
+  }
+}
+
+/* While the path is laid on a phone, the drawing keeps one height from its first row: the swimlane's box takes what its legend leaves, as
+   the legend gains a word for each mechanism laid, so the dock under the drawing does not move as the path grows. Nothing in the frame
+   changes height then, so the browser is not asked to keep a part of it in place by scrolling the page. */
+@media (max-width: 63.999rem) {
+  .es-frame[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) {
+    overflow-anchor: none;
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__diagram {
+    height: clamp(16rem, 32svh + 5rem, 27rem);
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__view {
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
+    overflow: hidden;
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) :is(.es-frame__surface, .es-lanes[data-floor-lanes]) {
+    height: 100%;
+  }
+}
+
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__diagram {
+    height: max(10rem, calc(67svh - 23rem));
   }
 }
