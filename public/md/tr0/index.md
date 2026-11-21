@@ -18,7 +18,7 @@ Most of what engine code does to a tensor is bookkeeping over a buffer: a shape,
 
 ## The browser part
 
-The browser part is five lessons and a game, and none of it needs a GPU. The first lesson is published, and the other four are not yet.
+The browser part is five lessons and a game, and none of it needs a GPU. The first and the fourth lessons are published, and the other three are not yet.
 
 1. PyTorch in Rust terms: storage, shape, strides, dtype, device.
 2. Views, copies, and the syncs you cannot see.
@@ -45,3 +45,4 @@ Credit follows the same line. The module is browser-complete when the lessons' T
 ## Lessons
 
 - [PyTorch in Rust terms: storage, shape, strides, dtype, device](l1-pytorch-in-rust-terms.md): lesson `tr0.l1`, about 45 minutes [estimated]
+- [Reading Triton: grids, programs, BLOCK and masks](l4-reading-triton.md): lesson `tr0.l4`, about 50 minutes [estimated]

@@ -849,7 +849,7 @@
 
 - id: vllm.mrv2.interpreter-run
   value: '7 ran, 0 failed, 11 not run'
-  text: 'On 2026-11-21 the course ran seven of vLLM''s Model Runner V2 kernels under Triton 3.8.0''s interpreter on a CPU (TRITON_INTERPRET=1, torch 2.14.0+cpu, the course''s commit ee64e9ec) and all seven ran and wrote what torch computes. It gave eleven other kernels of the same five files no input, so they were not run. The inputs are the course''s own small ones; a kernel that ran here has not been shown to run, or to be fast, on a GPU.'
+  text: 'On 2026-11-21 the course ran seven of vLLM''s Model Runner V2 kernels under Triton 3.8.0''s interpreter on a CPU (TRITON_INTERPRET=1, torch 2.14.0+cpu) and all seven ran and wrote what torch computes. It gave eleven other kernels of the same five files no input, so they were not run. The inputs are the course''s own small ones; a kernel that ran here has not been shown to run, or to be fast, on a GPU.'
   tag: measured
   source:
     url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/model_executor/layers/quantization/awq_triton.py#L127
@@ -862,7 +862,7 @@
 
 - id: vllm.mrv2.interp.temperature
   value: 'ran'
-  text: '_temperature_kernel, the temperature kernel of vllm/v1/worker/gpu/sample/gumbel.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) with a four-token batch over a 20-token vocabulary in 16-lane blocks, with temperatures 0.5, 1.0, 0.0 and 4.0 (the kernel leaves a row alone at 0.0 and 1.0): every row that has another temperature came out divided by it, which the course checked against torch.'
+  text: '_temperature_kernel, the temperature kernel of vllm/v1/worker/gpu/sample/gumbel.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 with a four-token batch over a 20-token vocabulary in 16-lane blocks, with temperatures 0.5, 1.0, 0.0 and 4.0 (the kernel leaves a row alone at 0.0 and 1.0): every row that has another temperature came out divided by it, which the course checked against torch.'
   tag: measured
   source:
     url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/sample/gumbel.py#L22
@@ -875,7 +875,7 @@
 
 - id: vllm.mrv2.interp.gumbel-sample
   value: 'ran'
-  text: '_gumbel_sample_kernel, the Gumbel sampling kernel of vllm/v1/worker/gpu/sample/gumbel.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) with two tokens over a 20-token vocabulary in 16-lane blocks, with no logits cache and no drafting: for the token at temperature 0.0 each block''s argmax and the vocabulary''s blocks matched torch''s argmax, and for the token at temperature 0.7 each block returned an index inside its own block with a finite value (the noise itself was not compared).'
+  text: '_gumbel_sample_kernel, the Gumbel sampling kernel of vllm/v1/worker/gpu/sample/gumbel.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 with two tokens over a 20-token vocabulary in 16-lane blocks, with no logits cache and no drafting: for the token at temperature 0.0 each block''s argmax and the vocabulary''s blocks matched torch''s argmax, and for the token at temperature 0.7 each block returned an index inside its own block with a finite value (the noise itself was not compared).'
   tag: measured
   source:
     url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/sample/gumbel.py#L282
@@ -888,7 +888,7 @@
 
 - id: vllm.mrv2.interp.apply-write
   value: 'ran'
-  text: '_apply_write_kernel, the kernel that applies staged writes, in vllm/v1/worker/gpu/buffer_utils.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) with two writes into a 4 by 10 table, with 2-lane blocks so that each write needed two programs on axis 1, in its single-table mode: the table held what the writes say and nothing else, which the course checked against torch.'
+  text: '_apply_write_kernel, the kernel that applies staged writes, in vllm/v1/worker/gpu/buffer_utils.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 with two writes into a 4 by 10 table, with 2-lane blocks so that each write needed two programs on axis 1, in its single-table mode: the table held what the writes say and nothing else, which the course checked against torch.'
   tag: measured
   source:
     url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/buffer_utils.py#L317
@@ -901,7 +901,7 @@
 
 - id: vllm.mrv2.interp.gather-block-tables
   value: 'ran'
-  text: '_gather_block_tables_kernel, the kernel that gathers block tables, in vllm/v1/worker/gpu/block_table.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) with two KV cache groups, three batch rows of which the last was padding, and a table of pointers to the tables as the engine builds it: each real row held its request''s block ids up to that request''s block count, and the padded row was zeroed, which the course checked against torch.'
+  text: '_gather_block_tables_kernel, the kernel that gathers block tables, in vllm/v1/worker/gpu/block_table.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 with two KV cache groups, three batch rows of which the last was padding, and a table of pointers to the tables as the engine builds it: each real row held its request''s block ids up to that request''s block count, and the padded row was zeroed, which the course checked against torch.'
   tag: measured
   source:
     url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/block_table.py#L275
@@ -914,7 +914,7 @@
 
 - id: vllm.mrv2.interp.slot-mappings
   value: 'ran'
-  text: '_compute_slot_mappings_kernel, the kernel that computes slot mappings, in vllm/v1/worker/gpu/block_table.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) with two KV cache groups with block sizes 4 and 8, two requests of five and four tokens, and a 12-slot output, without context parallelism: each token''s slot was its block number times the block size plus its offset in the block, and the slots after the nine real tokens were padded with -1, which the course checked against torch.'
+  text: '_compute_slot_mappings_kernel, the kernel that computes slot mappings, in vllm/v1/worker/gpu/block_table.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 with two KV cache groups with block sizes 4 and 8, two requests of five and four tokens, and a 12-slot output, without context parallelism: each token''s slot was its block number times the block size plus its offset in the block, and the slots after the nine real tokens were padded with -1, which the course checked against torch.'
   tag: measured
   source:
     url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/block_table.py#L334
@@ -927,7 +927,7 @@
 
 - id: vllm.mrv2.interp.prepare-prefill
   value: 'ran'
-  text: '_prepare_prefill_inputs_kernel, the kernel that prepares a prefill''s input ids, in vllm/v1/worker/gpu/input_batch.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) with two requests, one lookahead token each, and 2-lane blocks: the input ids and the next prefill tokens held what the prompts say, with 0 where a lookahead position lay past the prefill length, which the course checked against torch.'
+  text: '_prepare_prefill_inputs_kernel, the kernel that prepares a prefill''s input ids, in vllm/v1/worker/gpu/input_batch.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 with two requests, one lookahead token each, and 2-lane blocks: the input ids and the next prefill tokens held what the prompts say, with 0 where a lookahead position lay past the prefill length, which the course checked against torch.'
   tag: measured
   source:
     url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/input_batch.py#L280
@@ -940,7 +940,7 @@
 
 - id: vllm.mrv2.interp.pos-seq-lens
   value: 'ran'
-  text: '_prepare_pos_seq_lens_kernel, the kernel that fills positions and sequence lengths, in vllm/v1/worker/gpu/input_batch.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) with two requests and a padding program, with 2-lane blocks: the positions and the sequence lengths were right and the unused sequence lengths were zeroed, which the course checked against torch.'
+  text: '_prepare_pos_seq_lens_kernel, the kernel that fills positions and sequence lengths, in vllm/v1/worker/gpu/input_batch.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 with two requests and a padding program, with 2-lane blocks: the positions and the sequence lengths were right and the unused sequence lengths were zeroed, which the course checked against torch.'
   tag: measured
   source:
     url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/input_batch.py#L357
@@ -967,7 +967,7 @@
 
 - id: triton.course-kernel.ran
   value: 'ran'
-  text: 'The course''s own two kernels (a 1-D scale over 10 elements in blocks of 4, and a 2-D scale over a transposed 5 by 6 view in blocks of 2 by 4) ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) and wrote what torch computes. The 1-D kernel launched 3 programs of 4 lanes, 12 lanes in all, and 2 were masked, the numbers the grid level''s model gives; its last program held offsets 8, 9, 10, 11 and the mask True, True, False, False. The 2-D kernel launched a grid of (3, 2) with 18 masked lanes.'
+  text: 'The course''s own two kernels (a 1-D scale over 10 elements in blocks of 4, and a 2-D scale over a transposed 5 by 6 view in blocks of 2 by 4) ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 and wrote what torch computes. The 1-D kernel launched 3 programs of 4 lanes, 12 lanes in all, and 2 were masked, the numbers the grid level''s model gives; its last program held offsets 8, 9, 10, 11 and the mask True, True, False, False. The 2-D kernel launched a grid of (3, 2) with 18 masked lanes.'
   tag: measured
   synthetic: true
   verifiedAt: 2026-11-21

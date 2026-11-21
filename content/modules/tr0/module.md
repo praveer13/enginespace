@@ -37,7 +37,7 @@ Most of what engine code does to a tensor is bookkeeping over a buffer: a shape,
 
 ## The browser part
 
-The browser part is five lessons and a game, and none of it needs a GPU. The first lesson is published, and the other four are not yet.
+The browser part is five lessons and a game, and none of it needs a GPU. The first and the fourth lessons are published, and the other three are not yet.
 
 1. PyTorch in Rust terms: storage, shape, strides, dtype, device.
 2. Views, copies, and the syncs you cannot see.
