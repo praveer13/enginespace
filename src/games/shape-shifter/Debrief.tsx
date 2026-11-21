@@ -12,7 +12,7 @@ import { useBest } from '@/games/kit/best'
 import { Debrief as Result } from '@/games/kit/Debrief'
 import { LessonRunContext } from '@/games/kit/lessonRun'
 import { MirrorTable, type MirrorColumn, type MirrorRow } from '@/games/kit/MirrorTable'
-import PartSource from '@/games/kit/PartSource'
+import { PartPopover } from '@/games/kit/PartPopover'
 import { verdictOf } from '@/games/kit/verdict'
 import { Versus } from '@/games/kit/Versus'
 import type { ShiftOutcome, ShiftRun } from './types'
@@ -206,7 +206,17 @@ export function Debrief({ run, outcome, next, onNext, embedded = false }: Debrie
               A kernel launches <code>cdiv(n, BLOCK)</code> programs along a dimension of size n, and each program masks the lanes whose offsets are past the edge, so its loads and
               stores there do nothing.
             </p>
-            <PartSource claim="triton.load-mask" inline={false} />
+            <p>
+              <PartPopover
+                part={{ id: 'mask', name: 'tl.load', code: true, sentence: 'A masked lane neither loads nor stores.', engine: 'tl.load', claim: 'triton.load-mask' }}
+                trigger="The source, at Triton's pin"
+                engineLine={
+                  <>
+                    In Triton: <code>tl.load</code>.
+                  </>
+                }
+              />
+            </p>
           </section>
         ) : (
           <section aria-label="In PyTorch" className="es-shift-debrief__engine">
@@ -215,7 +225,24 @@ export function Debrief({ run, outcome, next, onNext, embedded = false }: Debrie
               <code>Tensor.view</code> works only when each new dimension lies inside one old dimension or spans dimensions whose strides chain; otherwise the tensor has to be copied
               first, for example with <code>contiguous()</code>.
             </p>
-            <PartSource claim="torch.view.needs-compatible-strides" inline={false} />
+            <p>
+              <PartPopover
+                part={{
+                  id: 'view',
+                  name: 'Tensor.view',
+                  code: true,
+                  sentence: 'A view of a new shape needs strides that can walk it; otherwise the tensor has to be copied first.',
+                  engine: 'Tensor.view',
+                  claim: 'torch.view.needs-compatible-strides',
+                }}
+                trigger="The source, at PyTorch's pin"
+                engineLine={
+                  <>
+                    In PyTorch: <code>Tensor.view</code>.
+                  </>
+                }
+              />
+            </p>
           </section>
         )}
       </div>

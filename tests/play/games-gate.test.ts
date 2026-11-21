@@ -299,10 +299,11 @@ describe('this checkout', () => {
     expect(result.status).toBe(0)
     expect(result.stdout).toMatch(/^verify-games: \d+ games? registered, \d+ components?/)
     expect(result.stdout).toContain('verify-games: ok')
-    // And it measures ASSESSMENT §4.1's blind-strategy bound on every graded level of every game (W1b-T12): twelve of them.
-    expect(GAMES.games.flatMap((game) => game.levels.filter((level) => level.graded))).toHaveLength(12)
+    // And it measures ASSESSMENT §4.1's blind-strategy bound on every graded level of every game (W1b-T12): fourteen of them, Tensor views'
+    // `fewest` and `grid` with the twelve before it (W2-T14).
+    expect(GAMES.games.flatMap((game) => game.levels.filter((level) => level.graded))).toHaveLength(14)
     expect(blindLines(result.stdout)).toEqual([])
-    expect(result.stdout.match(/best blind strategy passes /g)).toHaveLength(12)
+    expect(result.stdout.match(/best blind strategy passes /g)).toHaveLength(14)
     expect(result.stdout).toContain('against the bound of 15.0% [estimated]')
   })
 

@@ -269,19 +269,34 @@ function OpBar({ run, view }: { run: ShiftRun; view: ShiftView }) {
 /* ------------------------------------------------------------------------------------------------------------------ */
 
 function Stepper({ name, face, value, min, max, onSet, ringMore }: { name: string; face: ReactNode; value: number; min: number; max: number; onSet: (value: number) => void; ringMore: boolean }) {
+  // The first press ends the first run, and its ring goes from round the button: the button is drawn again, and focus stays on it, so
+  // a key held on "one more" keeps counting.
+  const group = useRef<HTMLDivElement>(null)
+  const pressed = useRef<'less' | 'more' | null>(null)
+  useEffect(() => {
+    const step = pressed.current
+    if (step === null) return
+    pressed.current = null
+    const here = document.activeElement
+    if (here === null || here === document.body || !here.isConnected) group.current?.querySelector<HTMLButtonElement>(`[data-step="${step}"]`)?.focus({ preventScroll: true })
+  })
+  const set = (step: 'less' | 'more', next: number) => {
+    pressed.current = step
+    onSet(next)
+  }
   return (
-    <div className="es-shift-dock__stepper" role="group" aria-label={name} data-stepper={name}>
+    <div ref={group} className="es-shift-dock__stepper" role="group" aria-label={name} data-stepper={name}>
       <span className="es-shift-dock__stepper-name" aria-hidden="true">
         {face}
       </span>
-      <button type="button" className="es-shift-dock__step" aria-label={`${name}: one less`} disabled={value <= min} onClick={() => onSet(value - 1)}>
+      <button type="button" className="es-shift-dock__step" data-step="less" aria-label={`${name}: one less`} disabled={value <= min} onClick={() => set('less', value - 1)}>
         <span aria-hidden="true" className="es-shift-dock__step-mark" data-sign="less" />
       </button>
       <output className="es-shift-dock__value font-numeric" aria-live="off">
         {value}
       </output>
       <Ringed on={ringMore}>
-        <button type="button" className="es-shift-dock__step" aria-label={`${name}: one more`} disabled={value >= max} onClick={() => onSet(value + 1)}>
+        <button type="button" className="es-shift-dock__step" data-step="more" aria-label={`${name}: one more`} disabled={value >= max} onClick={() => set('more', value + 1)}>
           <span aria-hidden="true" className="es-shift-dock__step-mark" data-sign="more" />
         </button>
       </Ringed>
