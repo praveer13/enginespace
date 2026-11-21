@@ -1,9 +1,9 @@
 /*
  * W1b-T02 and R-T09: how each lesson prediction is revealed, and what the pure model says its answer is (packages/play/predictions;
- * ARCHITECTURE §4.3, §7.2; ASSESSMENT §4.7; D-067). The lessons hold 43 `predict` blocks. Each is revealed in one of two ways, and against no
+ * ARCHITECTURE §4.3, §7.2; ASSESSMENT §4.7; D-067). The lessons hold 46 `predict` blocks. Each is revealed in one of two ways, and against no
  * key that anything stores (A§1, I3). This file holds the table to the lessons and the model to the lessons' own figures:
  *
- *   - the table has a row for each of the 43 and for no other; 20 are revealed after the run of a game block that follows them, 23 at commit,
+ *   - the table has a row for each of the 46 and for no other; 21 are revealed after the run of a game block that follows them, 25 at commit,
  *     and the lesson's own `reveal` says the same as the row;
  *   - for each prediction that a run answers, the game block's level is played on a seed to its end, the reading is taken from the finished
  *     run's record, and it equals the figure that the lesson's own test computes from the numbers of the prompt (tests/content/tr*-demos.ts),
@@ -63,7 +63,7 @@ const answered = predictions.filter(({ plan }) => isAnswered(plan))
 const atCommit = predictions.filter(({ plan }) => isAtCommit(plan))
 
 /** A prompt as the learner reads it, without the tags that follow its numbers. */
-const untagged = (prompt: string): string => prompt.replace(/ \[(?:measured|derived|estimated|unverified)\]/g, '')
+const untagged = (prompt: string): string => prompt.replace(/ \[(?:measured|derived|estimated|synthetic|unverified)\]/g, '')
 
 const claims = new Map(
   (JSON.parse(compiled.outputs.find((output) => output.path === 'public/claims.json')!.text) as { claims: { id: string; source?: { title: string } }[] }).claims.map((claim) => [claim.id, claim]),
@@ -78,7 +78,7 @@ describe('the table of which run answers which prediction', () => {
     expect(Object.keys(PLAN).sort()).toEqual(predictions.map(({ block }) => block.id).sort())
   })
 
-  test("reveals the counts of the table's rows after a run and at commit (20 and 23 today), and leaves none held", () => {
+  test("reveals the counts of the table's rows after a run and at commit (21 and 25 today), and leaves none held", () => {
     expect([answered.length, atCommit.length, predictions.filter(({ plan }) => isHeld(plan)).length]).toEqual([TOTAL_AFTER_GAME, TOTAL_AT_COMMIT, 0])
   })
 
@@ -216,9 +216,9 @@ function lessonFigure(id: string): number | string {
 }
 
 describe('a prediction revealed at commit (D-067)', () => {
-  test('is every prediction that no level of its game answers: 23 of them, in every module that has a lesson of its own question', () => {
+  test('is every prediction that no level of its game answers: 25 of them, in every module that has a lesson of its own question', () => {
     expect(atCommit.map(({ block }) => block.id)).toEqual([
-      'tr0.l1.p2', 'tr0.l4.p2',
+      'tr0.l1.p2', 'tr0.l2.p2', 'tr0.l3.p1', 'tr0.l4.p2',
       'tr1.l2.p2', 'tr1.l2.p1', 'tr1.l4.p2', 'tr1.l5.p3', 'tr1.l5.p2', 'tr1.l7.p2',
       'tr2.l2.p1', 'tr2.l3.p1', 'tr2.l6.p2', 'tr2.l7.p1',
       'tr5a.l2.p1', 'tr5a.l3.p2',

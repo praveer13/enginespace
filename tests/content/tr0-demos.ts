@@ -8,6 +8,7 @@
  */
 import { addresses, applyOp, cdiv, contiguousView, gridCoverage, isContiguous } from '../../packages/sim/tensor'
 import type { ShiftOp, TView } from '../../packages/sim/tensor'
+import { ruleById } from '../../packages/play/items/families/tr0/sync-rules'
 import { SHAPE_SHIFTER } from '../../packages/play/shape-shifter/entry'
 import { opText } from '../../packages/play/shape-shifter/labels'
 import { gridTask, PROGRAM_CAP } from '../../packages/play/shape-shifter/draw'
@@ -68,6 +69,17 @@ export const strideZeroRun = (): Step[] => {
   return chain(task.start, task.ghost)
 }
 
+/** The reference's run on `three-d` at its practice seed: `reshape` into heads, `permute` to bring the heads first, then `contiguous()`. */
+export const threeDRun = (): Step[] => {
+  const task = practiceLevel('three-d').tasks[0]
+  return chain(task.start, task.ghost)
+}
+
+/** The query's path through Qwen3's attention at the pinned code: the projection's `(1, 6, 2048)` output, `view` into heads, `transpose(1, 2)`. */
+export const QUERY_TOKENS = 6
+export const queryRun = (): Step[] =>
+  chain(contiguousView([1, QUERY_TOKENS, 2048]), [{ op: 'view', shape: [1, QUERY_TOKENS, 16, 128] }, { op: 'transpose', a: 1, b: 2 }])
+
 /** The addresses that the transposed tensor of `views` reads first, in the order of its indices. */
 export const transposedWalk = (count: number): number[] => addresses(viewsRun()[1].view).slice(0, count)
 
@@ -97,6 +109,28 @@ export const PREDICTIONS: Readonly<Record<string, NumericPrediction>> = {
     kind: 'numeric',
     unit: 'elements',
     reference: () => chain(contiguousView([3, 5]), [{ op: 'slice', dim: 1, start: 0, stop: 5, step: 2 }])[1].view.strides[1],
+  },
+  // A (4, 8) projection output, reshaped into heads of four and permuted so that the heads come first: the tokens' stride is the projection row's width.
+  'tr0.l2.p1': {
+    kind: 'numeric',
+    unit: 'addresses',
+    reference: () => {
+      const steps = chain(contiguousView([4, 8]), [{ op: 'reshape', shape: [4, 2, 4] }, { op: 'permute', order: [1, 0, 2] }])
+      return steps[steps.length - 1].view.strides[1]
+    },
+  },
+  // Of four lines on a GPU tensor, the ones that wait: `.item()`, `.tolist()` and `.cpu()` do, and `.sum()` only enqueues (the rule table of tr0.find-the-sync).
+  'tr0.l2.p2': {
+    kind: 'numeric',
+    unit: 'lines',
+    // The second line's `.sum()` enqueues and its `.item()` waits, so each line is its last call's rule.
+    reference: () => ['sum', 'item', 'tolist', 'cpu'].filter((id) => ruleById(id).waits).length,
+  },
+  // The query projection of layer 0: heads times head size, from the configuration's claims.
+  'tr0.l3.p1': {
+    kind: 'numeric',
+    unit: 'rows',
+    reference: () => 16 * 128,
   },
   // A (12, 20) tensor covered exactly once in at most six programs: the least masked count of any power-of-two BLOCK within the cap.
   'tr0.l4.p1': {
@@ -194,6 +228,29 @@ export const MODEL_TABLES: readonly ModelTable[] = [
         code(pyTuple(step.view.shape)),
         code(pyTuple(step.view.strides)),
         isContiguous(step.view) ? 'yes' : 'no',
+        String(step.moved),
+      ]),
+  },
+  {
+    lesson: 'tr0.l2',
+    header: '| After | Shape [synthetic] | Strides [synthetic] | Moved [synthetic] |',
+    // The permute is spelled as PyTorch's call, `permute(1, 0, 2)`, which the lesson's own words give.
+    rows: () =>
+      threeDRun().map((step) => [
+        step.op === null ? 'the start' : step.op.op === 'permute' ? code(`permute(${step.op.order.join(', ')})`) : code(opText(step.op)),
+        code(pyTuple(step.view.shape)),
+        code(pyTuple(step.view.strides)),
+        String(step.moved),
+      ]),
+  },
+  {
+    lesson: 'tr0.l3',
+    header: '| After | Shape [synthetic] | Strides [synthetic] | Moved [synthetic] |',
+    rows: () =>
+      queryRun().map((step) => [
+        step.op === null ? 'the start' : code(opText(step.op)),
+        code(pyTuple(step.view.shape)),
+        code(pyTuple(step.view.strides)),
         String(step.moved),
       ]),
   },

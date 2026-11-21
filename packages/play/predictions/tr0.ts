@@ -36,6 +36,11 @@ export const REFERENCES: Readonly<Record<string, Reference>> = {
     reads: "Counted from the reference's plan on the run's tensor: the elements its one copy writes into a new buffer.",
     truth: (run) => levelOf(run, 'views').tasks[0].moved,
   },
+  'tr0.l2.p1': {
+    says: ['(4, 8)', 'permute', 'neighbouring tokens'],
+    reads: "Read from the reference's plan on the run's tensor: the stride of the token dimension after its permute, the width of one projection row.",
+    truth: (run) => levelOf(run, 'three-d').tasks[0].answer,
+  },
   'tr0.l4.p1': {
     says: ['`(12, 20)`', 'exactly once', 'six programs'],
     reads: "Counted from the reference's launch on the run's tensor: the lanes of its programs that fall past the tensor's edge, the fewest of any launch that covers it in the level's programs.",

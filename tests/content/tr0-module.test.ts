@@ -14,16 +14,30 @@ import path from 'node:path'
 import type { ContentIndex } from '@es/schema'
 import { compileContent } from '../../scripts/content/build.ts'
 import { findTables, moduleKit } from './module-kit.ts'
-import { MODEL_TABLES, PREDICTIONS, callRows, courseKernelLines, gridLaunches, practiceGrid, practiceLevel, strideZeroRun, transposedWalk, viewsRun } from './tr0-demos.ts'
+import { MODEL_TABLES, PREDICTIONS, QUERY_TOKENS, callRows, chain, courseKernelLines, gridLaunches, practiceGrid, practiceLevel, queryRun, strideZeroRun, threeDRun, transposedWalk, viewsRun } from './tr0-demos.ts'
+import { applyOp, contiguousView, isContiguous } from '../../packages/sim/tensor'
+import { ruleById, SYNC_RULES } from '../../packages/play/items/families/tr0/sync-rules'
+import { TR0_FORWARD } from '../../src/labs/tr0-forward'
+import { stateLine } from '../../src/labs/copy'
 import { read, repo } from './support.ts'
 
-const LESSON_FILES = ['content/modules/tr0/lessons/l1-pytorch-in-rust-terms.md', 'content/modules/tr0/lessons/l4-reading-triton.md'] as const
+const LESSON_FILES = [
+  'content/modules/tr0/lessons/l1-pytorch-in-rust-terms.md',
+  'content/modules/tr0/lessons/l2-views-copies-and-hidden-syncs.md',
+  'content/modules/tr0/lessons/l3-nn-module-as-a-struct.md',
+  'content/modules/tr0/lessons/l4-reading-triton.md',
+] as const
 const MODULE_FILE = 'content/modules/tr0/module.md'
 const CLAIMS_FILE = 'content/claims/tr0.yaml'
 
+/** The header row of the model table that the demos file holds for a lesson. */
+const heldTable = (lesson: string): string => MODEL_TABLES.find((table) => table.lesson === lesson)?.header ?? ''
+
 const result = compileContent({ root: repo })
 const lesson1 = read(LESSON_FILES[0])
-const lesson4 = read(LESSON_FILES[1])
+const lesson2 = read(LESSON_FILES[1])
+const lesson3 = read(LESSON_FILES[2])
+const lesson4 = read(LESSON_FILES[3])
 const claimsText = read('content/claims/tr0.yaml')
 const courseKernel = read('scripts/triton-interp/course_kernel.py')
 const moduleText = read(MODULE_FILE)
@@ -102,7 +116,7 @@ describe("TR0 lesson 4: the grid's numbers are the model's, and the walk-through
   })
 
   test('the model table carries the day and the commit it was printed at, in the sentence above it', () => {
-    const [table] = findTables(lesson4).filter((t) => t.header === MODEL_TABLES[1].header)
+    const [table] = findTables(lesson4).filter((t) => t.header === heldTable('tr0.l4'))
     expect(table).toBeDefined()
     expect(table.caption).toMatch(/Printed by the course's model on \d{4}-\d{2}-\d{2} at `[0-9a-f]{7}`\./)
   })
@@ -187,6 +201,159 @@ describe("TR0 lesson 4: the grid's numbers are the model's, and the walk-through
   })
 })
 
+describe("TR0 lesson 2: the three-d run's numbers are the model's, and the syncs are the rule table's", () => {
+  test("the reference's run on `three-d` splits and permutes with no copy, and its one copy moves every element", () => {
+    const run = threeDRun()
+    expect(run.map((step) => step.moved)).toEqual([0, 0, 0, 32])
+    expect(run.map((step) => step.op?.op ?? null)).toEqual([null, 'reshape', 'permute', 'contiguous'])
+    expect(run[2].op).toEqual({ op: 'permute', order: [1, 0, 2] })
+    expect(run[0].view.shape).toEqual([4, 8])
+    // The neighbouring tokens of one head: the token dimension's stride after the permute, and the first stride after the copy.
+    expect(run[2].view.strides[1]).toBe(8)
+    expect(run[3].view.strides[0]).toBe(16)
+    expect(lesson2).toContain(`Two neighbouring tokens of one head are \`${run[2].view.strides[1]}\` addresses apart [synthetic]`)
+    expect(lesson2).toContain(`all ${run[3].moved} elements move [synthetic]`)
+    expect(lesson2).toContain('is no longer contiguous')
+    expect(isContiguous(run[2].view)).toBe(false)
+    expect(lesson2).toContain(`each head becomes one run of \`${run[3].view.strides[0]}\` elements`)
+    expect(practiceLevel('three-d').tasks[0].answer).toBe(run[2].view.strides[1])
+  })
+
+  test('the model table carries the day and the commit it was printed at, in the sentence above it', () => {
+    const [table] = findTables(lesson2).filter((t) => t.header === heldTable('tr0.l2'))
+    expect(table).toBeDefined()
+    expect(table.caption).toMatch(/Printed by the course's model on \d{4}-\d{2}-\d{2} at `[0-9a-f]{7}`\./)
+  })
+
+  test("the guesses' figures: the token gap after the permute, and the three of four lines that wait", () => {
+    expect(PREDICTIONS['tr0.l2.p1'].reference()).toBe(threeDRun()[2].view.strides[1])
+    expect(PREDICTIONS['tr0.l2.p2'].reference()).toBe(3)
+  })
+
+  test("each call that the lesson lists is a row of the family's rule table, under the heading its row says, with the claims of that row", () => {
+    const byLine: Readonly<Record<string, string>> = { 'n = x.item()': 'item', 'ids = x.tolist()': 'tolist', 'small = x.cpu()': 'cpu', 'torch.cuda.synchronize()': 'synchronize', 'y = x.sum()': 'sum', 'z = x @ w': 'matmul', 'v = x.view(-1)': 'view' }
+    const items = lesson2.split('\n').flatMap((line) => {
+      const m = /^- `([^`]+)`\. (.*)$/.exec(line)
+      return m === null ? [] : [{ line: m[1], text: m[2] }]
+    })
+    expect(items.map((item) => item.line)).toEqual(Object.keys(byLine))
+    // The first four wait and the last three do not: the lesson's two lists, each introduced by what its calls have in common.
+    expect(lesson2).toContain('These lines wait, because')
+    expect(lesson2).toContain('These lines do not wait, because')
+    items.forEach((item, at) => {
+      const rule = ruleById(byLine[item.line])
+      expect([item.line, at < 4]).toEqual([item.line, rule.waits])
+      const marks = [...item.text.matchAll(/\{\{claim:([a-z0-9.-]+)\}\}/g)].map((m) => m[1])
+      expect([item.line, marks.length]).toEqual([item.line, 1])
+      expect([item.line, marks[0], rule.claims.includes(marks[0])]).toEqual([item.line, marks[0], true])
+    })
+  })
+
+  test('the loop that waits 25 times is 24 passes of one wait and one wait after it, by the rule table', () => {
+    expect(lesson2).toContain('for layer in range(24):')
+    expect(lesson2).toContain('So the loop waits `25` times [derived].')
+    expect(24 * [ruleById('item')].filter((rule) => rule.waits).length + [ruleById('tolist')].filter((rule) => rule.waits).length).toBe(25)
+  })
+
+  test('printing a GPU tensor is said to be unverified, and no question rests on it', () => {
+    expect(paragraphWith(lesson2, 'Printing a GPU tensor')).toContain('[unverified]')
+    expect(SYNC_RULES.some((rule) => /print/.test(rule.line('x', 'y')))).toBe(false)
+  })
+
+  test("the lesson's compiled page is under 40 KB, so it loads at once", () => {
+    const out = result.outputs.find((o) => o.path === 'src/content/generated/lessons/tr0.l2-views-copies-and-hidden-syncs.json')
+    expect(out).toBeDefined()
+    expect(Buffer.byteLength(out?.text ?? '')).toBeLessThan(40 * 1024)
+  })
+})
+
+describe("TR0 lesson 3: every value of Qwen3 is a claim on the pinned config.json, and no block claims a run", () => {
+  const values = new Map(result.claims.filter((record) => record.file === CLAIMS_FILE).map((record) => [record.claim.id, record.claim]))
+  const configRows = findTables(lesson3).filter((t) => t.header.startsWith('| What it sizes |'))[0]?.rows ?? []
+
+  test("each row of the configuration table is one claim, printed by its mark, and the claim is of the model's config.json at its pin", () => {
+    expect(configRows.length).toBe(9)
+    for (const [what, value] of configRows) {
+      const [, id] = /^\{\{claim:([a-z0-9.-]+)\}\}$/.exec(value) ?? []
+      const claim = values.get(id)
+      expect([what, claim !== undefined]).toEqual([what, true])
+      expect([what, claim?.pin, claim?.source?.url.includes('/config.json'), claim?.tag]).toEqual([what, 'qwen3-0.6b', true, 'measured'])
+    }
+    // Lesson 3 prints no number of the model's that no claim stands behind: the sizes it spells are the claims' values and nothing else.
+    const printed = new Set([...lesson3.matchAll(/`(\d{3,}|1e-06)`/g)].map((m) => m[1]))
+    const claimed = new Set([...values.values()].filter((claim) => claim.id.startsWith('qwen3.config.')).map((claim) => String(claim.value)))
+    for (const number of printed) {
+      if (['5', '6144', '911616', '12288', '6'].includes(number)) continue
+      expect([number, claimed.has(number)]).toEqual([number, true])
+    }
+  })
+
+  test('the sizes of the projections are the derived claims, and each is the product of the claims it names', () => {
+    const heads = Number(values.get('qwen3.config.heads')?.value)
+    const kvHeads = Number(values.get('qwen3.config.kv-heads')?.value)
+    const size = Number(values.get('qwen3.config.head-dim')?.value)
+    const hidden = Number(values.get('qwen3.config.hidden-size')?.value)
+    expect([heads * size, kvHeads * size, heads / kvHeads]).toEqual([2048, 1024, 2])
+    for (const [id, value] of [['qwen3.config.q-proj-rows', heads * size], ['qwen3.config.kv-proj-rows', kvHeads * size], ['qwen3.config.query-group', heads / kvHeads]] as const) {
+      expect([id, Number(values.get(id)?.value)]).toEqual([id, value])
+    }
+    expect(lesson3).toContain('That is {{claim:qwen3.config.q-proj-rows}} rows for the query and {{claim:qwen3.config.kv-proj-rows}} for each of the other two.')
+    expect(PREDICTIONS['tr0.l3.p1'].reference()).toBe(heads * size)
+    // The hidden size is not heads times the head size, which is the trap of the guess.
+    expect(hidden).not.toBe(heads * size)
+  })
+
+  test('the shapes at the five points are the hidden size and the vocabulary, with the strides of a contiguous tensor', () => {
+    const hidden = Number(values.get('qwen3.config.hidden-size')?.value)
+    const vocab = Number(values.get('qwen3.config.vocab-size')?.value)
+    const lines = lesson3.split('\n').filter((line) => / leaves with /.test(line) || /^- The first layer's (attention|MLP) leaves with the same/.test(line) || /^- The final norm leaves/.test(line))
+    const view = (last: number) => contiguousView([1, QUERY_TOKENS, last])
+    const tuple = (xs: readonly number[]) => `(${xs.join(', ')})`
+    const full = (last: number) => `shape \`${tuple(view(last).shape)}\` and strides \`${tuple(view(last).strides)}\``
+    expect(lines).toEqual([
+      `- The embedding leaves with ${full(hidden)}.`,
+      "- The first layer's attention leaves with the same shape and strides.",
+      "- The first layer's MLP leaves with the same shape and strides.",
+      '- The final norm leaves with the same shape and strides.',
+      `- The head leaves with ${full(vocab)}.`,
+    ])
+  })
+
+  test("the query's path through the attention is the model's: two views, then a transpose that no view can undo", () => {
+    const run = queryRun()
+    expect(run.map((step) => step.moved)).toEqual([0, 0, 0])
+    expect(run[2].view.shape).toEqual([1, 16, QUERY_TOKENS, 128])
+    expect(run[2].view.strides).toEqual([12288, 128, 2048, 1])
+    const back = applyOp(run[2].view, { op: 'view', shape: [1, QUERY_TOKENS, 2048] })
+    expect('error' in back).toBe(true)
+    const copy = chain(run[2].view, [{ op: 'reshape', shape: [1, QUERY_TOKENS, 2048] }])
+    expect(copy[1].moved).toBe(QUERY_TOKENS * 2048)
+    expect(lesson3).toContain('a `view` to `(1, 6, 2048)` is refused')
+    expect(lesson3).toContain('Take one prompt of `6` tokens [estimated]. The `6` is arbitrary')
+    const [table] = findTables(lesson3).filter((t) => t.header === heldTable('tr0.l3'))
+    expect(table.caption).toMatch(/Printed by the course's model on \d{4}-\d{2}-\d{2} at `[0-9a-f]{7}`\./)
+  })
+
+  test('says that how nn.Module names its tensors is unverified, and carries the lab\'s Build row and no lab or trace block', () => {
+    expect(paragraphWith(lesson3, 'How `nn.Module` builds such names')).toContain('[unverified]')
+    const out = result.outputs.find((o) => o.path === 'src/content/generated/lessons/tr0.l3-nn-module-as-a-struct.json')
+    const blocks = (JSON.parse(out?.text ?? '{}') as { blocks: { type: string; kind?: string; id?: string }[] }).blocks
+    expect(blocks.filter((block) => block.type === 'lab' || block.type === 'trace')).toEqual([])
+    expect(blocks.filter((block) => block.type === 'card' && block.kind === 'build-this').map((block) => block.id)).toEqual(['build-tr0-forward'])
+    const card = read('content/cards/build-tr0-forward.md')
+    expect(card).toContain('lab: tr0.forward')
+    expect(card).toContain(`stages: [${TR0_FORWARD.stages.map((stage) => stage.id.split('.').pop()).join(', ')}]`)
+    // The card does not say the lab was run.
+    expect(card).toContain('has not yet run it on the pinned weights')
+  })
+
+  test("the lesson's compiled page is under 40 KB, so it loads at once", () => {
+    const out = result.outputs.find((o) => o.path === 'src/content/generated/lessons/tr0.l3-nn-module-as-a-struct.json')
+    expect(out).toBeDefined()
+    expect(Buffer.byteLength(out?.text ?? '')).toBeLessThan(40 * 1024)
+  })
+})
+
 describe('the TR0 module page', () => {
   test('says that TR0 helps before TR1 and locks nothing', () => {
     // The second of the two sentences the page sets under the title.
@@ -200,6 +367,29 @@ describe('the TR0 module page', () => {
     expect(paragraphWith(moduleText, 'five separate subjects')).toBe(
       "TR0's five lessons are five separate subjects: a tensor's layout, the calls that wait for the GPU, a model's code, Triton's programs and an engine's own model code. So no lesson carries a table of what changed since the one before, and no one relation runs through them all.",
     )
+  })
+
+  test("the part on the laptop says which stage tests what, and its state lines are the lab page's, word for word", () => {
+    const stages = TR0_FORWARD.stages
+    const items = moduleText.split('\n').filter((line) => line.startsWith('- **Stage `s'))
+    expect(items.length).toBe(stages.length)
+    stages.forEach((stage, at) => {
+      const line = items[at]
+      expect(line.startsWith(`- **Stage \`${stage.id.split('.').pop()}\``)).toBe(true)
+      // Every check of the stage is named on its line, and no check of another stage is.
+      for (const check of stages.flatMap((one) => one.checks)) expect([stage.id, check.id, line.includes(`\`${check.id}\``)]).toEqual([stage.id, check.id, stage.checks.includes(check)])
+      expect(line).toContain(`Where it stands: ${stateLine(stage.state)}.`)
+    })
+    // Stage 2 waits for the course's reference bank, and says what that does to the check.
+    expect(stages.map((stage) => stage.state.kind)).toEqual(['not-run-weights', 'awaiting-bank', 'not-run-weights'])
+    expect(items[1]).toContain("A third check, `argmax-bank`, is made by this site from your receipt")
+    expect(items[1]).toContain('`argmax-bank` cannot pass')
+  })
+
+  test("says that nothing on the page is a run of the learner's machine, and the page carries no measured number", () => {
+    expect(paragraphWith(moduleText, 'Nothing on this page is a run of your machine')).toContain('the course has run none of the three stages on the pinned weights')
+    expect(moduleText).not.toContain('[measured]')
+    expect(moduleText).not.toContain('is not published yet, so this page')
   })
 
   test('says what Prove asks, in words', () => {
@@ -225,27 +415,19 @@ moduleKit({
   lessonFiles: LESSON_FILES,
   moduleFile: MODULE_FILE,
   claimsFile: CLAIMS_FILE,
-  titles: ['PyTorch in Rust terms: storage, shape, strides, dtype, device', 'Reading Triton: grids, programs, BLOCK and masks'],
+  titles: [
+    'PyTorch in Rust terms: storage, shape, strides, dtype, device',
+    'Views, copies, and the syncs you cannot see',
+    "nn.Module as a struct: Qwen3's forward in the pinned transformers",
+    'Reading Triton: grids, programs, BLOCK and masks',
+  ],
   labs: [{ id: 'tr0.forward', lane: 'L', stages: ['s1', 's2', 's3'] }],
   announces: "The lab runs on your laptop's CPU, outside the browser, and needs no GPU.",
   demosFile: 'tests/content/tr0-demos.ts',
   modelTables: MODEL_TABLES,
   toCome: {
-    kcs: ['tr0.hidden-syncs', 'tr0.module-as-struct', 'tr0.decoder-forward', 'tr0.kv-cache-contract'],
+    kcs: [],
     claims: [
-      // Lesson 2: views and copies in engine code, and the calls that wait for the GPU.
-      'torch.views.reshape-unspecified',
-      'torch.cuda.async-by-default',
-      'torch.cuda.enqueued',
-      'torch.cuda.item-synchronizes',
-      'torch.tolist.moves-to-cpu',
-      'torch.cpu.copies',
-      'torch.cuda.synchronize-waits',
-      'torch.cuda.non-blocking',
-      'torch.cuda.timing-needs-sync',
-      'torch.cuda.sync-debug-warns',
-      'torch.cuda.sync-debug-partial',
-      'torch.cuda.print-waits',
       // The pins that the laptop part stands on.
       'torch.release.upload',
       'triton.release.upload',
@@ -279,34 +461,9 @@ moduleKit({
       'sglang.pyo3.tensor-bridge',
       'sglang.pyo3.panic-to-error',
       'sglang.pyo3.match-prefix',
-      // Lesson 3: Qwen3's decoder in the pinned transformers, and the model's configuration and files.
-      'transformers.qwen3.decoder-order',
-      'transformers.qwen3.rmsnorm',
-      'transformers.qwen3.qk-norm',
-      'transformers.qwen3.attn-projections',
-      'transformers.qwen3.attn-views',
-      'transformers.qwen3.attn-contiguous',
-      'transformers.qwen3.attn-scaling',
-      'transformers.qwen3.mlp',
-      'transformers.qwen3.rotate-half',
-      'transformers.qwen3.embedding',
-      'qwen3.config.layers',
-      'qwen3.config.heads',
-      'qwen3.config.kv-heads',
-      'qwen3.config.head-dim',
-      'qwen3.config.hidden-size',
-      'qwen3.config.intermediate-size',
-      'qwen3.config.vocab-size',
-      'qwen3.config.max-positions',
-      'qwen3.config.rope-theta',
-      'qwen3.config.rms-eps',
-      'qwen3.config.tied-embeddings',
-      'qwen3.config.activation',
-      'qwen3.config.stored-dtype',
-      'qwen3.config.q-proj-rows',
-      'qwen3.config.kv-proj-rows',
+      // The model's merged projection (lesson 5 sets it beside Mini-SGLang's), and the files and licence of the checkpoint.
       'qwen3.config.qkv-merged-rows',
-      'qwen3.config.query-group',
+      'qwen3.config.stored-dtype',
       'qwen3.revision.licence',
       'qwen3.weights.bytes',
       'qwen3.weights.sha256',

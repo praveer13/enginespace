@@ -25,6 +25,8 @@ export interface OpenerRow {
 export const OPENERS: readonly OpenerRow[] = [
   // TR0, Tensor views
   { lesson: 'tr0.l1', opener: 'B', first: ['play:shape-shifter/views'], graded: [] },
+  { lesson: 'tr0.l2', opener: 'A', first: ['play:shape-shifter/three-d'], graded: ['play:shape-shifter/fewest'] },
+  { lesson: 'tr0.l3', opener: 'C', first: [], graded: [] },
   { lesson: 'tr0.l4', opener: 'B', first: ['play:shape-shifter/grid'], graded: ['play:shape-shifter/grid'] },
   // TR1, the request path
   { lesson: 'tr1.l1', opener: 'B', first: ['play:engine-floor/nano'], graded: [] },
