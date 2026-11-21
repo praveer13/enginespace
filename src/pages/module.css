@@ -454,6 +454,8 @@
 
 .es-module__claim {
   font-variant-numeric: tabular-nums;
+  /* A long value, such as a file's hash, wraps inside the line and never widens the page. */
+  overflow-wrap: anywhere;
 }
 
 .es-module__tag {

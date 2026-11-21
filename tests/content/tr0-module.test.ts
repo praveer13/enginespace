@@ -14,7 +14,7 @@ import path from 'node:path'
 import type { ContentIndex } from '@es/schema'
 import { compileContent } from '../../scripts/content/build.ts'
 import { findTables, moduleKit } from './module-kit.ts'
-import { MODEL_TABLES, PREDICTIONS, QUERY_TOKENS, callRows, chain, courseKernelLines, gridLaunches, practiceGrid, practiceLevel, queryRun, strideZeroRun, threeDRun, transposedWalk, viewsRun } from './tr0-demos.ts'
+import { MODEL_TABLES, PREDICTIONS, QUERY_TOKENS, QWEN3, callRows, chain, courseKernelLines, gridLaunches, mergedProjection, practiceGrid, practiceLevel, queryRun, strideZeroRun, temperatureLaunch, threeDRun, transposedWalk, viewsRun } from './tr0-demos.ts'
 import { applyOp, contiguousView, isContiguous } from '../../packages/sim/tensor'
 import { ruleById, SYNC_RULES } from '../../packages/play/items/families/tr0/sync-rules'
 import { TR0_FORWARD } from '../../src/labs/tr0-forward'
@@ -26,6 +26,7 @@ const LESSON_FILES = [
   'content/modules/tr0/lessons/l2-views-copies-and-hidden-syncs.md',
   'content/modules/tr0/lessons/l3-nn-module-as-a-struct.md',
   'content/modules/tr0/lessons/l4-reading-triton.md',
+  'content/modules/tr0/lessons/l5-engine-style-model-code.md',
 ] as const
 const MODULE_FILE = 'content/modules/tr0/module.md'
 const CLAIMS_FILE = 'content/claims/tr0.yaml'
@@ -38,6 +39,7 @@ const lesson1 = read(LESSON_FILES[0])
 const lesson2 = read(LESSON_FILES[1])
 const lesson3 = read(LESSON_FILES[2])
 const lesson4 = read(LESSON_FILES[3])
+const lesson5 = read(LESSON_FILES[4])
 const claimsText = read('content/claims/tr0.yaml')
 const courseKernel = read('scripts/triton-interp/course_kernel.py')
 const moduleText = read(MODULE_FILE)
@@ -354,6 +356,99 @@ describe("TR0 lesson 3: every value of Qwen3 is a claim on the pinned config.jso
   })
 })
 
+/** A claim's `value`, as the claims file writes it, unquoted. */
+function claimValue(id: string): string {
+  const entry = claimsText.split('\n- id: ').find((candidate) => candidate.startsWith(`${id}\n`)) ?? ''
+  const found = /^ {2}value: (.*)$/m.exec(entry)
+  if (found === null) throw new Error(`no value for the claim ${id}`)
+  return found[1].replace(/^'(.*)'$/, '$1')
+}
+
+describe("TR0 lesson 5: the engine's code is read at its pin, and the arithmetic is the model's", () => {
+  test("Mini-SGLang's merged projection is the three of Hugging Face side by side, and makes one matrix multiply where they make three", () => {
+    const merged = mergedProjection()
+    expect([merged.query, merged.key, merged.value, merged.merged]).toEqual([2048, 1024, 1024, 4096])
+    expect(merged.query + merged.key + merged.value).toBe(merged.merged)
+    expect([merged.multiplies, merged.separateMultiplies]).toEqual([1, 3])
+    expect(claimValue('qwen3.config.qkv-merged-rows')).toBe('4096')
+    expect(claimValue('qwen3.config.q-proj-rows')).toBe('2048')
+    expect(claimValue('qwen3.config.kv-proj-rows')).toBe('1024')
+    expect(lesson5).toContain('with 2048, 1024 and 1024 output rows [derived]. In Mini-SGLang it goes through `qkv_proj`, with 4096 rows [derived].')
+    expect(lesson5).toContain('the 2048 of the query and the 1024 of each of the other two, added up [derived]')
+  })
+
+  test("the sizes the arithmetic reads are the configuration's claims", () => {
+    expect([claimValue('qwen3.config.heads'), claimValue('qwen3.config.kv-heads'), claimValue('qwen3.config.head-dim'), claimValue('qwen3.config.vocab-size')]).toEqual(
+      [String(QWEN3.heads), String(QWEN3.kvHeads), String(QWEN3.headDim), String(QWEN3.vocab)],
+    )
+  })
+
+  test('the guess is answered by the one linear layer the claims name: one matrix multiply', () => {
+    expect(PREDICTIONS['tr0.l5.p1'].reference()).toBe(1)
+    expect(claimsText).toContain('so the merged projection computes the query, the key and the value with one matrix multiply')
+    expect(lesson5).toContain('{{claim:minisgl.attn.qkv-one-matmul}}')
+  })
+
+  test("the five files' table prints each file's length as its claim has it, and the kernels add up to the eighteen the claims account for", () => {
+    const rows = [
+      ['sample/gumbel.py', 'vllm.mrv2.gumbel-lines'],
+      ['buffer_utils.py', 'vllm.mrv2.buffer-utils-lines'],
+      ['block_table.py', 'vllm.mrv2.block-table-lines'],
+      ['input_batch.py', 'vllm.mrv2.input-batch-lines'],
+      ['spec_decode/rejection_sampler_utils.py', 'vllm.mrv2.rejection-sampler-lines'],
+    ] as const
+    for (const [file, claim] of rows) {
+      const line = lesson5.split('\n').find((candidate) => candidate.startsWith(`- \`${file}\`, `)) ?? ''
+      const length = Number(claimValue(claim))
+      expect([file, line.startsWith(`- \`${file}\`, ${length.toLocaleString('en-US')} lines [measured]: `)]).toEqual([file, true])
+      expect([file, lesson5.includes(`{{claim:${claim}}}`)]).toEqual([file, true])
+    }
+    // 2 + 1 + 2 + 7 + 6: the kernels of each file, as the claims count them, and the seven that ran and the eleven that did not.
+    expect(claimValue('vllm.mrv2.input-batch-kernels')).toBe('7')
+    expect(claimsText).toContain("rejection_sampler_utils.py defines six Triton kernels")
+    expect(claimsText).toContain('a temperature kernel and a Gumbel sampling kernel')
+    expect(claimsText).toContain('one that gathers block tables and one that computes slot mappings')
+    expect(2 + 1 + 2 + 7 + 6).toBe(18)
+    expect(Number(claimValue('vllm.mrv2.interp.not-run')) + 7).toBe(18)
+    expect(lesson5).toContain('The five files hold 18 kernels between them: 2, 1, 2, 7 and 6 [derived].')
+  })
+
+  test("the temperature kernel's launch on Qwen3-0.6B's vocabulary is 19 programs of 8192 lanes, 3712 masked", () => {
+    expect(temperatureLaunch()).toEqual({ programs: 19, lanes: 155648, masked: 3712, lastBlockLive: 4480 })
+    expect(claimsText).toContain('the 8192-wide blocks of the vocabulary')
+    expect(lesson5).toContain('over `8192` is 19 blocks for each token [derived]')
+    expect(lesson5).toContain('They hold 155648 lanes, and 3712 of them are masked, all in the last block [derived]. In the last block, 4480 of the `8192` lanes hold an entry [derived].')
+  })
+
+  test('each engine is read at its own commit, and what the lesson does not know is said to be unverified or unmeasured', () => {
+    expect(lesson5).toContain('at its commit `9a91cfaf`')
+    expect(lesson5).toContain("vLLM's commit `4ba787ec`")
+    expect(claimsText).toContain('mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/')
+    expect(claimsText).toContain('vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/')
+    expect(lesson5).toContain('At its release `v0.5.23`')
+    expect(claimsText).toContain('SGLang v0.5.23')
+    expect(lesson5).toContain('What `py.detach` does to Python\'s own thread is not read by this lesson [unverified].')
+    expect(lesson5).toContain('do not answer it [unverified].')
+    expect(lesson5).toContain('The course has not run Mini-SGLang either')
+    expect(lesson5).not.toContain('[measured] the course')
+  })
+
+  test("the lesson's compiled page is under 40 KB, so it loads at once", () => {
+    const out = result.outputs.find((o) => o.path === 'src/content/generated/lessons/tr0.l5-engine-style-model-code.json')
+    expect(out).toBeDefined()
+    expect(Buffer.byteLength(out?.text ?? '')).toBeLessThan(40 * 1024)
+  })
+})
+
+describe('the five lessons, together', () => {
+  test("declare minutes that sum to within 10 percent of the brief's 205", () => {
+    const declared = LESSON_FILES.map((file) => Number(/^minutes: (\d+)/m.exec(read(file))?.[1]))
+    const sum = declared.reduce((total, minutes) => total + minutes, 0)
+    expect(declared.every((minutes) => Number.isFinite(minutes))).toBe(true)
+    expect(Math.abs(sum - 205)).toBeLessThanOrEqual(0.1 * 205)
+  })
+})
+
 describe('the TR0 module page', () => {
   test('says that TR0 helps before TR1 and locks nothing', () => {
     // The second of the two sentences the page sets under the title.
@@ -420,53 +515,10 @@ moduleKit({
     'Views, copies, and the syncs you cannot see',
     "nn.Module as a struct: Qwen3's forward in the pinned transformers",
     'Reading Triton: grids, programs, BLOCK and masks',
+    "Engine-style model code: Mini-SGLang's Qwen3, and vLLM's MRV2 Triton files",
   ],
   labs: [{ id: 'tr0.forward', lane: 'L', stages: ['s1', 's2', 's3'] }],
   announces: "The lab runs on your laptop's CPU, outside the browser, and needs no GPU.",
   demosFile: 'tests/content/tr0-demos.ts',
   modelTables: MODEL_TABLES,
-  toCome: {
-    kcs: [],
-    claims: [
-      // The pins that the laptop part stands on.
-      'torch.release.upload',
-      'triton.release.upload',
-      'transformers.release.upload',
-      'python.vllm.default-3-12',
-      // Triton's own documents that no written lesson reads yet: the number of programs, and arange's documented rule.
-      'triton.num-programs',
-      'triton.arange-power-of-two',
-      // Lesson 5: vLLM's Model Runner V2 Triton files, Mini-SGLang's Qwen3 and SGLang's PyO3 example.
-      'vllm.mrv2.gumbel-lines',
-      'vllm.mrv2.buffer-utils-lines',
-      'vllm.mrv2.block-table-lines',
-      'vllm.mrv2.input-batch-lines',
-      'vllm.mrv2.rejection-sampler-lines',
-      'vllm.mrv2.temperature-grid',
-      'vllm.mrv2.staged-write-tensor',
-      'vllm.mrv2.input-batch-kernels',
-      'vllm.mrv2.rejection-kernels',
-      'minisgl.qwen3.lines',
-      'minisgl.qwen3.attention-imported',
-      'minisgl.qwen3.layer-order',
-      'minisgl.qwen3.nvtx-layer',
-      'minisgl.attn.merged-qkv',
-      'minisgl.attn.qkv-width',
-      'minisgl.attn.qkv-one-matmul',
-      'minisgl.attn.forward',
-      'minisgl.mlp.gate-up-merged',
-      'sglang.pyo3.module',
-      'sglang.pyo3.registers',
-      'sglang.pyo3.tch',
-      'sglang.pyo3.tensor-bridge',
-      'sglang.pyo3.panic-to-error',
-      'sglang.pyo3.match-prefix',
-      // The model's merged projection (lesson 5 sets it beside Mini-SGLang's), and the files and licence of the checkpoint.
-      'qwen3.config.qkv-merged-rows',
-      'qwen3.config.stored-dtype',
-      'qwen3.revision.licence',
-      'qwen3.weights.bytes',
-      'qwen3.weights.sha256',
-    ],
-  },
 })

@@ -52,6 +52,7 @@ export const PLAN: Readonly<Record<string, Plan>> = {
   'tr0.l3.p1': atCommit,
   'tr0.l4.p1': answered('shape-shifter', 'grid'),
   'tr0.l4.p2': atCommit,
+  'tr0.l5.p1': atCommit,
 
   // TR1, Request path: the lifecycle model's path for the engine the level lays, and the same request with one lever moved.
   'tr1.l1.p1': answered('engine-floor', 'nano'),

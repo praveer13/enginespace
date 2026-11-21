@@ -52,7 +52,7 @@ export const W1_ROUTES: string[] = [
  * module page and its first lesson, the first module that W2 publishes, and the first graded lab's page (W2-T16), TR0's forward pass, which
  * links the kit and the grader and is where a learner first needs them.
  */
-export const W2_ROUTES: string[] = ['/receipts', '/play/shape-shifter', '/m/tr0', '/m/tr0/l1-pytorch-in-rust-terms', '/m/tr0/l2-views-copies-and-hidden-syncs', '/m/tr0/l3-nn-module-as-a-struct', '/labs/tr0.forward', '/m/tr0/l4-reading-triton']
+export const W2_ROUTES: string[] = ['/receipts', '/play/shape-shifter', '/m/tr0', '/m/tr0/l1-pytorch-in-rust-terms', '/m/tr0/l2-views-copies-and-hidden-syncs', '/m/tr0/l3-nn-module-as-a-struct', '/labs/tr0.forward', '/m/tr0/l4-reading-triton', '/m/tr0/l5-engine-style-model-code']
 
 /**
  * A game's page opens on its first level, and `?level=` opens another, so the document list does not reach them. W1-T36 adds the levels

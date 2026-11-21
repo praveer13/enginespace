@@ -27,6 +27,9 @@ function launch1000(): { programs: number; lanes: number; masked: number } {
   return out
 }
 
+/** Mini-SGLang's attention projects the query, the key and the value through one merged linear layer: one `F.linear`, so one matrix multiply. */
+const MERGED_MULTIPLIES = 1
+
 export const COMMITS: Readonly<Record<string, Commit>> = {
   'tr0.l1.p2': {
     says: ['`(3, 5)`', '`y = x[:, ::2]`', '`y.stride(1)`'],
@@ -78,5 +81,19 @@ export const COMMITS: Readonly<Record<string, Commit>> = {
     sources: [],
     tag: 'derived',
     truth: () => launch1000().masked,
+  },
+  'tr0.l5.p1': {
+    says: ['three matrix multiplies', 'q_proj', 'one matmul'],
+    working: [
+      'The attention of lesson 3 has three linear layers, so it makes the query, the key and the value with three matrix multiplies.',
+      'Mini-SGLang builds one merged linear layer for the three, whose output width is (heads + 2 × key and value heads) × head size, the three outputs side by side. A linear layer there is one call of F.linear on its weight, so one call is one matmul.',
+      `So Mini-SGLang's attention uses ${figure(MERGED_MULTIPLIES)} matmul for the query, the key and the value.`,
+    ],
+    sources: [
+      { claim: 'minisgl.attn.merged-qkv', text: 'Mini-SGLang at 9a91cfaf, python/minisgl/models/utils.py, RopeAttn' },
+      { claim: 'minisgl.attn.qkv-one-matmul', text: 'Mini-SGLang at 9a91cfaf, python/minisgl/layers/linear.py, _LinearTPImpl.forward' },
+    ],
+    tag: 'measured',
+    truth: () => MERGED_MULTIPLIES,
   },
 }

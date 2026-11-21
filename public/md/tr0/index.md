@@ -18,7 +18,7 @@ Most of what engine code does to a tensor is bookkeeping over a buffer: a shape,
 
 ## The browser part
 
-The browser part is five lessons and a game, and none of it needs a GPU. The first four lessons are published, and the fifth is not yet.
+The browser part is five lessons and a game, and none of it needs a GPU.
 
 1. PyTorch in Rust terms: storage, shape, strides, dtype, device.
 2. Views, copies, and the syncs you cannot see.
@@ -42,6 +42,8 @@ The lab has three stages, and each is graded by the checks it names:
 - **Stage `s2`, the whole forward pass.** You write every layer, the final norm and the head, and load the checkpoint into your own modules. `logits-fp32` compares your logits with the reference's at every element, and `import-guard` passes when your file does not import `transformers.models`. A third check, `argmax-bank`, is made by this site from your receipt: it compares your top token at chosen positions with the ids the course recorded. Where it stands: awaiting the course's reference bank. Until those ids are recorded, `argmax-bank` cannot pass, and a receipt of this stage cannot pass.
 - **Stage `s3`, the KV cache.** You decode token by token. `cache-logits` compares each step's logits with a full recompute of the same prefix, and `cache-lengths` checks that the cache holds as many positions as the prefix after every step. Where it stands: built; the course has not yet run this lab on the pinned weights.
 
+The lab loads one model, Qwen3-0.6B at the revision `c1899de2`. Its model card names the licence. **apache-2.0** [measured] Its configuration names the dtype it was saved in, and the lab runs in `float32`, so it converts what it loads. **bfloat16** [measured] The hub lists the checkpoint's size and its hash, and the course has not fetched the file, so neither is checked. **1503300328** [unverified] **f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b** [unverified]
+
 Nothing on this page is a run of your machine. The grader runs only on your laptop, and the course has run none of the three stages on the pinned weights, so no logit, difference or time on this page was measured. The lab's own page says where each stage stands, in the same words.
 
 Credit follows the same line. The module is browser-complete when the lessons' Tests and the graded levels of Tensor views are credited. It is complete when the lab's receipts are credited as well, and a Prove run with the agent closed is on record.
@@ -56,3 +58,11 @@ Credit follows the same line. The module is browser-complete when the lessons' T
 - [Views, copies, and the syncs you cannot see](l2-views-copies-and-hidden-syncs.md): lesson `tr0.l2`, about 50 minutes [estimated]
 - [nn.Module as a struct: Qwen3's forward in the pinned transformers](l3-nn-module-as-a-struct.md): lesson `tr0.l3`, about 20 minutes [estimated]
 - [Reading Triton: grids, programs, BLOCK and masks](l4-reading-triton.md): lesson `tr0.l4`, about 50 minutes [estimated]
+- [Engine-style model code: Mini-SGLang's Qwen3, and vLLM's MRV2 Triton files](l5-engine-style-model-code.md): lesson `tr0.l5`, about 20 minutes [estimated]
+
+## Claims cited
+
+- `qwen3.config.stored-dtype`: The configuration names bfloat16 as the dtype the model was saved in. The lab runs the forward in float32, so it converts what it loads. Value bfloat16 [measured], checked 2026-11-20 (source: Qwen/Qwen3-0.6B at c1899de2, config.json, torch_dtype <https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L25>, read 2026-11-20).
+- `qwen3.revision.licence`: The model card names the licence apache-2.0. Value apache-2.0 [measured], checked 2026-11-20 (source: Hugging Face, Qwen/Qwen3-0.6B (JSON API) <https://huggingface.co/api/models/Qwen/Qwen3-0.6B>, read 2026-11-20).
+- `qwen3.weights.bytes`: The hub lists model.safetensors at that revision as 1503300328 bytes. The course has not fetched the file, so the size is unverified until the file has been downloaded and measured. Value 1503300328 [unverified], checked 2026-11-20 (source: Hugging Face, Qwen/Qwen3-0.6B at c1899de2, file sizes (JSON API) <https://huggingface.co/api/models/Qwen/Qwen3-0.6B/revision/c1899de289a04d12100db370d81485cdf75e47ca?blobs=true>, read 2026-11-20).
+- `qwen3.weights.sha256`: The hub lists the SHA-256 of model.safetensors at that revision as f47f7117…6874b. The course has not fetched the file, so the hash is unverified until the file has been downloaded and hashed. Value f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b [unverified], checked 2026-11-20 (source: Hugging Face, Qwen/Qwen3-0.6B at c1899de2, file hashes (JSON API) <https://huggingface.co/api/models/Qwen/Qwen3-0.6B/revision/c1899de289a04d12100db370d81485cdf75e47ca?blobs=true>, read 2026-11-20).
