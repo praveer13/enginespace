@@ -122,6 +122,8 @@ export interface IntroState {
   readonly turns: number
   /** On a phone, the part the list shows. */
   readonly partAt: number
+  /** The intro is over, and its strip waits blank in its place while a digit is being typed (Frame.tsx). */
+  readonly ended?: boolean
 }
 
 export interface IntroPlanInput {

@@ -300,19 +300,19 @@ export function LessonView({ lesson, module, lessons: rows, claims, today, map =
   const names = useLevelNames()
   const levelTitle = (game: string, level: string) => names(game, level) ?? rosterEntry(game)?.title ?? 'A level'
   const wide = useWide()
-  // On a narrow, short-enough page the strip's own place in the flow can fall into the bar's zone at the top of the page, and the bar would
-  // cover half of the strip's button. While it does, the bar steps aside (hidden, so it is neither seen nor tabbed to); once the page has
-  // scrolled, or the strip is stuck at the top, the two never meet.
+  // The bar at the foot is the lesson's way on, and it is never hidden. On a short phone the strip's own place in the flow lies under the bar for
+  // a stretch of the scroll (and at the top of the page): the bar is drawn over it, and while the strip's button lies under the bar the strip waits
+  // hidden, so a button that is covered is neither seen as half a button nor tabbed to. Once the strip is clear, or stuck at the top, it is back.
   useEffect(() => {
     if (wide) return
     const settle = () => {
       const foot = document.querySelector<HTMLElement>('.es-lesson__foot')
       const strip = document.querySelector<HTMLElement>('.es-lesson__strip')
-      if (foot === null || strip === null) return
-      const bar = foot.getBoundingClientRect()
-      const at = strip.getBoundingClientRect()
-      if (at.top < bar.bottom && at.bottom > bar.top) foot.setAttribute('data-over-strip', '')
-      else foot.removeAttribute('data-over-strip')
+      const button = strip?.querySelector<HTMLElement>('.es-srail__toggle')
+      if (strip === null || strip === undefined || button === null || button === undefined) return
+      const bar = foot?.getBoundingClientRect()
+      const at = button.getBoundingClientRect()
+      strip.toggleAttribute('data-under-foot', bar !== undefined && at.top < bar.bottom && at.bottom > bar.top)
     }
     settle()
     window.addEventListener('scroll', settle, { passive: true })

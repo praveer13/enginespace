@@ -588,6 +588,56 @@ test.describe('the first run', () => {
   })
 })
 
+test.describe('the first digit of a weight does not move the dock', () => {
+  for (const [width, height] of [
+    [1280, 800],
+    [1440, 900],
+  ] as const) {
+    test(`at ${width} x ${height}: the intro ends under the learner's hand, and the field stays where it was`, async ({ page }) => {
+      test.setTimeout(120_000)
+      await page.setViewportSize({ width, height })
+      await open(page, 'greedy-ngram', { intro: 'fresh' })
+      const coach = page.locator('section.es-intro')
+      for (let step = 0; step < 6 && (await page.getByRole('button', { name: 'Accepted', exact: true }).count()) === 0; step++)
+        await page.getByRole('button', { name: /^Next/ }).click()
+      await page.getByRole('button', { name: 'Accepted', exact: true }).click()
+      await tabTo(page, /^Resample weight for token 0$/)
+      await expect(coach).toHaveCount(1)
+      const top = () => page.getByLabel('Resample weight for token 0').evaluate((field) => field.getBoundingClientRect().top)
+      const before = await top()
+      await page.keyboard.type('1')
+      // The intro is over: its strip stands blank in its place while focus is in the field, and the field has not moved.
+      await expect(coach).toBeHidden()
+      await expect(coach).toHaveCount(1)
+      expect(Math.abs((await top()) - before)).toBeLessThanOrEqual(1)
+      await page.keyboard.type('2')
+      expect(Math.abs((await top()) - before)).toBeLessThanOrEqual(1)
+      // Focus moving on gives the strip's place back.
+      await page.getByRole('button', { name: 'Restart level' }).focus()
+      await expect(coach).toHaveCount(0)
+    })
+  }
+})
+
+test.describe('the first digit of a weight on a phone', () => {
+  test('at 390 x 844: the intro ends with the digit, and the page carries on', async ({ page }) => {
+    test.setTimeout(120_000)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await open(page, 'greedy-ngram', { intro: 'fresh' })
+    const coach = page.locator('section.es-intro')
+    for (let step = 0; step < 14 && (await page.getByRole('button', { name: 'Accepted', exact: true }).count()) === 0; step++)
+      await page.getByRole('button', { name: /^Next/ }).click()
+    await page.getByRole('button', { name: 'Accepted', exact: true }).click()
+    await tabTo(page, /^Resample weight for token 0$/)
+    await expect(coach).toHaveCount(1)
+    await page.keyboard.type('1')
+    await expect(coach).toHaveCount(0)
+    await expect(page.getByRole('heading', { name: 'This page stopped' })).toHaveCount(0)
+    await expect(page.getByLabel('Resample weight for token 0')).toHaveValue('1')
+    await expect(page.getByLabel('Resample weight for token 0')).toBeFocused()
+  })
+})
+
 test.describe('the draws settle on the overlap', () => {
   test('draws of 10, 100 and 1,000 settle on the overlap, and the moment is named once', async ({ page }) => {
     await open(page, 'overlap')

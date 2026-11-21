@@ -205,6 +205,8 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     const timer = window.setTimeout(() => setStripLate(true), 1500)
     return () => window.clearTimeout(timer)
   }, [stripAwaited])
+  // A real move ends the intro. If it is a digit typed into a field (the event in hand is an input event), the strip stays in its place, drawn
+  // blank, until focus moves on (and not at all on a phone, Intro.tsx): taking it out would carry the field away from under the hand.
   const endIntro = () => {
     if (intro === null) return
     if (!intro.checking)
@@ -213,7 +215,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
         intro.parts.map((part) => part.id),
       )
     setShown(readShown(game.id))
-    setIntro(null)
+    setIntro(window.event?.type === 'input' ? { ...intro, ended: true } : null)
   }
   /**
    * A dispatched action tells the intro what the learner did: the ask's own answer moves it on, and any real move ends it, also one made
@@ -590,6 +592,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
                         moveWords={kit.firstMoveWords}
                         moveKind={kit.firstMoveKind}
                         embedded={embedded}
+                        ended={intro.ended}
                         partAt={intro.partAt}
                         onPartAt={(partAt) => setIntro({ ...intro, partAt })}
                         onNext={() => {
