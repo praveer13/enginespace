@@ -5,8 +5,10 @@ token, canonical JSON, SHA-256), the packaged schemas, and a whole stage graded 
 refused when one artifact's hash is changed. Then, where the grader's `tests/` folder sits beside the package (a checkout of the repository, or the kit),
 its unittest suite runs too. A wheel carries the package only, so there the built-in checks are what runs, and the command says so.
 
-`--gpu` is the GPU smoke that the owner runs at each re-pin (W2-T12). No GPU lab exists yet, so it stops with a message instead of passing: a smoke that
-checked nothing and said "passed" would be worse than none.
+`--gpu` is the GPU smoke that the owner runs at each re-pin (W2-T12), and it adds what only a GPU machine can answer to the checks above: that NVML or
+`nvidia-smi` sees a GPU and a driver, that torch is a CUDA build that sees the device, and that a matrix product on the device gives the bytes the CPU gives. With no
+CUDA GPU it stops with one line that says why and exits non-zero: a smoke that checked nothing and said "passed" would be worse than none. It runs no lab: it
+says so, because a lab's run on a real engine is a separate step.
 
 The synthetic lab is `tr0.selftest`. No lab of the course has that id, so no token that the site issues names it, and a bundle it writes is a file in a
 scratch folder that is removed when the command ends.
@@ -40,7 +42,7 @@ from .rng import hash32, rng_for, splitmix32u
 from .schemas import SCHEMA_NAMES, validator
 from .verify import verify_file
 
-__all__ = ["SelfTestLab", "builtin_checks", "main"]
+__all__ = ["SelfTestLab", "builtin_checks", "gpu_checks", "main"]
 
 
 class SelfTestLab(Lab):
@@ -160,6 +162,77 @@ def builtin_checks() -> list[tuple[str, Callable[[], str]]]:
     ]
 
 
+#: The side of the square matrices of the GPU smoke's product.
+MATMUL_SIDE = 64
+
+
+def _cuda_matmul(torch: Any) -> int:
+    """The number of entries in which a matrix product on the first CUDA device differs from the CPU's. The entries are multiples of 1/4 with magnitudes below 1, so
+    every product and every partial sum is exact in fp32 whatever the order of the additions: the two must agree to the bit, and no tolerance is needed."""
+    torch.backends.cuda.matmul.allow_tf32 = False  # TF32 rounds the inputs, and the product would no longer be exact
+    count = MATMUL_SIDE * MATMUL_SIDE
+    a = ((torch.arange(count, dtype=torch.int64) % 7) - 3).to(torch.float32).div(4).reshape(MATMUL_SIDE, MATMUL_SIDE)
+    b = ((torch.arange(count, dtype=torch.int64) % 5) - 2).to(torch.float32).div(4).reshape(MATMUL_SIDE, MATMUL_SIDE)
+    on_cpu = a @ b
+    on_gpu = (a.to("cuda") @ b.to("cuda")).cpu()
+    return int((on_cpu != on_gpu).sum().item())
+
+
+def _gib_text(memory_bytes: int) -> str:
+    return f"{memory_bytes / 1024**3:.0f} GiB"
+
+
+def gpu_checks(probes: fingerprint.Probes | None = None) -> list[tuple[str, Callable[[], str]]]:
+    """The checks that only a GPU machine can pass, by name. Raises GraderError, with one line that says why, when the machine shows no CUDA GPU at all: the rest
+    would only repeat it."""
+    source = probes if probes is not None else fingerprint.default_probes()
+    found = fingerprint.gather("other", probes=source)
+    environment = found.environment
+    gpus = environment["gpus"]
+    if not gpus:
+        reasons = "; ".join(note for note in found.notes if "NVML" in note or "nvidia" in note or "torch" in note) or "no NVIDIA GPU was reported"
+        raise GraderError(f"selftest --gpu found no CUDA GPU on this machine ({reasons}). Run it on the GPU machine, in the environment of the lab that you will run")
+
+    def check_gpus() -> str:
+        for gpu in gpus:
+            if "computeCapability" not in gpu:
+                raise AssertionError(f"{gpu['name']}: its compute capability was not read ")
+        names = ", ".join(f"{gpu['name']} ({_gib_text(gpu['memoryBytes'])}, capability {gpu['computeCapability']})" for gpu in gpus)
+        return f"{len(gpus)} GPU{'' if len(gpus) == 1 else 's'} seen: {names}"
+
+    def check_driver() -> str:
+        driver = environment.get("driver")
+        if driver is None:
+            raise AssertionError("no driver version was read (NVML and nvidia-smi gave none)")
+        if "cudaVersion" not in driver:
+            raise AssertionError(f"driver {driver['version']} did not report the CUDA version it supports")
+        return f"driver {driver['version']}, which supports CUDA {driver['cudaVersion']}"
+
+    def check_torch() -> str:
+        info = environment["torch"]
+        if info["version"] == fingerprint.NO_TORCH:
+            raise AssertionError("torch is not installed in this environment")
+        if "cuda" not in info:
+            raise AssertionError(f"torch {info['version']} is a build without CUDA")
+        module = source.torch()
+        if module is None or not module.cuda.is_available():
+            raise AssertionError(f"torch {info['version']} (CUDA {info['cuda']}) does not see the GPU: a driver older than the build's CUDA needs, or a container started without the GPU")
+        return f"torch {info['version']} built for CUDA {info['cuda']} sees {module.cuda.device_count()} device{'' if module.cuda.device_count() == 1 else 's'}"
+
+    def check_product() -> str:
+        module = source.torch()
+        if module is None:
+            raise AssertionError("torch is not installed in this environment")
+        if not module.cuda.is_available():
+            raise AssertionError("torch has no CUDA device to run the product on")
+        different = _cuda_matmul(module)
+        if different:
+            raise AssertionError(f"a {MATMUL_SIDE} by {MATMUL_SIDE} fp32 product on the GPU differs from the CPU's in {different} entries, and its sums are exact")
+        return f"a {MATMUL_SIDE} by {MATMUL_SIDE} fp32 product on the GPU equals the CPU's in every entry"
+
+    return [("gpus", check_gpus), ("driver", check_driver), ("torch", check_torch), ("product", check_product)]
+
+
 def _find_suite() -> Path | None:
     """The grader's tests folder, if it sits beside the package: `labs/grader/tests` of a checkout, or `grader/tests` of the kit."""
     candidate = Path(__file__).resolve().parents[2] / "tests"
@@ -188,15 +261,14 @@ def _run_suite(folder: Path) -> tuple[int, int]:
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="enginespace selftest", description="Run the grader's own checks, and its tests where they are installed.")
-    parser.add_argument("--gpu", action="store_true", help="add the GPU smoke that the owner runs at each re-pin (not built yet)")
+    parser.add_argument("--gpu", action="store_true", help="add the GPU smoke that the owner runs at each re-pin: a GPU and its driver, torch with CUDA, and a product on the device. With no CUDA GPU it fails")
     parser.add_argument("--no-suite", action="store_true", help="run the built-in checks only, and not the unittest suite beside the package")
     args = parser.parse_args(list(argv) if argv is not None else None)
-    if args.gpu:
-        raise GraderError("the GPU smoke is not built yet: no GPU lab exists to run (W2-T12 runs it on the owner's GPUs once one does). Run `enginespace selftest` for the checks that exist")
+    gpu = gpu_checks() if args.gpu else []  # raises, before anything is printed, on a machine with no CUDA GPU
     grader = identity()
     sys.stdout.write(f"{grader.name} {grader.version}, source sha256 {grader.source_sha256}\n")
     failed = 0
-    for name, check in builtin_checks():
+    for name, check in [*gpu, *builtin_checks()]:
         try:
             sys.stdout.write(f"  ok    {check()}\n")
         except Exception as error:  # noqa: BLE001 - a check that breaks is a failed check, whatever broke it
@@ -209,6 +281,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         sys.stdout.write(f"  {'ok  ' if problems == 0 else 'FAIL'}  the grader's tests: {run} run, {problems} failed\n")
     elif not args.no_suite:
         sys.stdout.write("  note  the grader's tests are not installed beside the package (a wheel carries the package only), so only the built-in checks ran\n")
+    if args.gpu:
+        sys.stdout.write("  note  this ran no lab: it checked the machine and the grader, and a lab's run on a real engine is a separate step\n")
     sys.stdout.write("selftest passed\n" if failed == 0 else f"selftest FAILED: {failed} problem{'' if failed == 1 else 's'}\n")
     return 0 if failed == 0 else 1
 
