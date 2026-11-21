@@ -148,6 +148,35 @@ export const PREDICTIONS: Readonly<Record<string, NumericPrediction>> = {
     unit: 'lanes',
     reference: () => cdiv(1000, 128) * 128 - 1000,
   },
+  // Mini-SGLang's merged query, key and value projection: one linear layer, so one matrix multiply where the Hugging Face layer makes three.
+  'tr0.l5.p1': {
+    kind: 'numeric',
+    unit: 'matmuls',
+    reference: () => mergedProjection().multiplies,
+  },
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Lesson 5's arithmetic                                                                                              */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** Qwen3-0.6B's attention sizes, as the claims on the pinned config.json give them. */
+export const QWEN3 = { heads: 16, kvHeads: 8, headDim: 128, vocab: 151936 } as const
+
+/**
+ * Mini-SGLang's merged projection against Hugging Face's three: the rows of each, and the matrix multiplies each makes (a linear layer is
+ * one `F.linear`, one multiply). The merged width is (heads + 2 * kv heads) * head size, the three outputs side by side.
+ */
+export function mergedProjection(): { query: number; key: number; value: number; merged: number; multiplies: number; separateMultiplies: number } {
+  const { heads, kvHeads, headDim } = QWEN3
+  return { query: heads * headDim, key: kvHeads * headDim, value: kvHeads * headDim, merged: (heads + 2 * kvHeads) * headDim, multiplies: 1, separateMultiplies: 3 }
+}
+
+/** The temperature kernel's launch for Qwen3-0.6B's vocabulary: `cdiv(vocab_size, 8192)` programs of 8192 lanes on each token. */
+export function temperatureLaunch(): { programs: number; lanes: number; masked: number; lastBlockLive: number } {
+  const out = gridCoverage([QWEN3.vocab], [8192])
+  if ('error' in out) throw new Error('the model refuses the temperature launch')
+  return { programs: out.programs, lanes: out.lanes, masked: out.masked, lastBlockLive: QWEN3.vocab - (out.programs - 1) * 8192 }
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */

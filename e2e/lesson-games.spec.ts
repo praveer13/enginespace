@@ -57,9 +57,9 @@ async function tabToLocator(walk: Walk, target: Locator, limit: number): Promise
 }
 
 test.describe('the blocks', () => {
-  test('are the game blocks that the course holds (48 today), in all its lessons but two', () => {
+  test('are the game blocks that the course holds (48 today), in all its lessons but three', () => {
     expect(BLOCKS.length).toBe(TOTAL_GAME_BLOCKS)
-    expect(lessonsOf(BLOCKS).length).toBe(TOTAL_LESSONS - 2)
+    expect(lessonsOf(BLOCKS).length).toBe(TOTAL_LESSONS - 3)
   })
 })
 

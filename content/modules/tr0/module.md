@@ -37,7 +37,7 @@ Most of what engine code does to a tensor is bookkeeping over a buffer: a shape,
 
 ## The browser part
 
-The browser part is five lessons and a game, and none of it needs a GPU. The first four lessons are published, and the fifth is not yet.
+The browser part is five lessons and a game, and none of it needs a GPU.
 
 1. PyTorch in Rust terms: storage, shape, strides, dtype, device.
 2. Views, copies, and the syncs you cannot see.
@@ -60,6 +60,8 @@ The lab has three stages, and each is graded by the checks it names:
 - **Stage `s1`, one layer.** You write the norm, the attention and the MLP of one decoder layer, and the grader compares the first layer's hidden states with the reference's. The check is `layer0-hidden`, and it shows where an error starts, before the layers above it hide it. The module does not need this stage. Where it stands: built; the course has not yet run this lab on the pinned weights.
 - **Stage `s2`, the whole forward pass.** You write every layer, the final norm and the head, and load the checkpoint into your own modules. `logits-fp32` compares your logits with the reference's at every element, and `import-guard` passes when your file does not import `transformers.models`. A third check, `argmax-bank`, is made by this site from your receipt: it compares your top token at chosen positions with the ids the course recorded. Where it stands: awaiting the course's reference bank. Until those ids are recorded, `argmax-bank` cannot pass, and a receipt of this stage cannot pass.
 - **Stage `s3`, the KV cache.** You decode token by token. `cache-logits` compares each step's logits with a full recompute of the same prefix, and `cache-lengths` checks that the cache holds as many positions as the prefix after every step. Where it stands: built; the course has not yet run this lab on the pinned weights.
+
+The lab loads one model, Qwen3-0.6B at the revision `c1899de2`. Its model card names the licence. {{claim:qwen3.revision.licence}} Its configuration names the dtype it was saved in, and the lab runs in `float32`, so it converts what it loads. {{claim:qwen3.config.stored-dtype}} The hub lists the checkpoint's size and its hash, and the course has not fetched the file, so neither is checked. {{claim:qwen3.weights.bytes}} {{claim:qwen3.weights.sha256}}
 
 Nothing on this page is a run of your machine. The grader runs only on your laptop, and the course has run none of the three stages on the pinned weights, so no logit, difference or time on this page was measured. The lab's own page says where each stage stands, in the same words.
 
