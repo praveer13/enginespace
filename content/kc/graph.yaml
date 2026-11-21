@@ -38,25 +38,21 @@
   description: You can read a tensor as a buffer plus a shape, strides and an offset, and give the address of an element and the strides after a slice, a transpose, a permute or an expand.
   requires: [ks:t0.stride-traversal, ks:t0.data-layout]
   threshold: true
-  planned: W2b-T29 # the item family tr0.strides-of; Tensor views' graded level fewest (W2-T14) names it too
 
 - id: tr0.view-vs-copy
   description: You can say which operations make a view and which copy, where view fails and reshape copies instead, and how many elements a copy moves.
   requires: [tr0.tensor-metadata]
   # expand is a view, and a tensor it made must still be copied before it is written.
   confusable: [tr0.broadcast-stride-zero]
-  planned: W2b-T29 # the item family tr0.view-or-copy; Tensor views' graded level fewest (W2-T14) names it too
 
 - id: tr0.broadcast-stride-zero
   description: You can explain broadcasting and expand as a zero stride, and say why a tensor that reads one element in several places is copied before it is written.
   requires: [tr0.view-vs-copy]
   confusable: [tr0.view-vs-copy]
-  planned: W2b-T29 # the expand variant of the item family tr0.strides-of
 
 - id: tr0.hidden-syncs
   description: You can find the calls in PyTorch code that wait for the GPU, such as reading a GPU tensor's value into Python, and say where each one sits in a loop.
   requires: [tr0.tensor-metadata]
-  planned: W2b-T29 # the item family tr0.find-the-sync
 
 - id: tr0.module-as-struct
   description: You can read an nn.Module as a struct, with its parameters as fields and its forward as a method, and map a checkpoint's tensor names onto the code that uses them.
@@ -76,12 +72,10 @@
 - id: tr0.triton-program-model
   description: You can read a Triton kernel's launch, its grid of programs, program_id, a BLOCK that is a compile-time constant, and the offsets each program computes from strides.
   requires: [ks:t4.compute-grid, tr0.tensor-metadata]
-  planned: W2b-T29 # the item family tr0.grid-cover; Tensor views' graded level grid (W2-T14) names it too
 
 - id: tr0.triton-masks
   description: You can say which lanes of a Triton program are masked at a tensor's edge, and count the masked lanes of a grid.
   requires: [tr0.triton-program-model]
-  planned: W2b-T29 # the item family tr0.grid-cover; Tensor views' graded level grid (W2-T14) names it too
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # TR1 · Read the engines
