@@ -220,8 +220,8 @@ test.describe('nothing comes under the hand', () => {
     const launch = page.getByRole('button', { name: 'Launch', exact: true })
     const box = await launch.boundingBox()
     if (box === null) throw new Error('Launch is not drawn')
+    // A double click as a hand makes it: two presses 400 ms apart, whatever the page has drawn in between.
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
-    await expect(verdict(page)).toHaveText('Finished (practice)')
     await page.waitForTimeout(400)
     await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
     await page.waitForTimeout(400)
