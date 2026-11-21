@@ -62,8 +62,12 @@ __all__ = [
     "POOL_LENGTH",
     "POOL_PROMPTS",
     "PREFIX_LENGTH",
+    "BANK_FORMAT",
+    "BANK_MARGIN",
     "ModelSource",
     "Tr0Forward",
+    "argmax_bank",
+    "bank_bytes",
     "pool_position",
     "pool_prompts",
 ]
@@ -92,6 +96,11 @@ POINT_NAMES = tuple(name for name, _ in POINTS)
 
 POINTS_FORMAT = "enginespace/tr0-points@1"
 ARGMAX_FORMAT = "enginespace/argmax@1"
+BANK_FORMAT = "enginespace/argmax-bank@1"
+
+#: The least gap, in fp32 logits, between a position's best token and its runner-up for the owner's bank to keep the position [estimated]. It is a thousand times the
+#: logit bound, so that a learner's honest forward pass (within LOGIT_BOUND of the reference at every element) cannot cross the gap and pick another token.
+BANK_MARGIN = 1.0
 
 #: What each check says it checks, in the course's own words: the page of the lab shows these (src/labs/specimen.ts reads the same sentences).
 CHECK_LABELS: dict[str, str] = {
@@ -117,6 +126,53 @@ def pool_prompts(vocab_size: int) -> list[list[int]]:
     return rows
 
 
+def argmax_bank(source: ModelSource, margin: float = BANK_MARGIN) -> dict[str, Any]:
+    """The owner's bank (W2-T17): the reference's argmax ids over stage 2's pool prompts, at the positions where its best logit leads the runner-up by at least `margin`.
+
+    Hugging Face `transformers`, fp32, this CPU, `source`'s files. The positions are `pool_position`'s, in increasing order, which the site's `argmax-bank` re-check
+    reads (packages/verify/rechecks.ts). Nothing here reads the learner's file, writes a path or chooses a seed: the same files, margin and builds of torch and transformers give
+    the same document, and the document names the builds and the model's files so that a bank is never read apart from what made it.
+    """
+    import torch
+    import transformers
+    from transformers import AutoModelForCausalLM
+
+    if not margin > 0:
+        raise ValueError("a margin is a positive gap between two logits")
+    config = json.loads((source.folder / "config.json").read_text(encoding="utf-8"))
+    prompts = pool_prompts(int(config["vocab_size"]))
+    model = AutoModelForCausalLM.from_pretrained(str(source.folder), dtype=torch.float32)
+    model.eval()
+    with torch.no_grad():
+        logits = model(torch.tensor(prompts, dtype=torch.long)).logits.detach().to(torch.float32)
+    top = logits.topk(2, dim=-1)
+    gaps = (top.values[..., 0] - top.values[..., 1]).reshape(-1).tolist()
+    ids = top.indices[..., 0].reshape(-1).tolist()
+    positions: list[int] = []
+    banked: list[int] = []
+    for prompt in range(len(prompts)):
+        for place in range(POOL_LENGTH):
+            at = pool_position(prompt, place)
+            if gaps[at] >= margin:
+                positions.append(at)
+                banked.append(int(ids[at]))
+    return {
+        "schema": BANK_FORMAT,
+        "stage": "tr0.forward.s2",
+        "margin": margin,
+        "pool": {"prompts": POOL_PROMPTS, "length": POOL_LENGTH, "positions": POOL_PROMPTS * POOL_LENGTH},
+        "model": [{"name": entry["name"], "sha256": entry["sha256"], "bytes": entry["bytes"]} for entry in source.inputs],
+        "builds": {"torch": str(torch.__version__), "transformers": str(transformers.__version__)},
+        "positions": positions,
+        "ids": banked,
+    }
+
+
+def bank_bytes(bank: Mapping[str, Any]) -> bytes:
+    """The bank as the bytes the owner publishes and hashes: canonical JSON and a final newline."""
+    return canonical_bytes(bank) + b"\n"
+
+
 def pool_position(prompt: int, place: int) -> int:
     """The index that the argmax artifact, and the owner's bank, give to token `place` of prompt `prompt`."""
     return prompt * POOL_LENGTH + place
@@ -133,7 +189,8 @@ class ModelSource:
 def pinned_model() -> ModelSource:
     """The pinned model in the cache that `enginespace fetch tr0.forward` fills, every file hashed again. A file that is not there is a `GraderError` that says to fetch."""
     manifest = fetch.load_manifest(fetch.find_manifest())
-    references = manifest.for_lab("tr0.forward")
+    # Only the model's files: the owner's bank (W2-T17) is listed for this lab too once it is published, and it is neither read here nor one of the receipt's model inputs.
+    references = [reference for reference in manifest.for_lab("tr0.forward") if reference.kind == "model"]
     if not references:
         raise GraderError("the references manifest lists no file for tr0.forward")
     paths = {reference.path.rsplit("/", 1)[-1]: fetch.cached_file(reference) for reference in references}
@@ -370,3 +427,20 @@ class Tr0Forward(Lab):
 
 
 LAB = Tr0Forward()
+
+
+def _main(argv: list[str]) -> int:
+    """`python -m enginespace_grader.labs.tr0_forward bank OUT [MARGIN]`: writes the bank over the pinned model (docs/owner/W2-T17-bank.md) and prints its SHA-256 and size."""
+    if len(argv) not in (2, 3) or argv[0] != "bank":
+        sys.stderr.write("usage: python -m enginespace_grader.labs.tr0_forward bank OUT [MARGIN]\n")
+        return 2
+    margin = float(argv[2]) if len(argv) == 3 else BANK_MARGIN
+    bank = argmax_bank(pinned_model(), margin)
+    data = bank_bytes(bank)
+    Path(argv[1]).write_bytes(data)
+    sys.stdout.write(f"{len(bank['positions'])} of {POOL_PROMPTS * POOL_LENGTH} positions banked at margin {margin}; {len(data)} bytes, sha256 {sha256_hex(data)}\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(_main(sys.argv[1:]))
