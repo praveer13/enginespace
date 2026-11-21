@@ -12,6 +12,48 @@ import type { GenFace } from './types'
 
 export const CATALOG: readonly GenFace[] = [
   {
+    id: 'tr0.find-the-sync',
+    version: 1,
+    title: 'The calls that wait for the GPU',
+    kcs: ['tr0.hidden-syncs'],
+    variants: [
+      { id: 'which-line', title: 'The line that waits for the GPU', kcs: ['tr0.hidden-syncs'], levels: [0, 1, 2, 3] },
+      { id: 'count', title: 'How often a loop waits for the GPU', kcs: ['tr0.hidden-syncs'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr0.grid-cover',
+    version: 1,
+    title: 'The grid of a Triton launch',
+    kcs: ['tr0.triton-program-model', 'tr0.triton-masks'],
+    variants: [
+      { id: 'which-program', title: 'The program that covers an element', kcs: ['tr0.triton-program-model', 'tr0.triton-masks'], levels: [0, 1, 2, 3] },
+      { id: 'programs', title: 'The programs of a launch', kcs: ['tr0.triton-program-model'], levels: [0, 1, 2, 3] },
+      { id: 'masked', title: 'The lanes of a launch that are masked', kcs: ['tr0.triton-masks'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr0.strides-of',
+    version: 1,
+    title: 'The strides of a view',
+    kcs: ['tr0.tensor-metadata', 'tr0.broadcast-stride-zero'],
+    variants: [
+      { id: 'after-op', title: 'The stride of a dimension after a view', kcs: ['tr0.tensor-metadata'], levels: [0, 1, 2, 3] },
+      { id: 'expand', title: 'The stride of a dimension after an expand', kcs: ['tr0.tensor-metadata', 'tr0.broadcast-stride-zero'], levels: [0, 1, 2, 3] },
+      { id: 'attention', title: "The strides of an attention layer's reshapes", kcs: ['tr0.tensor-metadata'], levels: [2, 3] },
+    ],
+  },
+  {
+    id: 'tr0.view-or-copy',
+    version: 1,
+    title: 'View, copy or error',
+    kcs: ['tr0.view-vs-copy'],
+    variants: [
+      { id: 'last-call', title: 'What the last call of a chain does', kcs: ['tr0.view-vs-copy'], levels: [0, 1, 2, 3] },
+      { id: 'moved', title: 'The elements a chain of calls moves', kcs: ['tr0.view-vs-copy'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
     id: 'tr1.request-state',
     version: 1,
     title: 'The states of a request',
