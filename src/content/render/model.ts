@@ -296,20 +296,20 @@ export const GAME_TASKS: Readonly<Record<string, string>> = {
 }
 
 /**
- * The forge labs that W1 built, whose pages take a dropped `.wasm` (src/forge/ids.ts): a `lab` block of one leads to a page that works, so its
- * ticket prints no placeholder. The labs of the course are these and `LAB_TASKS`'s, and tests/content/pending.test.ts holds the two lists to
- * the compiler's.
+ * The labs that have a page that works: the forge labs that W1 built, whose pages take a dropped `.wasm` (src/forge/ids.ts), and the graded labs
+ * with a descriptor (src/labs/published.ts), TR0's forward pass so far. A `lab` block of one leads to that page, so its ticket prints no
+ * placeholder. The labs of the course are these and `LAB_TASKS`'s, and tests/content/pending.test.ts holds the two lists to the compiler's, and
+ * this one to the forge labs and the published descriptors.
  */
-export const BUILT_LABS: readonly string[] = ['hybrid-kv', 'rejection-sampler']
+export const BUILT_LABS: readonly string[] = ['hybrid-kv', 'rejection-sampler', 'tr0.forward']
 
 /**
  * The open task that builds each lab that has no page yet, which a `lab` block is the Build card of: the forge lab W2 builds, then the GPU
- * and local labs (lanes L and F). A lab that is built is in `BUILT_LABS` and names no task. The same test holds this table to the tracker,
+ * labs (lane F); the local lab (lane L, TR0's forward pass) has its page. A lab that is built is in `BUILT_LABS` and names no task. The same test holds this table to the tracker,
  * where each task is still open (`[ ]` or `[~]`).
  */
 export const LAB_TASKS: Readonly<Record<string, string>> = {
   'kv-publisher': 'W2-T29',
-  'tr0.forward': 'W2-T16',
   'tr1.fork': 'W2-T34',
   'tr3.profile': 'W2-T23',
   'tr4.sweep': 'W2-T26',

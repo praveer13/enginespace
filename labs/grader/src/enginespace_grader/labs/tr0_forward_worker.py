@@ -182,6 +182,8 @@ def load_weights(model_dir: Path, config: dict[str, Any]) -> dict[str, Any]:
 
 
 def load_solution(path: Path) -> Any:
+    # The grader writes nothing into the learner's folder, a cache of bytecode included: the kit's starter is packed from the repository, and a __pycache__ beside it would not be.
+    sys.dont_write_bytecode = True
     sys.path.insert(0, str(path.parent))
     spec = importlib.util.spec_from_file_location("learner_forward", path)
     if spec is None or spec.loader is None:

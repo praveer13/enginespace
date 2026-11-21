@@ -9,7 +9,7 @@ import { GRADED_LABS, SPECIMEN_IDS } from '@/labs/published'
 import { printedId } from '@/map/summary'
 import { labById } from '@/receipts/labs'
 import { TEST_HOOKS } from '@/scene/test-hook'
-import { LAB_HOLDS, LAB_STUBS, type LabStub } from '@/unbuilt/copy'
+import { LAB_HOLDS, LAB_LOCAL, LAB_STUBS, type LabStub } from '@/unbuilt/copy'
 import { Unbuilt } from '@/unbuilt/Unbuilt'
 
 /*
@@ -49,7 +49,9 @@ function LabStubPage({ id, stub }: { id: string; stub: LabStub }) {
       </p>
       {stub.lane === 'B' ? null : (
         <p className="es-panel__lead" data-link="gpu-lab-results">
-          This lab runs on your own machine. Get its challenge and bring its receipt file back on <TextLink to={`/receipts${stageQuery(id)}`}>GPU lab results</TextLink>.
+          {LAB_LOCAL.before}
+          <TextLink to={`/receipts${stageQuery(id)}`}>{LAB_LOCAL.link}</TextLink>
+          {LAB_LOCAL.after}
         </p>
       )}
     </Unbuilt>

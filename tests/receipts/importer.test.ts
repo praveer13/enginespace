@@ -20,6 +20,7 @@ import type { Outcome, PublishedGrader } from '@es/verify'
 import { ATLAS } from '@/receipts/atlas'
 import { heldChallenges } from '@/receipts/challenge'
 import { creditReceipts } from '@/receipts/credit'
+import { STAGE_DECLARATIONS } from '@/receipts/declared'
 import { importReceipt } from '@/receipts/importer'
 import type { ImportEnv, ImportResult } from '@/receipts/importer'
 import { readReceipt } from '@/receipts/records'
@@ -359,7 +360,8 @@ describe('a check that cannot finish', () => {
       graders: [GRADER],
       pins: [VLLM_PIN],
       atlas: ATLAS,
-      stages: {},
+      // The site's own declarations (TR0's three stages: the pinned model's files), and no bank until the owner records one.
+      stages: STAGE_DECLARATIONS,
       banks: {},
     })
   })

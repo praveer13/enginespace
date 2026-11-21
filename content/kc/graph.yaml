@@ -32,7 +32,8 @@
 # ---------------------------------------------------------------------------------------------------------------------------------
 # TR0 · PyTorch for the Rust-first, and reading Triton
 # Each KC's first graded reference is planned (curriculum/TR0-pytorch-for-rust.md, "Before you write", item 14): W2b-T29's four item
-# families, then W2-T14's graded levels of Tensor views, and the stages of the tr0.forward lab (W2-T16). Each task removes its own lines.
+# families, then W2-T14's graded levels of Tensor views, and the stages of the tr0.forward lab. Each task removes its own lines; the lab's
+# are gone, and packages/verify/stage-kcs.ts names the stages that earn tr0.module-as-struct, tr0.decoder-forward and tr0.kv-cache-contract.
 # ---------------------------------------------------------------------------------------------------------------------------------
 - id: tr0.tensor-metadata
   description: You can read a tensor as a buffer plus a shape, strides and an offset, and give the address of an element and the strides after a slice, a transpose, a permute or an expand.
@@ -57,17 +58,14 @@
 - id: tr0.module-as-struct
   description: You can read an nn.Module as a struct, with its parameters as fields and its forward as a method, and map a checkpoint's tensor names onto the code that uses them.
   requires: []
-  planned: W2-T16 # stage 2 of the tr0.forward lab, which loads the checkpoint into the learner's own module
 
 - id: tr0.decoder-forward
   description: You can follow a decoder's forward pass in PyTorch, from the embedding through each layer's norms, attention with rotary embeddings and gated MLP to the final projection, and give each tensor's shape.
   requires: [ks:t5.forward-pass-costs, ks:t5.gqa-kv-heads, tr0.module-as-struct]
-  planned: W2-T16 # stage 2 of the tr0.forward lab
 
 - id: tr0.kv-cache-contract
   description: You can add a KV cache to a forward pass so that each decode step's logits equal a full recompute of the same prefix.
   requires: [ks:t5.why-kv-cache, tr0.decoder-forward]
-  planned: W2-T16 # stage 3 of the tr0.forward lab
 
 - id: tr0.triton-program-model
   description: You can read a Triton kernel's launch, its grid of programs, program_id, a BLOCK that is a compile-time constant, and the offsets each program computes from strides.

@@ -1,5 +1,5 @@
 /*
- * W2b-T30: every graded lab's descriptor (src/labs/published.ts), and the specimen (src/labs/specimen.ts), against what the rest of the
+ * W2b-T30: every graded lab's descriptor (src/labs/published.ts), and the specimens (src/labs/specimen.ts, none now), against what the rest of the
  * repository says of the lab, so that a page cannot drift from the lab it describes:
  *
  *   - the lab is one of src/receipts/labs.ts, of lane L or F, and its stages are that list's, in its order;

@@ -19,6 +19,8 @@ from enginespace_grader.labs.tr0_forward import DECODE_STEPS, LOGIT_BOUND, POINT
 from enginespace_grader.schemas import schema_problems
 
 REFERENCE = SOLUTIONS / "reference_forward.py"
+#: The file the kit hands a learner (labs/gpu/tr0-forward/starter/forward.py): every piece of it still to write.
+STARTER = Path(__file__).resolve().parents[2].parent / "gpu" / "tr0-forward" / "starter" / "forward.py"
 MUTANT = SOLUTIONS / "mutant_forward.py"
 
 
@@ -150,6 +152,17 @@ class Grading(CpuCase):
         for text in (check["detail"] for check in result.checks):
             self.assertNotIn(str(SOLUTIONS), text)
             self.assertNotIn("raising_forward", text)
+
+    def test_the_starter_of_the_kit_is_graded_and_fails_every_stage_by_naming_the_piece_to_write(self) -> None:
+        self.assertTrue(STARTER.is_file(), "the kit's starter is missing")
+        for stage in ("tr0.forward.s1", "tr0.forward.s2", "tr0.forward.s3"):
+            result = self.grade(STARTER, stage)
+            graded = [check for check in result.checks if check["id"] != "import-guard"]
+            self.assertTrue(graded and all(check["pass"] is False for check in graded), stage)
+            self.assertIn("NotImplementedError", graded[0]["detail"], stage)
+            self.assertIn("build", graded[0]["detail"], stage)
+        self.assertTrue(check_of(self.grade(STARTER, "tr0.forward.s2"), "import-guard")["pass"], "an unfinished file imports nothing it should not")
+        self.assertFalse((STARTER.parent / "__pycache__").exists(), "the grader writes no bytecode beside the learner's file: the kit's starter is packed from this folder")
 
     def test_the_other_stages_fail_the_same_way_when_the_forward_pass_raises(self) -> None:
         for stage in ("tr0.forward.s1", "tr0.forward.s3"):

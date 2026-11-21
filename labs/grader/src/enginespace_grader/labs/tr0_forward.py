@@ -143,8 +143,9 @@ def pinned_model() -> ModelSource:
     return ModelSource(paths["config.json"].parent, tuple(reference.as_input() for reference in references))
 
 
-#: Where the learner's file is looked for, after the variable ENGINESPACE_SOLUTION: the kit's folder of the lab, from the kit's root.
-SOLUTION_PLACES = ("tr0-forward/forward.py", "gpu/tr0-forward/forward.py")
+#: Where the learner's file is looked for, after the variable ENGINESPACE_SOLUTION, from the kit's root: two places where a learner who copied the starter out may have
+#: put it, then the starter that the kit holds (gpu/tr0-forward/starter/forward.py, the file LAB.md names), which most learners edit in place.
+SOLUTION_PLACES = ("tr0-forward/forward.py", "gpu/tr0-forward/forward.py", "gpu/tr0-forward/starter/forward.py")
 
 
 def solution_file(environ: Mapping[str, str] | None = None, start: Path | None = None) -> Path:
@@ -157,8 +158,8 @@ def solution_file(environ: Mapping[str, str] | None = None, start: Path | None =
         if candidate.is_file():
             return candidate
     raise GraderError(
-        "tr0.forward grades your forward pass, and its file was not found. Run the command from the kit's folder, where tr0-forward/forward.py is, "
-        "or name the file with the variable ENGINESPACE_SOLUTION"
+        "tr0.forward grades your forward pass, and its file was not found. Run the command from the kit's folder, where gpu/tr0-forward/starter/forward.py "
+        "(or tr0-forward/forward.py) is, or name the file with the variable ENGINESPACE_SOLUTION"
     )
 
 

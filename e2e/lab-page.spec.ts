@@ -24,14 +24,14 @@ import AxeBuilder from '@axe-core/playwright'
 import { test as base, expect } from '@playwright/test'
 import type { Page } from '@playwright/test'
 import { build } from 'vite'
-import { SPECIMENS } from '../src/labs/specimen'
+import { GRADED_LABS } from '../src/labs/published'
 import { amberByScroll, copyProblems, stuck } from './support/screens'
 import { clipped } from './support/site'
 
 const root = path.resolve(import.meta.dirname, '..')
 const ORIGIN = 'http://localhost:4178'
 const ROUTE = '/labs/tr0.forward'
-const LAB = SPECIMENS['tr0.forward']
+const LAB = GRADED_LABS['tr0.forward']
 const TYPES: Record<string, string> = {
   '.js': 'text/javascript',
   '.css': 'text/css',
