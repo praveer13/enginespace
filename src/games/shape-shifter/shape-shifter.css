@@ -460,24 +460,60 @@
 
 /* ------------------------------------------------------------------------------------------------ the frame's room for the drawing and the dock */
 
-/* The drawing's box keeps one height while a level is played, so a tensor that grows or shrinks moves nothing over or under it: the cells
-   scroll inside the box where they are taller. */
-@media (max-width: 63.999rem) and (min-height: 700px) {
-  .es-frame[data-game='shape-shifter'] .es-frame__view {
-    height: max(9rem, calc(67svh - 19.5rem));
+/* On a phone the drawing stands in the page's flow, not in a box of its own that scrolls: the table, the cells and the buffer are read
+   together with the page, over the dock pinned at the foot. A tensor that grows or shrinks would move a dock that stands in the flow; the
+   page takes the change back in the same frame (hand.ts), so the dock and the control in hand stay where they are. */
+/* The browser never keeps its place on a cell or a buffer row: a cell that moves inside the drawing would scroll the page, and the dock
+   with it, under the hand. */
+.es-frame[data-game='shape-shifter'] .es-frame__diagram {
+  overflow-anchor: none;
+}
+
+@media (max-width: 63.999rem) {
+  .es-frame[data-game='shape-shifter'][data-placement] .es-frame__view {
+    height: auto;
+    min-height: 0;
+    max-height: none;
+    overflow: visible;
   }
 
-  /* A phone's pinned dock keeps one height while the run is played, so the operation bar stays where the hand is when the picker opens
-     under it or a moment is named. */
-  .es-frame[data-game='shape-shifter'][data-phase='play']:not([data-intro]) .es-frame__dock {
-    height: 33svh;
+  /* At the result the legend, read while the level was played, gives its room to the goal, the drawing and the ways on, so a phone holds
+     them on one screen. */
+  .es-frame[data-game='shape-shifter'][data-phase='result'] .es-frame__legend {
+    display: none;
+  }
+
+  /* After a copy the new buffer stays where the buffer was, and the old one, dashed for one turn, comes under it. */
+  .es-shift__buffer-box {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .es-shift__buffer-box > [data-shift-buffer='old'] {
+    order: 1;
+    margin-top: var(--es-space-1);
   }
 }
 
-@media (max-width: 63.999rem) and (max-height: 699.98px) {
-  .es-frame[data-game='shape-shifter'] .es-frame__view {
-    height: 17rem;
-    overflow: auto;
+/* On a phone the pinned dock holds the bar and an open picker: the last move's moment, said and announced already, stands aside until the
+   choice is made, and the next move's moment takes its place under the bar. */
+@media (max-width: 63.999rem) {
+  .es-frame[data-game='shape-shifter'][data-phase='play'] .es-frame__dock-main:has([data-shift-picker]) > .es-frame__moment {
+    display: none;
+  }
+}
+
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  /* A phone's pinned dock keeps one height while the run is played, so the operation bar stays where the hand is when the picker opens
+     under it or a moment is named, and the first run's Next stays where it is from one part to the next. */
+  .es-frame[data-game='shape-shifter'][data-phase='play'] .es-frame__dock {
+    height: 33svh;
+  }
+
+  /* The drawing scrolls with the page under the pinned dock: a part's name that the keyboard reaches is scrolled clear of the dock, never
+     left under it (WCAG 2.4.11). Only the drawing's stops keep this room: the dock's own controls stand in the dock. */
+  .es-frame[data-game='shape-shifter'][data-phase='play'] .es-frame__diagram :is(button, a[href], [tabindex]) {
+    scroll-margin-bottom: calc(33svh + var(--es-space-4));
   }
 }
 
@@ -528,6 +564,53 @@
   display: flex;
   flex-direction: column;
   gap: var(--es-space-2);
+}
+
+/* The guess's field and Commit share one line: the field's name over its slip, Commit beside the slip, the hint and an error under both. */
+.es-shift-dock__guess-line {
+  display: grid;
+  grid-template-columns: minmax(0, 14rem) auto;
+  grid-template-areas:
+    'label .'
+    'slip commit'
+    'hint hint'
+    'error error';
+  justify-content: start;
+  justify-items: start;
+  align-items: end;
+  gap: var(--es-space-2) var(--es-space-3);
+}
+
+.es-shift-dock__guess-line:not(:has(.es-field__error)) {
+  grid-template-areas:
+    'label .'
+    'slip commit'
+    'hint hint';
+}
+
+.es-shift-dock__guess-line > .es-field {
+  display: contents;
+}
+
+.es-shift-dock__guess-line .es-field__label {
+  grid-area: label;
+}
+
+.es-shift-dock__guess-line .es-field__slip {
+  grid-area: slip;
+  justify-self: stretch;
+}
+
+.es-shift-dock__guess-line .es-field__hint {
+  grid-area: hint;
+}
+
+.es-shift-dock__guess-line .es-field__error {
+  grid-area: error;
+}
+
+.es-shift-dock__guess-line > .es-shift-dock__commit {
+  grid-area: commit;
 }
 
 .es-shift-dock__row {
@@ -603,6 +686,63 @@
   border-top: 1px solid var(--es-paper-rule);
 }
 
+/*
+ * A picker longer than the dock's room scrolls inside itself, under the bar, and the dock does not: the bar stays where the hand is, every
+ * choice can be reached in the picker's own box, and no choice stands under the readout at the dock's foot. Each box from the dock's
+ * scroller down to the picker gives up its height to it.
+ */
+.es-frame[data-game='shape-shifter'][data-phase='play'] .es-frame__dock-main > .es-shift-dock,
+.es-shift-dock__decision,
+.es-shift-dock__body,
+.es-shift-dock__ops {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* The dock's "More below" (frame.css) keeps its own height, so it does not lend the picker room the dock has not got. */
+.es-frame[data-game='shape-shifter'][data-phase='play'] .es-frame__dock-main::after {
+  flex-shrink: 0;
+}
+
+.es-shift-dock__picker {
+  flex: 0 1 auto;
+  min-height: 3.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/* Where the picker scrolls, its foot says so, as the dock's does (frame.css). */
+@supports (container-type: scroll-state) {
+  .es-shift-dock__picker {
+    container-type: scroll-state;
+  }
+
+  .es-shift-dock__choices::after {
+    content: 'More below' / '';
+    position: sticky;
+    bottom: 0;
+    flex-basis: 100%;
+    height: 1.75rem;
+    margin-top: -1.75rem;
+    padding-top: 0.5rem;
+    background: linear-gradient(transparent, var(--es-paper) 60%);
+    color: var(--es-text-2);
+    font-size: var(--es-size-caption);
+    font-weight: 700;
+    line-height: 1.4;
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  @container scroll-state(scrollable: bottom) {
+    .es-shift-dock__choices::after {
+      visibility: visible;
+    }
+  }
+}
+
 .es-shift-dock__picker-head {
   margin: 0 0 var(--es-space-2);
   color: var(--es-text-2);
@@ -625,6 +765,50 @@
   align-items: center;
   justify-content: start;
   gap: var(--es-space-1) var(--es-space-4);
+}
+
+/* As a picker does, steppers longer than the dock's room scroll inside their own box, and Launch under them stays whole in the dock. */
+.es-shift-dock__grid {
+  display: flex;
+  flex: 0 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.es-shift-dock__steppers {
+  flex: 0 1 auto;
+  min-height: 3.5rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@supports (container-type: scroll-state) {
+  .es-shift-dock__steppers {
+    container-type: scroll-state;
+  }
+
+  .es-shift-dock__steppers::after {
+    content: 'More below' / '';
+    position: sticky;
+    bottom: 0;
+    grid-column: 1 / -1;
+    height: 1.75rem;
+    margin-top: -1.75rem;
+    padding-top: 0.5rem;
+    background: linear-gradient(transparent, var(--es-paper) 60%);
+    color: var(--es-text-2);
+    font-size: var(--es-size-caption);
+    font-weight: 700;
+    line-height: 1.4;
+    pointer-events: none;
+    visibility: hidden;
+  }
+
+  @container scroll-state(scrollable: bottom) {
+    .es-shift-dock__steppers::after {
+      visibility: visible;
+    }
+  }
 }
 
 .es-shift-dock__head {
@@ -740,8 +924,9 @@
     margin-block: var(--es-space-1) 0;
   }
 
+  /* Two dimensions' steppers and the row's name fit a 390 px dock's 326 px with this gap; with more the last button ran past the box. */
   .es-shift-dock__steppers {
-    column-gap: var(--es-space-3);
+    column-gap: var(--es-space-2);
   }
 }
 

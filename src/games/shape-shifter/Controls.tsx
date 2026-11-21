@@ -88,19 +88,22 @@ function Guess({ run, onSkip }: { run: ShiftRun; onSkip: () => void }) {
           run.dispatch({ t: 'commit', prediction: value })
         }}
       >
-        <Field
-          label="Your guess"
-          numeric
-          value={text}
-          inputMode="numeric"
-          onChange={(event) => setText(event.target.value)}
-          hint={`A whole number of ${UNIT_WORDS[predict.unit]}. The run answers it.`}
-          error={bad ? 'Write a whole number, 0 or more.' : undefined}
-        />
-        <div className="es-shift-dock__row">
-          <Button type="submit" variant="ink" disabled={value === null || bad}>
+        {/* Commit stands beside the field, on the slip's own line, so a phone's pinned dock holds both whole. */}
+        <div className="es-shift-dock__guess-line" data-shift-guess-line="">
+          <Field
+            label="Your guess"
+            numeric
+            value={text}
+            inputMode="numeric"
+            onChange={(event) => setText(event.target.value)}
+            hint={`A whole number of ${UNIT_WORDS[predict.unit]}. The run answers it.`}
+            error={bad ? 'Write a whole number, 0 or more.' : undefined}
+          />
+          <Button type="submit" variant="ink" className="es-shift-dock__commit" disabled={value === null || bad}>
             Commit
           </Button>
+        </div>
+        <div className="es-shift-dock__row">
           <Button variant="quiet" onClick={onSkip}>
             Skip the guess
           </Button>

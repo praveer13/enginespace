@@ -9,6 +9,9 @@
  *   4. The dock, the readout, the mirror and the result render from the view: the guess holds back until the intro has named the parts, the
  *      graded `grid` hides its counts until Launch, and the mirror lists every element.
  *   5. The fewest-copies bar is the model's optimum: the reference's copies on each `fewest` target are what `fewestPlan` makes.
+ *   6. What stays under the hand (hand.ts): a second press at the last press's spot, moments after it, on another control is ignored, a
+ *      picker's choice and a control pressed again never are; the page's scrolls that seat the drawing, show a named part and show the goal
+ *      at the result go only as far as they keep the dock pinned and the ways on in view.
  */
 import { describe, expect, test } from 'bun:test'
 import { readFileSync } from 'node:fs'
@@ -31,6 +34,7 @@ import { ReadoutStrip } from '@/games/shape-shifter/ReadoutStrip'
 import type { ShiftRun } from '@/games/shape-shifter/types'
 import { View2D } from '@/games/shape-shifter/View2D'
 import { changeLine } from '@/games/shape-shifter/announce'
+import { resultBy, SAME_SPOT, SAME_TIME, scrollToShow, seatBy, strayPress } from '@/games/shape-shifter/hand'
 
 const repo = path.resolve(import.meta.dirname, '../..')
 const LEVELS = SHAPE_SHIFTER.levels.map((level) => level.id as ShiftLevelId)
@@ -258,5 +262,40 @@ describe('the fewest-copies bar is the model\'s optimum', () => {
       for (const action of ghostActions(level) as ShiftAction[]) state = shiftReduce(state, action)
       expect([seed, shiftSession.grade(state, shiftSession.ghost(level)).ok]).toEqual([seed, true])
     }
+  })
+})
+
+describe('what stays under the hand', () => {
+  const launch = { x: 200, y: 600, t: 1000, control: 'BUTTON||Launch' }
+
+  test('a second press at the same spot, moments later, on the control that came up there is a stray; a press of the same control is not', () => {
+    expect(strayPress(launch, { x: 202, y: 601, t: 1400, control: 'BUTTON||New numbers' })).toBe(true)
+    expect(strayPress(launch, { x: 200, y: 600, t: 1000 + SAME_TIME, control: 'BUTTON||Next level: One block per head' })).toBe(true)
+    expect(strayPress(launch, { x: 200, y: 600, t: 1001 + SAME_TIME, control: 'BUTTON||New numbers' })).toBe(false)
+    expect(strayPress(launch, { x: 200 + SAME_SPOT + 1, y: 600, t: 1300, control: 'BUTTON||New numbers' })).toBe(false)
+    expect(strayPress(launch, { x: 200, y: 600, t: 1200, control: 'BUTTON||Launch' })).toBe(false)
+    // A press on no control, or on a picker's choice (which reads as none), and the first press of a page, are never strays.
+    expect(strayPress(launch, { x: 200, y: 600, t: 1200, control: '' })).toBe(false)
+    expect(strayPress(null, launch)).toBe(false)
+  })
+
+  test('a named part is scrolled whole into the room over the dock, its top first where it is taller than the room', () => {
+    expect(scrollToShow({ top: 400, bottom: 500 }, 8, 560)).toBe(0)
+    expect(scrollToShow({ top: 545, bottom: 638 }, 8, 557)).toBe(81)
+    expect(scrollToShow({ top: -40, bottom: 60 }, 8, 557)).toBe(-48)
+    expect(scrollToShow({ top: 300, bottom: 900 }, 8, 557)).toBe(292)
+  })
+
+  test('the drawing is seated as far as the goal line, and no further than the dock stays pinned; never up', () => {
+    expect(seatBy(215, 8, 740, 565)).toBe(175)
+    expect(seatBy(215, 8, 900, 565)).toBe(207)
+    expect(seatBy(4, 8, 900, 565)).toBe(0)
+    expect(seatBy(215, 8, 560, 565)).toBe(0)
+  })
+
+  test('at the result the goal comes into view only where the ways on stay over the readout', () => {
+    expect(resultBy(-76, 8, 600, 753)).toBe(-84)
+    expect(resultBy(-76, 8, 684, 753)).toBe(0)
+    expect(resultBy(20, 8, 684, 753)).toBe(0)
   })
 })

@@ -7,6 +7,9 @@
  *   2. Nothing moves under the hand: the operation bar stays where it was when its picker opens, when a choice applies, and when a named
  *      moment is said; the picker and the moment come under it. Every pinned region states its scroll-margin.
  *   3. The first run names the parts before it asks for a guess, then rings the reference's first move.
+ *   3a. Nothing comes under the hand: a second press at the spot of the last move, moments after it, never presses the result's Next level,
+ *      Run again or New numbers; on a phone Commit stands whole beside the field, the part the first run names is whole over the pinned dock,
+ *      and the buffer or the tiles stand whole over the dock while the level is played.
  *   4. `fewest` starts in Prove mode from its page: a passed Prove run, played on the seed drawn when it starts, is recorded as proved, and
  *      the ledger then reads the level as proved.
  *   5. The keys alone play `views` to its debrief; axe finds no serious or critical violation in play, with a picker open, and at the result;
@@ -169,6 +172,143 @@ test.describe('the first screen', () => {
     await page.locator('[data-shift-bar] [data-op="view"]').click()
     expect((await dock.boundingBox())?.height).toBe(tall)
   })
+})
+
+/**
+ * A tap at a control's middle where it stands now, as a finger lands: the page is not scrolled to it first. A picker's choice is scrolled
+ * into view inside the picker, as a finger scrolls the picker's own box, and the dock and the page stay where they are.
+ */
+async function tapAt(page: Page, selector: string) {
+  if (selector.startsWith('[data-shift-picker]')) {
+    const still = await page.locator(selector).first().evaluate((choice) => {
+      const picker = choice.closest<HTMLElement>('[data-shift-picker]')
+      const main = choice.closest<HTMLElement>('[data-dock-main]')
+      const before = [window.scrollY, main?.scrollTop]
+      if (picker !== null) {
+        const [c, p] = [choice.getBoundingClientRect(), picker.getBoundingClientRect()]
+        if (c.bottom > p.bottom) picker.scrollTop += c.bottom - p.bottom
+      }
+      return JSON.stringify(before) === JSON.stringify([window.scrollY, main?.scrollTop])
+    })
+    expect(still, 'the picker scrolls in itself').toBe(true)
+  }
+  const box = await page.locator(selector).first().boundingBox()
+  if (box === null) throw new Error(`${selector} is not drawn`)
+  await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2)
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+}
+
+/** A box whole on the screen and over the dock pinned at a phone's foot, as the learner sees it: once the frame has been painted. */
+async function overTheDock(page: Page, selector: string) {
+  await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))))
+  return page.locator(selector).first().evaluate((element) => {
+    const r = element.getBoundingClientRect()
+    const dock = document.querySelector('[data-dock]')?.getBoundingClientRect().top ?? window.innerHeight
+    return { whole: r.height > 0 && r.top >= 0 && r.bottom <= Math.min(window.innerHeight, dock) + 0.5, box: [Math.round(r.top), Math.round(r.bottom)], dock: Math.round(dock), y: Math.round(window.scrollY) }
+  })
+}
+
+test.describe('nothing comes under the hand', () => {
+  test.use({ hasTouch: true })
+
+  test('a second click on Launch, moments after the first, does not press the result that came up under it', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openLevel(page, 'grid')
+    const seed = await game(page).getAttribute('data-seed')
+    await guess(page, 80)
+    for (const action of ghostActions(buildLevel('grid', 0)).filter((action) => action.t !== 'launch')) await tap(page, action)
+    const launch = page.getByRole('button', { name: 'Launch', exact: true })
+    const box = await launch.boundingBox()
+    if (box === null) throw new Error('Launch is not drawn')
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+    await expect(verdict(page)).toHaveText('Finished (practice)')
+    await page.waitForTimeout(400)
+    await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2)
+    await page.waitForTimeout(400)
+    await expect(verdict(page)).toHaveText('Finished (practice)')
+    await expect(game(page)).toHaveAttribute('data-seed', seed ?? '')
+  })
+
+  for (const [level, plan] of [
+    ['stride-zero', [['expand', '[4, 6]']]],
+    ['three-d', [['reshape', '[4, 2, 4]'], ['permute', '(1, 0, 2)']]],
+  ] as const) {
+    test(`at 390 x 844 a double tap on \`contiguous()\` ends \`${level}\` and keeps its result`, async ({ page }) => {
+      await page.setViewportSize({ width: 390, height: 844 })
+      await openLevel(page, level)
+      await page.getByRole('textbox', { name: 'Your guess' }).fill('0')
+      await tapAt(page, '[data-shift-predict] button[type="submit"]')
+      await expect(page.locator('[data-shift-predict]')).toHaveCount(0)
+      for (const [op, choice] of plan) {
+        await tapAt(page, `[data-shift-bar] [data-op="${op}"]`)
+        await tapAt(page, `[data-shift-picker] [data-choice="${choice}"]`)
+      }
+      const at = await tapAt(page, '[data-shift-bar] [data-op="contiguous"]')
+      await page.waitForTimeout(300)
+      await page.touchscreen.tap(at.x, at.y)
+      await page.waitForTimeout(400)
+      await expect(verdict(page)).toHaveText('Finished (practice)')
+      await expect(game(page)).toHaveAttribute('data-level', level)
+    })
+  }
+
+  for (const viewport of [
+    { width: 390, height: 844 },
+    { width: 360, height: 800 },
+  ]) {
+    test(`at ${viewport.width} x ${viewport.height} Commit stands whole beside the field, and a tap on it commits`, async ({ page }) => {
+      await page.setViewportSize(viewport)
+      await openLevel(page, 'views')
+      await page.getByRole('textbox', { name: 'Your guess' }).fill('24')
+      const own = await page.locator('[data-shift-predict] button[type="submit"]').evaluate((button) => {
+        const r = button.getBoundingClientRect()
+        return button.contains(document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)) && r.bottom <= window.innerHeight
+      })
+      expect(own, 'Commit is its own at its middle').toBe(true)
+      await tapAt(page, '[data-shift-predict] button[type="submit"]')
+      await expect(page.locator('[data-shift-predict]')).toHaveCount(0)
+    })
+
+    test(`at ${viewport.width} x ${viewport.height} the part the first run names is whole over the pinned dock, and so are the buffer and the tiles in play`, async ({ page }) => {
+      test.setTimeout(120_000)
+      await page.setViewportSize(viewport)
+      await openLevel(page, 'views', 'fresh')
+      const intro = game(page).locator('.es-intro').first()
+      await expect(intro).toHaveAttribute('data-intro-walk', '0')
+      await page.locator('[data-intro-next]').click()
+      await expect(intro).toHaveAttribute('data-intro-walk', '1')
+      const named = await overTheDock(page, '[data-shift-buffer-box]')
+      expect(named.whole, `the buffer the intro names: ${JSON.stringify(named)}`).toBe(true)
+
+      for (const [level, value, op, choice] of [
+        ['views', '24', 'transpose', '0 and 1'],
+        ['stride-zero', '0', 'expand', '[4, 6]'],
+        ['three-d', '8', 'reshape', '[4, 2, 4]'],
+        ['fewest', '0', 'transpose', '0 and 1'],
+      ] as const) {
+        await openLevel(page, level)
+        await page.getByRole('textbox', { name: 'Your guess' }).fill(value)
+        await tapAt(page, '[data-shift-predict] button[type="submit"]')
+        await expect(page.locator('[data-shift-predict]')).toHaveCount(0)
+        await tapAt(page, `[data-shift-bar] [data-op="${op}"]`)
+        if (choice !== '') await tapAt(page, `[data-shift-picker] [data-choice="${choice}"]`)
+        await expect(game(page).locator('[data-moment]').first()).toBeVisible()
+        const buffer = await overTheDock(page, '[data-shift-buffer="now"]')
+        expect(buffer.whole, `${level}, the buffer: ${JSON.stringify(buffer)}`).toBe(true)
+        const cells = await overTheDock(page, '[data-shift-cells] .es-shift__cells')
+        expect(cells.whole, `${level}, the cells: ${JSON.stringify(cells)}`).toBe(true)
+      }
+
+      await openLevel(page, 'grid')
+      await page.getByRole('textbox', { name: 'Your guess' }).fill('80')
+      await tapAt(page, '[data-shift-predict] button[type="submit"]')
+      await expect(page.locator('[data-shift-predict]')).toHaveCount(0)
+      await tapAt(page, '[data-shift-launch-button]')
+      await expect(game(page).locator('[data-moment]').first()).toBeVisible()
+      const tiles = await overTheDock(page, '[data-shift-grid] .es-shift__cells')
+      expect(tiles.whole, `grid, the tiles: ${JSON.stringify(tiles)}`).toBe(true)
+    })
+  }
 })
 
 test.describe('the first run', () => {

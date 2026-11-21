@@ -74,8 +74,8 @@ const SLICE_GAP = 12
 const SLICE_TAG = 18
 /** The cells' region stands at most this tall at a desk before its cells shrink (GAMES.md §4.1: "at most 300 tall"). */
 export const CELLS_TALL = 300
-/** On a phone the cells keep to about a third of the diagram's box, so the buffer under them is in view too [estimated, from the 390 x 844 box]. */
-export const CELLS_TALL_PHONE = 96
+/** On a phone the cells keep to this height, so the table, the cells and the buffer stand together over the pinned dock [estimated, from 390 x 844 and 360 x 800]. */
+export const CELLS_TALL_PHONE = 128
 
 export interface CellsLayout {
   readonly size: number

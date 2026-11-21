@@ -102,7 +102,7 @@ function layoutCopy(level: LayoutLevel): ShiftCopy {
           beat: rule,
           ends: `Ends when each of the ${n} targets is reached or has failed.`,
         },
-        prompt: `A ${code('view')} costs nothing where the strides can express the shape, and a ${code('contiguous()')} costs every element. Place a copy only where no view can give the layout.`,
+        prompt: `A ${code('view')} costs nothing where the strides can express the shape, and a ${code('contiguous()')} costs every element when the tensor is not contiguous. Place a copy only where no view can give the layout.`,
         predict: { ask: 'How many copies does the fewest path need?', unit: 'copies' },
         passRule: rule,
       }
@@ -252,8 +252,11 @@ export function momentLine(m: Moment, level: ShiftLevel): string {
       return `${code(kindName(m.op))} moved ${m.n} elements into a new buffer, every one of them. The stride order now reads row by row.`
     case 'stride-zero':
       return `Stride 0: the ${m.rows} rows read the same ${m.m} elements. Writing to one row would change them all.`
-    case 'wrong-order':
-      return `The shape matches the target and the order does not: ${m.k} of ${m.n} elements are in place. ${code('reshape')} keeps the buffer's order; ${code('permute')} changes which dimension moves fastest.`
+    case 'wrong-order': {
+      // `view` and `reshape` read the elements in row-major order of the tensor as it stands, not in the buffer's order; `fewest` offers no `reshape`.
+      const keep = level.kind === 'layout' && level.offered.includes('reshape') ? `${code('view')} and ${code('reshape')} keep` : `${code('view')} keeps`
+      return `The shape matches the target and the order does not: ${m.k} of ${m.n} elements are in place. ${keep} the elements in the order you read them, row by row; ${code('permute')} changes which dimension moves fastest.`
+    }
     case 'masked':
       return `Program ${programLabel(m.index)} runs ${m.lanes} lanes and ${m.masked} are masked: their offsets are past the edge, so the mask is false there.`
     case 'uncovered':
