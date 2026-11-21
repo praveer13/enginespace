@@ -20,6 +20,7 @@ import { levelOf } from './keys'
 import { LOOP } from './loop/entry'
 import { POOL } from './pool/entry'
 import { regrade } from './replay'
+import { SHAPE_SHIFTER } from './shape-shifter/entry'
 import type { Regrade } from './replay'
 import type { GameEntry, StoredRun } from './types'
 import { VERIFIER } from './verifier/entry'
@@ -49,7 +50,7 @@ export function createRegistry(games: readonly GameEntry[]): GameRegistry {
 }
 
 /** Every game of the course. Each game's task adds its entry here: `loop` is the first (W0-T16), `verifier` follows (W1-T28), then `engine-floor` (W1-T17), `broken-bench` (W1-T33) and `pool` (W1-T23). */
-export const GAMES: GameRegistry = /* @__PURE__ */ createRegistry([LOOP, VERIFIER, ENGINE_FLOOR, BROKEN_BENCH, POOL])
+export const GAMES: GameRegistry = /* @__PURE__ */ createRegistry([LOOP, VERIFIER, ENGINE_FLOOR, BROKEN_BENCH, POOL, SHAPE_SHIFTER])
 
 /**
  * Grades a stored `play` run by its log: finds the game, loads its session and replays. A run of a game this build does not have,

@@ -25,6 +25,9 @@ import { buildLevel as floorLevel } from '../../packages/play/engine-floor/level
 import { buildFullLevel, MODES } from '../../packages/play/loop/full/levels'
 import type { FullLevelId } from '../../packages/play/loop/full/types'
 import { buildLevel as poolLevel } from '../../packages/play/pool/levels'
+import { buildLevel as shiftLevel } from '../../packages/play/shape-shifter/levels'
+import type { ShiftLevelId } from '../../packages/play/shape-shifter/types'
+import type { ShiftOp } from '../../packages/sim/tensor'
 import type { PoolAction, PoolLevelId } from '../../packages/play/pool/types'
 import { buildLevel as verifierLevel } from '../../packages/play/verifier/levels'
 import { excessPlates, keptPlates, sweepOfLevel, tokensOf } from '../../packages/play/verifier/state'
@@ -742,6 +745,135 @@ const LOOP: Record<(typeof WALKED)['loop'][number], Walker> = {
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
+/* Tensor views (`shape-shifter`)                                                                                     */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** What a picker's choice says for an operation: the shape, the order or the pair it takes (src/games/shape-shifter/Controls.tsx). */
+function choiceFace(op: ShiftOp): string {
+  switch (op.op) {
+    case 'view':
+    case 'reshape':
+    case 'expand':
+      return `[${op.shape.join(', ')}]`
+    case 'permute':
+      return `(${op.order.join(', ')})`
+    case 'transpose':
+      return `${op.a} and ${op.b}`
+    default:
+      return ''
+  }
+}
+
+/** Moves focus along a row of roving buttons (`data-roving`) inside `scope` with the arrow keys until it is on the one that matches `selector`. */
+async function arrowTo(page: Page, walk: Walk, scope: string, selector: string): Promise<void> {
+  const where = () =>
+    page.evaluate(
+      ([box, want]) => {
+        const buttons = Array.from(document.querySelectorAll<HTMLButtonElement>(`${box} button[data-roving]`))
+        return { at: buttons.indexOf(document.activeElement as HTMLButtonElement), to: buttons.findIndex((button) => button.matches(want)) }
+      },
+      [scope, selector] as const,
+    )
+  const start = await where()
+  const to = start.to
+  expect(to, `${selector} is in ${scope}`).toBeGreaterThanOrEqual(0)
+  expect(start.at, `focus is in ${scope}`).toBeGreaterThanOrEqual(0)
+  let at = start.at
+  for (; at < to; at++) await walk.press('ArrowRight')
+  for (; at > to; at--) await walk.press('ArrowLeft')
+  expect((await where()).at).toBe(to)
+}
+
+/** Applies one operation the way a keyboard does: Tab to the operation bar, the arrows to the operation, Enter, and in its picker the arrows to the choice and Enter. */
+async function shiftOp(page: Page, walk: Walk, op: ShiftOp): Promise<void> {
+  const inBar = () => page.evaluate(() => document.activeElement?.closest('[data-shift-bar]') != null)
+  if (!(await inBar())) await frames(page, 2)
+  for (let i = 0; i < 60 && !(await inBar()); i++) await walk.press('Tab')
+  expect(await inBar(), 'focus is on the operation bar').toBe(true)
+  await arrowTo(page, walk, '[data-shift-bar]', `[data-op="${op.op}"]`)
+  await page.keyboard.press('Enter')
+  if (op.op === 'contiguous') return
+  await expect.poll(() => page.evaluate(() => document.activeElement?.closest('[data-shift-picker]') != null), { message: 'focus is in the picker' }).toBe(true)
+  await arrowTo(page, walk, '[data-shift-picker]', `[data-choice="${choiceFace(op)}"]`)
+  await page.keyboard.press('Enter')
+}
+
+/** Answers the open guess with the keys: digits in the field, Tab to Commit, Enter. */
+async function shiftGuess(page: Page, walk: Walk, answer: number): Promise<void> {
+  await page.locator('[data-game="shape-shifter"] [data-shift-predict]').waitFor()
+  if (!(await page.evaluate(() => document.activeElement?.closest('[data-shift-predict]') != null))) await tabTo(walk, /^Your guess$/)
+  await page.keyboard.type(String(answer))
+  await tabTo(walk, /^Commit$/, 3)
+  await page.keyboard.press('Enter')
+}
+
+/** What a spec may do between the reference's actions of a Tensor views level: after each operation (the keep-list reads the moment). */
+export interface ShiftHooks {
+  readonly after?: (op: ShiftOp, at: number, page: Page) => Promise<void>
+}
+
+/**
+ * Plays a level of Tensor views on its practice seed with the keys alone, as the reference plays it: the first run's Next through the parts
+ * and the look, the guess of each target (its answer), and each operation of the reference's plan by the bar and its picker; on `grid`,
+ * BLOCK by its stepper's "one more" and Launch.
+ */
+export const shiftWalkWith = (level: ShiftLevelId, hooks: ShiftHooks = {}, seed = practiceSeed('shape-shifter', level)): Walker => async (page, walk) => {
+  const built = shiftLevel(level, seed)
+  const step = () => page.locator('[data-game="shape-shifter"] .es-intro').first().getAttribute('data-intro', { timeout: 2_000 }).catch(() => null)
+  await page.locator('[data-game="shape-shifter"] :is(.es-intro, [data-shift-predict], [data-shift-controls])').first().waitFor()
+  for (let at = await step(), guard = 0; (at === 'parts' || at === 'look') && guard < 12; at = await step(), guard++) {
+    const focused = await page.evaluate(() => document.activeElement?.hasAttribute('data-intro-next') ?? false)
+    if (!focused) await tabTo(walk, /^(Next|Next part)$/, 60)
+    await page.keyboard.press('Enter')
+  }
+  let at = 0
+  for (const [index, task] of built.tasks.entries()) {
+    await shiftGuess(page, walk, task.answer)
+    await expect(page.locator('[data-game="shape-shifter"] [data-shift-predict]')).toHaveCount(0)
+    if (built.kind === 'layout') {
+      const layoutTask = built.tasks[index] as (typeof built.tasks)[number] & { ghost: readonly ShiftOp[] }
+      for (const op of layoutTask.ghost) {
+        await shiftOp(page, walk, op)
+        await hooks.after?.(op, at++, page)
+      }
+    } else {
+      const gridTask = built.tasks[index] as { block: readonly number[] }
+      for (const [dim, value] of gridTask.block.entries()) {
+        const more = new RegExp(`^BLOCK along dimension ${dim}: one more$`)
+        await reach(page, walk, more)
+        for (let v = 1; v < value; v++) await page.keyboard.press('Enter')
+        await expect(page.locator(`[data-stepper="BLOCK along dimension ${dim}"] output`)).toHaveText(String(value))
+      }
+      await tabTo(walk, /^Launch$/, 12)
+      await page.keyboard.press('Enter')
+    }
+  }
+  await expect(outcome(page)).toHaveText('The run is over. The result is in the dock.')
+  const verdict = page.locator('[data-result] [data-result-heading]')
+  await expect(verdict).toHaveText(built.graded ? 'Passed' : 'Finished (practice)')
+  await expect.poll(() => page.evaluate(() => document.activeElement?.hasAttribute('data-result-heading') ?? false)).toBe(true)
+  await expect
+    .poll(() => page.evaluate(() => {
+      const active = document.activeElement
+      if (active === null) return false
+      const box = active.getBoundingClientRect()
+      const hit = document.elementFromPoint((box.left + box.right) / 2, (box.top + box.bottom) / 2)
+      return hit !== null && (active.contains(hit) || hit.contains(active))
+    }))
+    .toBe(true)
+    .catch(() => undefined)
+  await walk.see()
+}
+
+const SHIFT: Record<(typeof WALKED)['shape-shifter'][number], Walker> = {
+  views: shiftWalkWith('views'),
+  'stride-zero': shiftWalkWith('stride-zero'),
+  'three-d': shiftWalkWith('three-d'),
+  fewest: shiftWalkWith('fewest'),
+  grid: shiftWalkWith('grid'),
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
 /* The table                                                                                                          */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
@@ -752,4 +884,5 @@ export const WALKS: { readonly [game: string]: { readonly [level: string]: Walke
   'engine-floor': FLOOR,
   pool: POOL,
   'broken-bench': BENCH,
+  'shape-shifter': SHIFT,
 }

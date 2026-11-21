@@ -48,8 +48,8 @@ describe('the games', () => {
   test('every game of the roster is built or has a task, never both, and no task is named for a game that is not there', () => {
     expect([...built, ...Object.keys(GAME_TASKS)].sort()).toEqual([...GAME_IDS].sort())
     expect(built.filter((id) => Object.hasOwn(GAME_TASKS, id))).toEqual([])
-    // W1 built five games, and a lesson's block of each plays it.
-    expect([...built].sort()).toEqual(['broken-bench', 'engine-floor', 'loop', 'pool', 'verifier'])
+    // W1 built five games and W2-T14 a sixth, and a lesson's block of each plays it.
+    expect([...built].sort()).toEqual(['broken-bench', 'engine-floor', 'loop', 'pool', 'shape-shifter', 'verifier'])
   })
 
   test.each(Object.entries(GAME_TASKS))('%s is built by %s, whose title names it', (game, task) => {

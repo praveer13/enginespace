@@ -41,7 +41,7 @@ describe("W1's routes", () => {
   })
 
   test('reach the page of every game in the registry, so that a game that is added has its page audited', () => {
-    const visited = new Set([...PR_ROUTES, ...W1_ROUTES])
+    const visited = new Set([...PR_ROUTES, ...W1_ROUTES, ...W2_ROUTES])
     expect(GAMES.games.map((game) => `/play/${game.id}`).filter((route) => !visited.has(route))).toEqual([])
   })
 })

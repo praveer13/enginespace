@@ -4,6 +4,7 @@ import { TextLink } from '@/design/components/TextLink'
 import { WorldCard as FloorCard } from '@/games/engine-floor/Card'
 import { WorldCard as LoopCard } from '@/games/loop/Card'
 import { WorldCard as PoolCard } from '@/games/pool/Card'
+import { WorldCard as TensorCard } from '@/games/shape-shifter/Card'
 import './panels.css'
 
 /** The licence file that the build writes at the site's root (scripts/pages/third-party-licenses.ts), under the base the site is served at. */
@@ -20,11 +21,12 @@ const FONTS = `${import.meta.env.BASE_URL ?? '/'}fonts/`
 const LEAD = 'What the course teaches, what each model in it leaves out, how numbers are tagged, what stays on your device, and the licences of the code and typefaces it uses.'
 
 /**
- * The five models, in the order the course meets them, each with its game's name and its full card. The cards of the verifier and the
+ * The six models, in the order the course meets them, each with its game's name and its full card. The cards of the verifier and the
  * benchmark game still speak in the words of their old scenes, so they are not set here until each game's own words are in (they are
  * the games' files, and the page says what is missing and not what was).
  */
 const MODELS = [
+  { game: 'shape-shifter', card: <TensorCard /> },
   { game: 'loop', card: <LoopCard /> },
   { game: 'pool', card: <PoolCard /> },
   { game: 'engine-floor', card: <FloorCard /> },

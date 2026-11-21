@@ -49,16 +49,26 @@ const COPIES: Readonly<Record<string, Readonly<Record<string, LevelWords>>>> = {
   verifier: VERIFIER_COPY,
   'engine-floor': FLOOR_COPY,
   'broken-bench': BENCH_COPY,
+  // Tensor views' words are made from each level's figures (copy.ts is a function of the level): a graded level is read on a dealt seed.
+  'shape-shifter': Object.fromEntries(SHAPE_SHIFTER.levels.map((entry) => [entry.id, copyOf(shiftLevel(entry.id, entry.graded ? 1000 : entry.practiceSeed))])),
+}
+
+/**
+ * How a practice level's goal line states its number, where a game does not say "the number to beat": Tensor views' practice levels match
+ * the reference's copies, or its masked lanes, and cannot beat them, so the line states the reference's own count (GAMES.md §4.3).
+ */
+const NUMBER_STATED: Readonly<Record<string, RegExp>> = {
+  'shape-shifter': /^The reference (does it with \d+ cop(y|ies)|leaves \d+ lanes masked)\.$/,
 }
 
 /** A goal line's three parts and its end: each a sentence, the end beginning "Ends". */
-function expectGoal(where: string, goal: GoalLine): void {
+function expectGoal(where: string, goal: GoalLine, stated?: RegExp): void {
   for (const part of ['aim', 'controls', 'beat', 'ends'] as const) {
     expect([where, part, goal[part].length > 10, /^[A-Z]/.test(goal[part]), goal[part].endsWith('.')]).toEqual([where, part, true, true, true])
   }
   expect([where, goal.controls.startsWith('You ')]).toEqual([where, true])
   expect([where, /^Ends /.test(goal.ends)]).toEqual([where, true])
-  expect([where, /number to beat|Passes /.test(goal.beat)]).toEqual([where, true])
+  expect([where, /number to beat|Passes /.test(goal.beat) || (stated?.test(goal.beat) ?? false)]).toEqual([where, true])
   expect([where, findBanned(Object.values(goal).join(' '))]).toEqual([where, []])
 }
 
@@ -85,7 +95,7 @@ describe('every level and stage of the five built games', () => {
       for (const level of game.levels) {
         const words = copy[level.id]
         expect([game.id, level.id, words.title]).toEqual([game.id, level.id, level.title])
-        expectGoal(`${game.id}/${level.id}`, words.goal)
+        expectGoal(`${game.id}/${level.id}`, words.goal, NUMBER_STATED[game.id])
       }
     }
   })
@@ -207,7 +217,7 @@ describe('each graded level states its pass rule, with the bar the level compute
 /*
  * W2b-T28: Tensor views' copy (`packages/play/shape-shifter/copy.ts`) is a function of its level, not a table of constants, because every
  * figure it prints is the level's own (GAMES.md §4.3: "a sentence that quotes one of them reads it from the level, so a different draw
- * changes no copy"). The game is not in the registry yet, so these tests read its entry; W2-T14's registration adds it to `COPIES` above.
+ * changes no copy"). These tests read its entry; W2-T14's registration added it to `COPIES` above as well.
  */
 describe('Tensor views: every level has a title, a goal line and its pass rule, with the figures the level computes', () => {
   /** The levels read: each practice seed, and three dealt seeds of each level. */

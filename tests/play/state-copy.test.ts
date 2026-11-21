@@ -17,6 +17,9 @@ import { FULL_COPY } from '@es/play/loop/full/copy'
 import { buildFullLevel } from '@es/play/loop/full/levels'
 import { copyOf, wordsOf } from '@es/play/loop/full/session'
 import { POOL_COPY } from '@es/play/pool/copy'
+import { copyOf as shiftCopyOf } from '@es/play/shape-shifter/copy'
+import { SHAPE_SHIFTER } from '@es/play/shape-shifter/entry'
+import { shiftLevel } from '@es/play/shape-shifter/session'
 import { VERIFIER_COPY } from '@es/play/verifier/copy'
 import { referenceWalks } from './state-copy-support'
 import type { Walk } from './state-copy-support'
@@ -79,6 +82,21 @@ const IDS: Readonly<Record<string, readonly string[]>> = {
     '.pending.kind',
     '.phase',
     '.reqs[].status',
+  ],
+  // Tensor views: the level, an operation's name, a target's kind, a moment's id, a run's kind and status.
+  'shape-shifter': [
+    '.history[].op.op',
+    '.history[].t',
+    '.level.id',
+    '.level.kind',
+    '.level.offered[]',
+    '.level.tasks[].ghost[].op',
+    '.level.tasks[].kind',
+    '.moments[].id',
+    '.moments[].op',
+    '.runs[].kind',
+    '.runs[].ops[].op',
+    '.runs[].status',
   ],
   verifier: ['.labels[]', '.level.cards[]', '.level.id'],
 }
@@ -157,6 +175,8 @@ describe('the words are in copy.ts, by level id and stage id', () => {
     verifier: VERIFIER_COPY,
     'engine-floor': FLOOR_COPY,
     'broken-bench': BENCH_COPY,
+    // Tensor views' words are made from each level's own figures, so its table is read from the levels on their practice seeds.
+    'shape-shifter': Object.fromEntries(SHAPE_SHIFTER.levels.map((level) => [level.id, shiftCopyOf(shiftLevel(level.id, level.practiceSeed))])),
   }
 
   test('each level the registry lists has a title (the one the registry shows) and a prompt, and the copy lists no other', () => {
