@@ -11,6 +11,10 @@ import { use } from 'react'
 import type { Gen } from '@es/play/items/types'
 
 const LOADERS: Readonly<Record<string, () => Promise<Gen>>> = {
+  'tr0.find-the-sync': () => import('@es/play/items/families/tr0/find-the-sync').then((family) => family.findTheSync),
+  'tr0.grid-cover': () => import('@es/play/items/families/tr0/grid-cover').then((family) => family.gridCover),
+  'tr0.strides-of': () => import('@es/play/items/families/tr0/strides-of').then((family) => family.stridesOf),
+  'tr0.view-or-copy': () => import('@es/play/items/families/tr0/view-or-copy').then((family) => family.viewOrCopy),
   'tr1.request-state': () => import('@es/play/items/families/tr1/request-state').then((family) => family.requestState),
   'tr1.step-budget': () => import('@es/play/items/families/tr1/step-budget').then((family) => family.stepBudget),
   'tr1.what-moved': () => import('@es/play/items/families/tr1/what-moved').then((family) => family.whatMoved),

@@ -39,7 +39,7 @@ The published design document of vLLM's CUDA graphs shows a descriptor that matc
 
 ## The part that needs a GPU
 
-TR2 has no GPU stage. Its predictions about a real engine are tested in TR3's lab, `tr3.profile`, which profiles the pinned vLLM on your GPU and toggles async scheduling and graphs in two pairs. That lab arrives with the grader. Until then nothing here is a measurement of your hardware, no lesson claims one, and the lessons that name a GPU part say so in a short section of their own.
+TR2 has no GPU stage. Its predictions about a real engine are tested in a lab of TR3, which profiles the pinned vLLM on your GPU and toggles async scheduling and graphs in two pairs. That lab arrives with the grader. Until then nothing here is a measurement of your hardware, no lesson claims one, and the lessons that name a GPU part say so in a short section of their own.
 
 ## Credit, and the hours
 

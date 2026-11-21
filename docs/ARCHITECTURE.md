@@ -620,7 +620,7 @@ Every game, every graded task and the Traces page show their card. `verify:games
 
 ### 6.1 Roster
 
-Each game's rule is the concept it teaches (D-005). Five games are 3D, and every 3D game also has a 2D view and a DOM mirror. Request path is 2D: its swimlane is its one view (R-T43 removed its 3D scene). "Axes" names what each spatial dimension carries.
+Each game's rule is the concept it teaches (D-005). Four games are 3D, and every 3D game also has a 2D view and a DOM mirror. Request path is 2D: its swimlane is its one view (R-T43 removed its 3D scene). Tensor views is 2D too: its design found no camera that shows what its 2D does not (GAMES.md §4.2; D-074, proposed). "Axes" names what each spatial dimension carries.
 
 | Id | Title · subtitle (D-063) | Module | The rule (= the concept) | 3D: objects, axes and camera | Graded artifact |
 |---|---|---|---|---|---|
@@ -628,7 +628,7 @@ Each game's rule is the concept it teaches (D-005). Five games are 3D, and every
 | `engine-floor` | **Request path** · *Every queue, IPC hop, copy and sync between the API server and the GPU.* | TR1 | A request moves only when you name the mechanism that moves it (queue, IPC, copy, sync or compute) and where it runs. The map you build is then checked span by span against a trace. | — | Lifecycle map by span checks (B) |
 | `pool` | **KV page pool** · *One page pool serves every KV group and every adapter.* | TR5a | One physical page pool serves every KV group and the adapters. A request runs only when all its groups' blocks and its adapter are resident. Sliding windows free pages, and you admit, preempt and load adapters to keep goodput up without running out. This is S-LoRA's design: at the pins, vLLM and SGLang keep adapters in slots, and the In-production card shows that (D-042). | A rack of physical pages, each at a fixed position for its whole life, in a well on a plate. A page's state is a form and a glyph (free hollow, in use solid, cached hatched, shared dotted, adapter a groove); a selected page fans into its layers, and a request's threads reach each of its pages. Cameras: front, one KV group, from above (GAMES.md §8). | The `hybrid-kv` forge lab (B) |
 | `verifier` | **Rejection sampler** · *Accept with min(1, p/q), resample from (p - q)+, and the output is exactly p.* | TR6 | Accept a drafted token with probability min(1, p/q), and on rejection resample from the residual (p − q)⁺. The game runs your rule over 20,000 seeded draws [estimated], and only an exact rule's histogram matches p under chi-square. | Depth carries the draft chain: one row of bars for each draft position, then a bonus row, each over the vocabulary, with the draft's q hatched, the target's p solid, the accepted base and the residual groove where a level prints them. Drafted tokens are dots, the walk stops at the first rejection, and the output is a solid collar on each target bar, carried up by a dashed outline where it stands over p, so the collars settle onto p. Cameras: over the run, one draft position, from the side (GAMES.md §10). | The `rejection-sampler` forge lab (B) |
-| `shape-shifter` | **Tensor views** · *A view relabels the buffer. A copy moves every element.* | TR0 | A tensor is a buffer plus a shape and strides. Views move no data and `contiguous()` copies. Reach the target layout with the fewest copies, then tile it with a Triton-style grid that covers every element once. | The tensor is a block of cells above a strip, the buffer. A thread runs through the cells in stride order and re-weaves on a view; cells move on a copy. Program instances are tiles over the block. | Items on fresh seeds (B); the TR0 forward lab (L) |
+| `shape-shifter` | **Tensor views** · *A view relabels the buffer. A copy moves every element.* | TR0 | A tensor is a buffer plus a shape and strides. Views move no data and `contiguous()` copies. Reach the target layout with the fewest copies, then tile it with a Triton-style grid that covers every element once. | — | Items on fresh seeds (B); the TR0 forward lab (L) |
 | `switchyard` | **KV offload** · *A page in transit cannot be read, and every move is published as an event.* | TR5b | A KV block moves between GPU, CPU and disk only through the connector. Every move must be published in an order that lets a consumer rebuild the exact cache, and the consumer's view is checked after every event. | Three decks for the tiers, with blocks as cars on rails and events as signals. The consumer's ledger is a board beside the yard. | The `kv-publisher` forge lab (B); the toy connector (F) |
 | `broken-bench` | **Broken benchmark** · *Latency counts from when a request was due.* | TR8 | A published number is wrong because of one flaw. You find the flaw from the setup and the logs, then predict the corrected p99 with an interval. | — | The seeded corpus (B) |
 | `gap-hunt` | **Trace attribution** · *Every nanosecond of a step belongs to a kernel, a copy, a CPU gap or idle.* | TR3; capstone | Every ns of a step window belongs to exactly one category: TPOT = GPU-busy (kernel or copy-only) + CPU-gap + both-idle, with overlap reported beside it (GAMES.md §6). You mark spans until every ns is accounted for, then name the gap's cause from the launch queue. | — | Attribution of pinned and synthetic traces (B) |
@@ -835,7 +835,7 @@ interface Graded { score: number /* [0,1] */; ok: boolean; provenance: Provenanc
 | `prove` | `prove:<lab>` | the predicted reply and the module's actual reply |
 | `trace-mark` | `trace:<trace>/<task>` | marks, attribution error |
 | `challenge` | `challenge:<lab>.<stage>` | token, seed, nonce, `issuedOn` (not graded) |
-| `receipt` | `receipt:<lab>.<stage>` | `receiptSha256`, challenge token, per-check verdicts with bounds, grader version, environment summary |
+| `receipt` | `receipt:<lab>.<stage>` | `receiptSha256`, challenge token, grader version, environment summary. No `score`, `ok`, `provenance` or per-check verdict since schema version 2: they are worked out when the ledger is read, from the receipt and its newest report (`src/receipts/credit.ts`). A schema-1 event keeps the fields it was written with, and nothing reads them. |
 | `review` | `review:<kc>` | the Today grade |
 | `ack` | `screen:<id>` or `change:<id>` | none |
 
@@ -1014,7 +1014,7 @@ labs/
       cli.py  grade.py  verify.py  selftest.py  doctor.py
       challenge.py  rng.py  canonical.py  hashing.py  receipt.py  bundle.py  schemas.py  identity.py  errors.py
       fingerprint.py  redact.py  engine_config.py  pins.py  fetch.py
-      schemas/             the five JSON Schemas of schemas/ (§9.6's four and the references manifest's), copied byte for byte by scripts/export-schemas.ts (the grader is installed alone)
+      schemas/             the six JSON Schemas of schemas/ (§9.6's four, the references manifest's and the five points of TR0's forward pass), copied byte for byte by scripts/export-schemas.ts (the grader is installed alone)
       checks/              allclose, teacher-forced agreement, chi-square from counts, percentiles
       trace/               torch-profiler Chrome JSON → trace@1; nsys SQLite export → trace@1
       bench/               the open-loop client: seeded schedule, per-request records
@@ -1394,7 +1394,7 @@ Hours are the catalog's [estimated] figures; the total is about 91 h.
 
 | Module | h | Games | Sim modules | B (browser) | L/F (grader) | Wave |
 |---|---|---|---|---|---|---|
-| TR0 PyTorch and Triton reading | 7 | `shape-shifter` (3D) | `tensor` | items on shapes, strides and grid coverage | Qwen3-0.6B forward against HF to 1e-3 (L, CPU) | W2 |
+| TR0 PyTorch and Triton reading | 7 | `shape-shifter` (2D) | `tensor` | items on shapes, strides and grid coverage | Qwen3-0.6B forward against HF to 1e-3 (L, CPU) | W2 |
 | TR1 Read the engines | 10 | `engine-floor` (2D) | `lifecycle`, `trace` | lifecycle map by span checks | nano-vllm fork with lifecycle spans (F) | B: W1 · F: W2 |
 | TR2 The step loop | 10 | `loop` (3D; the front page) | `steploop`, `physics`, `host` | toggled until the bubbles close | — | W0 (front page) · W1 |
 | TR3 Profile a real engine | 12 | `gap-hunt` (2D) | `trace` | attribute 6-10 pinned traces | profile report on vLLM (F) | W2 |

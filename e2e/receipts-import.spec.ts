@@ -40,6 +40,7 @@ import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
 import { Ledger } from '../tests/receipts/support'
 import { sampleBundle } from '../tests/schema/receipt-support'
+import { chooserOpenedByEnter } from './support/chooser'
 import { daysAgo, put } from './support/receipts'
 import { clipped, expect, open, quiet, test, withSettings } from './support/site'
 
@@ -69,7 +70,7 @@ const challengeRows = (page: Page) => page.getByRole('list', { name: 'Challenges
 
 interface Stored {
   events: { id: string; kind: string; ref: string; ok?: boolean; score?: number; provenance?: string; data: { receiptSha256?: string; challenge?: string; checks?: { id: string; verdict: string }[]; environment?: string; graderVersion?: string } }[]
-  receipts: { sha256: string; receipt: { lab: string; stage: string }; reports: { at: string; report: { v: number; ran: number; rules: { id: string; status: string }[] } }[] }[]
+  receipts: { sha256: string; receipt: { lab: string; stage: string }; reports: { at: string; report: { v: number; ran: number; rules: { id: string; status: string; checks?: { id: string; status: string }[] }[] } }[] }[]
 }
 
 /** Everything in the app's own IndexedDB that the importer writes: the events, and the receipts with their reports. */
@@ -106,25 +107,9 @@ async function visit(page: Page, route = ROUTE): Promise<{ token: string }> {
   return { token }
 }
 
-/**
- * The pages whose file chooser Playwright already takes. It starts to take a page's chooser when a listener first asks for one, by a message
- * it does not wait for, and drops a chooser that opens before that message has landed: the page had clicked its input, and the test waited
- * for an event that never came [measured 2026-11-19 at b5bf755: 14 such waits in three runs of this file, a different test each time; none
- * in three runs with the listener put on first]. So each page gets a listener of its own once, and a round trip to the page before Enter.
- */
-const taken = new WeakSet<Page>()
-
 /** Chooses a file with the learner's own picker, as a keyboard does: the stub is focused, and Enter opens the chooser. */
 async function chooseWithKeys(page: Page, file: { name: string; mimeType: string; buffer: Buffer }): Promise<void> {
-  if (!taken.has(page)) {
-    taken.add(page)
-    page.on('filechooser', () => undefined)
-    await page.evaluate(() => undefined)
-  }
-  await choose(page).focus()
-  const chooser = page.waitForEvent('filechooser')
-  await page.keyboard.press('Enter')
-  await (await chooser).setFiles(file)
+  await (await chooserOpenedByEnter(page, choose(page))).setFiles(file)
 }
 
 /** Drops a file on the slip: the events a browser sends, with a DataTransfer that holds the file. */
@@ -268,14 +253,13 @@ test.describe('an honest receipt', () => {
     expect(events).toHaveLength(1)
     expect(events[0]).toMatchObject({
       ref: 'receipt:tr3.profile.s2',
-      ok: false,
-      score: 0,
-      provenance: 'gpu-unverified',
       data: { receiptSha256: found.receipts[0].sha256, graderVersion: '0.1.0', environment: 'Example GPU 24GB, vllm 0.33.0, driver 580.82.07' },
     })
-    // The grader's three checks are attested, and the browser's own are pass or fail.
-    expect(events[0].data.checks?.filter((check) => ['agreement', 'runner', 'engine-integrity'].includes(check.id)).map((check) => check.verdict)).toEqual(['attested', 'attested', 'attested'])
-    expect(events[0].data.checks?.find((check) => check.id === 'T2')?.verdict).toBe('pass')
+    // The event holds no verdict: what the receipt is worth is read from the receipt and its report, which holds the checks this browser ran.
+    for (const key of ['ok', 'score', 'provenance']) expect(events[0]).not.toHaveProperty(key)
+    expect(events[0].data).not.toHaveProperty('checks')
+    const ran = found.receipts[0].reports[0].report.rules.flatMap((rule) => rule.checks ?? [])
+    expect(ran.find((check) => check.id === 'T2')?.status).toBe('pass')
 
     // The page reads what was kept: the receipt is in the list, the challenge is used by it, and the tape counts both.
     await expect(receiptRows(page)).toHaveCount(1)
@@ -664,7 +648,7 @@ test.describe('an unknown grader build', () => {
     await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
     await expect(rules(page).locator('xpath=self::*[@data-rule="grader"]')).toHaveAttribute('data-status', 'fail')
     const event = (await stored(page)).events.find((candidate) => candidate.kind === 'receipt')
-    expect(event).toMatchObject({ provenance: 'gpu-unverified', ok: false, score: 0 })
+    for (const key of ['ok', 'score', 'provenance']) expect(event).not.toHaveProperty(key)
     // The progress the learner sees does not move: the ledger has a receipt that earned nothing.
     await expect(slip(page).locator('.es-import__worth')).toHaveText('not counted')
   })

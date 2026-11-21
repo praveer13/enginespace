@@ -4,7 +4,7 @@
 
 The files themselves are in GitHub Release assets, on Hugging Face at a pinned revision, or on the site, and never in git. The manifest is `enginespace/references@1`: the zod schema in `packages/schema/references.ts` is its one definition, `schemas/references.schema.json` is the export that the grader validates with, and `tests/fixtures/references/cases.json` holds the good and bad manifests that the TypeScript and the Python suites both have to judge alike.
 
-The manifest has no entry yet. A lab's files join it with the lab: TR0's model with its lab (W2-T16), the argmax bank with W2-T17, and the owner's traces with W2-T21.
+The manifest holds TR0's Qwen3-0.6B files so far (`config.json`, `tokenizer.json` and `model.safetensors`, at one proposed revision). Each is `[unverified]` in its notes until the grader's download check hashes the fetched file. A lab's other files join it with the lab: the argmax bank with W2-T17 and the owner's traces with W2-T21.
 
 ## An entry
 

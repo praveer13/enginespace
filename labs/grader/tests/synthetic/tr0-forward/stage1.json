@@ -1,0 +1,37 @@
+{
+ "note": "Synthetic: the reference solution on a two-layer Qwen3 with random weights, recorded by labs/grader/tests/cpu/record_fixtures.py. No learner and no pinned model made it.",
+ "stage": "tr0.forward.s1",
+ "inputs": [
+  {
+   "name": "random Qwen3 config.json",
+   "kind": "model",
+   "sha256": "79f79407bb45bbbd1c98afd67e801bf099152fdc6f33707d5c02e8aed5cbf93c",
+   "bytes": 829
+  },
+  {
+   "name": "random Qwen3 model.safetensors",
+   "kind": "model",
+   "sha256": "9c3b84d64f991c496aaac1a655ee7875f9efa3d735f88908e400c9eff30052c7",
+   "bytes": 429992
+  },
+  {
+   "name": "tr0.forward s1 prompts (synthetic token ids)",
+   "kind": "prompts",
+   "sha256": "f755659d1ae722fb0007bf53009a852bf8cbb35dbefbc9bf8db73626334d35d8",
+   "bytes": 127
+  }
+ ],
+ "checks": [
+  {
+   "id": "layer0-hidden",
+   "kind": "correctness",
+   "pass": true,
+   "value": 2.6226043701171875e-06,
+   "bound": 0.0001,
+   "n": 2048,
+   "detail": "layer 0's output: the largest absolute difference is 2.623e-06, within the bound 1e-04, over 2048 elements"
+  }
+ ],
+ "artifacts": [],
+ "notes": null
+}

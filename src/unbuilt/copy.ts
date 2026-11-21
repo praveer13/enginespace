@@ -50,12 +50,11 @@ export interface LabStub {
 }
 
 /**
- * The ten labs with no page yet: every lab of the compiler's list (scripts/content/directives.ts) but the forge labs that have a
- * host (src/forge/ids.ts).
+ * The nine labs with no page yet: every lab of the compiler's list (scripts/content/directives.ts) but the forge labs that have a
+ * host (src/forge/ids.ts) and the graded lab that has a descriptor (src/labs/published.ts).
  */
 export const LAB_STUBS: Readonly<Record<string, LabStub>> = {
   'kv-publisher': { module: 'tr5b', lane: 'B', handIn: 'Publisher conformance tests on your Rust module' },
-  'tr0.forward': { module: 'tr0', lane: 'L', handIn: "A Qwen3 forward pass on the laptop's CPU that matches Hugging Face, graded by the local grader" },
   'tr1.fork': { module: 'tr1', lane: 'F', handIn: 'A nano-vllm fork that emits a span for every stage of your own map' },
   'tr3.profile': { module: 'tr3', lane: 'F', handIn: 'A profile of the pinned vLLM on your GPU, with an attribution report and two toggled pairs' },
   'tr4.sweep': { module: 'tr4', lane: 'F', handIn: 'Backend sweeps on your GPU: correctness against a full-precision reference, and timings with intervals' },
@@ -68,7 +67,7 @@ export const LAB_STUBS: Readonly<Record<string, LabStub>> = {
 
 /**
  * What a lab's page will hold (ARCHITECTURE §3.1): a forge lab takes a dropped `.wasm` and shows per-check results, and a GPU or local
- * lab offers its kit, a challenge and the receipt import (§8.4).
+ * lab is the numbered procedure of src/labs/GradedLabView.tsx (§8.4, REDESIGN §3.9), which these lines say in brief.
  */
 export const LAB_HOLDS = {
   forge: [
@@ -77,10 +76,17 @@ export const LAB_HOLDS = {
     'A result for each check, with the seed it ran on.',
   ],
   graded: [
-    'The kit to download.',
-    'A challenge for each stage, as a token to copy.',
-    'The receipt that your grader writes, imported here and checked in this browser.',
+    'The kit to download, with its size and SHA-256, and the commands that fetch the lab\'s inputs.',
+    'For each stage: a challenge to get, the command that grades it, and what your terminal shows when it worked.',
+    'The checks of each stage, with what each catches, and the receipt your grader writes, checked in this browser.',
   ],
+} as const
+
+/** The sentence a stub page of a lab that runs on the learner's own machine says, with the words of its link: the words come before and after it. */
+export const LAB_LOCAL = {
+  before: 'This lab runs on your own machine. Get its challenge and bring its receipt file back on ',
+  link: 'GPU lab results',
+  after: '.',
 } as const
 
 /** Every string above that holds words, for the tests. */
@@ -91,6 +97,6 @@ export function unbuiltCopy(): string[] {
     else if (Array.isArray(value)) value.forEach(walk)
     else if (value !== null && typeof value === 'object') Object.values(value).forEach(walk)
   }
-  walk({ UNBUILT, LAB_STUBS, LAB_HOLDS })
+  walk({ UNBUILT, LAB_STUBS, LAB_HOLDS, LAB_LOCAL })
   return out
 }

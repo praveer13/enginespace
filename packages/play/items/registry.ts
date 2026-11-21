@@ -3,6 +3,10 @@
  * teach a KC that is due, and `verify:items` holds every one of them to its gates. A family is added here, in module order, by the
  * task that builds it; `verify:kc` reads this folder for the families that assess each KC.
  */
+import { findTheSync } from './families/tr0/find-the-sync'
+import { gridCover } from './families/tr0/grid-cover'
+import { stridesOf } from './families/tr0/strides-of'
+import { viewOrCopy } from './families/tr0/view-or-copy'
 import { requestState } from './families/tr1/request-state'
 import { stepBudget } from './families/tr1/step-budget'
 import { whatMoved } from './families/tr1/what-moved'
@@ -33,6 +37,10 @@ import type { Gen } from './types'
 
 /** Every family, in module order and, within a module, in the order of its files (the order in which `verify:items` reads them). */
 export const FAMILIES: readonly Gen[] = [
+  findTheSync,
+  gridCover,
+  stridesOf,
+  viewOrCopy,
   requestState,
   stepBudget,
   whatMoved,

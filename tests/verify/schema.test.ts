@@ -141,7 +141,7 @@ describe('a receipt that has no canonical form', () => {
   })
 
   test('is also the claimed summary with such a number in it', () => {
-    const source = text(sampleBundle()).replace('"claimed":{"steps":2', '"claimed":{"steps":9007199254740993')
+    const source = text(sampleBundle()).replace('"claimed":{"trace":{"steps":2', '"claimed":{"trace":{"steps":9007199254740993')
     expect(source).toContain('9007199254740993')
     expect(failed(source)[0]).toMatch(/no canonical form/)
   })

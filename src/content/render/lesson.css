@@ -12,6 +12,12 @@
   max-width: 90rem;
 }
 
+/* While the lesson loads, the page is as tall as the screen: the kick-plate would otherwise stand at the screen's foot for a moment and then be
+   carried away by the lesson, which the browser counts as the page moving. */
+.es-lesson[data-notice='loading'] {
+  min-height: 100svh;
+}
+
 /* The strip at the top and the bar at the foot are sticky below 64rem; the reader's focus and anchors land clear of both (WCAG 2.4.11). */
 @media (max-width: 63.99rem) and (min-height: 600px) {
   html:has(.es-lesson) {
@@ -210,6 +216,11 @@
     top: 0;
     box-shadow: 0 1px 0 var(--es-edge);
   }
+}
+
+/* While the strip's button lies under the foot bar (Lesson.tsx), the strip waits: half a button is neither seen nor tabbed to. */
+.es-lesson__strip[data-under-foot] {
+  visibility: hidden;
 }
 
 /* The column: one sheet of paper, the reading measure inside it, and the instruments at its full width. */
@@ -915,7 +926,9 @@
 }
 
 .es-lesson__foot {
-  z-index: 3;
+  /* Over the strip (z-index 25): where a short phone's strip passes through the bar's band, the strip goes under the bar and the bar, the
+     lesson's way on, is never hidden or covered. */
+  z-index: 26;
   display: flex;
   align-items: center;
   min-height: 3.5rem;
@@ -930,11 +943,6 @@
     position: sticky;
     bottom: 0;
   }
-}
-
-/* While the strip's place in the flow lies under the bar (Lesson.tsx), the bar waits: it would cover the strip's button. */
-.es-lesson__foot[data-over-strip] {
-  visibility: hidden;
 }
 
 /* The label names its target in full: a long part title wraps to a second line inside the bar, and is never cut at either end. */

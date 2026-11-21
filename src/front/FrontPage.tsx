@@ -6,6 +6,7 @@ import { Readout } from '@/design/components/Readout'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { TextLink } from '@/design/components/TextLink'
 import { formatReadout } from '@/design/format'
+import { hoursSplit } from '@/map/summary'
 import { hearPointer, pointerSnapshot } from '@/settings/store'
 import { CREDIT, HERO, OUTCOMES, PATH, RETURNING } from './copy'
 import { Instrument } from './Instrument'
@@ -87,7 +88,8 @@ function Course({ index, link }: { index: ContentIndex | null; link: string }) {
     <>
       {hours === null ? null : (
         <p className="es-front-range es-front-desk" data-course-hours="">
-          {`${HERO.range} · ${formatReadout(hours.total, decimalsOf(hours.total))} ${HERO.hours}, ${HERO.estimated}: ${hours.lanes.map((lane) => `${formatReadout(lane.hours, decimalsOf(lane.hours))} ${lane.words}`).join(', ')}`}
+          {`${formatReadout(hours.total, decimalsOf(hours.total))} ${HERO.hours}, ${HERO.estimated}: ${hours.lanes.map((lane) => `${formatReadout(lane.hours, decimalsOf(lane.hours))} ${lane.words}`).join(', ')}`}
+          {hours.planned > hours.total ? ` · ${formatReadout(hours.planned, decimalsOf(hours.planned))} ${HERO.planned}` : ''}
         </p>
       )}
       <p className="es-front-skip es-front-desk">
@@ -182,6 +184,7 @@ function Below({ index, course }: { index: ContentIndex | null; course: { label:
 function PathTable({ index }: { index: ContentIndex | null }) {
   if (index === null) return <p>{PATH.unavailable}</p>
   const first = firstLesson(index)?.module ?? null
+  const split = hoursSplit(index.modules)
   return (
     <table className="es-front-path__table">
       <caption className="sr-only">{PATH.title}</caption>
@@ -216,14 +219,24 @@ function PathTable({ index }: { index: ContentIndex | null }) {
         })}
       </tbody>
       <tfoot>
-        <tr>
+        <tr data-total={split.published === split.planned ? 'all' : 'published'}>
           <th scope="row" colSpan={3}>
-            {PATH.total}
+            {split.published === split.planned ? PATH.total : PATH.published}
           </th>
           <td className="es-front-path__hours">
-            <Readout value={index.totalHours} digits={decimalsOf(index.totalHours)} tag="derived" size="sm" />
+            <Readout value={split.published} digits={decimalsOf(split.published)} tag="derived" size="sm" />
           </td>
         </tr>
+        {split.published === split.planned ? null : (
+          <tr data-total="planned">
+            <th scope="row" colSpan={3}>
+              {PATH.planned}
+            </th>
+            <td className="es-front-path__hours">
+              <Readout value={split.planned} digits={decimalsOf(split.planned)} tag="derived" size="sm" />
+            </td>
+          </tr>
+        )}
       </tfoot>
     </table>
   )

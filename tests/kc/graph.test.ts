@@ -17,18 +17,24 @@ import type { Kc } from '@es/schema'
 import { loadYaml } from '../../scripts/content/parse.ts'
 import { untaggedNumbers } from '../../scripts/content/prose.ts'
 import { GATES } from '../../scripts/verify.ts'
-import { checkKc, courseModules, gameReferences, itemReferences, labReferences, trackerTasks } from '../../scripts/verify-kc.ts'
+import { checkKc, courseModules, gameReferences, itemReferences, labReferences, stageReferences, trackerTasks } from '../../scripts/verify-kc.ts'
 import { parseSnapshot } from '../../scripts/kc/kernelspace.ts'
 import { between, read, root } from '../ci/support'
-import { BUILT_MODULES } from '../content/module-counts'
+import { MODULE_ROWS } from '../content/module-counts'
 
 const text = read('content/kc/graph.yaml')
 const loaded = loadYaml(text, 'content/kc/graph.yaml', 1, 'kc', [])
 const graph: readonly Kc[] = kcGraphSchema.parse(loaded.ok ? loaded.value : undefined)
 const moduleOf = (kc: Kc) => kc.id.slice(0, kc.id.indexOf('.'))
 
-/** The modules that have lessons, each with the curriculum file that proposes its KCs: the rows of tests/content/module-counts.ts. */
-const MODULES: readonly (readonly [string, string])[] = BUILT_MODULES.map((row) => [row.id, row.curriculum])
+/**
+ * A module whose KCs entered the graph with its design, before its first lesson, with the tasks its `planned` lines may name: TR0's
+ * design task (W2b-T26) planned each of its nine on an item family (W2b-T29), the game's graded levels (W2-T14) or the lab (W2-T16).
+ */
+const DESIGNED: ReadonlyMap<string, readonly string[]> = new Map([['tr0', ['W2b-T29', 'W2-T14', 'W2-T16']]])
+
+/** The modules with KCs in the graph: those that have lessons, and those designed ahead of them, each with the curriculum file that proposes its KCs (tests/content/module-counts.ts). */
+const MODULES: readonly (readonly [string, string])[] = MODULE_ROWS.filter((row) => row.lessons > 0 || DESIGNED.has(row.id)).map((row) => [row.id, row.curriculum])
 
 /** The rows of a curriculum file's table of KCs: the KC in the first column, what it requires in the second. */
 function proposed(file: string): { id: string; requires: string[] }[] {
@@ -74,7 +80,7 @@ describe('1. the graph is a DAG', () => {
 })
 
 describe('2. every KC has a description, and a reference or a planned task', () => {
-  test('holds the KCs of TR1, TR2, TR5a, TR6 and TR8, and no others', () => {
+  test('holds the KCs of the modules with lessons (TR1, TR2, TR5a, TR6 and TR8) and of TR0, designed ahead of its lessons, and no others', () => {
     expect([...new Set(graph.map(moduleOf))]).toEqual(MODULES.map(([module]) => module))
   })
 
@@ -94,7 +100,9 @@ describe('2. every KC has a description, and a reference or a planned task', () 
     expect(items.diagnostics).toEqual([])
     const labs = await labReferences(root)
     expect(labs.diagnostics).toEqual([])
-    const references = [...gameReferences(GAMES.games), ...items.references, ...labs.references]
+    const stages = await stageReferences(root)
+    expect(stages.diagnostics).toEqual([])
+    const references = [...gameReferences(GAMES.games), ...items.references, ...labs.references, ...stages.references]
     const result = checkKc({ text, references, modules: courseModules(root), tasks: trackerTasks(root), kernelspace: snapshot, final: false })
     expect(result.diagnostics.filter((d) => d.severity === 'error')).toEqual([])
     expect(result.stats?.kcs).toBe(graph.length)
@@ -104,10 +112,17 @@ describe('2. every KC has a description, and a reference or a planned task', () 
     const tasks = trackerTasks(root) as Set<string>
     const items = await itemReferences(root)
     const labs = await labReferences(root)
-    const referenced = new Set([...gameReferences(GAMES.games), ...items.references, ...labs.references].filter((reference) => reference.graded).flatMap((reference) => reference.kcs))
+    const stages = await stageReferences(root)
+    const referenced = new Set([...gameReferences(GAMES.games), ...items.references, ...labs.references, ...stages.references].filter((reference) => reference.graded).flatMap((reference) => reference.kcs))
     for (const kc of graph) {
       if (referenced.has(kc.id)) continue
       const task = kc.planned ?? ''
+      const designed = DESIGNED.get(moduleOf(kc))
+      if (designed !== undefined) {
+        // A module designed ahead of its lessons plans each KC on one of its own tasks of the tracker.
+        expect([kc.id, tasks.has(task), designed.includes(task)]).toEqual([kc.id, true, true])
+        continue
+      }
       expect([kc.id, tasks.has(task), /^W1-T\d\d$/.test(task) && task < 'W1-T38']).toEqual([kc.id, true, true])
     }
   })

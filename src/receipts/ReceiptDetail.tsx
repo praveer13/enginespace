@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Sha256, VerificationReport } from '@es/ledger'
 import type { Receipt } from '@es/schema/receipt'
-import { readStoredReport, RULES_IN_ALL, verdictOf } from '@es/verify'
+import { readStoredReport, RULES_IN_ALL, rulesOnRead, verdictOfStored } from '@es/verify'
 import { Icon } from '@/design/components/Glyph'
 import { Readout } from '@/design/components/Readout'
 import { TextLink } from '@/design/components/TextLink'
@@ -9,6 +9,7 @@ import { Sheet } from '@/design/components/Sheet'
 import { Bytes } from './Bytes'
 import type { HeldChallenge } from './challenge'
 import { RECEIPTS, REPORTS } from './copy'
+import { SITE_DATA } from './credit'
 import { stageOf } from './labs'
 import { gpuLine } from './records'
 import type { HeldReceipt } from './records'
@@ -440,8 +441,8 @@ function Check({ report, newest, receipt }: { report: VerificationReport; newest
           all of them run.
         </p>
       ) : null}
-      <RuleList rules={read.rules} label={`How this browser checked the receipt, ${formatWhen(report.at)}`} checks={false} />
-      <VerdictLine verdict={verdictOf(receipt, read.rules, read.ran)} grader={receipt.grader.version} />
+      <RuleList rules={rulesOnRead(receipt, read, SITE_DATA)} label={`How this browser checked the receipt, ${formatWhen(report.at)}`} checks={false} />
+      <VerdictLine verdict={verdictOfStored(receipt, read, SITE_DATA)} grader={receipt.grader.version} />
     </>
   )
   return newest ? (

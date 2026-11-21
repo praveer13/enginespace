@@ -38,8 +38,12 @@ export type Json = null | boolean | number | string | Json[] | { [key: string]: 
  * The version of the data model that the stores and the export file carry (A§7.1's `meta.schemaVersion`). Bump it when an
  * event's fields, a kind or a ref form changes. A bundle that finds a newer version goes read-only and asks for a reload
  * (A§7.4), and an export from a newer build is refused, so no build ever drops a field it does not know.
+ *
+ * 1  every graded kind stored its `score`, `ok` and `provenance`; a `receipt` event also stored a verdict for each check.
+ * 2  a `receipt` event stores none of them: what a receipt is worth is worked out when the ledger is read, from the receipt and its report
+ *    (A§8.5 rule 10). A ledger of version 1 is read as it is: the fields that its receipt events hold are kept in the file and never read.
  */
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 /** The envelope's `v`. */
 export const EVENT_VERSION = 1
 /** The `schema` field of an export file (A§7.5). */
@@ -209,12 +213,14 @@ export interface ReceiptCheck {
   bound?: string
 }
 
-/** `receipt:<lab>.<stage>`: what the browser concluded from an imported receipt. The receipt itself is in the `receipts` store. */
+/**
+ * `receipt:<lab>.<stage>`: that a receipt was brought back, and the challenge it spent. The receipt and the report of its check are in the
+ * `receipts` store, and what the receipt is worth is worked out from them when the ledger is read.
+ */
 export interface ReceiptData {
   receiptSha256: Sha256
   /** The challenge token the receipt was bound to. */
   challenge: string
-  checks: ReceiptCheck[]
   graderVersion: string
   /** A one-line summary: plain text, never the hostname, a path or a serial number (A§9.5). */
   environment: string
@@ -232,7 +238,21 @@ export type LabCheckEvent = Envelope<'lab-check'> & Graded & { data: LabCheckDat
 export type ProveEvent = Envelope<'prove'> & Graded & { data: ProveData }
 export type TraceMarkEvent = Envelope<'trace-mark'> & Graded & { data: TraceMarkData }
 export type ChallengeEvent = Envelope<'challenge'> & { data: ChallengeData }
-export type ReceiptEvent = Envelope<'receipt'> & Graded & { data: ReceiptData }
+/**
+ * A `receipt` event as it is stored: it holds no `score`, no `ok`, no `provenance` and no verdict, so that a rule or a bank that a later build adds
+ * credits a receipt that was brought back before it. A ledger of schema version 1 holds those fields in its receipt events and the codec reads them
+ * and keeps them, and nothing reads them: `data.checks` and the graded fields are `LegacyReceiptFields`.
+ */
+export type ReceiptEvent = Envelope<'receipt'> & { data: ReceiptData }
+/** What a schema-1 `receipt` event also holds. Kept as written (an event is immutable, and a device that holds the old copy of it would call a rewrite a clash), and never read. */
+export interface LegacyReceiptFields {
+  score?: number
+  ok?: boolean
+  provenance?: Provenance
+  data?: { checks?: ReceiptCheck[] }
+}
+/** A `receipt` event as a reader sees it once what it is worth has been worked out (src/receipts/credit.ts): the stored event, and the three graded fields. */
+export type CreditedReceiptEvent = ReceiptEvent & Graded
 export type ReviewEvent = Envelope<'review'> & Graded & { data: ReviewData }
 /** `screen:<id>` or `change:<id>`: the learner saw it. It carries nothing else. */
 export type AckEvent = Envelope<'ack'>

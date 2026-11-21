@@ -24,10 +24,10 @@ const lessons = compiled.outputs
 const blocks = lessons.flatMap((lesson) => lesson.blocks.flatMap((block, at) => (block.type === 'game' ? [{ lesson: lesson.id, at, block: block as GameBlock }] : [])))
 
 describe("the lessons' game blocks", () => {
-  test('are there: W1 wrote at least 40 of them, across the lessons of its five modules', () => {
+  test('are there: W1 wrote at least 40 of them, across the lessons of its five modules, and TR0 adds its own', () => {
     expect(lessons.length).toBeGreaterThanOrEqual(27)
     expect(blocks.length).toBeGreaterThanOrEqual(40)
-    expect(new Set(blocks.map(({ lesson }) => lesson.split('.')[0]))).toEqual(new Set(['tr1', 'tr2', 'tr5a', 'tr6', 'tr8']))
+    expect(new Set(blocks.map(({ lesson }) => lesson.split('.')[0]))).toEqual(new Set(['tr0', 'tr1', 'tr2', 'tr5a', 'tr6', 'tr8']))
   })
 
   test('each names a game this build has, in both registries, and none that waits for a task', () => {

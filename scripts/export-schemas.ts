@@ -25,7 +25,7 @@
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import type { ZodType } from 'zod'
-import { bundleSchema } from '../packages/schema/bundle.ts'
+import { bundleSchema, tr0PointsSchema } from '../packages/schema/bundle.ts'
 import { challengeSchema } from '../packages/schema/challenge.ts'
 import { receiptSchema } from '../packages/schema/receipt.ts'
 import { referencesSchema } from '../packages/schema/references.ts'
@@ -54,6 +54,7 @@ export const SCHEMA_EXPORTS: readonly SchemaExport[] = [
   { file: 'schemas/challenge.schema.json', schema: challengeSchema, source: 'packages/schema/challenge.ts' },
   { file: 'schemas/trace.schema.json', schema: traceSchema, source: 'packages/schema/trace.ts' },
   { file: 'schemas/references.schema.json', schema: referencesSchema, source: 'packages/schema/references.ts' },
+  { file: 'schemas/tr0-points.schema.json', schema: tr0PointsSchema, source: 'packages/schema/bundle.ts' },
 ]
 
 /** Where the grader's package keeps its copy of each schema: the folder of its package data (labs/grader/pyproject.toml, W2-T02). */

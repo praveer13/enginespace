@@ -17,6 +17,22 @@ export function laneTotals(modules: readonly Pick<IndexModule, 'hours_by_lane'>[
   return totals
 }
 
+/**
+ * The course's hours split by what can be done today: the hours of the modules that are published, with their lanes, and the hours of
+ * every module the course plans. Both are sums of the modules' own [estimated] hours, so they are [derived], and both come from the
+ * rows the pages list (the index), so a module that publishes moves the figures with no edit.
+ */
+export interface HoursSplit {
+  readonly published: number
+  readonly planned: number
+  readonly lanes: Record<Lane, number>
+}
+
+export function hoursSplit(modules: readonly Pick<IndexModule, 'hours' | 'hours_by_lane' | 'published'>[]): HoursSplit {
+  const open = modules.filter((module) => module.published)
+  return { published: open.reduce((sum, module) => sum + module.hours, 0), planned: modules.reduce((sum, module) => sum + module.hours, 0), lanes: laneTotals(open) }
+}
+
 /** How many digits after the point an hour count needs: none for a whole number, one for a half. */
 export const decimalsOf = (hours: number): number => (Number.isInteger(hours) ? 0 : 1)
 

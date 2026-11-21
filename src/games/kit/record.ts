@@ -14,15 +14,28 @@ import { canonicalJson } from '@es/sim/core/json'
  *   ref         `play:<game>/<level>`
  *   score, ok   the grade the pure session gave the run; a cache, since the Evidence page grades the log again (packages/play/replay.ts)
  *   provenance  `unseen` for a graded run, whose seed was drawn when it started, and `practice` for a practice run, on the level's pinned
- *               seed or on new numbers (ASSESSMENT §3.2). The weight is applied when the ledger is read (A§7.3), and is never stored.
+ *               seed or on new numbers (ASSESSMENT §3.2). A run of the game's Prove level in Prove mode (src/prove, ASSESSMENT §7.2) is a
+ *               graded run that the learner attested they played with their agent closed: it is `proved` when it counts, passed or not,
+ *               and `practice` when it falls inside the 24 hours after the last one that counted (ASSESSMENT §7.3; src/prove/window.ts).
+ *               A `proved` run that did not pass credits nothing, and opens the window as a pass does. The weight is applied when the
+ *               ledger is read (A§7.3), and is never stored.
  *   seed, rev   the run's seed, and the lesson's revision when a lesson played it
  *   data        the action log as canonical JSON, which `storedRunOf` reads back for a replay, and its SHA-256 (ASSESSMENT §5.5)
  *
  * The ledger's own code loads with the first run that ends, not before, so a page that is only looked at never opens it.
  */
 
-/** How a run of this mode is stamped. */
-export const provenanceOf = (mode: GameMode): 'unseen' | 'practice' => (mode === 'graded' ? 'unseen' : 'practice')
+/**
+ * A Prove run's stamp, which src/prove decides when the run ends: `counts` when no attempt that counted lies in the 24 hours before it.
+ * The learner's attestation is the reason a run carries one at all; a run without one is not a Prove run.
+ */
+export interface ProveStamp {
+  readonly counts: boolean
+}
+
+/** How a run of this mode is stamped, and a graded run of a Prove level in Prove mode by its stamp. A practice run is never proved. */
+export const provenanceOf = (mode: GameMode, prove?: ProveStamp): 'unseen' | 'practice' | 'proved' =>
+  mode !== 'graded' ? 'practice' : prove === undefined ? 'unseen' : prove.counts ? 'proved' : 'practice'
 
 /** The SHA-256 of a text's UTF-8 bytes, as lowercase hex. */
 export type Hasher = (text: string) => Promise<string>
@@ -39,7 +52,7 @@ export const sha256Text: Hasher = async (text) => {
 }
 
 /** The event that records a run. The same run and mode make the same draft, wherever the run was played. */
-export async function playDraft(result: RunResult, mode: GameMode, hash: Hasher = sha256Text): Promise<Draft<'play'>> {
+export async function playDraft(result: RunResult, mode: GameMode, hash: Hasher = sha256Text, prove?: ProveStamp): Promise<Draft<'play'>> {
   const { record, grade } = result
   const actions = canonicalJson(record.actions)
   return {
@@ -47,7 +60,7 @@ export async function playDraft(result: RunResult, mode: GameMode, hash: Hasher 
     ref: `play:${record.game}/${record.level}`,
     score: grade.score,
     ok: grade.ok,
-    provenance: provenanceOf(mode),
+    provenance: provenanceOf(mode, prove),
     seed: record.seed,
     ...(record.rev === undefined ? {} : { rev: record.rev }),
     data: { actions, actionsSha256: await hash(actions) },
@@ -58,9 +71,9 @@ export async function playDraft(result: RunResult, mode: GameMode, hash: Hasher 
 export type Recorded = { readonly ok: true } | { readonly ok: false; readonly detail: string }
 
 /** Writes a run to the ledger. It never throws: a run that could not be written says why. */
-export async function recordPlay(result: RunResult, mode: GameMode): Promise<Recorded> {
+export async function recordPlay(result: RunResult, mode: GameMode, prove?: ProveStamp): Promise<Recorded> {
   try {
-    const [draft, { appendEvidence }] = await Promise.all([playDraft(result, mode), import('@/evidence/useEvidence')])
+    const [draft, { appendEvidence }] = await Promise.all([playDraft(result, mode, sha256Text, prove), import('@/evidence/useEvidence')])
     const written = await appendEvidence(draft)
     return written.ok ? { ok: true } : { ok: false, detail: written.detail }
   } catch (error) {

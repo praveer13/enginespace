@@ -19,6 +19,8 @@ import { verifyBundle } from '@es/verify'
 import type { Outcome, PublishedGrader } from '@es/verify'
 import { ATLAS } from '@/receipts/atlas'
 import { heldChallenges } from '@/receipts/challenge'
+import { creditReceipts } from '@/receipts/credit'
+import { STAGE_DECLARATIONS } from '@/receipts/declared'
 import { importReceipt } from '@/receipts/importer'
 import type { ImportEnv, ImportResult } from '@/receipts/importer'
 import { readReceipt } from '@/receipts/records'
@@ -106,16 +108,13 @@ describe('an honest receipt', () => {
     expect(verdictOf(bundle.receipt, report?.rules ?? [], report?.ran).provenance).toBe('gpu-unverified')
   })
 
-  test('writes an event that credits nothing, names the receipt and the token, and holds nothing about the machine but its GPU, engine and driver', async () => {
+  test('writes an event that holds no verdict, names the receipt and the token, and holds nothing about the machine but its GPU, engine and driver', async () => {
     const { tab } = await ledgerWithChallenge()
     const result = kept(await importReceipt(fileNamed(fileOf(bundle)), envOf(tab)))
     const event = tab.engine.getSnapshot().events.find((entry) => entry.kind === 'receipt')
     expect(event).toMatchObject({
       kind: 'receipt',
       ref: 'receipt:tr3.profile.s2',
-      ok: false,
-      score: 0,
-      provenance: 'gpu-unverified',
       data: {
         receiptSha256: result.sha256,
         challenge: token,
@@ -123,15 +122,23 @@ describe('an honest receipt', () => {
         environment: 'Example GPU 24GB, vllm 0.33.0, driver 580.82.07',
       },
     })
-    // Each check the grader ran is there as attested, with its numbers as the grader gave them, beside the checks this browser ran, which are pass or fail.
-    const checks = event?.kind === 'receipt' ? event.data.checks : []
-    expect(checks.filter((check) => ['agreement', 'runner', 'engine-integrity'].includes(check.id))).toEqual([
+    expect(event).not.toHaveProperty('ok')
+    expect(event).not.toHaveProperty('score')
+    expect(event).not.toHaveProperty('provenance')
+    expect(event?.kind === 'receipt' ? event.data : {}).not.toHaveProperty('checks')
+    // What it is worth is read from the record: this receipt credits nothing, and the report says each check as this browser ran it or the grader attested it.
+    const snapshot = tab.engine.getSnapshot()
+    expect(creditReceipts(snapshot.events, snapshot.receipts).find((entry) => entry.kind === 'receipt')).toMatchObject({ ok: false, score: 0, provenance: 'gpu-unverified' })
+    const stored = readStoredReport(snapshot.receipts[0].reports[0].report)
+    const checks = result.verdict.checks
+    expect(checks.filter((check) => ['agreement', 'runner', 'engine-integrity'].includes(check.id)).map(({ id, verdict, bound }) => ({ id, verdict, bound }))).toEqual([
       { id: 'agreement', verdict: 'attested', bound: 'value 0.995, bound 0.99, n 200; teacher-forced agreement over 200 positions' },
       { id: 'runner', verdict: 'attested', bound: 'MRV2 ran' },
       { id: 'engine-integrity', verdict: 'attested', bound: 'tolerance 0' },
     ])
     expect(checks.find((check) => check.id === 'T2')).toMatchObject({ verdict: 'pass' })
     expect(checks.find((check) => check.id === 'X1')).toMatchObject({ verdict: 'fail' })
+    expect(stored?.rules.flatMap((rule) => rule.checks ?? []).map((check) => check.id)).toContain('T2')
   })
 
   test('spends the token: the page\'s own list of challenges calls it used, by this receipt', async () => {
@@ -225,7 +232,9 @@ describe('an unknown grader build', () => {
     expect(result.verdict.provenance).toBe('gpu-unverified')
     expect(result.verdict.reasons[0]).toBe('enginespace-grader 0.1.0 is not the build this site published under that version.')
     const event = tab.engine.getSnapshot().events.find((entry) => entry.kind === 'receipt')
-    expect(event).toMatchObject({ ok: false, provenance: 'gpu-unverified' })
+    expect(event).not.toHaveProperty('ok')
+    const snapshot = tab.engine.getSnapshot()
+    expect(creditReceipts(snapshot.events, snapshot.receipts).find((entry) => entry.kind === 'receipt')).toMatchObject({ ok: false, provenance: 'gpu-unverified' })
     expect(heldChallenges(tab.engine.getSnapshot().events, Date.parse(NOW_ISO))[0].state).toBe('used')
   })
 
@@ -351,7 +360,8 @@ describe('a check that cannot finish', () => {
       graders: [GRADER],
       pins: [VLLM_PIN],
       atlas: ATLAS,
-      stages: {},
+      // The site's own declarations (TR0's three stages: the pinned model's files), and no bank until the owner records one.
+      stages: STAGE_DECLARATIONS,
       banks: {},
     })
   })

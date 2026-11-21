@@ -7,6 +7,7 @@
  *   3. The pool's eviction shows each option's cost, and when it lands the readout's numbers change at once, each with its delta.
  *   4. The step loop's idle boxes close when async scheduling goes on, and the first bubble is named.
  *   5. A debrief puts the learner's run against the reference.
+ *   6. Tensor views' `transpose` is a view: the buffer does not move, the strides swap, nothing is moved, and the moment names the view.
  *
  *   Time to the first payoff: from landing on `/`, the first named moment appears within six actions; in each game's scripted first run its
  *   first named moment appears before the run ends. "Nothing dead": no disabled primary control without a reason, no lock and no empty box
@@ -19,7 +20,7 @@ import type { Locator, Page } from '@playwright/test'
 import { handsOf } from './support/moves'
 import { copyProblems } from './support/screens'
 import { expect, open, quiet, test, withSettings } from './support/site'
-import { floorWithHands, poolNightWith } from './support/walks'
+import { floorWithHands, poolNightWith, shiftWalkWith } from './support/walks'
 import { walkOf } from './support/front'
 
 test.use({ viewport: { width: 1440, height: 900 } })
@@ -135,6 +136,32 @@ test.describe('the keep-list: the moments that are felt', () => {
     if ((await overlap.getAttribute('aria-checked')) !== 'true') await overlap.click()
     const closed = await play(false)
     expect(closed, `idle boxes with async scheduling on (${closed}) against off (${open1})`).toBeLessThan(open1)
+  })
+})
+
+test.describe('the keep-list: Tensor views', () => {
+  test('6. `transpose` is a view: in the scripted first run the buffer stays, the table reads (1, 6), 0 elements moved, and the view is named before the run ends', async ({ page, context }) => {
+    await withSettings(context, { view3d: false })
+    await open(page, '/play/shape-shifter?level=views')
+    await quiet(page)
+    const game = page.locator('section[data-game="shape-shifter"]')
+    const buffer = () => game.locator('[data-shift-buffer="now"] .es-shift__addr').allTextContents()
+    const before = await buffer()
+    let moment = ''
+    // The first run plays from its parts through its guess to the reference's plan; the first move is `transpose(0, 1)`.
+    await shiftWalkWith('views', {
+      after: async (op, at) => {
+        if (at !== 0) return
+        expect(op).toEqual({ op: 'transpose', a: 0, b: 1 })
+        expect(await buffer(), 'the buffer did not move').toEqual(before)
+        await expect(game.locator('[data-shift-strides]')).toHaveText('(1, 6)')
+        await expect(game.locator('[data-shift-table] tbody td[data-stride], [data-shift-table] tbody td:last-child').first()).toHaveText('1')
+        await expect(game.locator('[data-readout-id="moved"] dd')).toHaveText('0')
+        moment = await named(page, game, /The buffer did not move\. transpose is a view: the strides went from \(6, 1\) to \(1, 6\)\./)
+      },
+    })(page, walkOf(page))
+    expect(moment, 'the scripted first run named the view before it ended').not.toBe('')
+    await expect(game.locator('[data-result]')).toContainText(/against the reference|reference/i)
   })
 })
 

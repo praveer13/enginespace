@@ -155,12 +155,13 @@ describe('the registry', () => {
     expect([...RECHECKS_BUILT].sort()).toEqual([...RECHECK_IDS].sort())
   })
 
-  test('lists the checks of the three rules in the order they run: rule 7\'s three, then evidence, the benchmark\'s and the trace\'s, then the floors', () => {
+  test('lists the checks of the three rules in the order they run: rule 7\'s four, then evidence, the benchmark\'s and the trace\'s, then the floors', () => {
     expect(EVIDENCE_CHECK_IDS).toEqual(['evidence'])
     expect(CHECK_IDS).toEqual([
       'identity-tally',
       'acceptance-counts',
       'argmax-bank',
+      'claims-backed',
       'evidence',
       'B1',
       'B2',

@@ -60,10 +60,7 @@ export class Ledger {
     return this.write(at, {
       kind: 'receipt',
       ref: `receipt:${stage}`,
-      score: 1,
-      ok: true,
-      provenance: 'gpu-verified',
-      data: { receiptSha256, challenge: token, checks: [{ id: 'agreement', verdict: 'attested' }], graderVersion: '0.1.0', environment: 'one GPU, one engine at the pin' },
+      data: { receiptSha256, challenge: token, graderVersion: '0.1.0', environment: 'one GPU, one engine at the pin' },
     }) as ReceiptEvent
   }
 }

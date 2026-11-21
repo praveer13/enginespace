@@ -633,6 +633,11 @@
   font-size: var(--es-size-note);
 }
 
+/* The way into Prove mode is a link drawn as an outline button (src/prove): its words are not underlined, as a button's are not. */
+.es-frame__mode a.es-button {
+  text-decoration: none;
+}
+
 .es-frame__table {
   min-width: 0;
 }

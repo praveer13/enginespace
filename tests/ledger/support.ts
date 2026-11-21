@@ -108,16 +108,9 @@ export const EXAMPLES: { [K in Kind]: EventOf<K> } = {
     ...base('r1'),
     kind: 'receipt',
     ref: 'receipt:tr8.replay.s2',
-    score: 1,
-    ok: true,
-    provenance: 'gpu-verified',
     data: {
       receiptSha256: HEX_B,
       challenge: TOKEN,
-      checks: [
-        { id: 'teacher-forced', verdict: 'attested', bound: 'at least 99% of positions' },
-        { id: 'arrival-adherence', verdict: 'pass' },
-      ],
       graderVersion: '0.1.0',
       environment: 'one GPU, one engine at the pin',
     },
@@ -223,11 +216,9 @@ function randomDraft(r: Rng, kind: Kind): Draft {
       return {
         kind,
         ref: 'receipt:tr8.replay.s2',
-        ...graded,
         data: {
           receiptSha256: r.pick(SHAS),
           challenge: TOKEN,
-          checks: [{ id: 'teacher-forced', verdict: r.pick(['pass', 'fail', 'attested'] as const) }],
           graderVersion: '0.1.0',
           environment: 'one GPU, one engine at the pin',
         },

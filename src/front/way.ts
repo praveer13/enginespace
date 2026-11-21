@@ -12,6 +12,7 @@ import { loopPartsOf } from '@es/play/loop/parts'
 import type { LoopLevelId } from '@es/play/loop/types'
 import type { ContentIndex } from '@es/schema'
 import { START_POINTER, type Pointer } from '@/settings/store'
+import { hoursSplit, LANE_ORDER } from '@/map/summary'
 import { PATH, RESULT } from './copy'
 import { firstLesson } from './menu'
 
@@ -37,16 +38,21 @@ export function returningOf(pointer: Pointer | null): Returning | null {
   return { pointer, href: pointer.href, label: pointer.label, place: lesson[1], next: lesson[2] ?? 'the lesson' }
 }
 
-/** The course's hours, in all and by lane, from the index: every figure is [estimated] (docs/PLAN.md §4). */
+/**
+ * The course's hours from the index, as the front page's line says them: the hours of the published modules in all and by lane, and the hours
+ * the whole course plans. Every figure is [estimated] (docs/PLAN.md §4) or a sum of them. `planned` equals `total` once every module is published.
+ */
 export interface CourseHours {
   readonly total: number
+  readonly planned: number
   readonly lanes: readonly { readonly lane: 'B' | 'L' | 'F'; readonly words: string; readonly hours: number }[]
 }
 
 export function courseHours(index: ContentIndex | null): CourseHours | null {
   if (index === null || index.modules.length === 0) return null
-  const lanes = (['B', 'L', 'F'] as const).map((lane) => ({ lane, words: PATH.lanes[lane], hours: index.modules.reduce((sum, module) => sum + (module.hours_by_lane[lane] ?? 0), 0) })).filter((row) => row.hours > 0)
-  return { total: index.totalHours, lanes }
+  const split = hoursSplit(index.modules)
+  const lanes = LANE_ORDER.map((lane) => ({ lane, words: PATH.lanes[lane], hours: split.lanes[lane] })).filter((row) => row.hours > 0)
+  return { total: split.published, planned: split.planned, lanes }
 }
 
 /**

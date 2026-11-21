@@ -17,6 +17,8 @@ import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
 import type { Result } from 'axe-core'
 import { buildExport, serializeExport } from '../packages/ledger'
+import { GAMES } from '../packages/play/registry'
+import { ROSTER } from '../packages/play/roster'
 import type { LedgerEvent } from '../packages/ledger'
 import { clipped, expect, open, quiet, test, withSettings } from './support/site'
 
@@ -185,7 +187,8 @@ test.describe('Course', () => {
     await withSettings(context, { view3d: false })
     await open(page, '/map')
     await readTheLedger(page)
-    for (const module of ['tr0', 'tr3', 'capstone']) {
+    // TR0 is published (its first lesson), before the course's start; TR3, TR4 and the capstone are not.
+    for (const module of ['tr3', 'tr4', 'capstone']) {
       const planned = row(page, module)
       await expect(planned).toContainText('Not published yet')
       await expect(planned.locator('h3 a')).toHaveCount(0)
@@ -399,9 +402,10 @@ test.describe('the Games index', () => {
     await withSettings(context, { view3d: false })
     await open(page, '/play')
     const unpublished = page.locator('li.es-line[data-status="unpublished"]')
-    expect(await unpublished.count()).toBeGreaterThanOrEqual(4)
+    // Every game of the roster that the registry does not have yet (three, since Tensor views joined it).
+    expect(await unpublished.count()).toBe(ROSTER.length - GAMES.games.length)
     await expect(unpublished.locator('a[href^="/play/"]')).toHaveCount(0)
-    await expect(page.locator('li.es-line[data-game="shape-shifter"]')).toContainText('Not published yet')
+    await expect(page.locator('li.es-line[data-game="switchyard"]')).toContainText('Not published yet')
     const links = await page.locator('a[href^="/play/"]').evaluateAll((anchors) => anchors.map((anchor) => anchor.getAttribute('href') as string))
     expect(links).toContain('/play/loop')
     for (const href of links) {

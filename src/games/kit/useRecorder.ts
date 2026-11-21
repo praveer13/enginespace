@@ -1,6 +1,6 @@
 import { useCallback, useState } from 'react'
 import type { GameMode, RunResult } from '@es/play'
-import { recordPlay } from './record'
+import { recordPlay, type ProveStamp } from './record'
 
 /*
  * The recorder as a page holds it (W1b-T01): a game's own page and a lesson's game block pass `record` as the game's `onFinish`, so every
@@ -10,17 +10,17 @@ import { recordPlay } from './record'
  */
 
 export interface Recorder {
-  /** The game's `onFinish`: writes the run. */
-  record(result: RunResult, mode: GameMode): void
+  /** The game's `onFinish`: writes the run. A Prove run passes its stamp (src/prove), which the run's provenance follows. */
+  record(result: RunResult, mode: GameMode, prove?: ProveStamp): void
   /** Why the last run was not written, or null. */
   readonly problem: string | null
 }
 
 export function useRecorder(): Recorder {
   const [problem, setProblem] = useState<string | null>(null)
-  const record = useCallback((result: RunResult, mode: GameMode) => {
+  const record = useCallback((result: RunResult, mode: GameMode, prove?: ProveStamp) => {
     // recordPlay never throws: a run it could not write comes back with the reason.
-    void recordPlay(result, mode).then((written) => setProblem(written.ok ? null : written.detail))
+    void recordPlay(result, mode, prove).then((written) => setProblem(written.ok ? null : written.detail))
   }, [])
   return { record, problem }
 }

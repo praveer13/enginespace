@@ -139,7 +139,8 @@ describe('the Games index', () => {
 
   test('a game that is not published says Not published yet, names no wave, and has no link into /play', () => {
     const unpublished = lines().filter((line) => !line.published)
-    expect(unpublished.length).toBeGreaterThanOrEqual(4)
+    // Every game of the roster that the registry does not have yet: three, since Tensor views joined it (W2-T14).
+    expect(unpublished.length).toBe(ROSTER.length - GAMES.games.length)
     for (const line of unpublished) {
       const markup = lineOf(html, line.id)
       expect(attribute(opening(markup, 'li')[0], 'data-status')).toBe('unpublished')
@@ -147,7 +148,7 @@ describe('the Games index', () => {
       expect(textOf(markup)).not.toMatch(/\bW\d\b/)
       expect(markup).not.toContain('href="/play/')
     }
-    for (const title of ['Tensor views', 'Trace attribution', 'Backend dispatch', 'KV offload']) {
+    for (const title of ['Trace attribution', 'Backend dispatch', 'KV offload']) {
       expect(textOf(lineOf(html, ROSTER.find((entry) => entry.title === title)?.id as string))).toContain('Not published yet')
     }
   })

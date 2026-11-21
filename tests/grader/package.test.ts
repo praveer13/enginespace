@@ -159,7 +159,7 @@ describe('the commands', () => {
     expect(cli).toContain('"verify"')
   })
 
-  test('the packaged files are the ones the build ships: the code, the five schemas and nothing from the tests', () => {
+  test('the packaged files are the ones the build ships: the code, the six schemas and nothing from the tests', () => {
     const files = filesUnder(PACKAGE)
     expect(files.filter((file) => file.endsWith('.py')).length).toBeGreaterThanOrEqual(15)
     expect(files.filter((file) => file.startsWith('schemas/'))).toEqual([
@@ -167,6 +167,7 @@ describe('the commands', () => {
       'schemas/challenge.schema.json',
       'schemas/receipt.schema.json',
       'schemas/references.schema.json',
+      'schemas/tr0-points.schema.json',
       'schemas/trace.schema.json',
     ])
     expect(files.filter((file) => !/\.(py|json)$/.test(file))).toEqual([])

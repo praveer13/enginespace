@@ -1,5 +1,5 @@
 /*
- * The openers table of REDESIGN §2.5: for each of the 27 built lessons, how it opens, the level it opens on, and its graded levels. It is
+ * The openers table of REDESIGN §2.5: for each of the 28 built lessons, how it opens, the level it opens on, and its graded levels. It is
  * data and nothing else, so that the unit test (tests/content/openers.test.ts), the vocabulary test and the e2e specs (e2e/support/lessons.ts)
  * all read one table, and a content task that moves a lesson to its row removes its own `waiting` mark here and edits nothing else.
  *
@@ -23,6 +23,8 @@ export interface OpenerRow {
 }
 
 export const OPENERS: readonly OpenerRow[] = [
+  // TR0, Tensor views
+  { lesson: 'tr0.l1', opener: 'B', first: ['play:shape-shifter/views'], graded: [] },
   // TR1, the request path
   { lesson: 'tr1.l1', opener: 'B', first: ['play:engine-floor/nano'], graded: [] },
   { lesson: 'tr1.l2', opener: 'C', first: ['play:engine-floor/nano-tp'], graded: [] },

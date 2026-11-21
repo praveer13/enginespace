@@ -1,0 +1,1565 @@
+# What TR0's five lessons, its game and its lab cite: which PyTorch 2.14 calls give a view and which copy, which calls wait for the GPU, Triton 3.8.0's
+# program model and its interpreter, the five Model Runner V2 files of vLLM that lesson 5 reads, Mini-SGLang's Qwen3 beside transformers' own, SGLang's one PyO3
+# example, and the configuration and the files of Qwen3-0.6B at its proposed revision. An id starts with the thing it describes (`torch`, `triton`, `vllm`,
+# `minisgl`, `transformers`, `sglang`, `qwen3`, `python`).
+#
+# Each quote was read on 2026-11-20 with the generic User-Agent "Mozilla/5.0 (X11; Linux x86_64)" from the file or page its anchor names, and found
+# verbatim inside the lines the anchor gives. A file at a commit or a tag was downloaded into a folder of its own and read as text, never run, and a page was
+# turned into text by a script that reads it and runs nothing from it. PyTorch is read at its 2.14 documents (never "stable", which was the 2.15 documents on the
+# day), Triton at the tag v3.8.0 and transformers at the tag v5.19.0, each as the source files whose docstrings are those documents (Triton's own site
+# publishes one unversioned copy), vLLM at 4ba787ec (v0.33.0), Mini-SGLang at 9a91cfaf and SGLang at 297e54fd (v0.5.23). The lines of an anchor are lines of those copies.
+#
+# A claim of the model's files and of the hub's listings is `unverified`: the course has fetched the configuration and no weight file, and the lab's own download check hashes the
+# rest. One fact could not be read as a statement, that printing a GPU tensor waits for the GPU (`torch.cuda.print-waits`): the pages say a copy between the GPU
+# and the CPU synchronizes, and none names printing. It is `unverified` and no lesson or question leans on it.
+
+
+
+# PyTorch 2.14: which calls give a view and which copy (lesson 1, lesson 2 and the parts of Tensor views) ----------------------------------------
+
+- id: torch.view.shares-data
+  value: 'a view shares the data'
+  text: 'Tensor.view returns a tensor that shares its data with the original and has the same number of elements, so it moves nothing.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/generated/torch.Tensor.view.html
+    title: 'PyTorch 2.14 documentation, torch.Tensor.view'
+    quote: 'The returned tensor shares the same data and must have the same number of elements, but may have a different size.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.view.needs-compatible-strides
+  value: 'the new size must fit the old strides'
+  text: 'A tensor can be viewed with a new shape only when the new size is compatible with its original size and stride. Each new dimension must lie inside one old dimension, or span old dimensions whose strides chain.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/generated/torch.Tensor.view.html
+    title: 'PyTorch 2.14 documentation, torch.Tensor.view'
+    quote: 'For a tensor to be viewed, the new view size must be compatible with its original size and stride, i.e., each new view dimension must either be a subspace of an original dimension, or only span across original dimensions'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.view.otherwise-copy
+  value: 'not possible without a copy'
+  text: 'When the strides do not allow it, a view of the new shape cannot be made without copying the tensor, for example through contiguous().'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/generated/torch.Tensor.view.html
+    title: 'PyTorch 2.14 documentation, torch.Tensor.view'
+    quote: 'Otherwise, it will not be possible to view self tensor as shape without copying it (e.g., via contiguous()).'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.view.prefer-reshape
+  value: 'reshape when unsure'
+  text: 'When it is unclear whether view() can be performed, the page advises reshape(), which returns a view where the shapes are compatible and copies, as contiguous() does, where they are not.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/generated/torch.Tensor.view.html
+    title: 'PyTorch 2.14 documentation, torch.Tensor.view'
+    quote: 'When it is unclear whether a view() can be performed, it is advisable to use reshape(), which returns a view if the shapes are compatible, and copies (equivalent to calling contiguous()) otherwise.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.reshape.view-if-compatible
+  value: 'a view if the shape is compatible'
+  text: 'Tensor.reshape returns a view when the new shape is compatible with the current one, and otherwise returns a copy.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/generated/torch.Tensor.reshape.html
+    title: 'PyTorch 2.14 documentation, torch.Tensor.reshape'
+    quote: 'This method returns a view if shape is compatible with the current shape.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.views.reshape-unspecified
+  value: 'do not rely on which'
+  text: 'reshape(), reshape_as() and flatten() can return either a view or a new tensor, and the page says that code should not rely on which.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/tensor_view.html
+    title: 'PyTorch 2.14 documentation, Tensor Views'
+    quote: 'reshape(), reshape_as() and flatten() can return either a view or new tensor, user code shouldn’t rely on whether it’s view or not.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.contiguous.returns-self
+  value: 'itself when already contiguous'
+  text: 'Tensor.contiguous returns the tensor itself when it is already in the requested memory format, so on a contiguous tensor it copies nothing.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/generated/torch.Tensor.contiguous.html
+    title: 'PyTorch 2.14 documentation, torch.Tensor.contiguous'
+    quote: 'If self tensor is already in the specified memory format, this function returns the self tensor.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.views.contiguous-copies
+  value: 'a copy when it is not'
+  text: 'contiguous() returns the tensor itself if it is already contiguous, and otherwise returns a new contiguous tensor by copying the data.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/tensor_view.html
+    title: 'PyTorch 2.14 documentation, Tensor Views'
+    quote: 'contiguous() returns itself if input tensor is already contiguous, otherwise it returns a new contiguous tensor by copying data.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.expand.stride-zero
+  value: 'stride 0, no new memory'
+  text: 'Tensor.expand allocates no memory. It makes a view in which a dimension of size one is expanded to a larger size by setting its stride to 0.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/generated/torch.Tensor.expand.html
+    title: 'PyTorch 2.14 documentation, torch.Tensor.expand'
+    quote: 'Expanding a tensor does not allocate new memory, but only creates a new view on the existing tensor where a dimension of size one is expanded to a larger size by setting the stride to 0.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.expand.one-address
+  value: 'many elements, one address'
+  text: 'More than one element of an expanded tensor may refer to a single memory location, so an in-place write to an expanded tensor can give wrong results. The page says to clone it first.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/generated/torch.Tensor.expand.html
+    title: 'PyTorch 2.14 documentation, torch.Tensor.expand'
+    quote: 'More than one element of an expanded tensor may refer to a single memory location.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.stride.definition
+  value: 'the jump to the next element'
+  text: 'The stride of a dimension is the jump in the buffer that takes you from one element to the next along that dimension.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/generated/torch.Tensor.stride.html
+    title: 'PyTorch 2.14 documentation, torch.Tensor.stride'
+    quote: 'Stride is the jump necessary to go from one element to the next one in the specified dimension dim.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.views.no-data-moves
+  value: 'a view moves no data'
+  text: 'Making a view moves no data: the view only changes how the same data is read.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/tensor_view.html
+    title: 'PyTorch 2.14 documentation, Tensor Views'
+    quote: 'No data movement occurs when creating a view, view tensor just changes the way it interprets the same data.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.views.can-be-noncontiguous
+  value: 'a view of a contiguous tensor may not be contiguous'
+  text: 'A view of a contiguous tensor can be a tensor that is not contiguous. transpose() is the page''s example.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/tensor_view.html
+    title: 'PyTorch 2.14 documentation, Tensor Views'
+    quote: 'Taking a view of contiguous tensor could potentially produce a non-contiguous tensor.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.views.view-ops
+  value: 'transpose, permute and expand are view ops'
+  text: 'The page lists the operations that return views. The list holds expand(), narrow(), permute(), select(), squeeze() and transpose(), among others, and the quote runs across its list items.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/tensor_view.html
+    title: 'PyTorch 2.14 documentation, Tensor Views (the list of view ops)'
+    quote: 'narrow() permute() select() squeeze() transpose()'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.views.basic-indexing
+  value: 'basic indexing views, advanced copies'
+  text: 'Basic indexing returns a view and advanced indexing returns a copy, as in NumPy.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/tensor_view.html
+    title: 'PyTorch 2.14 documentation, Tensor Views'
+    quote: 'basic indexing returns views, while advanced indexing returns a copy.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+
+# PyTorch 2.14: the calls that wait for the GPU (lesson 2) ----------------------------------------
+
+- id: torch.cuda.async-by-default
+  value: 'asynchronous by default'
+  text: 'GPU operations are asynchronous by default.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/notes/cuda.html#asynchronous-execution
+    title: 'PyTorch 2.14 documentation, CUDA semantics, Asynchronous execution'
+    quote: 'By default, GPU operations are asynchronous.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.cuda.enqueued
+  value: 'enqueued, not run'
+  text: 'A call that uses the GPU enqueues its operations on the device, which does not necessarily run them until later. A line such as x.sum() on a GPU tensor therefore returns before the sum is done.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/notes/cuda.html#asynchronous-execution
+    title: 'PyTorch 2.14 documentation, CUDA semantics, Asynchronous execution'
+    quote: 'the operations are enqueued to the particular device, but not necessarily executed until later.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.cuda.item-synchronizes
+  value: '.item() synchronizes'
+  text: 'The page names .item() as an example of an operation that synchronizes the CPU with the GPU, and says such operations are not allowed while a CUDA graph is captured.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/notes/cuda.html#cuda-graphs
+    title: 'PyTorch 2.14 documentation, CUDA semantics, CUDA Graphs'
+    quote: 'Ops that synchronize the CPU with the GPU (e.g., .item() calls) are prohibited.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.tolist.moves-to-cpu
+  value: 'moved to the CPU first'
+  text: 'Tensor.tolist moves a tensor to the CPU first if necessary. A copy between the GPU and the CPU is a call that waits.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/generated/torch.Tensor.tolist.html
+    title: 'PyTorch 2.14 documentation, torch.Tensor.tolist'
+    quote: 'Tensors are automatically moved to the CPU first if necessary.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.cpu.copies
+  value: 'a copy in CPU memory'
+  text: 'Tensor.cpu returns a copy of the tensor in CPU memory, and returns the tensor itself when it is already there. The copy off a GPU is a transfer that waits.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/generated/torch.Tensor.cpu.html
+    title: 'PyTorch 2.14 documentation, torch.Tensor.cpu'
+    quote: 'Returns a copy of this object in CPU memory.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.to.copies
+  value: 'a copy unless it already matches'
+  text: 'Tensor.to returns the tensor itself when it already has the requested dtype and device, and otherwise a copy with the new dtype and device. A move across devices is therefore a copy.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/generated/torch.Tensor.to.html
+    title: 'PyTorch 2.14 documentation, torch.Tensor.to'
+    quote: 'Otherwise, the returned tensor is a copy of self with the desired'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.cuda.synchronize-waits
+  value: 'waits for every kernel'
+  text: 'torch.cuda.synchronize waits for all kernels in all streams on a CUDA device to complete.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/generated/torch.cuda.synchronize.html
+    title: 'PyTorch 2.14 documentation, torch.cuda.synchronize'
+    quote: 'Wait for all kernels in all streams on a CUDA device to complete.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.cuda.non-blocking
+  value: 'non_blocking skips the wait'
+  text: 'to() and copy_() take a non_blocking argument, which lets the caller bypass the synchronization when it is not needed.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/notes/cuda.html#asynchronous-execution
+    title: 'PyTorch 2.14 documentation, CUDA semantics, Asynchronous execution'
+    quote: 'As an exception, several functions such as to() and copy_() admit an explicit non_blocking argument, which lets the caller bypass synchronization when it is unnecessary.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.cuda.timing-needs-sync
+  value: 'timing without a wait is wrong'
+  text: 'Because GPU work is asynchronous, a time measurement without a synchronization is not accurate, so timing a GPU call needs a wait first.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/notes/cuda.html#asynchronous-execution
+    title: 'PyTorch 2.14 documentation, CUDA semantics, Asynchronous execution'
+    quote: 'time measurements without synchronizations are not accurate.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.cuda.sync-debug-warns
+  value: 'warn or error on a sync'
+  text: 'torch.cuda.set_sync_debug_mode can make PyTorch warn, or raise an error, on a synchronizing operation.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/generated/torch.cuda.set_sync_debug_mode.html
+    title: 'PyTorch 2.14 documentation, torch.cuda.set_sync_debug_mode'
+    quote: 'if “warn” or 1, warn on synchronizing operations'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.cuda.sync-debug-partial
+  value: 'not every sync is reported'
+  text: 'The sync debug mode is experimental, and not all synchronizing operations trigger its warning or error, so a quiet run does not show that no call waited.'
+  tag: measured
+  source:
+    url: https://docs.pytorch.org/docs/2.14/generated/torch.cuda.set_sync_debug_mode.html
+    title: 'PyTorch 2.14 documentation, torch.cuda.set_sync_debug_mode'
+    quote: 'This is an experimental feature, and not all synchronizing operations will trigger warning or error.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: torch.cuda.print-waits
+  value: 'not named by the pages read'
+  text: 'None of the PyTorch 2.14 pages read for this module says that printing a GPU tensor waits for the GPU. The reading that it does follows from the rule that a copy between the GPU and the CPU synchronizes, and the course has not read it anywhere as a statement. The course asks no question that depends on it.'
+  tag: unverified
+  source:
+    url: https://docs.pytorch.org/docs/2.14/notes/cuda.html#asynchronous-execution
+    title: 'PyTorch 2.14 documentation, CUDA semantics, Asynchronous execution'
+    quote: 'PyTorch automatically performs necessary synchronization when copying data between CPU and GPU or between two GPUs.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+
+# The PyTorch and Triton releases that the pins name ----------------------------------------
+
+- id: torch.release.triton-pin
+  value: 'triton~=3.8.0'
+  text: 'PyTorch 2.14.0 requires Triton 3.8 on Linux, in its package metadata. This is where the course takes the Triton pin from.'
+  tag: measured
+  source:
+    url: https://pypi.org/pypi/torch/2.14.0/json
+    title: 'torch 2.14.0 on PyPI (JSON API)'
+    quote: 'triton~=3.8.0; platform_system =='
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: torch
+
+- id: torch.release.upload
+  value: '2026-09-02'
+  text: 'PyPI shows the first files of torch 2.14.0 uploaded on 2026-09-02.'
+  tag: measured
+  source:
+    url: https://pypi.org/pypi/torch/2.14.0/json
+    title: 'torch 2.14.0 on PyPI (JSON API)'
+    quote: '"upload_time_iso_8601":"2026-09-02T13:42:48.266558Z"'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: torch
+
+- id: triton.release.upload
+  value: '2026-08-28'
+  text: 'PyPI shows the first files of Triton 3.8.0 uploaded on 2026-08-28.'
+  tag: measured
+  source:
+    url: https://pypi.org/pypi/triton/3.8.0/json
+    title: 'triton 3.8.0 on PyPI (JSON API)'
+    quote: '"upload_time_iso_8601":"2026-08-28T16:07:49.055361Z"'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: triton
+
+- id: triton.release.python-range
+  value: '>=3.10,<3.15'
+  text: 'Triton 3.8.0 requires a Python from 3.10 up to but not including 3.15, so the course''s Python 3.12 is inside its range.'
+  tag: measured
+  source:
+    url: https://pypi.org/pypi/triton/3.8.0/json
+    title: 'triton 3.8.0 on PyPI (JSON API)'
+    quote: '"requires_python":"<3.15,>=3.10"'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: transformers.release.upload
+  value: '2026-10-06'
+  text: 'PyPI shows the first files of transformers 5.19.0 uploaded on 2026-10-06.'
+  tag: measured
+  source:
+    url: https://pypi.org/pypi/transformers/5.19.0/json
+    title: 'transformers 5.19.0 on PyPI (JSON API)'
+    quote: '"upload_time_iso_8601":"2026-10-06T16:38:56.794667Z"'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: transformers
+
+- id: python.vllm.default-3-12
+  value: 3.12
+  text: 'vLLM supports Python 3.11 to 3.14, and its default Dockerfile and its CI (except mypy) use Python 3.12. The course''s environments use Python 3.12 for the same reason.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/contributing/README.md#L78
+    title: 'vLLM v0.33.0, docs/contributing/README.md (Python versions)'
+    quote: 'vLLM''s default [Dockerfile](../../docker/Dockerfile) ships with Python 3.12 and tests in CI (except `mypy`) are run with Python 3.12.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: vllm
+
+
+# Triton 3.8.0: the program model, the mask and the interpreter (lesson 4 and the parts of the grid level) ----------------------------------------
+
+- id: triton.program-id
+  value: 'the program''s id along an axis'
+  text: 'tl.program_id returns the id of the current program instance along the given axis of the launch grid.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/language/core.py#L1945-L1950
+    title: 'Triton v3.8.0, python/triton/language/core.py, program_id'
+    quote: 'Returns the id of the current program instance along the given :code:`axis`.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.program-id-axes
+  value: 'a 3-D launch grid'
+  text: 'The launch grid has three axes, and the axis given to tl.program_id must be 0, 1 or 2.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/language/core.py#L1949
+    title: 'Triton v3.8.0, python/triton/language/core.py, program_id'
+    quote: ':param axis: The axis of the 3D launch grid. Must be 0, 1 or 2.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.num-programs
+  value: 'the number of programs along an axis'
+  text: 'tl.num_programs returns the number of program instances launched along the given axis.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/language/core.py#L1966
+    title: 'Triton v3.8.0, python/triton/language/core.py, num_programs'
+    quote: 'Returns the number of program instances launched along the given :code:`axis`.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.arange-power-of-two
+  value: 'a power of two'
+  text: 'tl.arange(start, end) returns the contiguous values from start up to but not including end, and its documentation says the interval''s start must be a power of two.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/language/core.py#L1992
+    title: 'Triton v3.8.0, python/triton/language/core.py, arange'
+    quote: ':param start: Start of the interval. Must be a power of two.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.arange-range-check
+  value: 'end minus start is a power of two'
+  text: 'The code that builds tl.arange raises an error unless end minus start is a power of two. So tl.arange(0, BLOCK) compiles only for a BLOCK that is a power of two. The documentation words the rule about start and end, and the code checks their difference.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/language/semantic.py#L583-L594
+    title: 'Triton v3.8.0, python/triton/language/semantic.py, arange'
+    quote: 'raise ValueError("arange''s range must be a power of 2")'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.arange-constexpr
+  value: 'compile-time arguments'
+  text: 'tl.arange rejects arguments that are not compile-time constants, which is why a kernel declares its BLOCK as tl.constexpr.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/language/semantic.py#L585
+    title: 'Triton v3.8.0, python/triton/language/semantic.py, arange'
+    quote: 'raise ValueError("arange''s arguments must be of type tl.constexpr")'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.constexpr
+  value: 'known at compile time'
+  text: 'tl.constexpr stores a value that is known at compile time.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/language/core.py#L212
+    title: 'Triton v3.8.0, python/triton/language/core.py, constexpr'
+    quote: 'This class is used to store a value that is known at compile-time.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.cdiv-device
+  value: 'ceiling division'
+  text: 'tl.cdiv computes the ceiling division of x by div, as (x + (div - 1)) // div.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/language/standard.py#L34-L43
+    title: 'Triton v3.8.0, python/triton/language/standard.py, cdiv'
+    quote: 'Computes the ceiling division of :code:`x` by :code:`div`'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.cdiv-host
+  value: 'the same sum on the host'
+  text: 'triton.cdiv, the one a launch uses to size its grid on the host, computes (x + y - 1) // y.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/__init__.py#L69-L70
+    title: 'Triton v3.8.0, python/triton/__init__.py, cdiv'
+    quote: 'return (x + y - 1) // y'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.load-mask
+  value: 'a masked lane does not load'
+  text: 'In tl.load, where mask[idx] is false the data at address pointer[idx] is not loaded.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/language/core.py#L2506
+    title: 'Triton v3.8.0, python/triton/language/core.py, load'
+    quote: ':param mask: if `mask[idx]` is false, do not load the data at address `pointer[idx]`'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.load-other
+  value: 'the masked-out value'
+  text: 'Where the mask is false, tl.load returns the value of other for that lane, and the value is undefined when other is None.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/language/core.py#L2509
+    title: 'Triton v3.8.0, python/triton/language/core.py, load'
+    quote: ':param other: if `mask[idx]` is false, return `other[idx]`. If `other` is `None`, the masked-out value is undefined.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.store-mask
+  value: 'a masked lane does not store'
+  text: 'In tl.store, where mask[idx] is false the value is not stored at pointer[idx].'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/language/core.py#L2588
+    title: 'Triton v3.8.0, python/triton/language/core.py, store'
+    quote: ':param mask: If `mask[idx]` is false, do not store `value[idx]` at `pointer[idx]`'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.interpret-knob
+  value: 'TRITON_INTERPRET'
+  text: 'Triton reads its interpreter switch from the environment variable TRITON_INTERPRET, as a runtime knob named interpret.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/knobs.py#L471
+    title: 'Triton v3.8.0, python/triton/knobs.py, runtime_knobs'
+    quote: 'interpret: env_bool = env_bool("TRITON_INTERPRET")'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.interpret-swaps-jit
+  value: 'an interpreted function'
+  text: 'When the interpret knob is set, the triton.jit decorator returns an InterpretedFunction in place of a compiled kernel.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/runtime/jit.py#L984-L985
+    title: 'Triton v3.8.0, python/triton/runtime/jit.py, jit'
+    quote: 'from .interpreter import InterpretedFunction'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.launch-syntax
+  value: 'fn[grid](...)'
+  text: 'A Triton kernel is launched as fn[grid](*args, **kwargs): the grid goes in the brackets and the kernel''s arguments in the parentheses. The interpreter''s InterpretedFunction is built on the same interface.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/runtime/jit.py#L370
+    title: 'Triton v3.8.0, python/triton/runtime/jit.py, KernelInterface.__getitem__'
+    quote: 'A JIT function is launched with: fn[grid](*args, **kwargs).'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.interpret-one-program-at-a-time
+  value: 'programs run one after another'
+  text: 'The interpreter runs the programs of a grid one after another, in Python loops over the three grid axes. Each iteration sets the program''s grid index and then calls the kernel''s Python function.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/runtime/interpreter.py#L1409-L1413
+    title: 'Triton v3.8.0, python/triton/runtime/interpreter.py, GridExecutor'
+    quote: 'for x in range(grid[0]):'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+- id: triton.interpret-on-cpu
+  value: 'arguments copied to the host'
+  text: 'Before it runs a grid, the interpreter copies the kernel''s tensor arguments to the CPU, and it copies them back afterwards so that the kernel''s writes show.'
+  tag: measured
+  source:
+    url: https://github.com/triton-lang/triton/blob/v3.8.0/python/triton/runtime/interpreter.py#L1352
+    title: 'Triton v3.8.0, python/triton/runtime/interpreter.py, GridExecutor'
+    quote: 'args_hst = [_to_cpu(arg) for arg in args_dev]'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: triton
+
+
+# vLLM at 4ba787ec (v0.33.0): the five Model Runner V2 files that lesson 5 reads ----------------------------------------
+
+- id: vllm.mrv2.gumbel-lines
+  value: 417
+  unit: lines
+  text: 'vllm/v1/worker/gpu/sample/gumbel.py is 417 lines long at the pin. It holds a temperature kernel and a Gumbel sampling kernel, with the hash functions that draw their noise.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/sample/gumbel.py#L417
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/sample/gumbel.py (the last line of the file)'
+    quote: 'return sampled'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.buffer-utils-lines
+  value: 357
+  unit: lines
+  text: 'vllm/v1/worker/gpu/buffer_utils.py is 357 lines long at the pin. It holds the staged writes of StagedWriteTensor, applied by one Triton kernel.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/buffer_utils.py#L357
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/buffer_utils.py (the last line of the file)'
+    quote: 'return tl.multiple_of(ptr, 16)'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.block-table-lines
+  value: 414
+  unit: lines
+  text: 'vllm/v1/worker/gpu/block_table.py is 414 lines long at the pin. It holds two kernels, one that gathers block tables and one that computes slot mappings.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/block_table.py#L414
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/block_table.py (the last line of the file)'
+    quote: 'tl.store(slot_mapping_ptr + offset, slot_ids, mask=offset < end_idx)'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.input-batch-lines
+  value: 759
+  unit: lines
+  text: 'vllm/v1/worker/gpu/input_batch.py is 759 lines long at the pin. It holds seven kernels that prepare and update a step''s inputs.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/input_batch.py#L759
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/input_batch.py (the last line of the file)'
+    quote: 'return expanded_idx_mapping, expanded_local_pos'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.rejection-sampler-lines
+  value: 1411
+  unit: lines
+  text: 'vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py is 1,411 lines long at the pin. It holds the Triton kernels of the speculative rejection sampler.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py#L1411
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py (the last line of the file)'
+    quote: 'return sampled, num_sampled'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.temperature-grid
+  value: '(num_tokens, cdiv(vocab_size, 8192))'
+  text: 'apply_temperature launches its kernel on a two-dimensional grid. One axis counts the tokens, and the other counts the 8192-wide blocks of the vocabulary, which triton.cdiv gives.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/sample/gumbel.py#L53-L55
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/sample/gumbel.py, apply_temperature'
+    quote: 'num_blocks = triton.cdiv(vocab_size, BLOCK_SIZE)'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.temperature-mask
+  value: 'the block past the vocabulary is masked'
+  text: 'The temperature kernel finds its lanes as block_idx * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE) and masks the lanes whose index is not below vocab_size. This is the course''s mask, in a kernel the default runner runs.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/sample/gumbel.py#L38-L39
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/sample/gumbel.py, _temperature_kernel'
+    quote: 'mask = block < vocab_size'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.staged-write-tensor
+  value: 135
+  text: 'StagedWriteTensor starts at line 135 of buffer_utils.py.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/buffer_utils.py#L135
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/buffer_utils.py, StagedWriteTensor'
+    quote: 'class StagedWriteTensor:'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.apply-write-mask
+  value: 'one program per write, masked at the content length'
+  text: 'The kernel that applies staged writes gives each write its own program on axis 0 and covers the write''s content in BLOCK_SIZE blocks on axis 1. It masks the lanes past the content''s length.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/buffer_utils.py#L328-L348
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/buffer_utils.py, _apply_write_kernel'
+    quote: 'mask = block < content_len'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.block-table-grid
+  value: 'axis 0 the KV cache group, axis 1 the batch row'
+  text: 'The kernel that gathers block tables reads the KV cache group from axis 0 of its grid and the batch row from axis 1, and one program copies one row of one group.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/block_table.py#L290-L291
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/block_table.py, _gather_block_tables_kernel'
+    quote: 'batch_idx = tl.program_id(1)'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.input-batch-kernels
+  value: 7
+  unit: kernels
+  text: 'input_batch.py defines seven Triton kernels: _prepare_prefill_inputs_kernel, _prepare_pos_seq_lens_kernel, _combine_sampled_and_draft_tokens_kernel, _get_num_sampled_and_rejected_kernel, _post_update_kernel, _post_update_num_computed_tokens_kernel and _expand_idx_mapping_kernel.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/input_batch.py#L280-L741
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/input_batch.py (the kernels run from line 280 to line 741)'
+    quote: 'def _prepare_prefill_inputs_kernel('
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.rejection-kernels
+  value: 'six launched kernels'
+  text: 'rejection_sampler_utils.py defines six Triton kernels that its rejection_sample function launches: _compute_local_logits_stats_kernel, _compute_cumulative_log_p_kernel, _compute_local_residual_mass_kernel, _rejection_kernel, _resample_kernel and _insert_resampled_kernel.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py#L209-L1085
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py (the kernels run from line 209 to line 1085)'
+    quote: 'def _compute_local_logits_stats_kernel('
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: vllm
+
+
+# The interpreter over those files: which kernels ran. The cpu job of labs.yml runs scripts/triton-interp/run.py in the locked CPU environment (Triton 3.8.0, torch 2.14.0+cpu),
+# which reads the five candidate files at the pin, keeps their jit functions and launches each kernel that has an input recipe on small CPU tensors under TRITON_INTERPRET=1,
+# comparing what it wrote with what torch computes. Its log of 2026-11-21, at the course's commit ee64e9ec, printed seven kernels as ran, none as failed and eleven as
+# not-attempted (the course wrote no input recipe for them). The claims below are that log, one kernel each. A kernel that is not named here has not been run.
+
+- id: vllm.mrv2.interpreter-run
+  value: '7 ran, 0 failed, 11 not run'
+  text: 'On 2026-11-21 the course ran seven of vLLM''s Model Runner V2 kernels under Triton 3.8.0''s interpreter on a CPU (TRITON_INTERPRET=1, torch 2.14.0+cpu, the course''s commit ee64e9ec) and all seven ran and wrote what torch computes. It gave eleven other kernels of the same five files no input, so they were not run. The inputs are the course''s own small ones; a kernel that ran here has not been shown to run, or to be fast, on a GPU.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/model_executor/layers/quantization/awq_triton.py#L127
+    title: 'vLLM at 4ba787ec, vllm/model_executor/layers/quantization/awq_triton.py (a comment in a kernel)'
+    quote: 'NOTE: This doesn''t work in TRITON_INTERPRET=1 mode.'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.interp.temperature
+  value: 'ran'
+  text: '_temperature_kernel, the temperature kernel of vllm/v1/worker/gpu/sample/gumbel.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) with a four-token batch over a 20-token vocabulary in 16-lane blocks, with temperatures 0.5, 1.0, 0.0 and 4.0 (the kernel leaves a row alone at 0.0 and 1.0): every row that has another temperature came out divided by it, which the course checked against torch.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/sample/gumbel.py#L22
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/sample/gumbel.py, _temperature_kernel'
+    quote: 'def _temperature_kernel('
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.interp.gumbel-sample
+  value: 'ran'
+  text: '_gumbel_sample_kernel, the Gumbel sampling kernel of vllm/v1/worker/gpu/sample/gumbel.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) with two tokens over a 20-token vocabulary in 16-lane blocks, with no logits cache and no drafting: for the token at temperature 0.0 each block''s argmax and the vocabulary''s blocks matched torch''s argmax, and for the token at temperature 0.7 each block returned an index inside its own block with a finite value (the noise itself was not compared).'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/sample/gumbel.py#L282
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/sample/gumbel.py, _gumbel_sample_kernel'
+    quote: 'def _gumbel_sample_kernel('
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.interp.apply-write
+  value: 'ran'
+  text: '_apply_write_kernel, the kernel that applies staged writes, in vllm/v1/worker/gpu/buffer_utils.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) with two writes into a 4 by 10 table, with 2-lane blocks so that each write needed two programs on axis 1, in its single-table mode: the table held what the writes say and nothing else, which the course checked against torch.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/buffer_utils.py#L317
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/buffer_utils.py, _apply_write_kernel'
+    quote: 'def _apply_write_kernel('
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.interp.gather-block-tables
+  value: 'ran'
+  text: '_gather_block_tables_kernel, the kernel that gathers block tables, in vllm/v1/worker/gpu/block_table.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) with two KV cache groups, three batch rows of which the last was padding, and a table of pointers to the tables as the engine builds it: each real row held its request''s block ids up to that request''s block count, and the padded row was zeroed, which the course checked against torch.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/block_table.py#L275
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/block_table.py, _gather_block_tables_kernel'
+    quote: 'def _gather_block_tables_kernel('
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.interp.slot-mappings
+  value: 'ran'
+  text: '_compute_slot_mappings_kernel, the kernel that computes slot mappings, in vllm/v1/worker/gpu/block_table.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) with two KV cache groups with block sizes 4 and 8, two requests of five and four tokens, and a 12-slot output, without context parallelism: each token''s slot was its block number times the block size plus its offset in the block, and the slots after the nine real tokens were padded with -1, which the course checked against torch.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/block_table.py#L334
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/block_table.py, _compute_slot_mappings_kernel'
+    quote: 'def _compute_slot_mappings_kernel('
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.interp.prepare-prefill
+  value: 'ran'
+  text: '_prepare_prefill_inputs_kernel, the kernel that prepares a prefill''s input ids, in vllm/v1/worker/gpu/input_batch.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) with two requests, one lookahead token each, and 2-lane blocks: the input ids and the next prefill tokens held what the prompts say, with 0 where a lookahead position lay past the prefill length, which the course checked against torch.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/input_batch.py#L280
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/input_batch.py, _prepare_prefill_inputs_kernel'
+    quote: 'def _prepare_prefill_inputs_kernel('
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.interp.pos-seq-lens
+  value: 'ran'
+  text: '_prepare_pos_seq_lens_kernel, the kernel that fills positions and sequence lengths, in vllm/v1/worker/gpu/input_batch.py, ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) with two requests and a padding program, with 2-lane blocks: the positions and the sequence lengths were right and the unused sequence lengths were zeroed, which the course checked against torch.'
+  tag: measured
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/input_batch.py#L357
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/input_batch.py, _prepare_pos_seq_lens_kernel'
+    quote: 'def _prepare_pos_seq_lens_kernel('
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: vllm
+
+- id: vllm.mrv2.interp.not-run
+  value: 11
+  unit: kernels
+  text: 'Eleven kernels of the five candidate files were given no input by the course''s script, so none of them has been run under the interpreter: _combine_sampled_and_draft_tokens_kernel, _get_num_sampled_and_rejected_kernel, _post_update_kernel, _post_update_num_computed_tokens_kernel and _expand_idx_mapping_kernel of input_batch.py, and the six kernels of spec_decode/rejection_sampler_utils.py. Whether each one runs there is [unverified], and no lesson shows one stepping.'
+  tag: unverified
+  source:
+    url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py#L209
+    title: 'vLLM at 4ba787ec, vllm/v1/worker/gpu/spec_decode/rejection_sampler_utils.py (the first of its kernels)'
+    quote: 'def _compute_local_logits_stats_kernel('
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: vllm
+
+- id: triton.course-kernel.ran
+  value: 'ran'
+  text: 'The course''s own two kernels (a 1-D scale over 10 elements in blocks of 4, and a 2-D scale over a transposed 5 by 6 view in blocks of 2 by 4) ran under Triton 3.8.0''s interpreter on a CPU on 2026-11-21 (the course''s commit ee64e9ec) and wrote what torch computes. The 1-D kernel launched 3 programs of 4 lanes, 12 lanes in all, and 2 were masked, the numbers the grid level''s model gives; its last program held offsets 8, 9, 10, 11 and the mask True, True, False, False. The 2-D kernel launched a grid of (3, 2) with 18 masked lanes.'
+  tag: measured
+  synthetic: true
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: triton
+
+
+# Mini-SGLang at 9a91cfaf: its Qwen3 and where the attention lives (lesson 5) ----------------------------------------
+
+- id: minisgl.qwen3.lines
+  value: 83
+  unit: lines
+  text: 'models/qwen3.py is 83 lines long at the pin. It holds the decoder layer, the model and the causal-LM wrapper, and takes its attention and its MLP from models/utils.py.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/models/qwen3.py#L83
+    title: 'Mini-SGLang at 9a91cfaf, python/minisgl/models/qwen3.py (the last line of the file)'
+    quote: '__all__ = ["Qwen3ForCausalLM"]'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: minisgl.qwen3.attention-imported
+  value: 'RopeAttn, from models/utils.py'
+  text: 'Qwen3''s attention in Mini-SGLang is the RopeAttn class of models/utils.py, imported under the name Qwen3Attn. The decoder layer builds it with has_qk_norm set.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/models/qwen3.py#L12
+    title: 'Mini-SGLang at 9a91cfaf, python/minisgl/models/qwen3.py, imports'
+    quote: 'from .utils import RopeAttn as Qwen3Attn'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: minisgl.qwen3.layer-order
+  value: 'norm, attention, norm, MLP'
+  text: 'Mini-SGLang''s decoder layer runs the input norm, the attention, the post-attention norm and the MLP in that order. Each norm takes the residual along and returns the new one, so the residual add is fused into the norm.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/models/qwen3.py#L37-L40
+    title: 'Mini-SGLang at 9a91cfaf, python/minisgl/models/qwen3.py, Qwen3DecoderLayer.forward'
+    quote: 'x, residual = self.post_attention_layernorm.forward(x, residual)'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: minisgl.qwen3.nvtx-layer
+  value: 'one NVTX range per layer'
+  text: 'The decoder layer''s forward is wrapped in an NVTX annotation named Layer_{} with the layer id, and the attention and the MLP carry their own. TR3 uses these as its first NVTX example.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/models/qwen3.py#L33
+    title: 'Mini-SGLang at 9a91cfaf, python/minisgl/models/qwen3.py, Qwen3DecoderLayer.forward'
+    quote: '@nvtx_annotate("Layer_{}", layer_id_field="_layer_id")'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: minisgl.attn.merged-qkv
+  value: 'one merged projection'
+  text: 'RopeAttn builds one merged projection for the query, the key and the value, LinearQKVMerged, where the Hugging Face model keeps three.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/models/utils.py#L89
+    title: 'Mini-SGLang at 9a91cfaf, python/minisgl/models/utils.py, RopeAttn'
+    quote: 'self.qkv_proj = LinearQKVMerged('
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: minisgl.attn.qkv-width
+  value: '(heads + 2 * kv heads) * head size'
+  text: 'The merged projection''s output width is (num_qo_heads + 2 * num_kv_heads) * head_dim, which is the three outputs side by side.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/layers/linear.py#L85
+    title: 'Mini-SGLang at 9a91cfaf, python/minisgl/layers/linear.py, LinearQKVMerged'
+    quote: 'full_osize = (num_qo_heads + 2 * num_kv_heads) * head_dim'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: minisgl.attn.qkv-one-matmul
+  value: 'one F.linear'
+  text: 'A linear layer in Mini-SGLang is one call of F.linear on its weight, so the merged projection computes the query, the key and the value with one matrix multiply, where the Hugging Face layer makes three.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/layers/linear.py#L32
+    title: 'Mini-SGLang at 9a91cfaf, python/minisgl/layers/linear.py, _LinearTPImpl.forward'
+    quote: 'return F.linear(x, self.weight, self.bias)'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: minisgl.attn.forward
+  value: 'merged projection, attention, output projection'
+  text: 'RopeAttn.forward projects once into qkv, hands qkv to the attention layer, which holds the rotary embedding and the query and key norms, and applies the output projection.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/models/utils.py#L120-L123
+    title: 'Mini-SGLang at 9a91cfaf, python/minisgl/models/utils.py, RopeAttn.forward'
+    quote: 'qkv = self.qkv_proj.forward(x)'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: mini-sglang
+
+- id: minisgl.mlp.gate-up-merged
+  value: 'one merged gate and up projection'
+  text: 'Mini-SGLang''s gated MLP merges the gate and the up projection into one, gate_up_proj, and then applies the activation and the down projection.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/mini-sglang/blob/9a91cfafe754aa85daee49998176275667eb58f2/python/minisgl/models/utils.py#L27
+    title: 'Mini-SGLang at 9a91cfaf, python/minisgl/models/utils.py, GatedMLP'
+    quote: 'self.gate_up_proj = LinearColParallelMerged('
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: mini-sglang
+
+
+# transformers 5.19.0: Qwen3 in the reference implementation (lesson 3, and the lab's reference) ----------------------------------------
+
+- id: transformers.qwen3.decoder-order
+  value: 'norm, attention, add, norm, MLP, add'
+  text: 'In Qwen3''s decoder layer in transformers the residual is kept, the input is normalized, the attention runs and the residual is added back. The same four steps follow for the MLP, with the post-attention norm.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L296-L315
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3DecoderLayer.forward'
+    quote: 'hidden_states = self.post_attention_layernorm(hidden_states)'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.rmsnorm
+  value: 'float32, mean of squares, rsqrt, then the weight'
+  text: 'Qwen3RMSNorm casts to float32, takes the mean of the squares over the last dimension, multiplies by the reciprocal square root of that mean plus epsilon, casts back and then multiplies by its weight.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L59-L63
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3RMSNorm.forward'
+    quote: 'hidden_states = hidden_states * torch.rsqrt(variance + self.variance_epsilon)'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.qk-norm
+  value: 'a norm of the head size on the query and the key'
+  text: 'Each attention layer has a norm on the query and one on the key, built over the head size. They act on one head''s vector, not on the model''s hidden size.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L229-L230
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3Attention.__init__'
+    quote: 'self.q_norm = Qwen3RMSNorm(self.head_dim, eps=config.rms_norm_eps)'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.attn-projections
+  value: 'q_proj, k_proj, v_proj and o_proj'
+  text: 'Qwen3Attention has three separate projections for the query, the key and the value, and an output projection. The query''s output width is the number of attention heads times the head size, and the key''s and the value''s is the number of key and value heads times the head size.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L217-L227
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3Attention.__init__'
+    quote: 'self.v_proj = nn.Linear('
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.attn-views
+  value: 'view, then transpose(1, 2)'
+  text: 'The attention reshapes each projection with view into (batch, tokens, heads, head size) and swaps the first two inner dimensions with transpose(1, 2). Both are views.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L244-L246
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3Attention.forward'
+    quote: 'query_states = self.q_norm(self.q_proj(hidden_states).view(hidden_shape)).transpose(1, 2)'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.attn-contiguous
+  value: 'reshape, then contiguous'
+  text: 'After the attention, the output is reshaped to (batch, tokens, heads times head size) and made contiguous before the output projection.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L270
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3Attention.forward'
+    quote: 'attn_output = attn_output.reshape(*input_shape, -1).contiguous()'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.attn-scaling
+  value: 'head size to the power -0.5'
+  text: 'The attention scores are scaled by the head size to the power of minus one half.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L213
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3Attention.__init__'
+    quote: 'self.scaling = self.head_dim**-0.5'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.mlp
+  value: 'down(act(gate(x)) * up(x))'
+  text: 'Qwen3MLP applies the activation to the gate projection, multiplies by the up projection and applies the down projection. All three have no bias.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L75-L81
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3MLP'
+    quote: 'down_proj = self.down_proj(self.act_fn(self.gate_proj(x)) * self.up_proj(x))'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.rotate-half
+  value: 'the second half, negated, then the first'
+  text: 'rotate_half splits the last dimension in two and returns the negated second half followed by the first half.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L134-L136
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, rotate_half'
+    quote: 'return torch.cat((-x2, x1), dim=-1)'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.embedding
+  value: 'an embedding of vocab_size by hidden_size'
+  text: 'Qwen3Model starts with an embedding table of vocab_size rows and hidden_size columns, then its decoder layers, then a final norm.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L344-L348
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3Model.__init__'
+    quote: 'self.embed_tokens = nn.Embedding(config.vocab_size, config.hidden_size, self.padding_idx)'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: transformers
+
+
+# SGLang at v0.5.23: the one PyO3 example (lesson 5; the Data Plane owns the seam) ----------------------------------------
+
+- id: sglang.pyo3.module
+  value: 'mem_cache'
+  text: 'The production extension module that python_bindings.rs defines is named mem_cache. A Python import of it gets the Rust tree core.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/297e54fd105e974cdf401e5b4d20253a22c16f90/rust/sglang-radix-tree/src/python_bindings.rs#L4029-L4031
+    title: 'SGLang v0.5.23, rust/sglang-radix-tree/src/python_bindings.rs, the mem_cache module'
+    quote: 'fn mem_cache(m: &Bound<''_, PyModule>) -> PyResult<()> {'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.pyo3.registers
+  value: 'the tree core and its parameter and result types'
+  text: 'register_mem_cache_module adds the Rust classes to the module: the tree core itself, RustUnifiedTreeCoreBinding, and the parameter and result classes that its calls take and return.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/297e54fd105e974cdf401e5b4d20253a22c16f90/rust/sglang-radix-tree/src/python_bindings.rs#L4005-L4024
+    title: 'SGLang v0.5.23, rust/sglang-radix-tree/src/python_bindings.rs, register_mem_cache_module'
+    quote: 'fn register_mem_cache_module(m: &Bound<''_, PyModule>) -> PyResult<()> {'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.pyo3.tch
+  value: 'the tch crate''s Tensor'
+  text: 'python_bindings.rs imports Device, Kind and Tensor from the tch crate, so that a method can take a torch tensor.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/297e54fd105e974cdf401e5b4d20253a22c16f90/rust/sglang-radix-tree/src/python_bindings.rs#L13
+    title: 'SGLang v0.5.23, rust/sglang-radix-tree/src/python_bindings.rs, imports'
+    quote: 'use tch::{Device, Kind, Tensor};'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.pyo3.tensor-bridge
+  value: 'a newtype over THPVariable pointers'
+  text: 'PyTensor is a newtype that bridges tch::Tensor and a Python torch.Tensor over raw THPVariable pointers. The file says the code is inlined from pyo3-tch.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/297e54fd105e974cdf401e5b4d20253a22c16f90/rust/sglang-radix-tree/src/python_bindings.rs#L120-L122
+    title: 'SGLang v0.5.23, rust/sglang-radix-tree/src/python_bindings.rs, PyTensor'
+    quote: '/// Newtype bridging `tch::Tensor` and Python `torch.Tensor` over raw THPVariable'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.pyo3.panic-to-error
+  value: 'a Rust panic becomes a Python RuntimeError'
+  text: 'A panic in the Rust core does not take the process down. The binding catches it and raises a Python RuntimeError whose message begins "Rust TreeCore panicked", and the core stays unusable afterwards.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/297e54fd105e974cdf401e5b4d20253a22c16f90/rust/sglang-radix-tree/src/python_bindings.rs#L27-L42
+    title: 'SGLang v0.5.23, rust/sglang-radix-tree/src/python_bindings.rs, catch_native_panic'
+    quote: '"Rust TreeCore panicked: {message}"'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: sglang
+
+- id: sglang.pyo3.match-prefix
+  value: 'params in, a result object out'
+  text: 'The binding''s match_prefix takes a MatchParamsBinding and returns a MatchResultBinding. It calls the Rust core''s match_prefix inside a py.detach closure.'
+  tag: measured
+  source:
+    url: https://github.com/sgl-project/sglang/blob/297e54fd105e974cdf401e5b4d20253a22c16f90/rust/sglang-radix-tree/src/python_bindings.rs#L1033-L1049
+    title: 'SGLang v0.5.23, rust/sglang-radix-tree/src/python_bindings.rs, match_prefix'
+    quote: 'let result = py.detach(|| self.core().match_prefix(&params));'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: sglang
+
+
+# Qwen3-0.6B at the proposed revision c1899de2 (config.json, read at that revision; lessons 3 and 5 and the lab) ----------------------------------------
+
+- id: qwen3.config.layers
+  value: 28
+  text: 'Qwen3-0.6B has 28 decoder layers.'
+  tag: measured
+  source:
+    url: https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L18
+    title: 'Qwen/Qwen3-0.6B at c1899de2, config.json, num_hidden_layers'
+    quote: '"num_hidden_layers": 28,'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.heads
+  value: 16
+  text: 'Qwen3-0.6B has 16 attention heads.'
+  tag: measured
+  source:
+    url: https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L17
+    title: 'Qwen/Qwen3-0.6B at c1899de2, config.json, num_attention_heads'
+    quote: '"num_attention_heads": 16,'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.kv-heads
+  value: 8
+  text: 'Qwen3-0.6B has 8 key and value heads, so two query heads share each one.'
+  tag: measured
+  source:
+    url: https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L19
+    title: 'Qwen/Qwen3-0.6B at c1899de2, config.json, num_key_value_heads'
+    quote: '"num_key_value_heads": 8,'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.head-dim
+  value: 128
+  text: 'Qwen3-0.6B''s head size is 128, set in the configuration and not worked out from the hidden size.'
+  tag: measured
+  source:
+    url: https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L9
+    title: 'Qwen/Qwen3-0.6B at c1899de2, config.json, head_dim'
+    quote: '"head_dim": 128,'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.hidden-size
+  value: 1024
+  text: 'Qwen3-0.6B''s hidden size is 1024. It is not the number of heads times the head size.'
+  tag: measured
+  source:
+    url: https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L11
+    title: 'Qwen/Qwen3-0.6B at c1899de2, config.json, hidden_size'
+    quote: '"hidden_size": 1024,'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.intermediate-size
+  value: 3072
+  text: 'Qwen3-0.6B''s MLP has an intermediate size of 3072.'
+  tag: measured
+  source:
+    url: https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L13
+    title: 'Qwen/Qwen3-0.6B at c1899de2, config.json, intermediate_size'
+    quote: '"intermediate_size": 3072,'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.vocab-size
+  value: 151936
+  text: 'Qwen3-0.6B''s vocabulary has 151936 entries.'
+  tag: measured
+  source:
+    url: https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L29
+    title: 'Qwen/Qwen3-0.6B at c1899de2, config.json, vocab_size'
+    quote: '"vocab_size": 151936'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.max-positions
+  value: 40960
+  text: 'Qwen3-0.6B''s configuration allows positions up to 40960.'
+  tag: measured
+  source:
+    url: https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L14
+    title: 'Qwen/Qwen3-0.6B at c1899de2, config.json, max_position_embeddings'
+    quote: '"max_position_embeddings": 40960,'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.rope-theta
+  value: 1000000
+  text: 'Qwen3-0.6B''s rotary embedding has a base (theta) of 1000000.'
+  tag: measured
+  source:
+    url: https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L22
+    title: 'Qwen/Qwen3-0.6B at c1899de2, config.json, rope_theta'
+    quote: '"rope_theta": 1000000,'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.rms-eps
+  value: '1e-06'
+  text: 'Qwen3-0.6B''s RMSNorm epsilon is 1e-06. A learner who writes another epsilon gets logits that differ from the reference.'
+  tag: measured
+  source:
+    url: https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L20
+    title: 'Qwen/Qwen3-0.6B at c1899de2, config.json, rms_norm_eps'
+    quote: '"rms_norm_eps": 1e-06,'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.tied-embeddings
+  value: 'true'
+  text: 'Qwen3-0.6B ties its output projection to its embedding table, so its checkpoint holds one table for both.'
+  tag: measured
+  source:
+    url: https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L24
+    title: 'Qwen/Qwen3-0.6B at c1899de2, config.json, tie_word_embeddings'
+    quote: '"tie_word_embeddings": true,'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.activation
+  value: 'silu'
+  text: 'Qwen3-0.6B''s MLP activation is silu.'
+  tag: measured
+  source:
+    url: https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L10
+    title: 'Qwen/Qwen3-0.6B at c1899de2, config.json, hidden_act'
+    quote: '"hidden_act": "silu",'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.stored-dtype
+  value: 'bfloat16'
+  text: 'The configuration names bfloat16 as the dtype the model was saved in. The lab runs the forward in float32, so it converts what it loads.'
+  tag: measured
+  source:
+    url: https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L25
+    title: 'Qwen/Qwen3-0.6B at c1899de2, config.json, torch_dtype'
+    quote: '"torch_dtype": "bfloat16",'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.q-proj-rows
+  value: 2048
+  text: 'The query projection has 2048 output rows: 16 heads times a head size of 128. That is twice the hidden size of 1024.'
+  tag: derived
+  derived:
+    formula: qwen3.config.heads * qwen3.config.head-dim
+    inputs: [qwen3.config.heads, qwen3.config.head-dim]
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.kv-proj-rows
+  value: 1024
+  text: 'The key projection, and the value projection, have 1024 output rows: 8 key and value heads times a head size of 128.'
+  tag: derived
+  derived:
+    formula: qwen3.config.kv-heads * qwen3.config.head-dim
+    inputs: [qwen3.config.kv-heads, qwen3.config.head-dim]
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.qkv-merged-rows
+  value: 4096
+  text: 'A merged query, key and value projection has 4096 output rows: (16 + 2 * 8) heads times a head size of 128.'
+  tag: derived
+  derived:
+    formula: (qwen3.config.heads + 2 * qwen3.config.kv-heads) * qwen3.config.head-dim
+    inputs: [qwen3.config.heads, qwen3.config.kv-heads, qwen3.config.head-dim]
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.config.query-group
+  value: 2
+  text: 'Each key and value head serves 2 query heads: 16 attention heads over 8 key and value heads.'
+  tag: derived
+  derived:
+    formula: qwen3.config.heads / qwen3.config.kv-heads
+    inputs: [qwen3.config.heads, qwen3.config.kv-heads]
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.revision.licence
+  value: 'apache-2.0'
+  text: 'The model card names the licence apache-2.0.'
+  tag: measured
+  source:
+    url: https://huggingface.co/api/models/Qwen/Qwen3-0.6B
+    title: 'Hugging Face, Qwen/Qwen3-0.6B (JSON API)'
+    quote: '"license":"apache-2.0"'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 365
+  pin: qwen3-0.6b
+
+- id: qwen3.weights.bytes
+  value: 1503300328
+  text: 'The hub lists model.safetensors at that revision as 1503300328 bytes. The course has not fetched the file, so the size is unverified until the file has been downloaded and measured.'
+  tag: unverified
+  source:
+    url: https://huggingface.co/api/models/Qwen/Qwen3-0.6B/revision/c1899de289a04d12100db370d81485cdf75e47ca?blobs=true
+    title: 'Hugging Face, Qwen/Qwen3-0.6B at c1899de2, file sizes (JSON API)'
+    quote: '"size":1503300328'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b
+
+- id: qwen3.weights.sha256
+  value: 'f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b'
+  text: 'The hub lists the SHA-256 of model.safetensors at that revision as f47f7117…6874b. The course has not fetched the file, so the hash is unverified until the file has been downloaded and hashed.'
+  tag: unverified
+  source:
+    url: https://huggingface.co/api/models/Qwen/Qwen3-0.6B/revision/c1899de289a04d12100db370d81485cdf75e47ca?blobs=true
+    title: 'Hugging Face, Qwen/Qwen3-0.6B at c1899de2, file hashes (JSON API)'
+    quote: '"sha256":"f47f71177f32bcd101b7573ec9171e6a57f4f4d31148d38e382306f42996874b"'
+    accessed: 2026-11-20
+  verifiedAt: 2026-11-20
+  ttlDays: 90
+  pin: qwen3-0.6b

@@ -13,12 +13,13 @@
  *     166,672 B to 196,603 B and the module page from 180,036 B to 207,510 B, 7,510 B over its gate [measured 2026-11-09 at 3a8aaa4 and
  *     with the faces wired as well].
  *
- * One source is still empty, and an event it would have placed moves no KC until it is filled (it still counts for its module): the KCs of
- * a GPU lab's stages (W2).
+ * The KCs of a grader lab's stages are the table of packages/verify/stage-kcs.ts (data only), empty until a lab's task adds its rows. A receipt
+ * of a stage with no row earns its lab's KCs, and an event whose ref names no KC still counts for its module.
  */
 import { GAMES } from '@es/play'
 import { faceById } from '@es/play/items/catalog'
 import type { CourseMap } from '@es/schema/compiled'
+import { STAGE_KCS } from '@es/verify/stage-kcs'
 import { kcsOfLab } from '@es/sim/forge/check-kcs'
 import type { KcSources } from './kcmap'
 
@@ -29,6 +30,7 @@ export function appSources(map: Pick<CourseMap, 'refs'>): KcSources {
     game: (game) => GAMES.get(game)?.kcs ?? [],
     variant: (family, variant) => faceById(family)?.variants.find((spec) => spec.id === variant)?.kcs ?? [],
     lab: kcsOfLab,
+    stage: (stage) => (Object.hasOwn(STAGE_KCS, stage) ? STAGE_KCS[stage] : []),
   }
 }
 

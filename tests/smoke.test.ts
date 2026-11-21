@@ -126,7 +126,7 @@ describe('routes against ARCHITECTURE §3.1', () => {
     '/m/:module': { h1: 'Module', shows: 'Loading the module' },
     '/m/:module/:lesson': { h1: 'Lesson', shows: 'Loading the lesson' },
     '/play': { h1: 'Games' },
-    '/play/:game': { h1: 'Play Step loop', shows: 'Loading Step loop', title: 'Game · enginespace' },
+    '/play/:game': { h1: 'Step loop', shows: 'Loading Step loop', title: 'Game · enginespace' },
     // A lab's page names itself as its served document does (`Lab tr8.replay`), and sets that title itself; the route's is the fallback.
     // A page that is not published yet says so, names no task, and hands back to Continue (src/unbuilt/copy.ts).
     '/labs/:lab': { h1: 'Lab tr8.replay', shows: 'Not published yet', title: 'Lab · enginespace' },

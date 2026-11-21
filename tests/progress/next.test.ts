@@ -310,8 +310,11 @@ describe('on the compiled map', () => {
       // The answers were given in this lesson: the bookmark is in it (a question set several lessons ask goes to the lesson it was answered in).
       const stand = standings(events, indexLessons(map.lessons), { route: one.route, at: isoAt(1) })
       expect(stand.get(one.id)?.state, one.id).toBe('done')
-      // Worked on last (the bookmark is in it, after its events), a done lesson hands on to the next one after it that is not done.
-      const next = map.lessons.slice(at + 1).find((candidate) => stand.get(candidate.id)?.state !== 'done') ?? map.lessons.find((candidate) => stand.get(candidate.id)?.state !== 'done')
+      // Worked on last (the bookmark is in it, after its events), a done lesson hands on to the next one after it that is not done. Past the
+      // last, it goes back to the first one from the course's start that is not done, and to a lesson before the start (TR0's) only after.
+      const open = (candidate: (typeof map.lessons)[number]) => stand.get(candidate.id)?.state !== 'done'
+      const next =
+        map.lessons.slice(at + 1).find(open) ?? map.lessons.find((candidate) => candidate.before !== true && open(candidate)) ?? map.lessons.find(open)
       expect(nextStep(events, map.lessons, { route: one.route, at: isoAt(1) }).lesson, one.id).toBe(next?.id ?? null)
     }
   })

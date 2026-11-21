@@ -27,7 +27,8 @@
     "verify:vendor": "bun scripts/verify.ts vendor",
     "verify:labs": "bun scripts/verify.ts labs",
     "verify:pins": "bun scripts/verify.ts pins",
-    "verify:routes": "bun scripts/verify.ts routes"
+    "verify:routes": "bun scripts/verify.ts routes",
+    "claims:requote": "bun scripts/claims/requote.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "1.1.15",

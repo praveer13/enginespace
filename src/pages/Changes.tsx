@@ -32,7 +32,7 @@ export function Component() {
     <div className="es-page" data-page="changes">
       <header className="es-page__header">
         <h1 className="es-page__title">Sources and changes</h1>
-        <p className="es-page__lead">{LEAD}</p>
+        <p className="es-page__lead" data-balance="">{LEAD}</p>
       </header>
       <div className="es-page__body">
         <section aria-labelledby="ch-pins" className="es-panel">

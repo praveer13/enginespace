@@ -193,8 +193,8 @@ describe('the probes of the five games', () => {
   test('cover the graded levels of every registered game, and no other level', () => {
     expect(GAMES.games.map((game) => game.id).sort()).toEqual(Object.keys(BLIND_PROBES).sort())
     for (const game of GAMES.games) expect([game.id, Object.keys(BLIND_PROBES[game.id] ?? {}).sort()]).toEqual([game.id, gradedOf(game).sort()])
-    // Twelve graded levels: close; exact, chain, gamma; map; due, warm, sure, court; evict, adapters, manager.
-    expect(GAMES.games.flatMap(gradedOf)).toHaveLength(12)
+    // Fourteen graded levels: close; exact, chain, gamma; map; due, warm, sure, court; evict, adapters, manager; fewest, grid.
+    expect(GAMES.games.flatMap(gradedOf)).toHaveLength(14)
   })
 
   test('are told apart from the practice levels: the gate holds a game to the levels its entry grades', () => {

@@ -18,6 +18,7 @@ import { BROKEN_BENCH_BLIND } from '../../packages/play/broken-bench/blind'
 import { ENGINE_FLOOR_BLIND } from '../../packages/play/engine-floor/blind'
 import { LOOP_BLIND } from '../../packages/play/loop/blind'
 import { POOL_BLIND } from '../../packages/play/pool/blind'
+import { SHIFT_BLIND } from '../../packages/play/shape-shifter/blind'
 import { VERIFIER_BLIND } from '../../packages/play/verifier/blind'
 
 /**
@@ -30,6 +31,7 @@ export const BLIND_PROBES: Readonly<Record<string, BlindProbes>> = {
   'engine-floor': ENGINE_FLOOR_BLIND,
   'broken-bench': BROKEN_BENCH_BLIND,
   pool: POOL_BLIND,
+  'shape-shifter': SHIFT_BLIND,
 }
 
 /** The fewest seeds, or cases, that a strategy's rate may be read on [estimated]: under it the rate says nothing, and a band too tight to find them is the finding. */

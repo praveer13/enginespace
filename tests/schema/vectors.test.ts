@@ -74,7 +74,7 @@ describe('the five files', () => {
   test('are written twice alike: the render does not depend on the clock, the order of a table or the process', () => {
     expect(renderVectors()).toEqual(renderVectors())
     const result = spawnSync(process.execPath, [path.join(root, 'scripts/export-schemas.ts'), '--check'], { cwd: root, encoding: 'utf8' })
-    expect([result.status, result.stdout.trim()]).toEqual([0, 'export-schemas: 5 schema(s), their copies in the grader, and 5 vector file(s) are what the code writes'])
+    expect([result.status, result.stdout.trim()]).toEqual([0, 'export-schemas: 6 schema(s), their copies in the grader, and 5 vector file(s) are what the code writes'])
   })
 
   test('each has a spec, a description, a reading, a source and an oracle, and vectors with ids that differ', () => {

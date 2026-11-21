@@ -17,7 +17,7 @@ export const MAP = {
     mark: 'You are here',
   },
   /** The line of hours, and the one sentence under the legends. */
-  hours: { all: 'hours in all', browser: 'in the browser', laptop: 'on a laptop', gpu: 'on a GPU', note: { before: 'Module hours are', between: 'and these totals are' }, estimated: 'estimated', derived: 'derived' },
+  hours: { published: 'hours published', planned: 'hours planned in all', browser: 'in the browser', laptop: 'on a laptop', gpu: 'on a GPU', note: { before: 'Module hours are', between: 'and these totals are' }, estimated: 'estimated', derived: 'derived' },
   nothing: 'Nothing is locked. Prerequisites advise.',
   /** What a module needs, in words. */
   needs: { only: { B: 'browser only', L: 'laptop only', F: 'GPU only' }, in: { B: 'in the browser', L: 'on a laptop', F: 'on a GPU' }, then: 'then' },

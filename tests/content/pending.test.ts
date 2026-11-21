@@ -8,6 +8,7 @@ import { describe, expect, test } from 'bun:test'
 import { GAME_IDS, LAB_IDS } from '../../scripts/content/directives.ts'
 import { BUILT_LABS, GAME_TASKS, LAB_TASKS, PENDING, pendingGame, pendingLab } from '@/content/render/model'
 import { FORGE_LAB_IDS } from '@/forge/ids'
+import { GRADED_LABS } from '@/labs/published'
 import { resolveGame } from '@/games/registry'
 import { trackerTasks } from '../ci/support.ts'
 
@@ -48,8 +49,8 @@ describe('the games', () => {
   test('every game of the roster is built or has a task, never both, and no task is named for a game that is not there', () => {
     expect([...built, ...Object.keys(GAME_TASKS)].sort()).toEqual([...GAME_IDS].sort())
     expect(built.filter((id) => Object.hasOwn(GAME_TASKS, id))).toEqual([])
-    // W1 built five games, and a lesson's block of each plays it.
-    expect([...built].sort()).toEqual(['broken-bench', 'engine-floor', 'loop', 'pool', 'verifier'])
+    // W1 built five games and W2-T14 a sixth, and a lesson's block of each plays it.
+    expect([...built].sort()).toEqual(['broken-bench', 'engine-floor', 'loop', 'pool', 'shape-shifter', 'verifier'])
   })
 
   test.each(Object.entries(GAME_TASKS))('%s is built by %s, whose title names it', (game, task) => {
@@ -70,7 +71,6 @@ describe('the labs', () => {
   /** The words of each lab's task title, for the labs that have no page yet: a forge lab by its id, a laptop or GPU lab by its module and what it does. */
   const titles: Record<string, RegExp> = {
     'kv-publisher': /Build a KV events publisher \(lab `kv-publisher`\)/,
-    'tr0.forward': /Build the Qwen3-0\.6B forward pass on CPU \(TR0 lab\)/,
     'tr1.fork': /Build an instrumented nano-vllm fork \(TR1 lab\)/,
     'tr3.profile': /Build an attribution report from a vLLM profile \(TR3 lab\)/,
     'tr4.sweep': /Build an attention backend sweep \(TR4 lab\)/,
@@ -87,9 +87,10 @@ describe('the labs', () => {
     expect(Object.keys(titles).sort()).toEqual(Object.keys(LAB_TASKS).sort())
   })
 
-  test('the labs that are built are the forge labs that have a host, so their page works and their ticket needs no task', () => {
-    for (const id of BUILT_LABS) expect([id, FORGE_LAB_IDS.includes(id)]).toEqual([id, true])
+  test('the labs that are built are the forge labs that have a host and the graded labs that have a descriptor, so their page works and their ticket needs no task', () => {
+    for (const id of BUILT_LABS) expect([id, FORGE_LAB_IDS.includes(id) || Object.hasOwn(GRADED_LABS, id)]).toEqual([id, true])
     for (const id of FORGE_LAB_IDS.filter((candidate) => LAB_IDS.includes(candidate))) expect([id, BUILT_LABS.includes(id)]).toEqual([id, true])
+    for (const id of Object.keys(GRADED_LABS)) expect([id, BUILT_LABS.includes(id)]).toEqual([id, true])
   })
 
   test.each(Object.entries(LAB_TASKS))('%s is built by %s, whose title says so', (lab, task) => {

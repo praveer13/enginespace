@@ -173,6 +173,17 @@ export interface Pointer {
  */
 export const START_POINTER: Pointer = { href: '/m/tr1/l1-five-mechanisms', label: 'Start: TR1 lesson 1', word: 'Start', minutes: 35 }
 
+/**
+ * What the header's Continue says on the page it points at. A first visit's pointer says "Start: TR1 lesson 1", and on that lesson's own page
+ * the header would offer the page as the place to start. There it says "Continue: this lesson" and goes to the same place. On any other page,
+ * and for a pointer that already says Continue, it is the pointer.
+ */
+export function pointerOnPage<T extends { readonly href: string; readonly label: string; readonly word: 'Start' | 'Continue' }>(pointer: T, pathname: string): T {
+  if (pointer.word !== 'Start') return pointer
+  const bare = (route: string): string => route.replace(/[?#].*$/, '').replace(/\/+$/, '')
+  return bare(pointer.href) === bare(pathname) ? { ...pointer, label: 'Continue: this lesson', word: 'Continue' } : pointer
+}
+
 /** Something said that the pointer changed in this tab. Another tab's write arrives as a `storage` event. */
 const POINTER_EVENT = 'es:pointer'
 

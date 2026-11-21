@@ -16,6 +16,9 @@ requires-python = ">=3.11,<3.15"
 dependencies = [
     "torch==2.14.0",
     "transformers==5.19.0",
+    # Triton, for TR0 lesson 4: the interpreter (TRITON_INTERPRET=1) steps a kernel on the CPU. The wheels are Linux-only; off Linux a learner reads the
+    # course's own run (D-072, W2b-T49).
+    "triton==3.8.0; sys_platform == 'linux'",
     "enginespace-grader",
 ]
 classifiers = ["Private :: Do Not Upload"]

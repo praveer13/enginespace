@@ -20,8 +20,8 @@ from typing import Any
 __all__ = ["SCHEMA_NAMES", "load_schema", "schema_problems", "validator"]
 
 #: The schemas of packages/schema that the grader reads, by the name of the file before `.schema.json`: the four of the receipt family (ARCHITECTURE
-#: section 9.6), and the references manifest that `enginespace fetch` reads (section 9.7, W2-T05).
-SCHEMA_NAMES = ("receipt", "bundle", "challenge", "trace", "references")
+#: section 9.6), the references manifest that `enginespace fetch` reads (section 9.7, W2-T05), and the artifact of the five points that `tr0.forward` records (W2b-T48).
+SCHEMA_NAMES = ("receipt", "bundle", "challenge", "trace", "references", "tr0-points")
 
 #: A message is cut at this length: it may quote a value out of a file that someone else wrote.
 MESSAGE_LIMIT = 300

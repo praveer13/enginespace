@@ -12,8 +12,12 @@
  *
  * Nothing derived is stored (ASSESSMENT §3.3): the hook hands over events, and the page computes counts, states and weights
  * from them when it draws.
+ *
+ * A `receipt` event holds no verdict (W2b-T23). When the ledger holds one, the hook loads `src/receipts/credit.ts` on its own, as a chunk
+ * that the pages without a receipt never fetch, and hands over the events with each receipt's worth worked out from its record and what
+ * the site knows now. Until that chunk has come, a receipt event is handed over as it is stored, and a reader counts it as nothing.
  */
-import { useMemo, useSyncExternalStore } from 'react'
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react'
 import { systemClock, uuidFactory } from '@es/ledger'
 import type { Draft, ImportMode, Json, Kind } from '@es/ledger'
 import { createEvidence, NOT_READY } from './engine'
@@ -168,7 +172,38 @@ const ACTIONS: EvidenceActions = {
  */
 export const appendEvidence: EvidenceActions['append'] = ACTIONS.append
 
+type Credit = typeof import('@/receipts/credit')
+let loadedCredit: Credit | null = null
+let loadingCredit: Promise<Credit> | null = null
+
+/** The chunk that works out what a receipt is worth: fetched once, the first time a ledger holds a receipt event. */
+function loadCredit(): Promise<Credit> {
+  loadingCredit ??= import('@/receipts/credit').then((module) => {
+    loadedCredit = module
+    return module
+  })
+  return loadingCredit
+}
+
 export function useEvidence(): Evidence {
   const snapshot = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot)
-  return useMemo(() => ({ ...snapshot, ...ACTIONS }), [snapshot])
+  const [credit, setCredit] = useState<Credit | null>(loadedCredit)
+  const holdsReceipt = useMemo(() => snapshot.events.some((event) => event.kind === 'receipt'), [snapshot.events])
+  useEffect(() => {
+    if (!holdsReceipt || credit !== null) return
+    let current = true
+    loadCredit().then(
+      (module) => {
+        if (current) setCredit(module)
+      },
+      () => undefined,
+    )
+    return () => {
+      current = false
+    }
+  }, [holdsReceipt, credit])
+  return useMemo(() => {
+    const events = holdsReceipt && credit !== null ? credit.creditReceipts(snapshot.events, snapshot.receipts) : snapshot.events
+    return { ...snapshot, events, ...ACTIONS }
+  }, [snapshot, holdsReceipt, credit])
 }

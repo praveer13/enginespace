@@ -27,6 +27,17 @@ describe('kcsOfRef', () => {
     expect(kcsOfRef('lab:tr8.replay', sources)).toEqual(['tr8.open-loop'])
   })
 
+  test("a receipt earns its stage's KCs first, then its lab's, without repeats", () => {
+    const sources: KcSources = {
+      ...SOURCES,
+      lab: (lab) => (lab === 'tr0.forward' ? ['tr0.forward-pass', 'tr0.logits-fp32'] : []),
+      stage: (stage) => (stage === 'tr0.forward.s2' ? ['tr0.logits-fp32', 'tr0.import-guard'] : []),
+    }
+    expect(kcsOfRef('receipt:tr0.forward.s2', sources)).toEqual(['tr0.logits-fp32', 'tr0.import-guard', 'tr0.forward-pass'])
+    expect(kcsOfRef('receipt:tr0.forward.s3', sources)).toEqual(['tr0.forward-pass', 'tr0.logits-fp32'])
+    expect(kcsOfRef('receipt:tr0.forward.s2', { ...sources, lab: () => [] })).toEqual(['tr0.logits-fp32', 'tr0.import-guard'])
+  })
+
   test.each([
     ['a prediction no lesson assigns', 'predict:tr9.l1#tr9.l1.p1'],
     ['a trace, which belongs to every module that reads it', 'trace:base-step/gap'],

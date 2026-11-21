@@ -220,6 +220,13 @@ export interface ModuleKitSpec {
   readonly gameTests?: readonly string[]
   /** Lessons whose three questions hold no numeric one. The kit lists them for wave 4 and refuses a listed lesson that has a numeric question. */
   readonly noNumeric?: readonly string[]
+  /**
+   * What the lessons still to be written take up, for a module that is published lesson by lesson: the KCs that no written lesson teaches yet
+   * and the claims of the module's file that nothing reads yet, each named. The kit refuses an entry that a written lesson already teaches or
+   * reads, and one that is not the module's, so the lists only shrink: each lesson that lands removes what it takes up, and a whole module
+   * has none.
+   */
+  readonly toCome?: { readonly kcs: readonly string[]; readonly claims: readonly string[] }
 }
 
 const SEEDS = 6
@@ -309,8 +316,11 @@ export function moduleKit(spec: ModuleKitSpec): void {
       const graph = readFileSync(path.join(repo, 'content/kc/graph.yaml'), 'utf8')
       const mine = [...graph.matchAll(new RegExp(`^- id: (${id}\\.[a-z0-9-]+)$`, 'gm'))].map((m) => m[1])
       const taught = new Set(lessons.flatMap((l) => l.lesson.kcs))
-      expect(mine.filter((kc) => !taught.has(kc))).toEqual([])
+      const toCome = spec.toCome?.kcs ?? []
+      expect(mine.filter((kc) => !taught.has(kc) && !toCome.includes(kc))).toEqual([])
       expect([...taught].filter((kc) => !mine.includes(kc))).toEqual([])
+      // A KC still to come is the module's and is taught by no written lesson.
+      expect(toCome.filter((kc) => taught.has(kc) || !mine.includes(kc))).toEqual([])
     })
 
     test('the lessons follow the brief: its titles, in its order', () => {
@@ -420,7 +430,10 @@ export function moduleKit(spec: ModuleKitSpec): void {
       for (const text of [...lessons.map((l) => l.text), moduleText, ...cards]) for (const m of text.matchAll(/\{\{claim:([a-z0-9.-]+)\}\}/g)) cited.add(m[1])
       const byId = new Map(result.claims.map((record) => [record.claim.id, record.claim]))
       for (let pass = 0; pass < 3; pass++) for (const claimId of [...cited]) for (const input of byId.get(claimId)?.derived?.inputs ?? []) cited.add(input)
-      expect(mine.map((c) => c.id).filter((claimId) => !cited.has(claimId))).toEqual([])
+      const toCome = spec.toCome?.claims ?? []
+      expect(mine.map((c) => c.id).filter((claimId) => !cited.has(claimId) && !toCome.includes(claimId))).toEqual([])
+      // A claim still to come is the file's, and nothing written reads it yet.
+      expect(toCome.filter((claimId) => cited.has(claimId) || !mine.some((c) => c.id === claimId))).toEqual([])
     })
   })
 

@@ -311,6 +311,7 @@ test.describe('accept 2: an append in one tab shows in a second tab within 1 s',
 /* 3. The schema guard                                                                                                */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
+// The bundle's data model is version 2 (packages/ledger/types.ts): a database or a tab at 3 is a newer one.
 test.describe('accept 3: a newer schemaVersion puts the app in read-only mode with a reload prompt', () => {
   test('a database that a newer bundle wrote', async ({ context }) => {
     const name = dbName('es-newer-schema')
@@ -319,7 +320,7 @@ test.describe('accept 3: a newer schemaVersion puts the app in read-only mode wi
       async ([n, event]) => {
         const { handle } = await window.__es.openStore(n)
         await window.__es.storeCommit(handle, {
-          putMeta: { schemaVersion: 2, deviceId: 'dev-newer', createdAt: '2026-11-04T09:00:00.000Z' },
+          putMeta: { schemaVersion: 3, deviceId: 'dev-newer', createdAt: '2026-11-04T09:00:00.000Z' },
           putEvents: [event as never],
         })
         window.__es.closeStore(handle)
@@ -373,7 +374,7 @@ test.describe('accept 3: a newer schemaVersion puts the app in read-only mode wi
     const other = await newTab(context)
     await expect(out(open, 'read-only')).toHaveText('false')
     await expect(open.getByRole('alert')).toHaveCount(0)
-    await other.evaluate(() => window.__es.postRaw({ t: 'hello', from: 'a-newer-tab', schemaVersion: 2 }))
+    await other.evaluate(() => window.__es.postRaw({ t: 'hello', from: 'a-newer-tab', schemaVersion: 3 }))
     await expect(out(open, 'read-only')).toHaveText('true')
     await expect(out(open, 'reason')).toHaveText('newer-schema')
     await expect(open.getByRole('alert')).toContainText('Reload to update')

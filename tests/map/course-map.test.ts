@@ -11,6 +11,7 @@ import type { LedgerEvent } from '@es/ledger'
 import { CourseMapView } from '@/map/CourseMap'
 import type { CourseMapViewProps } from '@/map/CourseMap'
 import { MAP as COPY } from '@/map/copy'
+import { formatHours, hoursSplit, LANE_ORDER } from '@/map/summary'
 import { findBanned } from '@/copy/banned'
 import { nextStep, standings, indexLessons } from '@/progress/next'
 import { made } from '../progress/support'
@@ -22,7 +23,6 @@ const view = (events: readonly LedgerEvent[] | null, overrides: Partial<CourseMa
   render(
     h(CourseMapView, {
       modules: INDEX.modules,
-      totalHours: INDEX.totalHours,
       map: MAP,
       progress: events === null ? null : progressOf(events),
       ready: events !== null,
@@ -182,10 +182,17 @@ describe('the way on opens the page', () => {
 })
 
 describe('the notes under the way on', () => {
-  test('hours in all and by lane, the two legends and the sentence that nothing is locked', () => {
+  test('the hours of the published modules by lane, the hours the course plans, the two legends and the sentence that nothing is locked', () => {
     const text = textOf(empty).replace(/ ([,.;])/g, '$1')
-    expect(text).toContain('91 hours in all: 53.5 in the browser, 3 on a laptop, 34.5 on a GPU')
-    expect(53.5 + 3 + 34.5).toBe(INDEX.totalHours)
+    // Derived from the rows the page lists: a module that publishes moves the figures and not this test.
+    const split = hoursSplit(INDEX.modules)
+    const lanes = LANE_ORDER.filter((lane) => split.lanes[lane] > 0).map((lane) => `${formatHours(split.lanes[lane])} ${{ B: 'in the browser', L: 'on a laptop', F: 'on a GPU' }[lane]}`)
+    expect(text).toContain(`${formatHours(split.published)} hours published: ${lanes.join(', ')}.`)
+    expect(split.published).toBe(INDEX.modules.filter((module) => module.published).reduce((sum, module) => sum + module.hours, 0))
+    expect(split.planned).toBe(INDEX.totalHours)
+    if (split.planned > split.published) expect(text).toContain(`${formatHours(split.planned)} hours planned in all.`)
+    else expect(text).not.toContain('planned in all')
+    expect(text).not.toContain('hours in all')
     expect(text).toContain('A lesson is not started, started or done, and done is its Test passed.')
     expect(text).toContain('Skills: tried is answered or played')
     expect(text).toContain('Nothing is locked. Prerequisites advise.')

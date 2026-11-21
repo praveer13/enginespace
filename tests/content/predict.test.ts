@@ -14,7 +14,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { createElement as h } from 'react'
 import { renderToString } from 'react-dom/server'
 import { StaticRouter } from 'react-router'
-import { decodeEvent, MemoryStore, seededIds, stampEvent } from '@es/ledger'
+import { decodeEvent, MemoryStore, SCHEMA_VERSION, seededIds, stampEvent } from '@es/ledger'
 import { courseMapSchema } from '@es/schema'
 import type { CompiledBlock } from '@es/schema'
 import { gradePrediction } from '@es/play/predictions/grade'
@@ -338,7 +338,7 @@ describe('the event a reveal writes (A§7.2)', () => {
     const store = new MemoryStore()
     const block = numeric('tr2.l4.p1', 'us', 0.05)
     // A ledger that a newer build wrote is read-only (A§7.4): it refuses the event, the learner is told, and the prediction is revealed all the same.
-    await store.commit({ putMeta: { deviceId: 'dev-a1', createdAt: '2026-10-01T00:00:00.000Z', schemaVersion: 2 } }, { event: (existing) => existing, receipt: (existing) => existing, working: (existing) => existing })
+    await store.commit({ putMeta: { deviceId: 'dev-a1', createdAt: '2026-10-01T00:00:00.000Z', schemaVersion: SCHEMA_VERSION + 1 } }, { event: (existing) => existing, receipt: (existing) => existing, working: (existing) => existing })
     const { result } = await revealed(block, 300, null, store)
     expect(result).toMatchObject({ truth: 304, ok: true })
     expect(result.unsaved).toContain('read-only')
@@ -397,7 +397,7 @@ describe('the event an at-commit reveal writes (D-067)', () => {
 
   test('a ledger that would not take the event says so and the reveal stands, as after a run', async () => {
     const store = new MemoryStore()
-    await store.commit({ putMeta: { deviceId: 'dev-a1', createdAt: '2026-10-01T00:00:00.000Z', schemaVersion: 2 } }, { event: (existing) => existing, receipt: (existing) => existing, working: (existing) => existing })
+    await store.commit({ putMeta: { deviceId: 'dev-a1', createdAt: '2026-10-01T00:00:00.000Z', schemaVersion: SCHEMA_VERSION + 1 } }, { event: (existing) => existing, receipt: (existing) => existing, working: (existing) => existing })
     setup(store)
     const result = await revealAtCommit({ block: numeric('tr2.l2.p1', 'tokens', 0), scope: 'tr2.l2', committed: { value: 1948, conf: null, after: 0 } })
     expect(result).toMatchObject({ truth: 1948, ok: true })

@@ -60,7 +60,8 @@ describe('the roster', () => {
       // The 3D column is a dash for a game with no 3D scene.
       expect([id, entry?.has3d]).toEqual([id, row[4].trim() !== '—'])
     }
-    expect(ROSTER.filter((entry) => entry.has3d).length).toBe(5)
+    // Tensor views left the 3D games when its design found no camera worth building (GAMES.md §4.2, D-074): loop, pool, switchyard, verifier.
+    expect(ROSTER.filter((entry) => entry.has3d).length).toBe(4)
   })
 
   test("carries the tracker's wave, the wave of the first task that builds the game, and every such task's title names the game by its title", () => {
