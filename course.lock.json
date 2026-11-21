@@ -83,6 +83,56 @@
       "checkedAt": "2026-11-04",
       "ttlDays": 60,
       "notes": "The tag v59.1, the newest tag on 2026-11-04 [measured]. The tag is annotated, and this is the commit it points to. The hosted UI at ui.perfetto.dev reported its stable channel as v59.1-79997ada9 on that day, a different commit from the tag's, so a learner who opens a trace in the hosted UI may see a build that is not this commit [measured]."
+    },
+    {
+      "key": "torch",
+      "kind": "pypi",
+      "name": "torch",
+      "version": "2.14.0",
+      "url": "https://pypi.org/project/torch/2.14.0/",
+      "checkedAt": "2026-11-20",
+      "ttlDays": 90,
+      "notes": "The PyTorch of TR0's CPU environment (labs/envs/cpu), proposed until the owner confirms the engine pins (O-4). vLLM v0.33.0 pins torch==2.14.0 and SGLang v0.5.23 pins torch==2.14.1, and PyTorch's unversioned 'stable' documents were already the 2.15 documents on 2026-11-20, so the lessons link the 2.14 documents (docs.pytorch.org/docs/2.14). PyPI shows the first files of 2.14.0 uploaded on 2026-09-02, and its metadata requires triton~=3.8.0 on Linux [measured 2026-11-20]. content/claims/tr0.yaml cites this pin."
+    },
+    {
+      "key": "transformers",
+      "kind": "pypi",
+      "name": "transformers",
+      "version": "5.19.0",
+      "url": "https://pypi.org/project/transformers/5.19.0/",
+      "checkedAt": "2026-11-20",
+      "ttlDays": 90,
+      "notes": "The reference implementation of the TR0 lab (labs/envs/cpu). It is SGLang v0.5.23's pin and lies inside vLLM v0.33.0's range, >=5.16.1,<5.21.0. PyPI shows the first files uploaded on 2026-10-06 [measured 2026-11-20]. The source claims read the tag v5.19.0 of its repository and name no commit, because the tag is what the pin is. content/claims/tr0.yaml cites this pin."
+    },
+    {
+      "key": "triton",
+      "kind": "pypi",
+      "name": "triton",
+      "version": "3.8.0",
+      "url": "https://pypi.org/project/triton/3.8.0/",
+      "checkedAt": "2026-11-20",
+      "ttlDays": 90,
+      "notes": "Triton for TR0 lesson 4 and its interpreter walk-through. torch 2.14.0 requires triton~=3.8.0 on Linux, and Triton 3.8.0 requires Python >=3.10,<3.15; PyPI shows the first files uploaded on 2026-08-28 [measured 2026-11-20]. vLLM's release notes naming 3.8.0 were read on 2026-11-03 and not read again. Triton's own documentation site shows one unversioned copy, so the claims read the tag v3.8.0 of its repository, whose docstrings are the documents, and name no commit. Whether the 3.8.0 wheel installs off Linux is [unverified]. Nothing is installed by this pin; the locked CPU environment adds Triton when the interpreter run is built. content/claims/tr0.yaml cites this pin."
+    },
+    {
+      "key": "python",
+      "kind": "tool",
+      "name": "Python",
+      "version": "3.12",
+      "url": "https://www.python.org/downloads/",
+      "checkedAt": "2026-11-20",
+      "ttlDays": 90,
+      "notes": "The Python of the course's environments. vLLM v0.33.0 is compatible with Python 3.11 to 3.14, and its default Dockerfile and its CI (except mypy) use 3.12 [measured 2026-11-20]; Triton 3.8.0 and the TR0 environment's torch and transformers allow it. The pin is the minor version, as the interpreters of the three environments are. content/claims/tr0.yaml cites this pin."
+    },
+    {
+      "key": "qwen3-0.6b",
+      "kind": "model",
+      "name": "Qwen3-0.6B",
+      "commit": "c1899de289a04d12100db370d81485cdf75e47ca",
+      "url": "https://huggingface.co/Qwen/Qwen3-0.6B",
+      "checkedAt": "2026-11-20",
+      "ttlDays": 90,
+      "notes": "A revision proposed for TR0's lab: the newest commit on the model's main branch on 2026-11-20, 'Create LICENSE', dated 2025-07-26 [measured 2026-11-20]. The model card names the licence apache-2.0. The course proposes it and the owner has not chosen it; a different revision changes the manifest and the lab's reference together. labs/references/manifest.json lists its files with the sizes and hashes that the hub gives, each [unverified] until the files are downloaded and hashed. content/claims/tr0.yaml cites this pin."
     }
   ]
 }

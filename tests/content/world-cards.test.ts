@@ -34,6 +34,7 @@ const WORLDS: Record<string, { world: string; builtBy: string; built: boolean }>
   spec: { world: 'spec', builtBy: 'W1-T26', built: true },
   'trace-room-bench': { world: 'bench', builtBy: 'W1-T31', built: true },
   'trace-room-trace': { world: 'trace', builtBy: 'W1-T08', built: true },
+  tensor: { world: 'tensor', builtBy: 'W2-T13', built: true },
 }
 
 /**
