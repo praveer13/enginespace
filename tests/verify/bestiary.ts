@@ -26,6 +26,10 @@
  *                       as passed. A count over no round is no count: acceptance-counts (rule 7).
  *   bare-claim          A claim under a key that names no artifact of the receipt, a faster p99 than the log's, beside the honest claim: nothing is recomputed from it, and claims-backed
  *                       (rule 7) fails it, so that the receipts page does not show a claim with nothing behind it as recomputed.
+ *   relabelled-ids      TR0's argmax ids with the entry relabelled as a log in the receipt alone (the artifact and its hash are untouched): the artifact is read by its own schema tag,
+ *                       and argmax-bank (rule 7) fails it for the relabelling, before it asks for a bank. Made from the forward-pass fixture.
+ *   truncated-ids       TR0's argmax ids with half the positions dropped from the ids column and the receipt re-signed: the two columns are not one length, so the artifact cannot be read,
+ *                       and argmax-bank fails it for that. Made from the forward-pass fixture.
  *   relabelled-counts   The acceptance counts of a proposer, with the entry's kind written as `log` and its format as `json` in the receipt alone: the artifact is read by its own schema tag, and acceptance-counts (rule 7) fails it for the relabelling.
  *
  * What none of them is: a consistent forgery, in which the forger edits the rows and recomputes every summary that follows from them (A§8.6). That one passes,
@@ -45,7 +49,7 @@ export interface Forgery {
   readonly id: string
   readonly title: string
   /** The kind of honest fixture it is made from: one whose evidence is a benchmark log, a trace, or the counts of a proposer's rounds. */
-  readonly from: 'bench' | 'trace' | 'counts'
+  readonly from: 'bench' | 'trace' | 'counts' | 'forward'
   /** The check that must fail: the rule's number, and the check's id (the rule's own id for rules 1 to 6). */
   readonly fails: { readonly rule: number; readonly check: string }
   /** What the printed bound must say: the bound it broke, in the words of the check. */
@@ -407,13 +411,63 @@ const relabelledCounts: Forgery = {
     }),
 }
 
+/** The first argmax artifact of a fixture, and the id of its entry. */
+function argmaxOf(fixture: Fixture): { id: string; data: { schema: string; positions: number[]; ids: number[] } } {
+  const entry = fixture.bundle.receipt.artifacts.find((artifact) => artifact.kind === 'outputs')
+  if (entry === undefined) throw new Error(`${fixture.name} carries no argmax ids`)
+  const data = fixture.bundle.artifacts[entry.id]
+  if (data.encoding !== 'json') throw new Error('argmax ids are JSON')
+  return { id: entry.id, data: data.data as { schema: string; positions: number[]; ids: number[] } }
+}
+
+/** TR0's argmax ids with their entry relabelled in the receipt alone: they are read as the ids they are, and fail for the label. */
+const relabelledIds: Forgery = {
+  id: 'relabelled-ids',
+  title: "argmax ids with their entry relabelled as a log in the receipt",
+  from: 'forward',
+  fails: { rule: 7, check: 'argmax-bank' },
+  bound: /The artifact "[^"]+": the receipt lists it as kind "log", format "json", and its own data says enginespace\/argmax@1/,
+  forge: (honest) =>
+    edited(honest, (bundle) => {
+      const { id } = argmaxOf(honest)
+      const entry = bundle.receipt.artifacts.find((artifact) => artifact.id === id)
+      if (entry === undefined) throw new Error('the ids have no entry')
+      entry.kind = 'log'
+      entry.format = 'json'
+    }),
+}
+
+/** TR0's argmax ids with the second half of the ids column dropped, and the receipt re-signed: the columns differ in length. */
+const truncatedIds: Forgery = {
+  id: 'truncated-ids',
+  title: 'argmax ids with half the ids dropped and the receipt re-signed',
+  from: 'forward',
+  fails: { rule: 7, check: 'argmax-bank' },
+  bound: /The artifact "[^"]+" could not be read: /,
+  forge: (honest) =>
+    edited(honest, (bundle) => {
+      const { id } = argmaxOf(honest)
+      const artifact = bundle.artifacts[id]
+      if (artifact.encoding !== 'json') throw new Error('argmax ids are JSON')
+      const ids = (artifact.data as { ids: number[] }).ids
+      ids.length = Math.floor(ids.length / 2)
+    }),
+}
+
+/** The forgeries made from the forward-pass fixture (TR0's stage 2): the two that read its ids, and the three that read nothing of the evidence, which are the same forgeries as the bench's. */
+export const FORWARD_BESTIARY: readonly Forgery[] = [reusedToken, replayedReceipt, unknownGrader, relabelledIds, truncatedIds]
+
 /** Every forgery: the nine of ASSESSMENT §13 in the order it lists them, then the two that the review of W2's grader track added, the one that the second review added, and the two of the check of the claims. */
 export const BESTIARY: readonly Forgery[] = [editedP99, resignedHash, reusedToken, replayedReceipt, closedLoop, tooFast, unknownGrader, notAPartition, otherSeed, smallerModel, emptyEvidence, fasterGpuTyped, relabelledTrace, bareClaim, relabelledCounts]
 
-/** The forgeries that an honest fixture can be forged into: those that read the kind of evidence it carries. */
+/**
+ * The forgeries that an honest fixture can be forged into: those that read the kind of evidence it carries. The forward-pass fixture carries TR0's ids (kind `outputs`) and
+ * is forged by `FORWARD_BESTIARY`, which is not part of `BESTIARY`: its honest receipt fails `argmax-bank` for want of the bank, so it is held to its own control (tests/verify/forward.test.ts).
+ */
 export function forgeriesFor(fixture: Fixture): readonly Forgery[] {
   const kinds = new Set(fixture.bundle.receipt.artifacts.map((artifact) => artifact.kind))
-  const carries = { bench: kinds.has('bench-log'), trace: kinds.has('trace'), counts: kinds.has('counts') } as const
+  if (kinds.has('outputs')) return FORWARD_BESTIARY
+  const carries = { bench: kinds.has('bench-log'), trace: kinds.has('trace'), counts: kinds.has('counts'), forward: false } as const
   return BESTIARY.filter((forgery) => carries[forgery.from])
 }
 

@@ -480,7 +480,11 @@ describe('the blocks, one at a time', () => {
     expect(forge).toContain('lane · B browser')
     expect(forge).toContain('href="/labs/hybrid-kv"')
     expect(placeholders(drawnBlocks(lab('rejection-sampler', 'B')))).toEqual({})
-    expect(placeholders(drawnBlocks(lab('tr0.forward', 'L')))).toEqual({ lab: 'W2-T16' })
+    // TR0's forward pass has its page (src/labs/published.ts), so its ticket prints no placeholder either, and leads to the page.
+    const graded = drawnBlocks(lab('tr0.forward', 'L'))
+    expect(placeholders(graded)).toEqual({})
+    expect(graded).toContain('href="/labs/tr0.forward"')
+    expect(placeholders(drawnBlocks(lab('tr3.profile', 'F')))).toEqual({ lab: 'W2-T23' })
     expect(drawnBlocks(lab('tr8.replay', 'F'))).toContain('stage · s2')
   })
 

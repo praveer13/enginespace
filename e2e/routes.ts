@@ -49,9 +49,10 @@ export const W1_ROUTES: string[] = [
  * challenge is issued and a receipt is read. It reads the learner's ledger, so it is audited with its ledger in each of its states (the
  * spec of its own, e2e/receipts.spec.ts, seeds them), and here with the empty one, by axe at 360 and 1280 px, the reduced-motion scan and
  * the network check, like every page before it. Tensor views' page (W2-T14), the first game that W2 registers, joins them, and so do TR0's
- * module page and its first lesson, the first module that W2 publishes.
+ * module page and its first lesson, the first module that W2 publishes, and the first graded lab's page (W2-T16), TR0's forward pass, which
+ * links the kit and the grader and is where a learner first needs them.
  */
-export const W2_ROUTES: string[] = ['/receipts', '/play/shape-shifter', '/m/tr0', '/m/tr0/l1-pytorch-in-rust-terms']
+export const W2_ROUTES: string[] = ['/receipts', '/play/shape-shifter', '/m/tr0', '/m/tr0/l1-pytorch-in-rust-terms', '/labs/tr0.forward']
 
 /**
  * A game's page opens on its first level, and `?level=` opens another, so the document list does not reach them. W1-T36 adds the levels

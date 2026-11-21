@@ -1,6 +1,6 @@
 /*
- * W2b-T30: a graded lab's page as markup, drawn on the server renderer at /labs/tr0.forward from a fixture descriptor (the specimen of
- * src/labs/specimen.ts, and variations of it made here), with what the site's list of files says of each kit file as a prop. What a click,
+ * W2b-T30: a graded lab's page as markup, drawn on the server renderer at /labs/tr0.forward from the lab's descriptor (src/labs/tr0-forward.ts
+ * and variations of it made here), with what the site's list of files says of each kit file as a prop. What a click,
  * a key and a copy do, and axe at 320, 360 and 1280 px, are checked in a real browser in e2e/lab-page.spec.ts.
  *
  *   - The page is the numbered procedure of REDESIGN 3.9: the eight steps in order, and above the first only what the lab builds and needs.
@@ -21,13 +21,13 @@ import { findBanned } from '../../src/copy/banned'
 import { PAGE, STAGE_STATE, stateLine } from '../../src/labs/copy'
 import { GradedLabView } from '../../src/labs/GradedLabView'
 import { parseKitFiles, fileFor, type KitFileState } from '../../src/labs/kit-files'
-import { SPECIMENS } from '../../src/labs/specimen'
+import { GRADED_LABS } from '../../src/labs/published'
 import type { GradedLab } from '../../src/labs/types'
 import { labById } from '../../src/receipts/labs'
 
 const root = path.resolve(import.meta.dirname, '../..')
 const MANIFEST = parseKitFiles(JSON.parse(readFileSync(path.join(root, 'public/labs/manifest.json'), 'utf8')))
-const FIXTURE = SPECIMENS['tr0.forward']
+const FIXTURE = GRADED_LABS['tr0.forward']
 
 const ready = (lab: GradedLab): KitFileState[] =>
   lab.kit.map((ref) => {

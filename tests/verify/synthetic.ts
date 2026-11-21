@@ -14,9 +14,17 @@
  *     counts of 200 rounds that a seeded generator drew, and the grader's check; it is `gpu-verified`, and it is the fixture that an artifact with no round
  *     in it is forged from.
  *
+ *   - `forwardFixture()`: a stage `tr0.forward.s2`, TR0's whole forward pass on the laptop's CPU (W2-T16). The grader's own recording of the reference solution on a
+ *     two-layer Qwen3 with random weights (labs/grader/tests/synthetic/tr0-forward/stage2.json: its inputs, its two checks, its argmax ids and its five points) in a
+ *     receipt that says it is synthetic. It has no GPU, no engine and no trace. It passes every rule but one: `argmax-bank` fails, because the site holds no bank
+ *     (BANKS is empty until the owner records it), so its verdict is `gpu-unverified` and the reason says the bank is missing. It is the fixture that a receipt
+ *     with a wrong id, or a relabelled artifact, is forged from, and the one that a test bank (which lives in the test) is made for.
+ *
  * The bundle is the same object a test changes (`changed`) and puts its hashes right again after (`resigned`), and the context is the one in which it
  * passes. Both are built once and cloned, because a run of the simulator is cheap and a thousand of them are not.
  */
+import { readFileSync } from 'node:fs'
+import path from 'node:path'
 import { formatChallenge } from '@es/schema/challenge'
 import type { Bundle } from '@es/schema/bundle'
 import type { Receipt } from '@es/schema/receipt'
@@ -70,8 +78,8 @@ export const REPLAY_SPEC: BenchSpec = {
 export interface Fixture {
   readonly name: string
   readonly stage: string
-  /** What an honest receipt of the stage comes to. */
-  readonly provenance: 'gpu-verified' | 'practice'
+  /** What an honest receipt of the stage comes to: `gpu-unverified` for the forward pass, whose bank the site does not hold yet. */
+  readonly provenance: 'gpu-verified' | 'practice' | 'gpu-unverified'
   readonly bundle: Bundle
   readonly context: VerifyContext
 }
@@ -237,9 +245,58 @@ function buildProposer(): Fixture {
   return { name: 'proposer', stage: 'tr6.proposer.s1', provenance: 'gpu-verified', bundle, context: contextOf(bundle, {}) }
 }
 
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The forward pass                                                                                                   */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+export const FORWARD_SEED = 0x7a3c19e5
+
+interface Recorded {
+  readonly inputs: Receipt['inputs']
+  readonly checks: Receipt['checks']
+  readonly artifacts: readonly { id: string; kind: Receipt['artifacts'][number]['kind']; format: string; data: unknown }[]
+}
+
+/** What the grader recorded for stage 2 on a random-weight model: the file that the grader's own tests replay. */
+function recordedForward(): Recorded {
+  return JSON.parse(readFileSync(path.join(import.meta.dirname, '../../labs/grader/tests/synthetic/tr0-forward/stage2.json'), 'utf8')) as Recorded
+}
+
+/** A laptop with no GPU, as `enginespace doctor` writes one for a CPU lab: invented, and the receipt says so. */
+function laptop(receipt: Receipt): void {
+  receipt.environment = {
+    host: { kind: 'local', os: 'Example Linux 1.0', kernel: '6.0.0-example', arch: 'x86_64', cpu: 'Example CPU', cores: 8, ramBytes: 17_179_869_184, container: false },
+    gpus: [],
+    python: '3.12.12',
+    torch: { version: '2.14.0+cpu' },
+    libs: [
+      { name: 'triton', version: '3.8.0' },
+      { name: 'transformers', version: '5.19.0' },
+    ],
+    envVars: {},
+  }
+  receipt.notes = 'A synthetic receipt made by tests/verify/synthetic.ts from the grader\'s recording on a random-weight model. No learner and no machine made it, and it is no run of the pinned model.'
+  receipt.ext = { synthetic: true }
+  receipt.performance = undefined
+}
+
+function buildForward(): Fixture {
+  const recorded = recordedForward()
+  const receipt = sample()
+  laptop(receipt)
+  challenge(receipt, 'tr0.forward.s2', FORWARD_SEED)
+  receipt.inputs = structuredClone(recorded.inputs)
+  receipt.checks = structuredClone(recorded.checks)
+  receipt.artifacts = recorded.artifacts.map((artifact) => entryOf(artifact.id, artifact.kind, artifact.format, artifact.data))
+  const artifacts: Bundle['artifacts'] = Object.fromEntries(recorded.artifacts.map((artifact) => [artifact.id, { encoding: 'json' as const, data: structuredClone(artifact.data) as object }]))
+  const bundle: Bundle = { schema: 'enginespace/bundle@1', receipt, artifacts }
+  return { name: 'forward', stage: 'tr0.forward.s2', provenance: 'gpu-unverified', bundle, context: contextOf(bundle, {}) }
+}
+
 let replay: Fixture | undefined
 let trace: Fixture | undefined
 let proposer: Fixture | undefined
+let forward: Fixture | undefined
 
 /** A fresh copy of the honest replay: change it freely. */
 export function replayFixture(): Fixture {
@@ -257,6 +314,12 @@ export function traceFixture(): Fixture {
 export function proposerFixture(): Fixture {
   proposer ??= buildProposer()
   return { ...proposer, bundle: structuredClone(proposer.bundle) }
+}
+
+/** A fresh copy of the honest forward-pass bundle: change it freely. */
+export function forwardFixture(): Fixture {
+  forward ??= buildForward()
+  return { ...forward, bundle: structuredClone(forward.bundle) }
 }
 
 /** A fixture after `change` and its hashes put right: a forger who re-signs what they edited. The context follows the receipt, since its token may have changed. */

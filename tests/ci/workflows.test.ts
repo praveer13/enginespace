@@ -559,6 +559,40 @@ describe('labs.yml (§10.1)', () => {
     expect(read('labs/envs/cpu/requirements.txt')).toContain("triton==3.8.0 ; sys_platform == 'linux'")
   })
 
+  test('the weights job (W2-T16) runs on a dispatch and on nothing else: it fetches the pinned weights, hashes each file against the manifest, and prints the worst difference of the reference and the mutants', () => {
+    const jobs = Object.fromEntries(jobsOf('labs.yml'))
+    const weights = jobs.weights as unknown as { if?: string; needs?: unknown; env?: Record<string, string>; steps?: { name?: string; run?: string; env?: Record<string, string> }[] }
+    // Only a dispatch starts it (a pull request must never download a model), and it waits for no other job: detect's outputs say nothing about it.
+    expect(weights.if).toBe("github.event_name == 'workflow_dispatch'")
+    expect(weights.needs).toBeUndefined()
+    expect(weights.env).toEqual({ ENGINESPACE_CACHE: '${{ github.workspace }}/.enginespace-cache', PYTHONPATH: 'labs/grader/src' })
+    const steps = weights.steps ?? []
+    const byName = (name: string) => steps.find((step) => step.name === name)
+    // The same environment as the cpu job, from the lock's hashed export.
+    expect(byName("Install the CPU environment from its lock's export")?.run?.trim()).toBe(
+      'python3 -m venv "$RUNNER_TEMP/cpu-venv"\n"$RUNNER_TEMP/cpu-venv/bin/python" -m pip install --no-input --no-deps --require-hashes --extra-index-url https://download.pytorch.org/whl/cpu -r labs/envs/cpu/requirements.txt',
+    )
+    // `enginespace fetch tr0.forward` is the only command that reaches the network, and it is the grader's own, which keeps a file only when it hashes to the manifest's.
+    expect(byName('Fetch the pinned weights')?.run).toBe('"$RUNNER_TEMP/cpu-venv/bin/python" -m enginespace_grader fetch tr0.forward')
+    const hash = byName('Hash each file against the references manifest')?.run ?? ''
+    expect(hash).toContain('labs/references/manifest.json')
+    expect(hash).toContain('"tr0.forward" not in entry["labs"]')
+    expect(hash).toContain('sys.exit(1 if bad else 0)')
+    const measure = byName('The reference and the mutants, on the pinned weights')
+    expect(measure?.env).toEqual({ CI: 'true' })
+    expect(measure?.run).toContain('labs/grader/tests/cpu/weights_margin.py')
+    // It reads no token and sends nothing: no secrets, no vars, no curl or wget of its own, and no step that writes to the repository.
+    const text = JSON.stringify(weights)
+    expect(text).not.toMatch(/secrets\.|HF_TOKEN|GITHUB_TOKEN|curl|wget|git push|upload-artifact/)
+    expect(Object.keys(jobs)).toContain('weights')
+    // The cache is keyed by the manifest, so a changed pin is a new download.
+    const cache = steps.find((step) => (step as { uses?: string }).uses?.startsWith('actions/cache@')) as unknown as { with?: Record<string, string> } | undefined
+    expect(cache?.with?.key).toBe("tr0-weights-${{ hashFiles('labs/references/manifest.json') }}")
+    // Its script is not a test of the cpu job's discovery, and it is in the folder that detect watches.
+    expect(existsSync(path.join(root, 'labs/grader/tests/cpu/weights_margin.py'))).toBe(true)
+    expect(jobs.detect.steps?.find((candidate) => candidate.id === 'labs')?.run ?? '').toContain("'labs/gpu/tr0-forward'")
+  })
+
   test('the vectors script has no header that says it is run by hand and never by CI (W2-T13)', () => {
     const script = read('scripts/tensor-torch-vectors.py')
     expect(script).not.toContain('by hand')

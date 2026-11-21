@@ -104,9 +104,11 @@ class Declared(unittest.TestCase):
                 self.assertIsNone(re.search(rf"(?<![A-Za-z]){re.escape(word)}(?![A-Za-z])", text, re.I), f"{word!r} in {text!r}")
 
     def test_the_labels_are_the_ones_the_lab_page_shows(self) -> None:
-        page = (ROOT / "src/labs/specimen.ts").read_text(encoding="utf-8")
+        page = (ROOT / "src/labs/tr0-forward.ts").read_text(encoding="utf-8")
         for check_id, label in CHECK_LABELS.items():
             self.assertIn(label, page, check_id)
+        self.assertIn(LAB.title, page)
+        self.assertIn(LAB.title, (ROOT / "src/forge/titles.ts").read_text(encoding="utf-8"))
 
     def test_the_five_points_are_the_ones_the_schema_names(self) -> None:
         text = (ROOT / "packages/schema/bundle.ts").read_text(encoding="utf-8")
@@ -321,6 +323,17 @@ class SolutionFile(unittest.TestCase):
             self.assertEqual(solution_file({}, here), here / "tr0-forward" / "forward.py")
             with self.assertRaises(GraderError):
                 solution_file({"ENGINESPACE_SOLUTION": str(here / "nope.py")}, here)
+
+    def test_the_starter_the_kit_holds_is_the_file_unless_a_copy_stands_beside_it(self) -> None:
+        with tempfile.TemporaryDirectory(prefix="enginespace-test-") as folder:
+            here = Path(folder)
+            starter = here / "gpu" / "tr0-forward" / "starter"
+            starter.mkdir(parents=True)
+            (starter / "forward.py").write_text("x = 1\n", encoding="utf-8")
+            self.assertEqual(solution_file({}, here), starter / "forward.py")
+            (here / "tr0-forward").mkdir()
+            (here / "tr0-forward" / "forward.py").write_text("x = 2\n", encoding="utf-8")
+            self.assertEqual(solution_file({}, here), here / "tr0-forward" / "forward.py", "a copy the learner made outside the starter's folder is the one they mean")
 
 
 class KitHoldsNoSolution(unittest.TestCase):
