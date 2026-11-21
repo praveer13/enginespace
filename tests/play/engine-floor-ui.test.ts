@@ -36,7 +36,7 @@ import { floorKit, floorStep, partRows } from '@/games/engine-floor/kit'
 import { Mirror } from '@/games/engine-floor/Mirror'
 import { handoffWords, permalink, plain, readoutOf, splitCode } from '@/games/engine-floor/text'
 import type { FloorOutcome } from '@/games/engine-floor/types'
-import { aboveWords, matches, platformsOf, roomInSight } from '@/games/engine-floor/useFloorControls'
+import { aboveWords, matches, onSameSpot, platformsOf, roomInSight } from '@/games/engine-floor/useFloorControls'
 import { FloorLegend, StageFacts, Swimlane } from '@/games/engine-floor/View2D'
 import { fakeRun, laidTo, levelOf, ranTo, truthOf, walk } from './engine-floor-support'
 
@@ -177,6 +177,26 @@ describe('the stage list', () => {
     // Scrolled up by a row or more, none of it shows, and the room goes.
     expect(roomInSight(44, 1230, 132, 1406)).toBeNull()
     expect(roomInSight(132, 1100, 132, 1406)).toBeNull()
+  })
+
+  test('a press on the spot where Commit was pressed is that press, until the pointer has left the spot', () => {
+    const commit = { x: 1046, y: 594 }
+    expect(onSameSpot({ x: 1046, y: 594 }, commit)).toBe(true)
+    // A hand's tremble between the two clicks of a double click.
+    expect(onSameSpot({ x: 1052, y: 600 }, commit)).toBe(true)
+    // A press a tile's width away was aimed.
+    expect(onSameSpot({ x: 1046, y: 640 }, commit)).toBe(false)
+    // Once the pointer has left the spot, the spot is gone.
+    expect(onSameSpot({ x: 1046, y: 594 }, null)).toBe(false)
+  })
+
+  test('with every stage laid, the empty list says so and has no filter to clear', () => {
+    const level = vllm
+    const state = walk(level, { t: 'commit', prediction: truthOf(level.scenario) }, ...level.tray.map((stage): FloorAction => ({ t: 'lay', stage })))
+    const markup = dock(state)
+    expect(markup).toContain('Every stage is laid. Run the path, or Remove last.')
+    expect(markup).not.toContain('No stage matches')
+    expect(markup).not.toContain('Show every stage')
   })
 
   test('the room a box keeps says how many stages lie wholly above its top edge', () => {

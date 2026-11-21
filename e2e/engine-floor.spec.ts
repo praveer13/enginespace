@@ -1332,3 +1332,98 @@ test.describe('the stage list in a box of its own', () => {
     expect(overlaps).toEqual([])
   })
 })
+
+/*
+ * The check of the box layout (W2b-T59): Commit the prediction brings the frame whole into view at a desk, so a stage's tile can stand where
+ * Commit stood. A double click on Commit, or a second click there before the pointer moves, laid that stage. A double click on a tile laid
+ * the next tile too, which slides into the laid one's place. With every stage laid, the empty list said a filter hid stages.
+ */
+
+/** How many stages the list still holds. */
+const inList = (page: Page) => page.locator('[data-floor-tray] [data-stage]').count()
+
+/** Picks one boundary and returns the centre of Commit the prediction, in view. */
+async function aimAtCommit(page: Page) {
+  await page.getByRole('button', { name: '1 boundary', exact: true }).click()
+  const button = page.getByRole('button', { name: 'Commit the prediction' })
+  await button.scrollIntoViewIfNeeded()
+  const box = await button.boundingBox()
+  if (box === null) throw new Error('Commit the prediction has no box')
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+}
+
+test.describe('a press the learner did not aim at a stage', () => {
+  for (const [width, height, level] of [[1440, 900, 'vllm'], [1366, 768, 'map'], [1280, 800, 'nano'], [360, 800, 'vllm']] as const) {
+    test(`at ${width} x ${height} on ${level}, a double click on Commit the prediction commits it and lays no stage`, async ({ page }) => {
+      await page.setViewportSize({ width, height })
+      await open(page, level)
+      const at = await aimAtCommit(page)
+      await page.mouse.dblclick(at.x, at.y)
+      await expect(page.locator('[data-floor-tray] [data-stage]').first()).toBeVisible()
+      await boxStill(page)
+      const tiles = await inList(page)
+      expect(tiles, 'every stage is still in the list').toBe(buildLevel(level, 0).tray.length)
+      await expect(rows(page)).toHaveCount(0)
+    })
+  }
+
+  for (const gap of [0, 150, 300]) {
+    test(`at 1440 x 900, two clicks ${gap} ms apart on Commit's point, with the pointer still, lay no stage`, async ({ page }) => {
+      await page.setViewportSize({ width: 1440, height: 900 })
+      await open(page, 'vllm')
+      const at = await aimAtCommit(page)
+      await page.mouse.click(at.x, at.y)
+      await page.waitForTimeout(gap)
+      await page.mouse.click(at.x, at.y)
+      await expect(page.locator('[data-floor-tray] [data-stage]').first()).toBeVisible()
+      await boxStill(page)
+      await expect(rows(page)).toHaveCount(0)
+    })
+  }
+
+  test('at 1440 x 900, after the commit, a stage under the pointer lays once the pointer has moved to it', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await open(page, 'vllm')
+    const at = await aimAtCommit(page)
+    await page.mouse.click(at.x, at.y)
+    await expect(page.locator('[data-floor-tray] [data-stage]').first()).toBeVisible()
+    await boxStill(page)
+    const [first] = await shownInBox(page)
+    if (first === undefined) throw new Error('no tile in view after the commit')
+    await page.mouse.move(first.x, first.y, { steps: 4 })
+    await page.mouse.click(first.x, first.y)
+    await expect(stage(page, first.id)).toHaveCount(0)
+    await expect(rows(page)).toHaveCount(1)
+  })
+
+  for (const [width, height] of [[1440, 900], [390, 844]] as const) {
+    test(`at ${width} x ${height}, a double click on a tile lays that stage and not the one that takes its place`, async ({ page }) => {
+      await page.setViewportSize({ width, height })
+      await open(page, 'vllm')
+      await commit(page, 2)
+      await boxStill(page)
+      const shown = await shownInBox(page)
+      const pick = shown[0]
+      if (pick === undefined) throw new Error('no tile in view')
+      await page.mouse.move(pick.x, pick.y, { steps: 4 })
+      await page.mouse.dblclick(pick.x, pick.y)
+      await expect(stage(page, pick.id)).toHaveCount(0)
+      await boxStill(page)
+      await expect(rows(page)).toHaveCount(1)
+    })
+  }
+
+  test('at 1440 x 900, with every stage laid, the empty list says so and offers no filter to clear', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await open(page, 'nano-tp')
+    await commit(page, 2)
+    for (let index = 0; index < 40 && (await inList(page)) > 0; index++) {
+      await page.locator('[data-floor-tray] [data-stage]').first().focus()
+      await page.keyboard.press('Enter')
+    }
+    await expect(page.locator('[data-floor-tray] [data-stage]')).toHaveCount(0)
+    await expect(page.getByText('Every stage is laid.')).toBeVisible()
+    await expect(page.getByText('No stage matches.')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Show every stage' })).toHaveCount(0)
+  })
+})

@@ -17,7 +17,7 @@ import { Code } from './Code'
 import { HandoffGlyph } from './HandoffGlyph'
 import { handoffWords, plain, readoutOf } from './text'
 import type { FloorRun } from './types'
-import { useFloorControls, type FloorControls } from './useFloorControls'
+import { useFloorControls, type FloorControls, type Point } from './useFloorControls'
 import './floor.css'
 
 /*
@@ -129,7 +129,7 @@ function Prediction({ controls, shown }: { controls: FloorControls; shown: boole
       </div>
       {lesson?.sure}
       <div className="es-floor-predict__commit">
-        <PrimaryButton disabled={pick === null} onClick={commit}>
+        <PrimaryButton disabled={pick === null} onClick={(event) => commit(event)}>
           Commit the prediction
         </PrimaryButton>
       </div>
@@ -189,8 +189,11 @@ function StopNote({ controls }: { controls: FloorControls }) {
   )
 }
 
-/** A tile of the stage list: its mark and mechanism, its name as code, and where it runs. A press lays it. */
-function Tile({ tile, onLay, tabIndex }: { tile: TileView; onLay: (byPointer: boolean) => void; tabIndex: number }) {
+/**
+ * A tile of the stage list: its mark and mechanism, its name as code, and where it runs. A press lays it. The second click of a double click
+ * lays nothing: the first laid the tile it landed on, so the second lands on the tile that took its place, which nobody aimed at.
+ */
+function Tile({ tile, onLay, tabIndex }: { tile: TileView; onLay: (at: Point | null) => void; tabIndex: number }) {
   return (
     <button
       type="button"
@@ -198,7 +201,10 @@ function Tile({ tile, onLay, tabIndex }: { tile: TileView; onLay: (byPointer: bo
       tabIndex={tabIndex}
       data-stage={tile.id}
       aria-label={`Lay ${handoffWords(tile.mechanism)}: ${plain(tile.label)}. From ${placeName(tile.from)} to ${placeName(tile.to)}.`}
-      onClick={(event) => onLay(event.detail > 0)}
+      onClick={(event) => {
+        if (event.detail > 1) return
+        onLay(event.detail > 0 ? { x: event.clientX, y: event.clientY } : null)
+      }}
     >
       <span className="es-floor-tile__line">
         <HandoffGlyph mechanism={tile.mechanism} className="es-floor-tile__glyph" />
@@ -305,9 +311,14 @@ export function StageList({ controls, ring }: { controls: FloorControls; ring: s
           ))}
         </div>
       </div>
-      {/* The list's box: when the filters leave no tile, the line that says so stands in the empty box, so nothing under it moves. */}
+      {/* The list's box: when the filters leave no tile, or every stage is laid, the line that says so stands in the empty box, so nothing
+          under it moves. */}
       <div className="es-floor-list">
-        {tiles.length === 0 ? (
+        {view.tray.length === 0 ? (
+          <p className="es-floor-stages__none" role="status">
+            Every stage is laid. {view.canUnlay ? 'Run the path, or Remove last.' : 'Run the path.'}
+          </p>
+        ) : tiles.length === 0 ? (
           <p className="es-floor-stages__none" role="status">
             No stage matches.{' '}
             <button
@@ -327,10 +338,10 @@ export function StageList({ controls, ring }: { controls: FloorControls; ring: s
             <li key={tile.id} className="es-floor-tiles__item">
               {ring === tile.id ? (
                 <Marker kind="ring" word="first move" className="es-floor-ring">
-                  <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={(byPointer) => lay(tile.id, index, byPointer)} />
+                  <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={(at) => lay(tile.id, index, at)} />
                 </Marker>
               ) : (
-                <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={(byPointer) => lay(tile.id, index, byPointer)} />
+                <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={(at) => lay(tile.id, index, at)} />
               )}
             </li>
           ))}

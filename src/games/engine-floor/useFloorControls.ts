@@ -140,6 +140,20 @@ function countAbove(list: HTMLUListElement): void {
   if (list.dataset.above !== words) list.dataset.above = words
 }
 
+/** A point on the screen, in CSS px from the viewport's top left. */
+export interface Point {
+  readonly x: number
+  readonly y: number
+}
+
+/** How far, in px, a pointer may stray from where Commit was pressed and still be standing on that press: a hand's tremble, not a move. */
+const SAME_SPOT = 10
+
+/** Whether a press stands where Commit was pressed (`from`, or `null` once the pointer has left that spot). */
+export function onSameSpot(press: Point, from: Point | null): boolean {
+  return from !== null && Math.hypot(press.x - from.x, press.y - from.y) <= SAME_SPOT
+}
+
 /** The announcement for every change of the view, once the first one has been seen. The diagram calls it: it is drawn for the whole run. */
 export function useAnnouncements(run: Pick<FloorRun, 'view' | 'announce'>): void {
   const seen = useRef<FloorView | null>(null)
@@ -160,7 +174,8 @@ export interface FloorControls {
   readonly choices: readonly number[]
   readonly pick: number | null
   readonly setPick: (n: number) => void
-  readonly commit: () => void
+  /** `press`: the click that committed, if a pointer made it (the tiles ignore a press on its spot until the pointer leaves it). */
+  readonly commit: (press?: { readonly clientX: number; readonly clientY: number; readonly detail: number }) => void
   readonly platforms: readonly Platform[]
   readonly filter: string | null
   readonly setFilter: (key: string | null) => void
@@ -173,8 +188,11 @@ export interface FloorControls {
   readonly chips: RefObject<HTMLDivElement | null>
   /** A filter chip that the keys reach is scrolled whole into its row. */
   readonly onChipFocus: (event: FocusEvent<HTMLDivElement>) => void
-  /** `byPointer`: the press came from a pointer, so the next tile already stands where the learner is looking and is not brought into view. */
-  readonly lay: (id: string, index: number, byPointer?: boolean) => void
+  /**
+   * `at`: where a pointer pressed the tile, or `null` for a key. A pointer's next tile already stands where the learner is looking and is not
+   * brought into view.
+   */
+  readonly lay: (id: string, index: number, at?: Point | null) => void
   readonly onTrayKey: (event: KeyboardEvent<HTMLUListElement>) => void
   readonly move: (index: number, by: -1 | 1) => void
   readonly takeBack: (to: number) => void
@@ -196,6 +214,7 @@ export function useFloorControls(run: FloorRun, ring: string | null = null): Flo
   const focusAfterTakeBack = useRef(false)
   const boxHold = useRef<BoxHold | null>(null)
   const listTop = useRef<number | null>(null)
+  const commitSpot = useRef<{ at: Point; stop: () => void } | null>(null)
   const setFilter = setChosen
   const setQuery = setText
   const query = text
@@ -266,16 +285,49 @@ export function useFloorControls(run: FloorRun, ring: string | null = null): Flo
     tray.current?.querySelector<HTMLButtonElement>('button:not(:disabled)')?.focus({ preventScroll: true })
   }, [view.laid.length])
 
+  /*
+   * At a desk the commit brings the frame whole into view, and on a phone the list opens in the dock: either way a tile can come to stand
+   * where Commit was. A double click on Commit, or a second press before the pointer moves, would lay that tile, which the learner never
+   * aimed at. So a press on the spot where Commit was pressed lays nothing until the pointer has left that spot.
+   */
+  const forgetCommitSpot = useCallback(() => {
+    commitSpot.current?.stop()
+    commitSpot.current = null
+  }, [])
+  useEffect(() => forgetCommitSpot, [forgetCommitSpot])
+  const keepCommitSpot = useCallback(
+    (at: Point) => {
+      forgetCommitSpot()
+      const moved = (event: PointerEvent) => {
+        if (!onSameSpot({ x: event.clientX, y: event.clientY }, at)) forgetCommitSpot()
+      }
+      window.addEventListener('pointermove', moved, { passive: true, capture: true })
+      window.addEventListener('pointerdown', moved, { passive: true, capture: true })
+      commitSpot.current = {
+        at,
+        stop: () => {
+          window.removeEventListener('pointermove', moved, { capture: true })
+          window.removeEventListener('pointerdown', moved, { capture: true })
+        },
+      }
+    },
+    [forgetCommitSpot],
+  )
+
   // In a lesson whose guess asks this level's question, its commit keeps the lesson's prediction too: one prompt (REDESIGN §2.5).
   const lesson = useContext(LessonGuessContext)
-  const commit = useCallback(() => {
+  const commit = useCallback((press?: { readonly clientX: number; readonly clientY: number; readonly detail: number }) => {
     if (pick === null) return
+    if (press !== undefined && press.detail > 0) keepCommitSpot({ x: press.clientX, y: press.clientY })
+    else forgetCommitSpot()
     focusAfterCommit.current = true
     lesson?.commit(pick)
     dispatch({ t: 'commit', prediction: pick })
-  }, [pick, dispatch, lesson])
+  }, [pick, dispatch, lesson, keepCommitSpot, forgetCommitSpot])
 
-  const lay = (id: string, index: number, byPointer = false) => {
+  const lay = (id: string, index: number, at: Point | null = null) => {
+    if (at !== null && onSameSpot(at, commitSpot.current?.at ?? null)) return
+    const byPointer = at !== null
     focusAfterLay.current = index
     revealAfterLay.current = !byPointer
     const list = tray.current
