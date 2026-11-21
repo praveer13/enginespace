@@ -25,6 +25,11 @@
  * form of rule 3, because `JSON.stringify` of such a string crashes the renderer [measured 2026-11-15 at ff47e8f, same Chromium]. The form is now written in pieces (packages/sim/core/json.ts), so that file, the same as a
  * member name, strings in nested arrays and a string of `π` alone are refused at rule 3 as a hash that does not match, with the tab alive.
  *
+ * And "Defend your receipt" (W2b-T50, ASSESSMENT §7.2). A stage 3 receipt of TR0's forward pass, made by tests/receipts/defend-support.ts from the grader's recording on a
+ * random-weight model and labelled so, is verified by the site's own rules while the site holds no reference bank. Its page asks three questions about the
+ * run's recorded points, by the keys alone: the answers are typed before anything the run recorded is on the page, a pass writes a `prove` event `proved`,
+ * the next attempt inside 24 hours is practice, the lab's page leads to the receipt, and a synthetic receipt shows the same questions and writes nothing.
+ *
  * And what stands behind them. A file chosen with the learner's own picker and a file dropped on the slip both reach the worker; the receipt is
  * written with its report in one transaction, and a receipt that is imported again adds a report and no event. The page's lists, the tape and the
  * receipt's page all read what was kept. The slip is reachable with the keys alone, takes focus to its result, and passes axe in each state at
@@ -39,6 +44,7 @@ import { gzipSync } from 'node:zlib'
 import AxeBuilder from '@axe-core/playwright'
 import type { Page } from '@playwright/test'
 import { Ledger } from '../tests/receipts/support'
+import { forwardBundle, gzipped, recordedPoints } from '../tests/receipts/defend-support'
 import { sampleBundle } from '../tests/schema/receipt-support'
 import { chooserOpenedByEnter } from './support/chooser'
 import { daysAgo, put } from './support/receipts'
@@ -69,7 +75,7 @@ const receiptRows = (page: Page) => page.getByRole('list', { name: 'Results held
 const challengeRows = (page: Page) => page.getByRole('list', { name: 'Challenges issued by this browser' }).getByRole('listitem')
 
 interface Stored {
-  events: { id: string; kind: string; ref: string; ok?: boolean; score?: number; provenance?: string; data: { receiptSha256?: string; challenge?: string; checks?: { id: string; verdict: string }[]; environment?: string; graderVersion?: string } }[]
+  events: { id: string; at: string; kind: string; ref: string; ok?: boolean; score?: number; provenance?: string; data: { receiptSha256?: string; challenge?: string; checks?: { id: string; verdict: string }[]; environment?: string; graderVersion?: string; agentClosed?: boolean } }[]
   receipts: { sha256: string; receipt: { lab: string; stage: string }; reports: { at: string; report: { v: number; ran: number; rules: { id: string; status: string; checks?: { id: string; status: string }[] }[] } }[] }[]
 }
 
@@ -327,6 +333,165 @@ test.describe('an honest receipt', () => {
     await expect(article.locator('.es-rule')).toHaveCount(9)
     await expect(article.locator('.es-rule[data-rule="grader"]')).toHaveAttribute('data-status', 'fail')
   })
+})
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* Defend your receipt                                                                                                */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+test.describe('defend your receipt', () => {
+  const S3 = 'tr0.forward.s3'
+  const s3File = (synthetic = false) => ({ name: 'tr0.forward-s3-20261108T120000Z.es.json.gz', mimeType: 'application/gzip', buffer: gzipped(forwardBundle(S3, { synthetic })) })
+  const part = (page: Page) => page.locator('[data-defend-part]')
+  const points = recordedPoints(S3).points as { name: string; found: boolean; shape: number[]; strides: number[] }[]
+  /** Every tuple the run recorded, as the page prints one. */
+  const tuples = points.flatMap((point) => [`(${point.shape.join(', ')})`, `(${point.strides.join(', ')})`])
+
+  /** The page with a challenge for the stage 3 bundle's token, issued a day ago, and the bundle brought back with the keys, open on its own page. */
+  async function bringBack(page: Page, synthetic = false): Promise<string> {
+    await open(page, ROUTE)
+    const ledger = new Ledger()
+    ledger.challengeFor(daysAgo(1), forwardBundle(S3).receipt.challenge.token)
+    await put(page, { events: ledger.events })
+    await page.goto(ROUTE)
+    await expect(challengeRows(page).first()).toBeVisible()
+    await quiet(page, 300)
+    await chooseWithKeys(page, s3File(synthetic))
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
+    await slip(page).getByRole('link', { name: 'Open the result' }).click()
+    await expect(part(page).getByRole('heading', { name: 'Defend your receipt' })).toBeVisible()
+    return (await stored(page)).receipts[0].sha256
+  }
+
+  /** The key of a question, from its id (`<point>/<asks>`), which is where it asks and not what. */
+  const keyOf = (id: string): string => {
+    const [name, asks] = id.split('/')
+    const point = points.find((entry) => entry.name === name)
+    if (point === undefined) throw new Error(`no point ${name}`)
+    return (asks === 'shape' ? point.shape : point.strides).join(', ')
+  }
+
+  /** Ticks the attestation and starts, with the keys alone. */
+  async function startWithKeys(page: Page): Promise<void> {
+    const box = part(page).getByRole('checkbox', { name: 'My coding agent and any AI chat are closed.' })
+    await box.focus()
+    await page.keyboard.press('Space')
+    await expect(box).toBeChecked()
+    await part(page).getByRole('button', { name: 'Start the questions' }).focus()
+    await page.keyboard.press('Enter')
+    await expect(part(page).locator('[data-question]')).toHaveCount(3)
+    await expect(part(page).getByRole('textbox').first()).toBeFocused()
+  }
+
+  /** Types an answer into each field with the keys, right or not, and sends them with Enter. */
+  async function answerWithKeys(page: Page, right: (at: number) => boolean): Promise<string[]> {
+    const ids = await part(page).locator('[data-question]').evaluateAll((items) => items.map((item) => item.getAttribute('data-question') ?? ''))
+    for (const [at, id] of ids.entries()) {
+      const field = part(page).getByRole('textbox').nth(at)
+      await field.focus()
+      await page.keyboard.type(right(at) ? keyOf(id) : '7, 7, 7')
+    }
+    // Nothing the run recorded is on the page while the answers are typed.
+    const before = await part(page).innerText()
+    for (const tuple of tuples) expect(before, `before the answers are in, ${tuple}`).not.toContain(tuple)
+    expect(before).not.toContain('Your run recorded')
+    expect(before).toContain('Your run, stage 3: the last decode step')
+    await page.keyboard.press('Enter')
+    await expect(part(page).locator('.es-defend__result')).toBeFocused()
+    return ids
+  }
+
+  test('a verified stage 3 receipt, with no bank on the site: answered with the keys, a pass is proved, and the next attempt in 24 hours is practice', async ({ page, watch }) => {
+    const sha256 = await bringBack(page)
+    await expect(part(page).locator('[data-defend-stake]')).toHaveAttribute('data-stake', 'counts')
+    await expect(part(page)).toContainText('the file you brought this receipt back in')
+    await expect(part(page).getByRole('button', { name: 'Start the questions' })).toBeDisabled()
+    await startWithKeys(page)
+
+    const ids = await answerWithKeys(page, () => true)
+    await expect(part(page).locator('.es-defend__score')).toHaveText('3 of 3 right')
+    await expect(part(page).locator('[data-defend-after]')).toHaveAttribute('data-defend-after', 'proved')
+    for (const id of ids) await expect(part(page).locator(`[data-question="${id}"]`)).toContainText(`(${keyOf(id)})`)
+    await expect(part(page)).toContainText('your run recorded shape')
+    await expect(part(page)).toContainText('A contiguous tensor of shape')
+
+    let proves = (await stored(page)).events.filter((event) => event.kind === 'prove')
+    expect(proves).toHaveLength(1)
+    expect(proves[0]).toMatchObject({ ref: 'prove:tr0.forward', ok: true, score: 1, provenance: 'proved', data: { agentClosed: true, receiptSha256: sha256 } })
+
+    // Again at once, on new questions: inside the 24 hours after an attempt that counted, it is practice, and says when the next one counts.
+    await part(page).getByRole('button', { name: 'Try new questions' }).click()
+    await expect(part(page).getByRole('textbox').first()).toBeFocused()
+    await answerWithKeys(page, (at) => at !== 1)
+    await expect(part(page).locator('.es-defend__score')).toHaveText('2 of 3 right')
+    await expect(part(page).locator('[data-defend-after]')).toHaveAttribute('data-defend-after', 'practice')
+    await expect(part(page).locator('[data-defend-after]')).toContainText('The next attempt that counts opens at ')
+    await expect(part(page).locator('[data-question][data-right="no"]')).toContainText('Not what your run recorded')
+    proves = (await stored(page)).events.filter((event) => event.kind === 'prove')
+    // The store lists events by id; the ledger's order is their time.
+    proves.sort((a, b) => (a.at < b.at ? -1 : 1))
+    expect(proves.map((event) => [event.provenance, event.ok])).toEqual([
+      ['proved', true],
+      ['practice', false],
+    ])
+
+    // After a reload the file is not held: the page asks for it, and reads the window from the ledger.
+    await page.reload()
+    await expect(part(page).getByRole('button', { name: 'Choose the receipt file' })).toBeVisible()
+    await expect(part(page).locator('[data-defend-stake]')).toHaveAttribute('data-stake', 'window')
+    await expect(part(page).locator('[data-defend-stake]')).toContainText('You have proved this lab.')
+
+    // The lab's page leads to the receipt.
+    await page.goto('/labs/tr0.forward')
+    await expect(page.getByRole('link', { name: 'Defend your receipt for s3, with a KV cache' })).toHaveAttribute('href', `/receipts#${sha256}`)
+    expect(watch.strays).toEqual([])
+  })
+
+  test('a file that is not this receipt\'s is refused with the reason, and the receipt\'s own file is taken', async ({ page }) => {
+    await bringBack(page)
+    // A reload: the tab no longer holds the file it brought the receipt back in.
+    await page.reload()
+    const choose = part(page).getByRole('button', { name: 'Choose the receipt file' })
+    await (await chooserOpenedByEnter(page, choose)).setFiles({ name: 'other.es.json.gz', mimeType: 'application/gzip', buffer: gzipped(forwardBundle(S3, { seed: 0x12345678 })) })
+    await expect(part(page)).toContainText('That file holds another receipt.')
+    await expect(part(page).getByRole('button', { name: 'Start the questions' })).toBeDisabled()
+    await (await chooserOpenedByEnter(page, part(page).getByRole('button', { name: 'Choose another file' }))).setFiles(s3File())
+    await expect(part(page)).toContainText('The questions come from tr0.forward-s3-20261108T120000Z.es.json.gz')
+  })
+
+  test('a synthetic receipt shows the same questions as practice, and writes nothing', async ({ page }) => {
+    await bringBack(page, true)
+    await expect(part(page).locator('[data-defend-stake]')).toHaveAttribute('data-stake', 'practice')
+    await expect(part(page).locator('[data-defend-stake]')).toContainText('This receipt is a synthetic one')
+    await startWithKeys(page)
+    await answerWithKeys(page, () => true)
+    await expect(part(page).locator('.es-defend__score')).toHaveText('3 of 3 right')
+    await expect(part(page).locator('[data-defend-after]')).toHaveAttribute('data-defend-after', 'nothing')
+    expect((await stored(page)).events.filter((event) => event.kind === 'prove')).toEqual([])
+  })
+
+  for (const width of [360, 1280]) {
+    test.describe(`at ${width} px`, () => {
+      test.use({ viewport: { width, height: 800 } })
+
+      test('axe finds no serious or critical violation before, during and after an attempt, and the page does not scroll sideways', async ({ page }) => {
+        test.setTimeout(120_000)
+        await bringBack(page)
+        const look = async (label: string) => {
+          await quiet(page)
+          await audit(page, `/receipts, Defend your receipt ${label}, at ${width} px`)
+          const state = await clipped(page)
+          expect(state.scrolls, `${label}: pixels the page scrolls sideways`).toBeLessThanOrEqual(0)
+          expect(state.text, `${label}: text past the right edge`).toEqual([])
+        }
+        await look('before Start')
+        await startWithKeys(page)
+        await look('with its questions')
+        await answerWithKeys(page, (at) => at !== 0)
+        await look('with its result')
+      })
+    })
+  }
 })
 
 /* ------------------------------------------------------------------------------------------------------------------ */

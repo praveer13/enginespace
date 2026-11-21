@@ -26,10 +26,18 @@ import type { GradedLab, KitRef, LabCheck, LabCommand, LabStagePage, StageState 
  * server renderer (tests/labs/view.test.ts). GradedLabPage.tsx joins it to the list.
  */
 
+/** A receipt of this lab that the learner can defend: verified by this browser, of a stage whose questions are written (src/receipts/defend/registry.ts). */
+export interface DefendLink {
+  readonly stage: string
+  readonly sha256: string
+}
+
 export interface GradedLabViewProps {
   lab: GradedLab
   /** What the site's list of files says of each file of `lab.kit`, in its order. */
   files: readonly KitFileState[]
+  /** The newest verified receipt of each stage that can be defended, from the learner's ledger: the way in to "Defend your receipt". */
+  defend?: readonly DefendLink[]
 }
 
 /** A sentence whose runs in backticks are set as code. */
@@ -225,7 +233,7 @@ function stagesOf(lab: GradedLab, listed: ReceiptLab | undefined) {
   })
 }
 
-export function GradedLabView({ lab, files }: GradedLabViewProps) {
+export function GradedLabView({ lab, files, defend = [] }: GradedLabViewProps) {
   const listed = labById(lab.id)
   const module = listed?.module ?? lab.id.slice(0, lab.id.indexOf('.'))
   const stages = stagesOf(lab, listed)
@@ -355,9 +363,22 @@ export function GradedLabView({ lab, files }: GradedLabViewProps) {
               <Inline text={lab.prove.asks} />
             </p>
             {lab.prove.open ? (
-              <p>
-                <TextLink to="/receipts">{PAGE.proveOpen}</TextLink>
-              </p>
+              defend.length === 0 ? (
+                <p>
+                  <TextLink to="/receipts">{PAGE.proveOpen}</TextLink>
+                </p>
+              ) : (
+                <ul className="es-glab-links" role="list" data-defend-links="">
+                  {defend.map((link) => {
+                    const named = stages.find(({ page }) => page.id === link.stage)
+                    return (
+                      <li key={link.sha256}>
+                        <TextLink to={{ pathname: '/receipts', hash: link.sha256 }}>{PAGE.defendLink(named === undefined ? link.stage : `s${named.stage.n}, ${named.stage.name}`)}</TextLink>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )
             ) : (
               <p className="es-glab-pending">{PAGE.proveClosed}</p>
             )}

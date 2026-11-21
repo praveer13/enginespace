@@ -87,6 +87,7 @@ export const PAGE = {
   catches: 'Catches',
   proveLead: 'Once a receipt of a required stage passes, its page asks you questions that only your own run can answer. You answer first, and then the browser shows the computation from your receipt.',
   proveOpen: 'Open a passed receipt on GPU lab results to start.',
+  defendLink: (stage: string) => `Defend your receipt for ${stage}`,
   proveClosed: 'Not published yet.',
 } as const
 

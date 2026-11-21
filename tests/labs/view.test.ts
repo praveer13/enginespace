@@ -166,8 +166,8 @@ describe('/labs/tr0.forward, from the fixture descriptor', () => {
   })
 
   test('ends on the Prove step, which says it is not published yet until the questions are open', () => {
-    expect(textOf(stepBody(html, 'prove'))).toContain(PAGE.proveClosed)
-    const open = stepBody(render({ ...FIXTURE, prove: { ...FIXTURE.prove, open: true } }), 'prove')
+    expect(textOf(stepBody(render({ ...FIXTURE, prove: { ...FIXTURE.prove, open: false } }), 'prove'))).toContain(PAGE.proveClosed)
+    const open = stepBody(html, 'prove')
     expect(textOf(open)).not.toContain(PAGE.proveClosed)
     expect(open).toContain('href="/receipts"')
   })
