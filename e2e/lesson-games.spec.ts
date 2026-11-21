@@ -405,6 +405,40 @@ test.describe('the lesson template on a phone', () => {
     })
   })
 
+  for (const [width, height] of [
+    [320, 700],
+    [360, 640],
+    [390, 844],
+  ] as const) {
+    test.describe(`at ${width} x ${height}`, () => {
+      test.use({ viewport: { width, height } })
+
+      test('the Next part bar is drawn, whole and over the strip, from the top of the page to its foot', async ({ page, context }) => {
+        test.setTimeout(120_000)
+        await withSettings(context, { view3d: false })
+        await open(page, REFERENCE)
+        await page.evaluate(() => document.getElementById('what-the-next-token-reads')?.scrollIntoView({ block: 'start' }))
+        const foot = page.locator('.es-lesson__foot')
+        await expect(foot).toBeVisible()
+        const total = await page.evaluate(() => document.documentElement.scrollHeight)
+        const lost: string[] = []
+        for (let y = 0; y < total - height; y += 20) {
+          await page.evaluate((to) => scrollTo(0, to), y)
+          const state = await page.evaluate(() => {
+            const bar = document.querySelector('.es-lesson__foot')
+            if (bar === null) return 'absent'
+            const box = bar.getBoundingClientRect()
+            const hidden = getComputedStyle(bar).visibility !== 'visible'
+            const at = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+            return hidden || box.bottom > innerHeight + 1 || at === null || !bar.contains(at) ? 'covered' : 'drawn'
+          })
+          if (state === 'covered') lost.push(`${y}`)
+        }
+        expect(lost).toEqual([])
+      })
+    })
+  }
+
   test.describe('under 600 px of height', () => {
     test.use({ viewport: { width: 390, height: 500 } })
 

@@ -17,6 +17,10 @@
   animation: es-intro-in var(--es-dur-quick) var(--es-ease-settle) both;
 }
 
+.es-intro[data-ended] {
+  visibility: hidden;
+}
+
 .es-intro__title {
   margin: 0;
   font-size: var(--es-size-control);
