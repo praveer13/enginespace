@@ -30,6 +30,7 @@ interface ManifestEntry {
   isEntry?: boolean
   isDynamicEntry?: boolean
   imports?: string[]
+  dynamicImports?: string[]
 }
 
 interface Build {
@@ -218,6 +219,48 @@ describe('the app build', () => {
       const record = Object.entries(app.manifest).find(([, chunk]) => chunk.src === `src/games/${id}/record.ts`)
       expect([id, record?.[1].isDynamicEntry]).toEqual([id, true])
       expect([id, records(sourcesOf(staticClosure(app, record?.[0] ?? 'none')))]).toEqual([id, [`packages/play/${id}/entry.ts`]])
+    }
+  })
+
+  /** The games of the tree: each `src/games/<id>/` that has a Game.tsx. */
+  const gameIds = () =>
+    readdirSync(path.join(root, 'src/games'), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && existsSync(path.join(root, 'src/games', entry.name, 'Game.tsx')))
+      .map((entry) => entry.name)
+  /** The manifest key of the chunk whose entry module is `source` (a repository path). */
+  const keyOf = (source: string) => Object.entries(app.manifest).find(([key, chunk]) => key === source || chunk.src === source)?.[0]
+  /** The modules inside some chunks, as repository paths: a source map names each from the chunk's folder. */
+  const modulesOf = (keys: Iterable<string>) =>
+    [...keys].flatMap((key) => (app.sources.get(app.manifest[key].file) ?? []).map((source) => path.relative(root, path.resolve(app.outDir, 'assets', source))))
+
+  test("carries in each game's route none of what only other pages use: not the content renderer's model, not another game's record (W2b-T64)", () => {
+    // src/content/render/model.ts (with the kernelspace titles it holds) is the lesson, module, map and lab pages' module: the game's page
+    // titles its tab itself. A game's route reaches packages/play/<id>/entry.ts of its own game alone: loop's entry.ts builds its list of
+    // levels with no side effect, so the kit's imports of the packages/play barrel do not keep it in the other games' routes.
+    const page = keyOf('src/pages/Game.tsx')
+    expect(page).toBeDefined()
+    const games = gameIds()
+    expect(games.length).toBeGreaterThanOrEqual(5)
+    for (const id of games) {
+      const game = keyOf(`src/games/${id}/Game.tsx`)
+      expect([id, game === undefined]).toEqual([id, false])
+      const modules = modulesOf(new Set([...staticClosure(app, page ?? 'none'), ...staticClosure(app, game ?? 'none')]))
+      expect(modules).toContain(`src/games/${id}/Game.tsx`)
+      expect([id, modules.filter((module) => /^src\/content\/render\/(?:model|ksTitles)\.ts$/.test(module))]).toEqual([id, []])
+      expect([id, modules.filter((module) => /^packages\/play\/[^/]+\/entry\.ts$/.test(module))]).toEqual([id, [`packages/play/${id}/entry.ts`]])
+    }
+  })
+
+  test('names one chunk per game in the chunk of the component registry, which every game\'s route carries: the game\'s record.ts, which loads its component (W2b-T64)', () => {
+    // A game that registers adds one file to the registry's chunk, and the list of what its component needs goes in its own record's chunk.
+    const registry = Object.keys(app.manifest).filter((key) => modulesOf([key]).includes('src/games/registry.ts'))
+    expect(registry).toHaveLength(1)
+    const games = gameIds()
+    const records = games.map((id) => keyOf(`src/games/${id}/record.ts`))
+    expect([...(app.manifest[registry[0]].dynamicImports ?? [])].sort()).toEqual(records.map((key) => key ?? 'no record chunk').sort())
+    for (const id of games) {
+      const record = keyOf(`src/games/${id}/record.ts`) ?? 'none'
+      expect([id, app.manifest[record]?.dynamicImports ?? []]).toEqual([id, [keyOf(`src/games/${id}/Game.tsx`)]])
     }
   })
 

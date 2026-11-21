@@ -48,7 +48,10 @@ export const LOOP: GameEntry = {
     { id: 'graph-mode', code: 'KeyG', label: 'G', description: 'Cycle the CUDA graph mode (the full levels)' },
     { id: 'runner', code: 'KeyM', label: 'M', description: 'Switch the model runner (the full levels)' },
   ],
-  levels: [...FIRST_SERVICE, ...FULL_SERVICE],
+  // The same list as `[...FIRST_SERVICE, ...FULL_SERVICE]`, written so that the build knows it has no side effect: Rollup keeps a module
+  // whose top level spreads an array (an iterator might run code), so every chunk that imports the barrel of packages/play would load this
+  // file for nothing, the other games' pages among them (tests/build.test.ts).
+  levels: /* @__PURE__ */ FIRST_SERVICE.concat(FULL_SERVICE),
   card: 'trace-room-steploop',
   claims: [
     'loop.world.plan-ticks',

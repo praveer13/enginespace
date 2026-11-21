@@ -2,7 +2,6 @@ import { lazy, Suspense } from 'react'
 import { Link, useLoaderData, useSearchParams } from 'react-router'
 import type { LoaderFunctionArgs, ShouldRevalidateFunctionArgs } from 'react-router'
 import { useDocumentTitle } from '@/content/load'
-import { titled } from '@/content/render/model'
 import { NotRecorded } from '@/games/kit/NotRecorded'
 import { useRecorder } from '@/games/kit/useRecorder'
 import { loadGame } from '@/games/registry'
@@ -27,6 +26,14 @@ export function loader({ params }: LoaderFunctionArgs) {
 export function shouldRevalidate({ currentParams, nextParams, defaultShouldRevalidate }: ShouldRevalidateFunctionArgs): boolean {
   return currentParams.game !== nextParams.game && defaultShouldRevalidate
 }
+
+/**
+ * The tab's title: the game's name, then the site's, as `titled` in src/content/render/model.ts writes every content page's and
+ * scripts/pages/plan.ts this page's served document (e2e/titles.spec.ts holds the two the same). The page writes it itself, as
+ * src/routes.tsx does, and does not import model.ts: the lesson, module and map pages share that module's chunk, and every game's
+ * route would carry all of it for this one line (tests/build.test.ts).
+ */
+const titled = (game: string): string => `${game} · enginespace`
 
 export function Component() {
   const game = useLoaderData<typeof loader>()
