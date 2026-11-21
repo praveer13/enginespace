@@ -802,10 +802,13 @@ async function shiftOp(page: Page, walk: Walk, op: ShiftOp): Promise<void> {
   await page.keyboard.press('Enter')
 }
 
-/** Answers the open guess with the keys: digits in the field, Tab to Commit, Enter. */
+/**
+ * Answers the open guess with the keys: digits in the field, Tab to Commit, Enter. In a lesson whose guess this level asks (same.ts), the
+ * lesson's how-sure plates come before the field, and the first run's last Next puts focus on them: the field is the next stops on.
+ */
 async function shiftGuess(page: Page, walk: Walk, answer: number): Promise<void> {
   await page.locator('[data-game="shape-shifter"] [data-shift-predict]').waitFor()
-  if (!(await page.evaluate(() => document.activeElement?.closest('[data-shift-predict]') != null))) await tabTo(walk, /^Your guess$/)
+  if (!(await page.evaluate(() => document.activeElement?.matches('[data-shift-predict] input[inputmode="numeric"]') === true))) await tabTo(walk, /^Your guess$/)
   await page.keyboard.type(String(answer))
   await tabTo(walk, /^Commit$/, 3)
   await page.keyboard.press('Enter')

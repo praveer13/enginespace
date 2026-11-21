@@ -14,7 +14,8 @@
 
 ### PyTorch for the Rust-first, and reading Triton (`tr0`)
 
-- Planned: not written yet.
+- [Overview](md/tr0/index.md): what the module teaches, and its lessons
+- [PyTorch in Rust terms: storage, shape, strides, dtype, device](md/tr0/l1-pytorch-in-rust-terms.md): lesson `tr0.l1`, about 45 minutes [estimated]
 
 ### Read the engines (`tr1`)
 

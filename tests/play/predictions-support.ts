@@ -13,6 +13,7 @@ import type { LoopAction, LoopAsk } from '@es/play/loop/types'
 import { stageClosed } from '@es/play/loop/full/session'
 import type { FullAction, FullState } from '@es/play/loop/full/types'
 import { buildLevel as poolLevel } from '@es/play/pool/levels'
+import { ghostActions, shiftLevel } from '@es/play/shape-shifter/session'
 import { houseActions as floorHouse } from './engine-floor-support'
 import { houseActions as poolHouse } from './pool-support'
 
@@ -71,6 +72,9 @@ function actionsFor(session: AnySession, game: string, level: string, seed: numb
       return poolHouse(poolLevel(level, seed))
     case 'loop':
       return level.startsWith('first-') ? frontActions(session, { game, level, seed }) : fullActions(session, { game, level, seed })
+    case 'shape-shifter':
+      // The reference's own plan: the ops that reach each target with its copies, as Tensor views' tests play it.
+      return ghostActions(shiftLevel(level, seed))
     default:
       throw new Error(`no player for ${game}: only the games with a prediction that a run answers are played here`)
   }

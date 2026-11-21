@@ -1,9 +1,9 @@
 /*
  * W1b-T02 and R-T09: how each lesson prediction is revealed, and what the pure model says its answer is (packages/play/predictions;
- * ARCHITECTURE §4.3, §7.2; ASSESSMENT §4.7; D-067). The lessons hold 39 `predict` blocks. Each is revealed in one of two ways, and against no
+ * ARCHITECTURE §4.3, §7.2; ASSESSMENT §4.7; D-067). The lessons hold 41 `predict` blocks. Each is revealed in one of two ways, and against no
  * key that anything stores (A§1, I3). This file holds the table to the lessons and the model to the lessons' own figures:
  *
- *   - the table has a row for each of the 39 and for no other; 18 are revealed after the run of a game block that follows them, 21 at commit,
+ *   - the table has a row for each of the 41 and for no other; 19 are revealed after the run of a game block that follows them, 22 at commit,
  *     and the lesson's own `reveal` says the same as the row;
  *   - for each prediction that a run answers, the game block's level is played on a seed to its end, the reading is taken from the finished
  *     run's record, and it equals the figure that the lesson's own test computes from the numbers of the prompt (tests/content/tr*-demos.ts),
@@ -24,6 +24,8 @@ import { gradePrediction } from '@es/play/predictions/grade'
 import type { PredictAnswer } from '@es/play/predictions/grade'
 import { FLOOR_QUESTION } from '@es/play/engine-floor/copy'
 import { POOL_COPY } from '@es/play/pool/copy'
+import { copyOf as shiftCopyOf } from '@es/play/shape-shifter/copy'
+import { buildLevel as shiftLevel } from '@es/play/shape-shifter/levels'
 import { isAnswered, isAtCommit, isHeld, NO_BLOCK, PLAN, planOf, UNLISTED } from '@es/play/predictions/plan'
 import { SAME, sameFor } from '@es/play/predictions/same'
 import { commitFor, MODULES_WITH_COMMITS, MODULES_WITH_READINGS, referenceFor } from '@es/play/predictions/truth'
@@ -32,6 +34,7 @@ import { TOTAL_AFTER_GAME, TOTAL_AT_COMMIT, TOTAL_PREDICTIONS } from '../content
 import { answeringBlock } from '@/content/render/model'
 import { compileContent } from '../../scripts/content/build.ts'
 import { repo } from '../content/support.ts'
+import { PREDICTIONS as TR0 } from '../content/tr0-demos.ts'
 import { PREDICTIONS as TR1 } from '../content/tr1-demos.ts'
 import { PREDICTIONS as TR2 } from '../content/tr2-demos.ts'
 import { PREDICTIONS as TR5A } from '../content/tr5a-demos.ts'
@@ -67,7 +70,7 @@ const claims = new Map(
 )
 
 /** The figure that each lesson's own test computes for a prediction, from the numbers of its prompt and the course's own functions. */
-const LESSON_FIGURES: Readonly<Record<string, { readonly unit: string; readonly reference: () => number }>> = { ...TR1, ...TR2, ...TR5A, ...TR8 }
+const LESSON_FIGURES: Readonly<Record<string, { readonly unit: string; readonly reference: () => number }>> = { ...TR0, ...TR1, ...TR2, ...TR5A, ...TR8 }
 
 describe('the table of which run answers which prediction', () => {
   test('has a row for each of the lessons\' predictions and for no other, in the lessons\' own order', () => {
@@ -75,7 +78,7 @@ describe('the table of which run answers which prediction', () => {
     expect(Object.keys(PLAN).sort()).toEqual(predictions.map(({ block }) => block.id).sort())
   })
 
-  test("reveals the counts of the table's rows after a run and at commit (18 and 21 today), and leaves none held", () => {
+  test("reveals the counts of the table's rows after a run and at commit (19 and 22 today), and leaves none held", () => {
     expect([answered.length, atCommit.length, predictions.filter(({ plan }) => isHeld(plan)).length]).toEqual([TOTAL_AFTER_GAME, TOTAL_AT_COMMIT, 0])
   })
 
@@ -109,8 +112,8 @@ describe('the table of which run answers which prediction', () => {
       expect([block.id, reading !== undefined, answer !== undefined]).toEqual([block.id, isAnswered(plan), isAtCommit(plan)])
     }
     // TR6 and TR8 have no reading: no run of their games answers a prediction, so every prediction of theirs is revealed at commit.
-    expect(MODULES_WITH_READINGS).toEqual(['tr1', 'tr2', 'tr5a'])
-    expect(MODULES_WITH_COMMITS).toEqual(['tr1', 'tr2', 'tr5a', 'tr6', 'tr8'])
+    expect(MODULES_WITH_READINGS).toEqual(['tr0', 'tr1', 'tr2', 'tr5a'])
+    expect(MODULES_WITH_COMMITS).toEqual(['tr0', 'tr1', 'tr2', 'tr5a', 'tr6', 'tr8'])
     expect(predictions.filter(({ lesson }) => /^tr(?:6|8)\./.test(lesson.id)).every(({ plan }) => isAtCommit(plan))).toBe(true)
   })
 
@@ -213,8 +216,9 @@ function lessonFigure(id: string): number | string {
 }
 
 describe('a prediction revealed at commit (D-067)', () => {
-  test('is every prediction that no level of its game answers: 21 of them, in every module that has a lesson of its own question', () => {
+  test('is every prediction that no level of its game answers: 22 of them, in every module that has a lesson of its own question', () => {
     expect(atCommit.map(({ block }) => block.id)).toEqual([
+      'tr0.l1.p2',
       'tr1.l2.p2', 'tr1.l2.p1', 'tr1.l4.p2', 'tr1.l5.p3', 'tr1.l5.p2', 'tr1.l7.p2',
       'tr2.l2.p1', 'tr2.l3.p1', 'tr2.l6.p2', 'tr2.l7.p1',
       'tr5a.l2.p1', 'tr5a.l3.p2',
@@ -300,6 +304,8 @@ describe('the pairs of a lesson prediction and a level\'s opening prediction tha
   const levelPrompt = (game: string, level: string): string | undefined => {
     if (game === 'engine-floor') return FLOOR_QUESTION
     if (game === 'pool') return (POOL_COPY as Readonly<Record<string, { predict: { ask: string } }>>)[level]?.predict.ask
+    // Tensor views' question is read from the level on its practice seed, the run a lesson's practice block plays.
+    if (game === 'shape-shifter') return shiftCopyOf(shiftLevel(level, levelOf(GAMES.get(game)!, level)?.practiceSeed ?? 0)).predict.ask
     return undefined
   }
 
@@ -331,6 +337,7 @@ describe('the pairs of a lesson prediction and a level\'s opening prediction tha
       const unit = entry.block.answer.kind === 'numeric' ? entry.block.answer.unit : ''
       if (pair.game === 'engine-floor') expect([pair.lesson, unit]).toEqual([pair.lesson, 'boundaries'])
       if (pair.game === 'pool') expect([pair.lesson, ['pages', 'groups'].includes(unit)]).toEqual([pair.lesson, true])
+      if (pair.game === 'shape-shifter') expect([pair.lesson, unit]).toEqual([pair.lesson, shiftCopyOf(shiftLevel(pair.level, levelOf(GAMES.get(pair.game)!, pair.level)?.practiceSeed ?? 0)).predict.unit])
     }
   })
 })

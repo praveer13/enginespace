@@ -32,6 +32,14 @@ const BOUNDARIES_ASK = 'How many process boundaries does a sampled token cross o
 
 export const SAME: readonly SamePair[] = [
   {
+    lesson: 'tr0.l1.p1',
+    game: 'shape-shifter',
+    level: 'views',
+    quantity: 'the elements that the one copy of the reference moves into a new buffer',
+    lessonPrompt: "The level's tensor has shape `(4, 6)`, and the reference reads it column by column, as one row, with one copy. How many elements will that copy move?",
+    levelPrompt: 'The reference makes 1 copy here. How many elements will that copy move?',
+  },
+  {
     lesson: 'tr1.l1.p1',
     game: 'engine-floor',
     level: 'nano',

@@ -4,9 +4,11 @@
  * index.json, byte for byte, and differ only in the lesson index.
  */
 import { describe, expect, test } from 'bun:test'
+import { load } from 'js-yaml'
 import { contentIndexSchema, lessonIndexSchema } from '@es/schema'
+import { courseSchema } from '@es/schema/course'
 import { compileContent } from '../../scripts/content/build.ts'
-import { LESSON, output, project, readSample, repoOutput } from './support.ts'
+import { LESSON, output, project, read, readSample, repoOutput } from './support.ts'
 
 /** The sample course with `count` lessons: the sample lesson, and copies of it with their own ids and file names. */
 function course(count: number) {
@@ -45,11 +47,13 @@ describe('the course index and the lesson index', () => {
     expect(file(large, 'lesson-index').length).toBeGreaterThan(file(small, 'lesson-index').length)
   })
 
-  test('the real course: every module row says whether it is published, and the first lesson is the first module that has one', () => {
+  test("the real course: every module row says whether it is published, and the first lesson is the first module from the course's start that has one", () => {
     const real = contentIndexSchema.parse(JSON.parse(repoOutput('src/content/generated/index.json')))
     const rows = lessonIndexSchema.parse(JSON.parse(repoOutput('src/content/generated/lesson-index.json'))).modules
     for (const module of real.modules) expect(module.published, module.id).toBe((rows[module.id] ?? []).length > 0)
-    const first = real.modules.find((module) => module.published)
+    // A module before the course's start (TR0, an advised primer) is published and is not where the course starts.
+    const start = Math.max(0, real.modules.findIndex((module) => module.id === courseSchema.parse(load(read('content/course.yaml'))).start))
+    const first = real.modules.slice(start).find((module) => module.published)
     expect(real.firstLesson?.module).toBe(first?.id)
     expect(real.firstLesson?.route).toBe(rows[first?.id ?? '']?.[0]?.route)
   })
