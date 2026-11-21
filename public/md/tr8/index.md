@@ -26,7 +26,7 @@ The game is Broken benchmark (`broken-bench`). It has four levels: From due time
 
 ## The part that needs a GPU
 
-The GPU part is a lab, `tr8.replay`: a timestamp-faithful replay of a BurstGPT window against the pinned vLLM, open loop, whose receipt your browser re-checks from the raw rows. It runs on a GPU, outside the browser, so this page shows what the lab asks and does not grade it. The plan for its three stages is a smoke replay of about 60 s [estimated] that is practice, the graded replay of a seeded window with at least 1,000 measured requests [estimated], and an optional run of vLLM's own tool on the same window, which the lab labels length-shaped and not time-shaped.
+The GPU part is a lab: a timestamp-faithful replay of a BurstGPT window against the pinned vLLM, open loop, whose receipt your browser re-checks from the raw rows. It runs on a GPU, outside the browser, so this page shows what the lab asks and does not grade it. The plan for its three stages is a smoke replay of about 60 s [estimated] that is practice, the graded replay of a seeded window with at least 1,000 measured requests [estimated], and an optional run of vLLM's own tool on the same window, which the lab labels length-shaped and not time-shaped.
 
 Credit follows the same line. The module is browser-complete when the lessons' Tests and the four levels of Broken benchmark are credited. It is complete when the replay's second stage is credited as well, and a Prove-it run with the agent closed is on record.
 

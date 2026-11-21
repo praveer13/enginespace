@@ -222,10 +222,10 @@ describe('a real build', () => {
     expect(html.indexOf(CSP_META)).toBeGreaterThan(-1)
   })
 
-  test('prints the course\'s hours by lane under the paragraph, from the compiled index', () => {
+  test('prints the published modules\' hours by lane, and the hours the course plans, under the paragraph, from the compiled index', () => {
     const left = html.slice(html.indexOf('class="es-front-intro"'), html.indexOf('class="es-front-service"'))
     expect(left).toContain('data-course-hours=""')
-    expect(textOf(left)).toMatch(/TR0 to the capstone · \d+ hours, estimated: [\d.]+ browser, [\d.]+ laptop, [\d.]+ GPU/)
+    expect(textOf(left)).toMatch(/[\d.]+ hours published, estimated: [\d.]+ browser(, [\d.]+ laptop)?(, [\d.]+ GPU)?( · [\d.]+ hours planned to the capstone)?/)
   })
 
   test('prints the path from the compiled course index: every module, the published ones as links, the first marked, with the total', () => {
@@ -240,6 +240,10 @@ describe('a real build', () => {
     expect(path_).toMatch(/data-module="tr1" data-start="true"[\s\S]*?Start here/)
     expect(textOf(path_)).toContain('Not published yet')
     expect(path_).toContain('data-tag="derived"')
+    // The foot counts what is published, and says what the course plans while a module is not.
+    const unpublished = index.modules.some((module) => !module.published)
+    expect(path_).toContain(unpublished ? 'data-total="published"' : 'data-total="all"')
+    expect(path_.includes('data-total="planned"')).toBe(unpublished)
   })
 
   test('preloads the page\'s own chunk and the course index from inside the root', () => {

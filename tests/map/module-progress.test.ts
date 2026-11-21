@@ -76,21 +76,28 @@ describe('the four rows under the lessons', () => {
     expect(render(h(Rows, { ...props, games: [] }))).not.toContain('data-row="game"')
   })
 
-  test('a lab in the browser or on a laptop is a Build link; one on a GPU is Prove, and says not yet until it is proved', () => {
+  test('a lab in the browser or on a laptop is a Build link; one on a GPU is Prove, named by its title, and says once that it is not published yet', () => {
     const labs: LabRef[] = [
-      { id: 'hybrid-kv', lane: 'B', waiting: false },
-      { id: 'tr1.fork', lane: 'F', waiting: true },
+      { id: 'hybrid-kv', lane: 'B', waiting: false, title: labName('hybrid-kv') },
+      { id: 'tr1.fork', lane: 'F', waiting: true, title: 'A nano-vllm fork' },
     ]
     const html = render(h(Rows, { ...props, games: [], labs, progress: progressOf([]).modules.get('tr5a') }))
     expect(/data-row="build"[\s\S]*?<\/div>/.exec(html)?.[0]).toContain('href="/labs/hybrid-kv"')
     const prove = /data-row="prove"[\s\S]*?<\/div>/.exec(html)?.[0] ?? ''
     expect(prove).not.toContain('href')
-    expect(textOf(prove)).toContain(`${labName('tr1.fork')}: ${MODULE.waiting}`)
-    expect(textOf(prove)).toContain(MODULE.notYet)
+    expect(textOf(prove)).toContain(`A nano-vllm fork: ${MODULE.waiting}`)
+    expect(textOf(prove)).not.toContain(MODULE.notYet)
+    expect(textOf(prove)).not.toContain('tr1.fork')
+  })
+
+  test('a Prove lab that has a page says not yet until it is proved', () => {
+    const labs: LabRef[] = [{ id: 'rejection-sampler', lane: 'F', waiting: false, title: labName('rejection-sampler') }]
+    const progress = progressOf([]).modules.get('tr2')
+    expect(textOf(render(h(Rows, { ...props, games: [], labs, progress })))).toContain(MODULE.notYet)
   })
 
   test('Prove says proved once a result passed with the agent closed', () => {
-    const labs: LabRef[] = [{ id: 'rejection-sampler', lane: 'F', waiting: false }]
+    const labs: LabRef[] = [{ id: 'rejection-sampler', lane: 'F', waiting: false, title: labName('rejection-sampler') }]
     const progress = progressOf([made('play', 'play:loop/close', { provenance: 'proved' })]).modules.get('tr2')
     expect(textOf(render(h(Rows, { ...props, games: [], labs, progress })))).toContain(MODULE.proved)
   })

@@ -491,8 +491,9 @@
   text-align: left;
 }
 
+/* A kernelspace lesson is named by its title here, which can be longer than a phone's line (WCAG 1.4.10): it wraps. */
 .es-module .es-ks {
-  white-space: nowrap;
+  white-space: normal;
 }
 
 @media (prefers-reduced-motion: reduce) {

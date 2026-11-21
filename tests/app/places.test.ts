@@ -12,7 +12,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { readdirSync, readFileSync } from 'node:fs'
 import path from 'node:path'
 import { decodePlace, isReadAt, keepPlace, readPlace } from '@/settings/bookmark'
-import { createSettingsStore, decodePointer, keepPointer, PLACE_KEYS, pointerSnapshot, readPointer, START_POINTER } from '@/settings/store'
+import { createSettingsStore, decodePointer, keepPointer, PLACE_KEYS, pointerOnPage, pointerSnapshot, readPointer, START_POINTER } from '@/settings/store'
 import type { SettingsEnv } from '@/settings/store'
 import { root } from '../ci/support'
 
@@ -157,5 +157,22 @@ describe('who writes them', () => {
   test('no other file names the keys', () => {
     const named = files.filter((file) => /'es:(next|here|intro)'/.test(code(file)))
     expect(named).toEqual(['src/settings/store.ts'])
+  })
+})
+
+describe('the header\'s Continue on the page it points at', () => {
+  test('a first visit\'s Start says Continue on the first lesson itself, and goes to the same place', () => {
+    const here = pointerOnPage(START_POINTER, START_POINTER.href)
+    expect(here.label).toBe('Continue: this lesson')
+    expect(here.word).toBe('Continue')
+    expect(here.href).toBe(START_POINTER.href)
+    expect(pointerOnPage(START_POINTER, `${START_POINTER.href}/`).word).toBe('Continue')
+  })
+
+  test('says Start everywhere else, and a pointer that already says Continue is left as it is', () => {
+    expect(pointerOnPage(START_POINTER, '/map')).toBe(START_POINTER)
+    expect(pointerOnPage(START_POINTER, '/m/tr1')).toBe(START_POINTER)
+    const going = { href: '/m/tr2/l1-x', label: 'Continue: TR2 lesson 1, read why', word: 'Continue' as const }
+    expect(pointerOnPage(going, going.href)).toBe(going)
   })
 })

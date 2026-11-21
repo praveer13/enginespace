@@ -5,7 +5,7 @@ import { Button } from '@/design/components/Button'
 import { Label } from '@/design/components/Label'
 import { EvidenceNotice } from '@/evidence/EvidenceNotice'
 import { usePointer } from '@/settings/usePlace'
-import { PLACE_KEYS, readJson } from '@/settings/store'
+import { PLACE_KEYS, pointerOnPage, readJson } from '@/settings/store'
 
 /** What a route's `handle` carries: the text of the page's `<title>`. */
 export interface RouteHandle {
@@ -36,13 +36,14 @@ const BRAND = { to: '/', label: 'enginespace' }
 // Until one has, and on the server, it is the empty ledger's answer, the first lesson. The header never opens the ledger (D-038).
 function Shell({ children }: { children: ReactNode }) {
   const pointer = usePointer()
+  const { pathname } = useLocation()
   return (
     <>
       <a href="#main" className="es-skip">
         <Label tilt="none">Skip to main content</Label>
       </a>
       <header>
-        <Header label="Primary" brand={BRAND} links={PRIMARY_LINKS} fold action={<ContinueLink target={pointer} />} />
+        <Header label="Primary" brand={BRAND} links={PRIMARY_LINKS} fold action={<ContinueLink target={pointerOnPage(pointer, pathname)} />} />
       </header>
       <main id="main" tabIndex={-1} className="es-shell__main">
         <EvidenceNotice />

@@ -219,6 +219,16 @@ describe('the Test of a lesson: the pass rule stands with its questions', () => 
     expect(html.match(/class="es-lesson__rule"/g)?.length).toBe(1)
   })
 
+  test('the Test says its count in the rail and its rule once, and the card does not say either again', () => {
+    const made = page(fixture(item()))
+    const html = testSection(made)
+    expect(made).toContain('<span class="es-srail__state">3 questions</span>')
+    expect(html).not.toContain('class="es-lesson__meta"')
+    expect(html).not.toContain('3 questions, on new numbers')
+    expect(html.match(/\d questions? on (fresh|new) numbers/g) ?? []).toEqual([])
+    expect(html.match(/passed when/g)?.length).toBe(1)
+  })
+
   test('a Test with no question set states no rule', () => {
     expect(testSection(page(fixture()))).not.toContain('es-lesson__rule')
   })

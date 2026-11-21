@@ -7,6 +7,7 @@ import { createElement as h } from 'react'
 import type { CompiledModule, ContentIndex, CourseMap, LessonIndex } from '@es/schema'
 import { findBanned } from '@/copy/banned'
 import { ModuleView, type ModuleWay } from '@/pages/Module'
+import { leavesOut, sentenceText } from '@/map/moduleWords'
 import { deriveProgress } from '@/progress/derive'
 import { indexLessons, nextStep, standings } from '@/progress/next'
 import { appSources, homeModule } from '@/progress/sources'
@@ -171,5 +172,62 @@ describe('the Reference', () => {
   test('is the last section of the page', () => {
     expect(html.indexOf('id="reference"')).toBeGreaterThan(html.indexOf('class="es-module__rows"'))
     expect(html.slice(html.indexOf('</section>', html.indexOf('id="reference"')) + 10)).not.toContain('<section')
+  })
+})
+
+describe('the words of every published module page', () => {
+  const published = INDEX.modules.filter((entry) => entry.published).map((entry) => entry.id)
+  // The page as a learner reads it: every disclosure is in the document, closed or not.
+  const read = (id: string) => textOf(page(id, []))
+
+  test('there is a published module to walk', () => {
+    expect(published.length).toBeGreaterThanOrEqual(5)
+  })
+
+  for (const id of published) {
+    test(`${id}: no build id, no doubled state phrase, no capital inside a heading's sentence`, () => {
+      const text = read(id)
+      expect(text.match(/\bks:\S+/g) ?? [], 'a kernelspace ref').toEqual([])
+      expect(text.match(/\btr\d[a-z]?\.[a-z][a-z-]*/g) ?? [], 'a lab or family id').toEqual([])
+      expect(text.match(/\bLab tr\S*/g) ?? [], 'a lab named by its id').toEqual([])
+      expect(text.match(/not (?:published )?yet\W+not (?:published )?yet/gi) ?? [], 'a doubled state phrase').toEqual([])
+      expect(text.match(/\bWhat (?:A|An|The) /g) ?? [], 'a capital inside a sentence').toEqual([])
+      expect(findBanned(text)).toEqual([])
+    })
+  }
+
+  test('a prerequisite reads as the kernelspace lesson\'s title, with its link', () => {
+    const html = page('tr1', [])
+    const advised = /Advised first:[\s\S]*?<\/p>/.exec(html)?.[0] ?? ''
+    expect(advised).toContain('“The Production Stack: vLLM, SGLang, TRT-LLM, Dynamo”')
+    expect(advised).toMatch(/<a [^>]*href="https:\/\/[^"]*\/lesson\/t5\.l10"/)
+    expect(advised).not.toContain('T5.L10')
+  })
+
+  test('a kernelspace lesson in the module\'s words is named by its title, and the sentences under the title never carry its ref', () => {
+    const html = page('tr1', [])
+    const sentences = /<p class="es-module__sentences">([^<]*)<\/p>/.exec(html)?.[1] ?? ''
+    expect(sentences).not.toContain('ks:')
+    expect(sentences.length).toBeGreaterThan(40)
+    expect(textOf(html)).toMatch(/“The Production Stack”[^“”]*in kernelspace drew vLLM and SGLang as boxes/)
+    expect(sentenceText([{ type: 'ks', ref: 'ks:T5.L10' }, { type: 'text', text: ' drew boxes.' }])).toBe('“The Production Stack” in kernelspace drew boxes.')
+    expect(sentenceText([{ type: 'ks', ref: 'ks:t5.kv-capacity' }])).toBe('kernelspace t5.kv-capacity')
+  })
+
+  test('a lab that has no page is named by its title and says once that it is not published', () => {
+    const html = page('tr1', [])
+    const prove = /data-row="prove"[\s\S]*?<\/div>/.exec(html)?.[0] ?? ''
+    expect(textOf(prove)).toContain('A nano-vllm fork that emits a span for every stage of your own map: not published yet')
+    expect(textOf(prove)).not.toContain('not yet')
+  })
+})
+
+describe('the heading over a model card', () => {
+  test('lowers the article that starts the card\'s title, where the title stands inside a sentence', () => {
+    expect(leavesOut("A request's lifecycle")).toBe("What a request's lifecycle leaves out")
+    expect(leavesOut('The step loop')).toBe('What the step loop leaves out')
+    expect(leavesOut('Prefix caching')).toBe('What prefix caching leaves out')
+    expect(leavesOut('KV pages')).toBe('What KV pages leaves out')
+    expect(leavesOut(undefined)).toBe('What the model leaves out')
   })
 })

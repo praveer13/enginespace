@@ -9,7 +9,7 @@ import type { Due } from './due'
 import { MAP } from './copy'
 import { Stop } from './Stop'
 import { sentenceOf } from './sentence'
-import { formatHours, LANE_ORDER, laneTotals } from './summary'
+import { formatHours, hoursSplit, LANE_ORDER } from './summary'
 import './map.css'
 
 /*
@@ -24,7 +24,6 @@ import './map.css'
 
 export interface CourseMapViewProps {
   modules: readonly IndexModule[]
-  totalHours: number
   map: CourseMap
   /** What the ledger holds, derived. Null until the map is there to read it against. */
   progress: Progress | null
@@ -79,25 +78,25 @@ function WayOn({ step, last, ready, due }: { step: Step | null; last: string | n
 const num = (value: number) => <span className="es-course__num">{formatHours(value)}</span>
 
 /** The hours of the course in all and by lane, one line, and what the numbers are. */
-function Hours({ modules, totalHours }: Pick<CourseMapViewProps, 'modules' | 'totalHours'>) {
-  const totals = laneTotals(modules)
+function Hours({ modules }: Pick<CourseMapViewProps, 'modules'>) {
+  const split = hoursSplit(modules)
   const names = { B: MAP.hours.browser, L: MAP.hours.laptop, F: MAP.hours.gpu }
-  const lanes = LANE_ORDER.filter((lane) => totals[lane] > 0)
+  const lanes = LANE_ORDER.filter((lane) => split.lanes[lane] > 0)
   return (
     <p className="es-course__hours">
-      {num(totalHours)} {MAP.hours.all}:{' '}
+      {num(split.published)} {MAP.hours.published}:{' '}
       {lanes.map((lane, at) => (
         <span key={lane}>
           {at > 0 ? ', ' : ''}
-          {num(totals[lane])} {names[lane]}
+          {num(split.lanes[lane])} {names[lane]}
         </span>
       ))}
-      . {MAP.hours.note.before} <span className="es-course__tag">{MAP.hours.estimated}</span> {MAP.hours.note.between} <span className="es-course__tag">{MAP.hours.derived}</span>.
+      .{split.planned > split.published ? <> {num(split.planned)} {MAP.hours.planned}.</> : null} {MAP.hours.note.before} <span className="es-course__tag">{MAP.hours.estimated}</span> {MAP.hours.note.between} <span className="es-course__tag">{MAP.hours.derived}</span>.
     </p>
   )
 }
 
-export function CourseMapView({ modules, totalHours, map, progress, ready, step = null, last = null, states = NO_STATES, due = null }: CourseMapViewProps) {
+export function CourseMapView({ modules, map, progress, ready, step = null, last = null, states = NO_STATES, due = null }: CourseMapViewProps) {
   const listId = useId()
   // The marker waits for the ledger, so it never sits on the wrong module for a moment.
   const here = ready ? (step?.module ?? null) : null
@@ -108,7 +107,7 @@ export function CourseMapView({ modules, totalHours, map, progress, ready, step 
       <WayOn step={step} last={last} ready={ready} due={due} />
       <div className="es-course__notes">
         <div className="es-course__facts">
-          <Hours modules={modules} totalHours={totalHours} />
+          <Hours modules={modules} />
           <p className="es-course__nothing">{MAP.nothing}</p>
         </div>
         <div className="es-course__legends">

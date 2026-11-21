@@ -50,7 +50,8 @@ export function Component() {
   const proving = search.get('mode') === 'prove' && prove !== undefined && (level === undefined || level === prove)
   return (
     <>
-      <h1 className="sr-only">Play {game.entry.title}</h1>
+      {/* The one h1 of the page is the game's title, from the first paint: the loading line, the game's own heading and the tab say the same name. */}
+      <h1 className="sr-only">{game.entry.title}</h1>
       <Suspense fallback={<p role="status">Loading {game.entry.title}…</p>}>
         {proving ? <ProveSession key={prove} entry={game.entry} level={prove} Game={Loaded} record={recorder.record} /> : <Loaded level={level} onFinish={recorder.record} />}
       </Suspense>

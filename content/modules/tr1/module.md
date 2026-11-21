@@ -51,7 +51,7 @@ Cancellation has an owner outside this course, the Data Plane specialization of 
 
 ## The part that needs a GPU
 
-The GPU part is a lab, `tr1.fork`: you fork nano-vllm at the pinned commit and make it emit one span for every stage of the map you laid in Request path. A grader checks that your fork still computes the same tokens, and your browser checks that the spans you emit are the stages of the nano-vllm path, in the order of the lifecycle data. The Build card below shows what the lab will ask and does not run it, and no lesson here pretends to.
+The GPU part is a lab: you fork nano-vllm at the pinned commit and make it emit one span for every stage of the map you laid in Request path. A grader checks that your fork still computes the same tokens, and your browser checks that the spans you emit are the stages of the nano-vllm path, in the order of the lifecycle data. The Build card below shows what the lab will ask and does not run it, and no lesson here pretends to.
 
 The plan for its three stages is a first win that runs nano-vllm unmodified under a teacher-forced check and earns practice credit, the instrumented fork, and an optional run with a KV pool small enough to force recompute preemption, which checks the spans of the request that was preempted. The whole lab is about 2.5 hours on a 4090-class GPU [estimated]. It depends on a flash-attn build for the pinned PyTorch and CUDA that nobody has checked yet [unverified], so the lab's own task tests the install before the lab is written, and falls back to Mini-SGLang at its pin if none installs.
 
