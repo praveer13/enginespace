@@ -53,6 +53,7 @@ const GAME_MODULES: Readonly<Record<string, () => Promise<GameModule>>> = {
   'engine-floor': () => import('./engine-floor/record'),
   'broken-bench': () => import('./broken-bench/record'),
   pool: () => import('./pool/record'),
+  'shape-shifter': () => import('./shape-shifter/record'),
 }
 
 const byGame = <T>(of: (load: () => Promise<GameModule>) => T): Readonly<Record<string, T>> =>
