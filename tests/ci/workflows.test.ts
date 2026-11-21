@@ -517,6 +517,8 @@ describe('labs.yml (§10.1)', () => {
       'python3 -m venv "$RUNNER_TEMP/cpu-venv"\n"$RUNNER_TEMP/cpu-venv/bin/python" -m pip install --no-input --no-deps --require-hashes --extra-index-url https://download.pytorch.org/whl/cpu -r labs/envs/cpu/requirements.txt',
       '"$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/tensor-torch-vectors.py --out "$RUNNER_TEMP/torch-vectors.json" --compare tests/fixtures/tensor/torch-vectors.json',
       '"$RUNNER_TEMP/cpu-venv/bin/python" -m unittest discover -v -s labs/grader/tests/cpu -p "test_*.py"',
+      '"$RUNNER_TEMP/cpu-venv/bin/python" -I -m unittest discover -v -s scripts/triton-interp -p "test_*.py"\n"$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/triton-interp/course_kernel.py',
+      '"$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/triton-interp/run.py --json "$RUNNER_TEMP/triton-interp.json"',
     ])
     expect(typeof jobs.cpu['timeout-minutes']).toBe('number')
     // The fixture is never written by CI: the job's only --out is in RUNNER_TEMP.
@@ -535,6 +537,26 @@ describe('labs.yml (§10.1)', () => {
     for (const pathspec of ["'labs/grader/tests/cpu'", "'labs/grader/src/enginespace_grader/checks'", "'labs/grader/tests/test_tr0*'"]) expect(detect).toContain(pathspec)
     // The tests of that folder are found by this discovery only: the grader job's `python -m unittest` from the root never walks into a folder that is no package.
     expect(existsSync(path.join(root, 'labs/grader/tests/cpu/__init__.py'))).toBe(false)
+  })
+
+  test('the cpu job runs Triton 3.8.0\'s interpreter: its script\'s tests and the course\'s kernel with CI set, then the pinned vLLM kernels, which end green whatever they find (W2b-T49)', () => {
+    const jobs = Object.fromEntries(jobsOf('labs.yml'))
+    const steps = jobs.cpu.steps ?? []
+    const own = steps.find((candidate) => candidate.name === 'The interpreter script, on stand-in kernels, and the course\'s own kernel')
+    expect((own as unknown as { env?: Record<string, string> }).env).toEqual({ CI: 'true' })
+    const vllm = steps.find((candidate) => candidate.name === 'Which of vLLM\'s pinned kernels run under the interpreter')
+    expect(vllm?.run).toBe('"$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/triton-interp/run.py --json "$RUNNER_TEMP/triton-interp.json"')
+    // A kernel that does not run is a finding and not a red job: the step is not told to require them all, and nothing continues past an error of its own.
+    expect(vllm?.run).not.toMatch(/--require-all-ran/)
+    expect((vllm as unknown as Record<string, unknown>)['continue-on-error']).toBeUndefined()
+    // Only the pinned commit is read, with no token: the step has no env of its own and the script names the commit of course.lock.json.
+    expect((vllm as unknown as Record<string, unknown>).env).toBeUndefined()
+    expect(read('scripts/triton-interp/run.py')).toContain('4ba787ec9959e566d3b587a796dff07673324da5')
+    expect(JSON.stringify(JSON.parse(read('course.lock.json')))).toContain('4ba787ec9959e566d3b587a796dff07673324da5')
+    expect(jobs.detect.steps?.find((candidate) => candidate.id === 'labs')?.run ?? '').toContain('scripts/triton-interp')
+    // The environment carries the wheel, on Linux only, at the pin vLLM v0.33.0 ships.
+    expect(read('labs/envs/cpu/pyproject.toml')).toContain('"triton==3.8.0; sys_platform == \'linux\'"')
+    expect(read('labs/envs/cpu/requirements.txt')).toContain("triton==3.8.0 ; sys_platform == 'linux'")
   })
 
   test('the vectors script has no header that says it is run by hand and never by CI (W2-T13)', () => {
