@@ -20,6 +20,9 @@ import { BENCH_COPY } from '../packages/play/broken-bench/copy'
 import { FLOOR_COPY } from '../packages/play/engine-floor/copy'
 import { FULL_COPY } from '../packages/play/loop/full/copy'
 import { POOL_COPY } from '../packages/play/pool/copy'
+import { copyOf as shiftCopyOf } from '../packages/play/shape-shifter/copy'
+import { SHAPE_SHIFTER } from '../packages/play/shape-shifter/entry'
+import { buildLevel as shiftLevel } from '../packages/play/shape-shifter/levels'
 import { GAMES } from '../packages/play/registry'
 import { VERIFIER_COPY } from '../packages/play/verifier/copy'
 import { FRONT_LEVELS, SMOKE_LEVELS, WALKED } from './levels'
@@ -300,6 +303,11 @@ const RULES: { game: string; level: string; rule: string }[] = [
   ...Object.entries(FULL_COPY).flatMap(([level, copy]) => (copy.passRule === undefined ? [] : [{ game: 'loop', level, rule: copy.passRule }])),
   // The Inspection opens a level in practice, and its goal line says what a graded attempt passes on (`practiceBeat`); the graded goal says it as the rule.
   ...Object.entries(BENCH_COPY).map(([level, copy]) => ({ game: 'broken-bench', level, rule: copy.practiceBeat })),
+  // Tensor views makes its words from each level's figures: the levels whose page opens with a pass rule (`fewest`), with the code spans as words.
+  ...SHAPE_SHIFTER.levels.flatMap((entry) => {
+    const rule = shiftCopyOf(shiftLevel(entry.id, entry.practiceSeed)).passRule
+    return rule === undefined ? [] : [{ game: 'shape-shifter', level: entry.id, rule: rule.replace(/`/g, '') }]
+  }),
 ]
 
 test.describe('every level with a pass rule shows it before the run', () => {

@@ -290,7 +290,6 @@ export interface Pending {
  * task here is gone, is no longer open, or no longer names the game, and when the roster has a game that is neither built nor here.
  */
 export const GAME_TASKS: Readonly<Record<string, string>> = {
-  'shape-shifter': 'W2-T14',
   'gap-hunt': 'W2-T20',
   dispatch: 'W2-T25',
   switchyard: 'W2-T30',

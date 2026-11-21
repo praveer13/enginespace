@@ -15,6 +15,8 @@ import { buildFullLevel } from '@es/play/loop/full/levels'
 import { fullInit, fullReduce } from '@es/play/loop/full/session'
 import type { FullState } from '@es/play/loop/full/types'
 import { POOL } from '@es/play/pool/entry'
+import { SHAPE_SHIFTER } from '@es/play/shape-shifter/entry'
+import { ghostActions, shiftInit, shiftLevel, shiftReduce } from '@es/play/shape-shifter/session'
 import { buildLevel as poolLevel } from '@es/play/pool/levels'
 import { house } from '@es/play/pool/policy'
 import { VERIFIER } from '@es/play/verifier/entry'
@@ -104,6 +106,14 @@ export function referenceWalks(): Walk[] {
   for (const entry of BROKEN_BENCH.levels) {
     const walk = benchWalk(entry.id as BenchLevelId, entry.practiceSeed)
     push('broken-bench', entry.id, entry.practiceSeed, walk.states, walk.actions)
+  }
+  for (const entry of SHAPE_SHIFTER.levels) {
+    // The reference's operations, after a committed guess: the ghost's plan of each target, or each tensor's BLOCK and its launch.
+    const level = shiftLevel(entry.id, entry.practiceSeed)
+    const actions = [{ t: 'commit' as const, prediction: level.tasks[0].answer }, ...ghostActions(level)]
+    const states: unknown[] = [shiftInit(level)]
+    for (const action of actions) states.push(shiftReduce(states[states.length - 1] as never, action))
+    push('shape-shifter', entry.id, entry.practiceSeed, states, actions)
   }
   return walks
 }

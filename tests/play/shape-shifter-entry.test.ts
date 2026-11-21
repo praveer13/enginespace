@@ -35,9 +35,9 @@ describe("the registry's record of Tensor views", () => {
     expect([row?.title, row?.subtitle, row?.modules, row?.has3d]).toEqual([SHAPE_SHIFTER.title, SHAPE_SHIFTER.subtitle, SHAPE_SHIFTER.modules, false])
   })
 
-  test('is not in the registry yet: W2-T14 routes it', () => {
-    expect(GAMES.get('shape-shifter')).toBeUndefined()
-    expect(readFileSync(path.join(root, 'packages/play/registry.ts'), 'utf8')).not.toContain('shape-shifter')
+  test('is in the registry, and the registry holds this record: W2-T14 routes it', () => {
+    expect(GAMES.get('shape-shifter')).toBe(SHAPE_SHIFTER)
+    expect(readFileSync(path.join(root, 'packages/play/registry.ts'), 'utf8')).toContain('SHAPE_SHIFTER')
   })
 
   test('lists the five levels in the order they teach, with the titles of the copy table, and grades `fewest` and `grid`', () => {

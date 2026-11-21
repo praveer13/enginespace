@@ -1,0 +1,898 @@
+/*
+ * Tensor views in the instrument frame (GAMES.md §4.1, REDESIGN §2.6, §3.5): the table and the target beside the cells and the buffer, the
+ * stride order over the cells, the legend, the dock's guess, operation bar and pickers, the grid's steppers, the readout strip and the
+ * result. Token roles only. An element is blue and solid; an address the tensor does not read is white and hollow; an address several
+ * elements read (stride 0) is brown and dotted; an element not where the target puts it is yellow and hatched; where the stride order jumps
+ * is red with its triangle. The marker (amber) falls only on the tensor now: the table's head, and on `grid` the program in hand.
+ *
+ * Nothing here lets an action change the height of what lies over the hand: the diagram's box and a phone's dock keep one height while a
+ * level is played, the picker and the named moment come under the operation bar, and every control a key reaches keeps clear of the dock
+ * pinned at a phone's foot (scroll-margin, below).
+ */
+
+/* ------------------------------------------------------------------------------------------------ the diagram */
+
+.es-shift {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: var(--es-space-2) var(--es-space-4);
+  min-width: 0;
+  min-height: 100%;
+  padding: var(--es-space-3);
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+}
+
+/* At a desk the table and the target stand in a column of their own beside the cells and the buffer: 280 px on the game's page, 240 in a
+   lesson (GAMES.md §4.1). */
+@media (min-width: 64rem) {
+  .es-shift {
+    grid-template-columns: 17.5rem minmax(0, 1fr);
+  }
+
+  .es-frame[data-placement='embed'] .es-shift {
+    grid-template-columns: 15rem minmax(0, 1fr);
+  }
+}
+
+.es-shift__side,
+.es-shift__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+  min-width: 0;
+}
+
+.es-shift__label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--es-space-2);
+  margin: 0 0 var(--es-space-1);
+  font-size: var(--es-size-note);
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.es-shift__count {
+  color: var(--es-text-2);
+  font-weight: 400;
+}
+
+.es-shift__now {
+  align-self: center;
+}
+
+/* The table: dimension, size and stride, the figures in the numeric face. */
+.es-shift__metadata {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--es-size-note);
+}
+
+.es-shift__metadata th,
+.es-shift__metadata td {
+  padding: 2px var(--es-space-2);
+  border-bottom: 1px solid var(--es-paper-rule);
+  text-align: right;
+}
+
+.es-shift__metadata thead th {
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  font-weight: 700;
+}
+
+.es-shift__metadata tbody th {
+  text-align: left;
+}
+
+.es-shift__metadata td .font-numeric,
+.es-shift__metadata th .font-numeric {
+  font-size: var(--es-size-print);
+}
+
+.es-shift__meta,
+.es-shift__line,
+.es-shift__target-line {
+  margin: var(--es-space-1) 0 0;
+  font-size: var(--es-size-note);
+  line-height: 1.4;
+}
+
+/* At a desk the table is a table; on a phone and in a lesson's narrow column it is one line over the cells (GAMES.md §4.1). */
+.es-shift__line {
+  display: none;
+}
+
+@media (max-width: 63.999rem) {
+  /* The table's name and its line, and the target's, each run on as one paragraph, so the cells and the buffer have the box's room. */
+  .es-shift__table,
+  .es-shift__target {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0 var(--es-space-2);
+  }
+
+  .es-shift__table .es-shift__label,
+  .es-shift__target .es-shift__label {
+    margin: 0;
+  }
+
+  .es-shift__line,
+  .es-shift__target-line {
+    margin: 0;
+  }
+
+  .es-shift__wide {
+    display: none;
+  }
+
+  .es-shift__main {
+    gap: var(--es-space-2);
+  }
+
+  .es-shift__metadata,
+  .es-shift__table .es-shift__meta {
+    display: none;
+  }
+
+  .es-shift__line {
+    display: block;
+  }
+
+  .es-shift__side {
+    gap: var(--es-space-1);
+  }
+
+  .es-shift {
+    gap: var(--es-space-2);
+    padding: var(--es-space-2);
+  }
+
+  /* The grid's launch line keeps its three lines: they are its table. */
+  [data-shift-launch] .es-shift__meta {
+    display: block;
+  }
+}
+
+.es-shift__target[data-met] .es-shift__count {
+  color: var(--es-paper-ink);
+  font-weight: 700;
+}
+
+/* ------------------------------------------------------------------------------------------------ the cells and the stride order */
+
+.es-shift__cells {
+  position: relative;
+  flex: none;
+  max-width: 100%;
+}
+
+.es-shift__cell {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: var(--es-cell);
+  height: var(--es-cell);
+  border: 1px solid var(--es-cat-blue-edge);
+  border-radius: var(--es-radius-trim);
+  background: var(--es-cat-blue);
+  color: var(--es-cat-blue-ink);
+  font-family: var(--es-font-mono);
+  /* A cell's number at the cell's own size: from 14 px to 32 px a cell, the numeral keeps under half of it. */
+  font-size: clamp(0.5625rem, calc(var(--es-cell) * 0.42), var(--es-size-print));
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    left var(--es-dur-step) var(--es-ease-settle),
+    top var(--es-dur-step) var(--es-ease-settle);
+}
+
+.es-shift__number {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: var(--es-cell);
+  height: var(--es-cell);
+  color: var(--es-cat-blue-ink);
+  font-family: var(--es-font-mono);
+  /* A cell's number at the cell's own size: from 14 px to 32 px a cell, the numeral keeps under half of it. */
+  font-size: clamp(0.5625rem, calc(var(--es-cell) * 0.42), var(--es-size-print));
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+  /* The number stands on a paper-free halo of its cell's own fill, so the line under it never cuts through a digit. */
+  text-shadow:
+    0 0 2px var(--es-cat-blue),
+    0 0 2px var(--es-cat-blue);
+  transition:
+    left var(--es-dur-step) var(--es-ease-settle),
+    top var(--es-dur-step) var(--es-ease-settle);
+}
+
+.es-shift__number[data-shared] {
+  color: var(--es-cat-brown-ink);
+  text-shadow:
+    0 0 2px var(--es-cat-brown),
+    0 0 2px var(--es-cat-brown);
+}
+
+.es-shift__number[data-marked] {
+  color: var(--es-paper-ink);
+  text-shadow:
+    0 0 2px var(--es-paper),
+    0 0 2px var(--es-paper);
+}
+
+.es-shift__number[data-jump] {
+  color: var(--es-cat-red-ink);
+  text-shadow:
+    0 0 2px var(--es-cat-red),
+    0 0 2px var(--es-cat-red);
+}
+
+.es-shift__cell[data-shared] {
+  border-color: var(--es-cat-brown-edge);
+  background: radial-gradient(circle at center, var(--es-cat-brown-edge) 1px, transparent 1.5px) 0 0 / 5px 5px, var(--es-cat-brown);
+  color: var(--es-cat-brown-ink);
+}
+
+.es-shift__cell[data-marked] {
+  border-color: var(--es-cat-yellow-edge);
+  background: repeating-linear-gradient(135deg, var(--es-cat-yellow) 0 3px, var(--es-paper) 3px 6px);
+  color: var(--es-paper-ink);
+}
+
+.es-shift__cell[data-jump] {
+  border: 2px solid var(--es-cat-red-edge);
+  background: var(--es-cat-red);
+  color: var(--es-cat-red-ink);
+}
+
+.es-shift__cell[data-selected],
+.es-shift__addr[data-selected] {
+  outline: 2px solid var(--es-text-1);
+  outline-offset: 1px;
+  z-index: 2;
+}
+
+.es-shift__slice {
+  position: absolute;
+  color: var(--es-text-2);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-caption);
+  line-height: 1.2;
+}
+
+.es-shift__order {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.es-shift__thread {
+  fill: none;
+  stroke: var(--es-paper-ink);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.8;
+}
+
+.es-shift__thread-start,
+.es-shift__arrow {
+  fill: var(--es-paper-ink);
+}
+
+/* ------------------------------------------------------------------------------------------------ the buffer */
+
+.es-shift__buffer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-shift__buffer[data-old] {
+  margin-bottom: var(--es-space-2);
+}
+
+.es-shift__buffer-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.es-shift__addresses {
+  display: grid;
+  grid-template-columns: repeat(16, var(--es-addr));
+  gap: 0;
+}
+
+.es-shift__addr {
+  position: relative;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: var(--es-addr);
+  height: var(--es-addr);
+  border: 1px dashed var(--es-cat-white-edge);
+  background: transparent;
+  color: var(--es-cat-white-ink);
+  font-family: var(--es-font-mono);
+  font-size: clamp(0.5625rem, calc(var(--es-addr) * 0.42), var(--es-size-print));
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.es-shift__addr[data-read] {
+  border: 1px solid var(--es-cat-blue-edge);
+  background: var(--es-cat-blue);
+  color: var(--es-cat-blue-ink);
+  cursor: pointer;
+}
+
+.es-shift__addr[data-shared] {
+  border-color: var(--es-cat-brown-edge);
+  background: radial-gradient(circle at center, var(--es-cat-brown-edge) 1px, transparent 1.5px) 0 0 / 5px 5px, var(--es-cat-brown);
+  color: var(--es-cat-brown-ink);
+}
+
+/* The old buffer, for one turn after a copy: dashed and hollow, so it reads as gone. */
+.es-shift__buffer[data-old] .es-shift__addr {
+  border: 1px dashed var(--es-edge);
+  background: transparent;
+  color: var(--es-text-2);
+  cursor: default;
+}
+
+.es-shift__reads {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  padding: 0 2px;
+  background: var(--es-paper);
+  color: var(--es-cat-brown-edge);
+  font-size: var(--es-size-micro);
+  white-space: nowrap;
+}
+
+.es-shift__buffer-row:has([data-shared]) {
+  padding-top: 0.875rem;
+}
+
+.es-shift__address-tag {
+  color: var(--es-text-2);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-micro);
+  line-height: 1.2;
+}
+
+/* ------------------------------------------------------------------------------------------------ the grid of programs */
+
+.es-shift__cells [data-tensor] {
+  cursor: default;
+}
+
+.es-shift__cell[data-uncovered] {
+  border-color: var(--es-cat-yellow-edge);
+  background: repeating-linear-gradient(135deg, var(--es-cat-yellow) 0 3px, var(--es-paper) 3px 6px);
+}
+
+.es-shift__lane {
+  position: absolute;
+  box-sizing: border-box;
+  width: var(--es-cell);
+  height: var(--es-cell);
+  border: 1px dashed var(--es-cat-white-edge);
+}
+
+.es-shift__tile {
+  position: absolute;
+  box-sizing: border-box;
+  border: 2px solid var(--es-paper-ink);
+  cursor: pointer;
+}
+
+.es-shift__tile[data-in-hand] {
+  box-shadow:
+    0 0 0 1px var(--es-marker-edge),
+    0 0 0 3px var(--es-marker),
+    0 0 0 4px var(--es-marker-edge);
+  z-index: 1;
+}
+
+.es-shift__tile-tag {
+  position: absolute;
+  white-space: nowrap;
+  top: 1px;
+  left: 1px;
+  padding: 0 2px;
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  font-family: var(--es-font-mono);
+  font-size: var(--es-size-micro);
+  line-height: 1.2;
+}
+
+/* ------------------------------------------------------------------------------------------------ the legend */
+
+.es-shift__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-1) var(--es-space-4);
+}
+
+.es-shift__key {
+  display: flex;
+  align-items: center;
+  gap: var(--es-space-1);
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  line-height: 1.35;
+}
+
+.es-shift__key-dot {
+  flex: none;
+  width: 0.625rem;
+  height: 0.625rem;
+  color: var(--es-paper-ink);
+}
+
+@media (max-width: 63.999rem) {
+  .es-shift__key {
+    display: none;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ the frame's room for the drawing and the dock */
+
+/* The drawing's box keeps one height while a level is played, so a tensor that grows or shrinks moves nothing over or under it: the cells
+   scroll inside the box where they are taller. */
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame[data-game='shape-shifter'] .es-frame__view {
+    height: max(9rem, calc(67svh - 19.5rem));
+  }
+
+  /* A phone's pinned dock keeps one height while the run is played, so the operation bar stays where the hand is when the picker opens
+     under it or a moment is named. */
+  .es-frame[data-game='shape-shifter'][data-phase='play']:not([data-intro]) .es-frame__dock {
+    height: 33svh;
+  }
+}
+
+@media (max-width: 63.999rem) and (max-height: 699.98px) {
+  .es-frame[data-game='shape-shifter'] .es-frame__view {
+    height: 17rem;
+    overflow: auto;
+  }
+}
+
+/* The named moment is said under the decision, not over it, so the control in hand never moves down when it comes. At the result it stands
+   over the verdict, as in every game. */
+.es-frame[data-game='shape-shifter'][data-phase='play'] .es-frame__dock-main {
+  display: flex;
+  flex-direction: column;
+}
+
+.es-frame[data-game='shape-shifter'][data-phase='play'] .es-frame__dock-main > .es-frame__moment {
+  order: 1;
+  margin: var(--es-space-3) 0 0;
+}
+
+/* ------------------------------------------------------------------------------------------------ the dock */
+
+.es-shift-dock {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+}
+
+.es-shift-dock__title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--es-space-2);
+  margin: 0 0 var(--es-space-2);
+  font-size: var(--es-size-control);
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.es-shift-dock__where {
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  font-weight: 400;
+}
+
+.es-shift-dock__text {
+  margin: 0 0 var(--es-space-2);
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-shift-dock__guess-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+}
+
+.es-shift-dock__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2) var(--es-space-3);
+  margin-block: var(--es-space-2);
+}
+
+.es-shift-dock__note {
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+}
+
+.es-shift-dock__ops {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+}
+
+.es-shift-dock__bar,
+.es-shift-dock__choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-2);
+}
+
+.es-shift-dock__op,
+.es-shift-dock__choice,
+.es-shift-dock__step {
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  padding: 0 var(--es-space-3);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-control);
+  background: var(--es-paper);
+  color: var(--es-paper-ink);
+  font-size: var(--es-size-note);
+  cursor: pointer;
+  transition: background-color var(--es-dur-quick) var(--es-ease-settle);
+}
+
+.es-shift-dock__op code {
+  font-size: var(--es-size-note);
+}
+
+.es-shift-dock__op:hover:not(:disabled),
+.es-shift-dock__choice:hover:not(:disabled),
+.es-shift-dock__step:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--es-surface-2) 50%, var(--es-paper));
+}
+
+.es-shift-dock__op[aria-expanded='true'] {
+  background: var(--es-surface-2);
+}
+
+.es-shift-dock__op:focus-visible,
+.es-shift-dock__choice:focus-visible,
+.es-shift-dock__step:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: 2px;
+}
+
+.es-shift-dock__step:disabled {
+  border-style: dashed;
+  color: var(--es-text-2);
+  cursor: not-allowed;
+}
+
+.es-shift-dock__picker {
+  padding: var(--es-space-2) 0 0;
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+.es-shift-dock__picker-head {
+  margin: 0 0 var(--es-space-2);
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+}
+
+/* The ring of the first run on its control, with its word under it. */
+.es-shift-dock__ring {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--es-space-1);
+  margin: 4px;
+}
+
+/* The grid's steppers, as a table: BLOCK and the grid down the side, the dimensions across the top; each is one less, the value, one more. */
+.es-shift-dock__steppers {
+  display: grid;
+  grid-template-columns: auto repeat(var(--es-dims), max-content);
+  align-items: center;
+  justify-content: start;
+  gap: var(--es-space-1) var(--es-space-4);
+}
+
+.es-shift-dock__head {
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  text-align: center;
+}
+
+.es-shift-dock__side {
+  font-size: var(--es-size-note);
+  font-weight: 700;
+}
+
+.es-shift-dock__stepper {
+  display: grid;
+  grid-template-columns: auto 2.25rem auto;
+  align-items: center;
+  gap: var(--es-space-1);
+}
+
+.es-shift-dock__stepper-name {
+  display: none;
+  font-size: var(--es-size-caption);
+  font-weight: 700;
+}
+
+.es-shift-dock__value {
+  text-align: center;
+  font-size: var(--es-size-control);
+}
+
+.es-shift-dock__step {
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+/* The steppers' marks, drawn: a bar, and a bar crossed. */
+.es-shift-dock__step-mark {
+  position: relative;
+  display: block;
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.es-shift-dock__step-mark::before,
+.es-shift-dock__step-mark::after {
+  content: '';
+  position: absolute;
+  top: calc(50% - 1px);
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: currentColor;
+}
+
+.es-shift-dock__step-mark::after {
+  display: none;
+}
+
+.es-shift-dock__step-mark[data-sign='more']::after {
+  display: block;
+  transform: rotate(90deg);
+}
+
+/* A control a key reaches keeps clear of the dock pinned at a phone's foot and of the readout under it (WCAG 2.4.11). */
+.es-shift-dock button,
+.es-shift-dock input {
+  scroll-margin-block: var(--es-space-2) var(--es-space-6);
+}
+
+@media (max-width: 63.999rem) {
+  .es-shift-dock {
+    gap: var(--es-space-2);
+  }
+
+  /* On a phone the pinned dock holds the bar and the first row of a picker's choices under it: the heading is the section's name for a
+     reader, the picker's head is its button's, and the count of operations is in the readout. */
+  .es-shift-dock__title,
+  .es-shift-dock__picker-head {
+    display: none;
+  }
+
+  .es-shift-dock__picker {
+    padding-top: var(--es-space-2);
+  }
+
+  /* The operations keep to one row where four fit, so the bar, the picker and a moment share the pinned dock. */
+  .es-shift-dock__bar,
+  .es-shift-dock__choices {
+    gap: var(--es-space-1);
+  }
+
+  .es-shift-dock__op,
+  .es-shift-dock__choice {
+    padding: 0 var(--es-space-2);
+  }
+
+  .es-shift-dock__op code {
+    font-size: var(--es-size-caption);
+  }
+
+  .es-shift-dock__ops {
+    gap: var(--es-space-2);
+  }
+
+  /* On a phone the steppers and Launch fill the pinned dock: the rule is in Parts. */
+  [data-shift-steppers] .es-shift-dock__note {
+    display: none;
+  }
+
+  [data-shift-steppers] .es-shift-dock__row {
+    margin-block: var(--es-space-1) 0;
+  }
+
+  .es-shift-dock__steppers {
+    column-gap: var(--es-space-3);
+  }
+}
+
+/* Under 24rem the steppers stand one under the other, each with its name beside its buttons. */
+@media (max-width: 23.999rem) {
+  .es-shift-dock__steppers {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .es-shift-dock__corner,
+  .es-shift-dock__head,
+  .es-shift-dock__side {
+    display: none;
+  }
+
+  .es-shift-dock__stepper {
+    grid-template-columns: minmax(0, 1fr) auto 2.25rem auto;
+  }
+
+  .es-shift-dock__stepper-name {
+    display: block;
+  }
+}
+
+/* ------------------------------------------------------------------------------------------------ the readout strip */
+
+.es-shift-strip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-1);
+}
+
+.es-shift-strip__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--es-space-2);
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  font-weight: 700;
+}
+
+/* Each number keeps its whole width; the delta stands over it in a band the list keeps free, so the strip does not move when it comes. */
+.es-shift-strip__list {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1.125rem var(--es-space-4);
+  margin: 0;
+  padding-top: 1.125rem;
+}
+
+.es-shift-strip__item {
+  display: flex;
+  flex: none;
+  flex-direction: column-reverse;
+}
+
+.es-shift-strip__label {
+  color: var(--es-text-2);
+  font-size: var(--es-size-micro);
+  line-height: 1.2;
+}
+
+.es-shift-strip__value {
+  position: relative;
+  margin: 0;
+  font-size: var(--es-size-control);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.es-shift-strip__delta {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  font-size: var(--es-size-caption);
+}
+
+@media (max-width: 63.999rem) {
+  .es-shift-strip__value {
+    font-size: var(--es-size-base);
+  }
+
+  .es-shift-strip__list {
+    column-gap: var(--es-space-2);
+  }
+}
+
+.es-frame[data-placement='embed'] .es-shift-strip__value {
+  font-size: var(--es-size-base);
+}
+
+/* ------------------------------------------------------------------------------------------------ the result */
+
+.es-shift-debrief__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-3);
+  max-width: 75ch;
+  font-size: var(--es-size-note);
+  line-height: 1.45;
+}
+
+.es-shift-debrief__body p,
+.es-shift-debrief__body h4 {
+  margin: 0;
+}
+
+.es-shift-debrief__body h4 {
+  font-size: var(--es-size-base);
+}
+
+.es-shift-debrief__engine {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-1);
+}
+
+/* ------------------------------------------------------------------------------------------------ a lesson's dock */
+
+.es-shift-dockview {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+  min-height: 0;
+  padding: var(--es-space-2);
+}
+
+.es-shift-dockview .es-shift__cell {
+  cursor: default;
+}
+
+/* ------------------------------------------------------------------------------------------------ motion */
+
+@media (prefers-reduced-motion: reduce) {
+  :root:not([data-motion='full']) .es-shift__cell,
+  :root:not([data-motion='full']) .es-shift__number,
+  :root:not([data-motion='full']) .es-shift-dock__op,
+  :root:not([data-motion='full']) .es-shift-dock__choice,
+  :root:not([data-motion='full']) .es-shift-dock__step {
+    transition: none;
+  }
+}
+
+:root[data-motion='reduce'] .es-shift__cell,
+:root[data-motion='reduce'] .es-shift__number,
+:root[data-motion='reduce'] .es-shift-dock__op,
+:root[data-motion='reduce'] .es-shift-dock__choice,
+:root[data-motion='reduce'] .es-shift-dock__step {
+  transition: none;
+}

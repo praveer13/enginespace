@@ -1,0 +1,424 @@
+import { useContext, useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent, type ReactNode } from 'react'
+import type { ShiftOp } from '@es/sim/tensor'
+import { BLOCK_MAX } from '@es/play/shape-shifter/draw'
+import { GRID_MAX } from '@es/play/shape-shifter/session'
+import type { OpKind, ShiftAction } from '@es/play/shape-shifter/types'
+import type { ShiftView } from '@es/play/shape-shifter/view'
+import { Button } from '@/design/components/Button'
+import { Field } from '@/design/components/Field'
+import { Marker } from '@/design/components/Marker'
+import { sameAction } from '@/games/kit/first-move'
+import { LessonGuessContext } from '@/games/kit/lessonGuess'
+import { changeLine } from './announce'
+import { Words } from './CodeWords'
+import { choicesOf, picks } from './focus'
+import type { ShiftMode, ShiftRun } from './types'
+import { choiceLabel, opButton, orderChoice, pairChoice, shapeChoice, UNIT_WORDS } from './words'
+
+/*
+ * Tensor views' dock (GAMES.md §4.1, "Dock"): the opening guess, then the operation bar, or on `grid` the BLOCK and grid steppers and
+ * Launch. HTML for every action, so a pointer, a keyboard and a screen reader reach the same things.
+ *
+ *   the operation bar   one 44 px button per operation the level offers, one tab stop, the arrows along it. `view`, `reshape` and
+ *                       `expand` open a shape picker built from the element count's factors, `permute` an order picker, `transpose` a
+ *                       picker of two dimensions; `contiguous()` applies at once. The picker opens under the bar, so the bar stays where
+ *                       the hand is, and a choice applies the operation and puts focus back on its button.
+ *   grid                a stepper for BLOCK and one for the grid along each dimension (BLOCK from 1 to 32; the grid starts at cdiv of
+ *                       the BLOCK just set), then Launch (L). A graded run shows the readout after Launch only.
+ *
+ * Nothing in the dock grows above the control in hand: the guess and the bar take the same place, the picker and the moment come under
+ * it, and on a phone the dock keeps one height while the run is played (shape-shifter.css).
+ *
+ * The first run (REDESIGN §2.6) holds the guess back until the parts have been named, then puts the amber ring on the reference run's first
+ * move: its operation's button, and in its picker the choice it takes.
+ */
+
+/** The control the intro points at, in the marker's ring; any other control as it is. */
+function Ringed({ on, children }: { on: boolean; children: ReactNode }) {
+  if (!on) return children
+  return (
+    <Marker kind="ring" word="first move" className="es-shift-dock__ring">
+      {children}
+    </Marker>
+  )
+}
+
+/** One tab stop for a row of buttons, and the arrows between them (a roving tabindex). */
+function useRow(count: number) {
+  const [at, setAt] = useState(0)
+  const stop = Math.max(0, Math.min(at, count - 1))
+  const onKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button[data-roving]:not(:disabled)'))
+    const here = buttons.indexOf(event.target as HTMLButtonElement)
+    if (here < 0 || event.ctrlKey || event.altKey || event.metaKey) return
+    const next = { ArrowRight: here + 1, ArrowDown: here + 1, ArrowLeft: here - 1, ArrowUp: here - 1, Home: 0, End: buttons.length - 1 }[event.key]
+    if (next === undefined) return
+    event.preventDefault()
+    const to = Math.max(0, Math.min(next, buttons.length - 1))
+    setAt(to)
+    buttons[to]?.focus()
+  }
+  return { stop, onKeyDown, note: setAt }
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The guess                                                                                                          */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+function Guess({ run, onSkip }: { run: ShiftRun; onSkip: () => void }) {
+  const { predict } = run.view
+  const lesson = useContext(LessonGuessContext)
+  const [text, setText] = useState('')
+  const value = text.trim() === '' ? null : Number(text)
+  const bad = value !== null && (!Number.isInteger(value) || value < 0)
+  const titleId = useId()
+  return (
+    <section className="es-shift-dock__guess" aria-labelledby={titleId} data-shift-predict="">
+      <h3 id={titleId} className="es-shift-dock__title">
+        Your guess
+      </h3>
+      <p className="es-shift-dock__text">{lesson?.ask ?? <Words line={predict.ask} />}</p>
+      {lesson?.sure}
+      <form
+        className="es-shift-dock__guess-form"
+        onSubmit={(event) => {
+          event.preventDefault()
+          if (value === null || bad) return
+          lesson?.commit(value)
+          run.dispatch({ t: 'commit', prediction: value })
+        }}
+      >
+        <Field
+          label="Your guess"
+          numeric
+          value={text}
+          inputMode="numeric"
+          onChange={(event) => setText(event.target.value)}
+          hint={`A whole number of ${UNIT_WORDS[predict.unit]}. The run answers it.`}
+          error={bad ? 'Write a whole number, 0 or more.' : undefined}
+        />
+        <div className="es-shift-dock__row">
+          <Button type="submit" variant="ink" disabled={value === null || bad}>
+            Commit
+          </Button>
+          <Button variant="quiet" onClick={onSkip}>
+            Skip the guess
+          </Button>
+        </div>
+      </form>
+    </section>
+  )
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The operation bar                                                                                                  */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** What a choice's button shows: the shape, the order or the pair it takes. */
+function choiceFace(op: ShiftOp): string {
+  switch (op.op) {
+    case 'view':
+    case 'reshape':
+    case 'expand':
+      return shapeChoice(op.shape)
+    case 'permute':
+      return orderChoice(op.order)
+    case 'transpose':
+      return pairChoice(op.a, op.b)
+    default:
+      return opButton(op.op)
+  }
+}
+
+const PICKER_HEAD: Readonly<Record<OpKind, string>> = {
+  view: 'View it as',
+  reshape: 'Reshape it to',
+  expand: 'Expand it to',
+  permute: 'Put the dimensions in the order',
+  transpose: 'Swap dimensions',
+  contiguous: '',
+  slice: '',
+}
+
+function OpBar({ run, view }: { run: ShiftRun; view: ShiftView }) {
+  const layout = view.layout
+  const offered = view.offered
+  const [open, setOpen] = useState<OpKind | null>(null)
+  const bar = useRow(offered.length)
+  const shape = layout?.table.map((row) => row.size) ?? []
+  const choices = open === null ? [] : choicesOf(open, shape)
+  const pickerRow = useRow(choices.length)
+  const barRef = useRef<HTMLDivElement>(null)
+  const pickerRef = useRef<HTMLDivElement>(null)
+  const ring = run.intro.ring
+  const ringOp = ring !== null && ring.t === 'op' ? ring.op : null
+  const pickerId = useId()
+
+  // A picker that opens takes focus to its first choice (or the ringed one), so the keyboard is where the choice is made.
+  const opened = useRef<OpKind | null>(null)
+  useEffect(() => {
+    if (open === opened.current) return
+    opened.current = open
+    if (open === null) return
+    const ringed = pickerRef.current?.querySelector<HTMLButtonElement>('.es-marker button[data-roving]')
+    const first = ringed ?? pickerRef.current?.querySelector<HTMLButtonElement>('button[data-roving]')
+    first?.focus({ preventScroll: true })
+  }, [open])
+
+  // The bar is where the next operation starts: once a choice has applied (or Escape has closed the picker), focus goes back to the button
+  // that opened it, in the commit that closes the picker, so a key pressed next lands on the bar and never on a picker about to go.
+  const returnTo = useRef<OpKind | null>(null)
+  useEffect(() => {
+    const kind = returnTo.current
+    if (kind === null) return
+    returnTo.current = null
+    barRef.current?.querySelector<HTMLButtonElement>(`button[data-op="${kind}"]`)?.focus({ preventScroll: true })
+  })
+
+  const apply = (op: ShiftOp) => {
+    returnTo.current = op.op
+    setOpen(null)
+    run.dispatch({ t: 'op', op })
+  }
+
+  return (
+    <div className="es-shift-dock__ops">
+      <div
+        ref={barRef}
+        role="toolbar"
+        aria-label="Operations"
+        aria-orientation="horizontal"
+        className="es-shift-dock__bar"
+        data-native-keys="arrows"
+        data-shift-bar=""
+        onKeyDown={bar.onKeyDown}
+      >
+        {offered.map((kind, at) => {
+          const ringed = ringOp !== null && ringOp.op === kind
+          return (
+            <Ringed key={kind} on={ringed}>
+              <button
+                type="button"
+                className="es-shift-dock__op"
+                data-roving=""
+                data-op={kind}
+                tabIndex={at === bar.stop ? 0 : -1}
+                aria-expanded={picks(kind) ? open === kind : undefined}
+                aria-controls={picks(kind) && open === kind ? pickerId : undefined}
+                onFocus={() => bar.note(at)}
+                onClick={() => {
+                  if (!picks(kind)) apply({ op: 'contiguous' })
+                  else setOpen(open === kind ? null : kind)
+                }}
+              >
+                <code>{opButton(kind)}</code>
+              </button>
+            </Ringed>
+          )
+        })}
+      </div>
+      {open === null ? null : (
+        <div
+          ref={pickerRef}
+          id={pickerId}
+          role="group"
+          aria-label={`${opButton(open)}: choose`}
+          className="es-shift-dock__picker"
+          data-native-keys="arrows"
+          data-shift-picker={open}
+          onKeyDown={(event) => {
+            if (event.key === 'Escape') {
+              event.preventDefault()
+              event.stopPropagation()
+              returnTo.current = open
+              setOpen(null)
+              return
+            }
+            pickerRow.onKeyDown(event)
+          }}
+        >
+          <p className="es-shift-dock__picker-head">
+            <code>{opButton(open)}</code> · {PICKER_HEAD[open]}
+          </p>
+          <div className="es-shift-dock__choices">
+            {choices.map((op, at) => (
+              <Ringed key={choiceFace(op)} on={sameAction(ring, { t: 'op', op } as ShiftAction)}>
+                <button
+                  type="button"
+                  className="es-shift-dock__choice font-numeric"
+                  data-roving=""
+                  data-choice={choiceFace(op)}
+                  tabIndex={at === pickerRow.stop ? 0 : -1}
+                  aria-label={choiceLabel(op)}
+                  onFocus={() => pickerRow.note(at)}
+                  onClick={() => apply(op)}
+                >
+                  {choiceFace(op)}
+                </button>
+              </Ringed>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The grid's steppers                                                                                                */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+function Stepper({ name, face, value, min, max, onSet, ringMore }: { name: string; face: ReactNode; value: number; min: number; max: number; onSet: (value: number) => void; ringMore: boolean }) {
+  return (
+    <div className="es-shift-dock__stepper" role="group" aria-label={name} data-stepper={name}>
+      <span className="es-shift-dock__stepper-name" aria-hidden="true">
+        {face}
+      </span>
+      <button type="button" className="es-shift-dock__step" aria-label={`${name}: one less`} disabled={value <= min} onClick={() => onSet(value - 1)}>
+        <span aria-hidden="true" className="es-shift-dock__step-mark" data-sign="less" />
+      </button>
+      <output className="es-shift-dock__value font-numeric" aria-live="off">
+        {value}
+      </output>
+      <Ringed on={ringMore}>
+        <button type="button" className="es-shift-dock__step" aria-label={`${name}: one more`} disabled={value >= max} onClick={() => onSet(value + 1)}>
+          <span aria-hidden="true" className="es-shift-dock__step-mark" data-sign="more" />
+        </button>
+      </Ringed>
+    </div>
+  )
+}
+
+function GridControls({ run, view, mode }: { run: ShiftRun; view: ShiftView; mode: ShiftMode }) {
+  const grid = view.grid
+  if (grid === null) return null
+  const ring = run.intro.ring
+  const dims = grid.shape.map((_, d) => d)
+  return (
+    <div className="es-shift-dock__grid" data-shift-steppers="">
+      {/* A table of steppers: BLOCK and the grid down the side, the dimensions across the top. Under 24rem each stands on its own row, named in full. */}
+      <div className="es-shift-dock__steppers" style={{ '--es-dims': dims.length } as CSSProperties}>
+        <span className="es-shift-dock__corner" aria-hidden="true" />
+        {dims.map((d) => (
+          <span key={`head-${d}`} className="es-shift-dock__head" aria-hidden="true">
+            dimension {d}
+          </span>
+        ))}
+        <span className="es-shift-dock__side" aria-hidden="true">
+          BLOCK
+        </span>
+        {dims.map((d) => (
+          <Stepper
+            key={`block-${d}`}
+            name={`BLOCK along dimension ${d}`}
+            face={`BLOCK, dimension ${d}`}
+            value={grid.block[d] ?? 1}
+            min={1}
+            max={BLOCK_MAX}
+            onSet={(value) => run.dispatch({ t: 'block', dim: d, value })}
+            ringMore={ring !== null && ring.t === 'block' && ring.dim === d}
+          />
+        ))}
+        <span className="es-shift-dock__side" aria-hidden="true">
+          Grid
+        </span>
+        {dims.map((d) => (
+          <Stepper
+            key={`grid-${d}`}
+            name={`Grid along dimension ${d}`}
+            face={`Grid, dimension ${d}`}
+            value={grid.grid[d] ?? 1}
+            min={1}
+            max={GRID_MAX}
+            onSet={(value) => run.dispatch({ t: 'grid', dim: d, value })}
+            ringMore={ring !== null && ring.t === 'grid' && ring.dim === d}
+          />
+        ))}
+      </div>
+      <div className="es-shift-dock__row">
+        <Ringed on={ring !== null && ring.t === 'launch'}>
+          <Button variant="ink" aria-keyshortcuts="L" onClick={() => run.dispatch({ t: 'launch' })} data-shift-launch-button="">
+            Launch
+          </Button>
+        </Ringed>
+        <span className="es-shift-dock__note">{mode === 'graded' && !grid.readoutsShown ? 'A graded run shows the counts after Launch.' : 'BLOCK must be a power of two.'}</span>
+      </div>
+    </div>
+  )
+}
+
+/* ------------------------------------------------------------------------------------------------------------------ */
+/* The dock                                                                                                           */
+/* ------------------------------------------------------------------------------------------------------------------ */
+
+/** The announcement for every change of the view, once the first one has been seen. */
+function useAnnouncements(run: ShiftRun): void {
+  const seen = useRef<ShiftView | null>(null)
+  const { view, announce } = run
+  useEffect(() => {
+    const before = seen.current
+    seen.current = view
+    if (before === null) return
+    const line = changeLine(before, view)
+    if (line !== '') announce(line)
+  }, [view, announce])
+}
+
+export interface ControlsProps {
+  run: ShiftRun
+  mode: ShiftMode
+}
+
+/** Where the run stands, in one line: the target of how many, and the operations made on it. */
+function whereLine(view: ShiftView): string {
+  const of = view.task.of > 1 ? `${view.grid !== null ? 'Tensor' : 'Target'} ${view.task.at + 1} of ${view.task.of}` : null
+  const count = view.layout !== null ? `operation ${view.layout.readouts.operations + 1}` : view.grid !== null ? 'set BLOCK and the grid, then launch' : ''
+  return [of, count].filter((part) => part !== null && part !== '').join(' · ')
+}
+
+export function Controls({ run, mode }: ControlsProps) {
+  const { view } = run
+  const ask = run.ask
+  // The guess of each target: the first one's skip is the frame's (the intro hears it); a later target's is kept here.
+  const [skipped, setSkipped] = useState<ReadonlySet<number>>(() => new Set())
+  const at = view.task.at
+  const skip = () => {
+    if (at === 0) run.skipGuess()
+    else run.announce('Guess skipped.')
+    setSkipped(new Set([...skipped, at]))
+  }
+  const guessSkipped = at === 0 ? run.guessSkipped || skipped.has(0) : skipped.has(at)
+  const guessing = ask?.kind === 'commit' && !guessSkipped && run.intro.askShown
+  useAnnouncements(run)
+  const titleId = useId()
+  const body = useRef<HTMLDivElement>(null)
+
+  // When the guess closes or a new target opens, focus goes to the bar's first control if the learner's focus was in the dock or nowhere.
+  const key = `${at}|${guessing ? 'guess' : 'play'}`
+  const lastKey = useRef(key)
+  useEffect(() => {
+    if (lastKey.current === key) return
+    lastKey.current = key
+    const here = document.activeElement
+    const lost = here === null || here === document.body || !here.isConnected || ('disabled' in here && here.disabled === true)
+    const dock = body.current?.closest('[data-dock]') ?? null
+    if (!lost && !(dock?.contains(here) ?? false)) return
+    const first = body.current?.querySelector<HTMLElement>('input, button[data-roving][tabindex="0"], button:not(:disabled)')
+    first?.focus({ preventScroll: true })
+  }, [key])
+
+  if (run.done) return null
+  return (
+    <div className="es-shift-dock" data-shift-controls="" data-ask={guessing ? 'commit' : (ask?.kind ?? 'none')}>
+      <section className="es-shift-dock__decision" aria-labelledby={titleId} data-ask-card="">
+        <h3 id={titleId} className="es-shift-dock__title">
+          {view.grid !== null ? 'Set the launch' : 'Choose an operation'}
+          <span className="es-shift-dock__where">{whereLine(view)}</span>
+        </h3>
+        <div ref={body} className="es-shift-dock__body">
+          {guessing ? <Guess key={at} run={run} onSkip={skip} /> : view.grid !== null ? <GridControls run={run} view={view} mode={mode} /> : <OpBar key={at} run={run} view={view} />}
+        </div>
+      </section>
+    </div>
+  )
+}

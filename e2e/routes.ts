@@ -48,9 +48,9 @@ export const W1_ROUTES: string[] = [
  * What W2 adds to the pull-request subset, a page of every kind that its tasks build as they land: the receipts page (W2-T06), where a
  * challenge is issued and a receipt is read. It reads the learner's ledger, so it is audited with its ledger in each of its states (the
  * spec of its own, e2e/receipts.spec.ts, seeds them), and here with the empty one, by axe at 360 and 1280 px, the reduced-motion scan and
- * the network check, like every page before it.
+ * the network check, like every page before it. Tensor views' page (W2-T14), the first game that W2 registers, joins them.
  */
-export const W2_ROUTES: string[] = ['/receipts']
+export const W2_ROUTES: string[] = ['/receipts', '/play/shape-shifter']
 
 /**
  * A game's page opens on its first level, and `?level=` opens another, so the document list does not reach them. W1-T36 adds the levels
