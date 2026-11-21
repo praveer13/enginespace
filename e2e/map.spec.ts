@@ -187,7 +187,8 @@ test.describe('Course', () => {
     await withSettings(context, { view3d: false })
     await open(page, '/map')
     await readTheLedger(page)
-    for (const module of ['tr0', 'tr3', 'capstone']) {
+    // TR0 is published (its first lesson), before the course's start; TR3, TR4 and the capstone are not.
+    for (const module of ['tr3', 'tr4', 'capstone']) {
       const planned = row(page, module)
       await expect(planned).toContainText('Not published yet')
       await expect(planned.locator('h3 a')).toHaveCount(0)

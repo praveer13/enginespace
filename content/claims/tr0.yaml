@@ -452,19 +452,6 @@
   ttlDays: 90
   pin: vllm
 
-- id: torch.docs.stable-is-2-15
-  value: '2.15'
-  text: 'On 2026-11-20 the unversioned "stable" PyTorch documentation was a redirect page whose canonical address was the 2.15 documentation. The course links the 2.14 documents, which match the pinned engines.'
-  tag: measured
-  source:
-    url: https://docs.pytorch.org/docs/stable/generated/torch.Tensor.view.html
-    title: 'PyTorch documentation, the stable address of torch.Tensor.view'
-    quote: 'canonical" href="../../2.15/generated/torch.Tensor.view.html"'
-    accessed: 2026-11-20
-  verifiedAt: 2026-11-20
-  ttlDays: 90
-  pin: torch
-
 
 # Triton 3.8.0: the program model, the mask and the interpreter (lesson 4 and the parts of the grid level) ----------------------------------------
 
@@ -1536,32 +1523,6 @@
     inputs: [qwen3.config.heads, qwen3.config.kv-heads]
   verifiedAt: 2026-11-20
   ttlDays: 90
-  pin: qwen3-0.6b
-
-- id: qwen3.revision.commit
-  value: 'c1899de289a04d12100db370d81485cdf75e47ca'
-  text: 'The newest commit on the main branch of Qwen/Qwen3-0.6B on 2026-11-20 is c1899de289a04d12100db370d81485cdf75e47ca. The course proposes it as its pin, and nothing moves it before a re-pin.'
-  tag: measured
-  source:
-    url: https://huggingface.co/api/models/Qwen/Qwen3-0.6B/commits/main
-    title: 'Hugging Face, Qwen/Qwen3-0.6B, commits on main (JSON API)'
-    quote: '"id":"c1899de289a04d12100db370d81485cdf75e47ca","title":"Create LICENSE"'
-    accessed: 2026-11-20
-  verifiedAt: 2026-11-20
-  ttlDays: 90
-  pin: qwen3-0.6b
-
-- id: qwen3.revision.date
-  value: '2025-07-26'
-  text: 'That commit is dated 2025-07-26.'
-  tag: measured
-  source:
-    url: https://huggingface.co/api/models/Qwen/Qwen3-0.6B/commits/main
-    title: 'Hugging Face, Qwen/Qwen3-0.6B, commits on main (JSON API)'
-    quote: '"date":"2025-07-26T03:46:27.000Z"'
-    accessed: 2026-11-20
-  verifiedAt: 2026-11-20
-  ttlDays: 365
   pin: qwen3-0.6b
 
 - id: qwen3.revision.licence

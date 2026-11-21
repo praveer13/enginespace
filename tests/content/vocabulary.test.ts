@@ -25,6 +25,10 @@ import type { BenchLevelId } from '@es/play/broken-bench/types'
 import { POOL_COPY, partsOf } from '@es/play/pool/copy'
 import type { PoolLevelId } from '@es/play/pool/types'
 import { ASK_WORDS, VERIFIER_COPY, partsOf as samplerPartsOf } from '@es/play/verifier/copy'
+import { copyOf as shiftCopyOf, partsOf as shiftPartsOf } from '@es/play/shape-shifter/copy'
+import { buildLevel as shiftLevel } from '@es/play/shape-shifter/levels'
+import { SHAPE_SHIFTER } from '@es/play/shape-shifter/entry'
+import type { ShiftLevelId } from '@es/play/shape-shifter/types'
 import type { VerifierLevelId } from '@es/play/verifier/types'
 import { TERMS } from '@/copy/terms'
 import { compileContent } from '../../scripts/content/build.ts'
@@ -72,6 +76,7 @@ const PARTS: Record<string, { at: (level: string) => string; waiting?: string }>
   'engine-floor': { at: (level) => floorPartsOf(level as FloorLevelId).map((part) => `${part.name} ${part.sentence}`).join(' ') },
   verifier: { at: (level) => samplerPartsOf(level as VerifierLevelId).map((part) => `${part.name} ${part.sentence} ${part.engine ?? ''}`).join(' ') },
   'broken-bench': { at: (level) => benchPartsOf(level as BenchLevelId).map((part) => `${part.name} ${part.sentence}`).join(' ') },
+  'shape-shifter': { at: (level) => shiftPartsOf(level as ShiftLevelId).map((part) => `${part.name} ${part.sentence} ${part.engine ?? ''}`).join(' ') },
 }
 
 /** The words of a level that the learner reads before and during a run: its goal line, its prompt and the question it asks first. */
@@ -101,6 +106,11 @@ const LEVEL_WORDS: Record<string, (level: string) => string> = {
   'broken-bench': (level) => {
     const copy = BENCH_COPY[level as BenchLevelId]
     return [copy.goal.aim, copy.goal.controls, copy.prompt].join(' ')
+  },
+  // Tensor views' words are read from the level on its practice seed, the run a lesson's practice block plays.
+  'shape-shifter': (level) => {
+    const copy = shiftCopyOf(shiftLevel(level, SHAPE_SHIFTER.levels.find((one) => one.id === level)?.practiceSeed ?? 0))
+    return [copy.goal.aim, copy.goal.controls, copy.goal.beat, copy.prompt, copy.predict.ask].join(' ')
   },
 }
 

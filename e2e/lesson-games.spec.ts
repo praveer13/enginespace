@@ -57,7 +57,7 @@ async function tabToLocator(walk: Walk, target: Locator, limit: number): Promise
 }
 
 test.describe('the blocks', () => {
-  test('are the game blocks that the course holds (42 today), in all its lessons but one', () => {
+  test('are the game blocks that the course holds (44 today), in all its lessons but one', () => {
     expect(BLOCKS.length).toBe(TOTAL_GAME_BLOCKS)
     expect(lessonsOf(BLOCKS).length).toBe(TOTAL_LESSONS - 1)
   })
@@ -95,6 +95,7 @@ const WALKED: readonly LessonGame[] = [
   { route: '/m/tr1/l1-five-mechanisms', game: 'engine-floor', level: 'nano', mode: 'practice' },
   { route: '/m/tr5a/l1-why-one-model-needs-several-kv-caches', game: 'pool', level: 'one-group', mode: 'practice' },
   { route: '/m/tr8/l1-due-time-not-send-time', game: 'broken-bench', level: 'due', mode: 'practice' },
+  { route: '/m/tr0/l1-pytorch-in-rust-terms', game: 'shape-shifter', level: 'views', mode: 'practice' },
 ]
 
 for (const width of PR_WIDTHS) {
