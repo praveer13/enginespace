@@ -505,8 +505,10 @@
 
 @media (max-width: 63.999rem) and (min-height: 700px) {
   /* A phone's pinned dock keeps one height while the run is played, so the operation bar stays where the hand is when the picker opens
-     under it or a moment is named, and the first run's Next stays where it is from one part to the next. */
-  .es-frame[data-game='shape-shifter'][data-phase='play'] .es-frame__dock {
+     under it or a moment is named, and on the game's page the first run's Next stays where it is from one part to the next. (A lesson's
+     dock is not pinned while its first run is read: it grows with the page, frame.css.) */
+  .es-frame[data-game='shape-shifter'][data-phase='play']:not([data-intro]) .es-frame__dock,
+  .es-frame[data-game='shape-shifter'][data-placement='page'][data-phase='play'] .es-frame__dock {
     height: 33svh;
   }
 
