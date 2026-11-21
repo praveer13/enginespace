@@ -187,12 +187,14 @@ describe('the app build', () => {
     // game's record.
     // or Prove mode's panel and run (src/prove/ProveSession.tsx, W2b-T42), which a game's page loads only with `?mode=prove`, because it brings
     // the ledger's reading of the Prove window.
+    // or a graded lab's page (src/labs/GradedLabPage.tsx, W2b-T30), which the Lab page loads on demand for a lab of lane L or F that has one, as it
+    // loads a forge lab's, so that the forge labs and the stubs never carry it.
     // The compiled content is lazy too, but it is not a page: the next test holds it to account.
     const named = Object.entries(app.manifest)
       .filter(([key, chunk]) => chunk.isDynamicEntry && chunk.src !== undefined && !key.startsWith(CONTENT))
       .map(([key]) => key)
     const onDemand =
-      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/games\/[^/]+\/record\.ts|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/Attempt\.tsx|src\/map\/dueCount\.ts|src\/content\/render\/(?:GameEmbed\.tsx|reveal\.ts|Predict\.tsx|LessonLedger\.tsx|levels\.ts|Dock\.tsx|ShowOnMachine\.tsx|TraceTape\.tsx)|src\/items\/ItemBlock\.tsx|packages\/play\/predictions\/(?:commit-)?tr[0-8][ab]?\.ts|src\/trace\/TraceView\.tsx|src\/route-change\.ts|src\/prove\/ProveSession\.tsx|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
+      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/games\/[^/]+\/record\.ts|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/labs\/GradedLabPage\.tsx|src\/items\/Attempt\.tsx|src\/map\/dueCount\.ts|src\/content\/render\/(?:GameEmbed\.tsx|reveal\.ts|Predict\.tsx|LessonLedger\.tsx|levels\.ts|Dock\.tsx|ShowOnMachine\.tsx|TraceTape\.tsx)|src\/items\/ItemBlock\.tsx|packages\/play\/predictions\/(?:commit-)?tr[0-8][ab]?\.ts|src\/trace\/TraceView\.tsx|src\/route-change\.ts|src\/prove\/ProveSession\.tsx|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
     expect(named.filter((key) => !pages.includes(key) && !onDemand.test(key))).toEqual([])
   })
 

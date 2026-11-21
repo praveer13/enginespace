@@ -68,7 +68,7 @@ export const LAB_STUBS: Readonly<Record<string, LabStub>> = {
 
 /**
  * What a lab's page will hold (ARCHITECTURE §3.1): a forge lab takes a dropped `.wasm` and shows per-check results, and a GPU or local
- * lab offers its kit, a challenge and the receipt import (§8.4).
+ * lab is the numbered procedure of src/labs/GradedLabView.tsx (§8.4, REDESIGN §3.9), which these lines say in brief.
  */
 export const LAB_HOLDS = {
   forge: [
@@ -77,9 +77,9 @@ export const LAB_HOLDS = {
     'A result for each check, with the seed it ran on.',
   ],
   graded: [
-    'The kit to download.',
-    'A challenge for each stage, as a token to copy.',
-    'The receipt that your grader writes, imported here and checked in this browser.',
+    'The kit to download, with its size and SHA-256, and the commands that fetch the lab\'s inputs.',
+    'For each stage: a challenge to get, the command that grades it, and what your terminal shows when it worked.',
+    'The checks of each stage, with what each catches, and the receipt your grader writes, checked in this browser.',
   ],
 } as const
 
