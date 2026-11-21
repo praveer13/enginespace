@@ -6,8 +6,8 @@
  * those are the receipt worker's. Each module of checks builds its own registry and a test holds it to the list here, so the two cannot part.
  */
 
-/** Rule 7's re-checks (rechecks.ts). */
-export const RECHECK_IDS: readonly string[] = ['identity-tally', 'acceptance-counts', 'argmax-bank']
+/** Rule 7's re-checks (rechecks.ts), and `claims-backed`, that every claim of a performance run names an artifact the receipt carries. */
+export const RECHECK_IDS: readonly string[] = ['identity-tally', 'acceptance-counts', 'argmax-bank', 'claims-backed']
 
 /** Rule 8, for a stage that asks for evidence at all (evidence-check.ts): that the receipt carries a log with a measured row or a trace with a step window. */
 export const EVIDENCE_CHECK_IDS: readonly string[] = ['evidence']
