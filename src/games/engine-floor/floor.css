@@ -1306,11 +1306,19 @@
 
 /*
  * In a lesson's Run, where the column is wide enough for the dock to stand beside the drawing, the dock takes the frame's height for a dock
- * with a long list (frame.css) as a height of its own, so the list's box fills it just as on the game's page.
+ * with a long list (frame.css) as its least height, so the list's box fills it just as on the game's page. A long scenario card and two rows
+ * of chips can need more than that: then the dock grows to hold the box at its least height whole, and does not scroll, so the actions at
+ * its foot never stand over a tile of the box.
  */
 @container es-frame (min-width: 56rem) {
   .es-frame[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) > .es-frame__body > .es-frame__dock {
-    height: max(26rem, min(34rem, 100svh - 8rem));
+    min-height: max(26rem, min(34rem, 100svh - 8rem));
+    max-height: none;
+  }
+
+  .es-frame[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) > .es-frame__body > .es-frame__dock > .es-frame__dock-main {
+    flex: 1 0 auto;
+    overflow: visible;
   }
 }
 
