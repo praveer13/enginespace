@@ -104,9 +104,16 @@ export const waitingPlace = (scene: LineScene): number => scene.rules.findIndex(
 
 const given = (lines: readonly string[]): Given[] => lines.map((line, at) => ({ label: `line ${at + 1}`, value: code(line) }))
 
+/*
+ * The first step of each solution is the rule alone, naming no line of the ticket: at level 1 it is the step a learner is shown before
+ * answering, and the questions of a lesson's Test are asked at level 1, so it must not say which line waits or how many do.
+ */
+const WHICH_RULE: Rich = rich('Read each line for what it asks of the GPU. A line waits for it when it brings a value or a tensor back to the CPU, or asks to wait; a line that only queues GPU work, or moves no data at all, returns at once.')
+const COUNT_RULE: Rich = rich('Every pass runs the whole body again, so a line in the body that waits waits once in each pass, and a line after the loop runs once. Find the lines that wait first, then count.')
+
 function whichSteps(scene: LineScene): Step[] {
   const lines = linesOfWhich(scene)
-  const steps: Step[] = scene.rules.map((rule, at) => ({ text: rich(code(lines[at].trim()), ': ', rule.why) }))
+  const steps: Step[] = [{ text: WHICH_RULE }, ...scene.rules.map((rule, at) => ({ text: rich(code(lines[at].trim()), ': ', rule.why) }))]
   steps.push({ text: rich('So the line that waits for the GPU is ', code(lines[waitingPlace(scene)].trim()), '.') })
   return steps
 }
@@ -134,7 +141,8 @@ function countSteps(scene: CountScene): Step[] {
   const waitingLines = (rules: readonly SyncRule[], from: number): Rich =>
     rich(...rules.flatMap((rule, at) => (rule.waits ? [code(lines[from + at].trim()), ' '] : [])))
   const steps: Step[] = [
-    { text: rich('A line waits only if the rule table says so. In the body these lines wait: ', ...waitingLines(scene.body, 1), 'which is ', num(bodyWaits, { tag: 'derived', unit: 'waits' }), ' in each pass.') },
+    { text: COUNT_RULE },
+    { text: rich('In the body these lines wait: ', ...waitingLines(scene.body, 1), 'which is ', num(bodyWaits, { tag: 'derived', unit: 'waits' }), ' in each pass.') },
     { text: rich('The loop runs ', num(scene.passes, { unit: 'passes' }), ', so the body waits ', num(scene.passes * bodyWaits, { tag: 'derived', unit: 'times' }), ' in all.') },
   ]
   steps.push(
@@ -174,7 +182,7 @@ const DIAGNOSES: readonly DiagnosisRule[] = [
     }
     if (value === bodyWaits + afterWaits) return { id: `${FAMILY}.loop-once`, message: rich('That counts each line once. The body runs once for every pass of the loop, and every pass waits again.') }
     if (value === scene.body.length * scene.passes + afterWaits || value === scene.body.length * scene.passes) {
-      return { id: `${FAMILY}.every-line`, message: rich('That counts every line of the body. Only the calls that the rule table says wait are waits: a call that queues work returns at once.') }
+      return { id: `${FAMILY}.every-line`, message: rich('That counts every line of the body. Only a call that brings a value back to the CPU, or asks to wait, is a wait: a call that queues work returns at once.') }
     }
     if (value === scene.passes) return { id: `${FAMILY}.passes-only`, message: rich('That is the number of passes. Each pass waits once for every line in the body that waits, which may be more than one.') }
     return null

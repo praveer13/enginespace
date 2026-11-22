@@ -69,7 +69,7 @@ The attention moves tensors with the first two lessons' calls. The query is view
 | `view([1, 6, 16, 128])` | `(1, 6, 16, 128)` | `(12288, 2048, 128, 1)` | 0 |
 | `transpose(1, 2)` | `(1, 16, 6, 128)` | `(12288, 128, 2048, 1)` | 0 |
 
-Both steps are views. The result's second stride is `128`, one head's width, and its third `2048`, a projection row. The attention's output comes back heads first, and `o_proj` needs tokens first. On the tensor in the table, a `view` to `(1, 6, 2048)` is refused: its heads and tokens do not chain, so no one stride walks them [synthetic]. So the attention function swaps them back and ends with `contiguous()`, the one copy, and the layer's `reshape` after it is a view. **transpose(1, 2), then contiguous** [measured]
+Both steps are views. The result's second stride is `128`, one head's width, and its third `2048`, a projection row. The attention's output comes back heads first: say a contiguous `(1, 16, 6, 128)` with strides `(12288, 768, 128, 1)` [derived], and `o_proj` needs tokens first. A `view` to `(1, 6, 2048)` runs on it, silently mixing heads into tokens. After `transpose(1, 2)` its strides are `(12288, 128, 768, 1)` [derived]: a `view` to `(1, 6, 2048)` is refused. So the attention function swaps them back and ends with `contiguous()`, the one copy, and the layer's `reshape` after it is a view. **transpose(1, 2), then contiguous** [measured]
 
 Check the strides of a reshape like this one before you read on.
 

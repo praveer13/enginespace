@@ -90,6 +90,19 @@ describe('TR0 lesson 1: the numbers it prints are the model\'s', () => {
     expect(lesson1).toContain('| the transpose, `(6, 4)` with strides `(1, 6)` | `1` | `4 * 6 = 24` | refused: they do not chain |')
   })
 
+  test("lesson 3's argument for the copy runs on the attention's output: a view of it heads first runs and scrambles, and a view after the swap back is refused", () => {
+    const output = contiguousView([1, 16, 6, 128])
+    expect(output.strides).toEqual([12288, 768, 128, 1])
+    expect('error' in applyOp(output, { op: 'view', shape: [1, 6, 2048] })).toBe(false)
+    const back = applyOp(output, { op: 'transpose', a: 1, b: 2 })
+    if ('error' in back) throw new Error('the swap back is a view')
+    expect([back.view.shape, back.view.strides]).toEqual([[1, 6, 16, 128], [12288, 128, 768, 1]])
+    expect('error' in applyOp(back.view, { op: 'view', shape: [1, 6, 2048] })).toBe(true)
+    expect(lesson3).toContain('say a contiguous `(1, 16, 6, 128)` with strides `(12288, 768, 128, 1)` [derived], and `o_proj` needs tokens first. A `view` to `(1, 6, 2048)` runs on it, silently mixing heads into tokens')
+    expect(lesson3).toContain('After `transpose(1, 2)` its strides are `(12288, 128, 768, 1)` [derived]: a `view` to `(1, 6, 2048)` is refused')
+    expect(lesson3).not.toContain('On the tensor in the table, a `view` to `(1, 6, 2048)` is refused')
+  })
+
   test('the table of slices, transposes and copies is what the model gives for each call', () => {
     const [table] = findTables(lesson1).filter((t) => t.header.startsWith('| Call on a contiguous `(4, 6)` tensor |'))
     expect(table).toBeDefined()

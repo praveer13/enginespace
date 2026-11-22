@@ -5,7 +5,7 @@ import { Icon } from '@/design/components/Glyph'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { TextLink } from '@/design/components/TextLink'
 import { Sheet, SheetLine } from '@/design/components/Sheet'
-import { expiryOf, gradeCommand } from './challenge'
+import { expiryOf, gradeCommand, gradeCommandParts } from './challenge'
 import type { IssueOutcome } from './challenge'
 import { selectContents, useCopy } from './clipboard'
 import { ISSUE, stageNote, TICKET } from './copy'
@@ -46,6 +46,7 @@ export function ChallengeTicket({ event, durable, memoryOnly }: { event: Challen
   const stage = event.ref.slice('challenge:'.length)
   const lab = labForStage(stage)
   const command = gradeCommand(stage, token)
+  const parts = gradeCommandParts(stage)
   const seed = event.data.seed.toString(16).padStart(8, '0')
   return (
     <Sheet
@@ -78,7 +79,9 @@ export function ChallengeTicket({ event, durable, memoryOnly }: { event: Challen
         <p className="es-chit__label">{TICKET.run}</p>
         <p className="es-chit__command">
           <code ref={commandRef}>
-            enginespace grade {stage} --challenge <TokenText token={token} />
+            {parts.before}
+            <TokenText token={token} />
+            {parts.after}
           </code>
         </p>
         <div className="es-chit__actions">
