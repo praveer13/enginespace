@@ -42,6 +42,7 @@ import type { PoolAction } from '../packages/play/pool/types'
 import { findBanned } from '../src/copy/banned'
 import { houseActions } from '../tests/play/pool-support'
 import { clipped } from './support/site'
+import { controlNamed } from './support/tab-target'
 
 const root = new URL('..', import.meta.url).pathname
 
@@ -113,6 +114,8 @@ async function open(page: Page, level: string, { intro = 'met' }: { intro?: 'met
 
 /** Presses Tab until the focused control is named like `name`, and fails after `limit` presses. */
 async function tabTo(page: Page, name: RegExp, limit = 60) {
+  // The control is waited for before the first key: a walk that starts before it is in the page goes past where it will be.
+  await controlNamed(page, name)
   const seen: string[] = []
   for (let i = 0; i < limit; i++) {
     await page.keyboard.press('Tab')

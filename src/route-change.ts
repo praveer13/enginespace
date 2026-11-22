@@ -50,12 +50,21 @@ export function createRouteChange(place: Place): (arrival: Arrival) => void {
   /** Where the learner left each page, by history entry. */
   const left = new Map<string, number>()
   let shown: string | undefined
-  // The entry is asked for when the page scrolls, and not kept from the last call: the router changes the history before it draws the
-  // page, so a scroll that the new page causes by being shorter (the browser puts the offset back inside it) is the new entry's, and
-  // the entry that was left keeps the offset the learner gave it. This runs after the commit, and a frame can come between the two.
-  place.watchScroll(() => left.set(place.entry(), place.scrollY()))
+  /** The entry of the page on screen: the one the last call was made for. */
+  let here = place.entry()
+  // A scroll is the entry's only while the history is still on the page that is drawn. The router changes the history before it draws
+  // the page, and this runs after the commit, so a frame can come between the two; and the browser tells of a scroll a frame after it
+  // made it, by when Back may have changed the history already. A scroll in that gap is either the new page's, which the browser put
+  // back inside a shorter document, or the old page's, told late, and neither is the offset that the learner gave the entry the history
+  // is on: it is let go, and the call that follows the commit puts the scroll where it belongs.
+  place.watchScroll(() => {
+    if (place.entry() === here) left.set(here, place.scrollY())
+  })
+  // The page may have been scrolled before this module came: that offset is the entry's too. (One at the top was never scrolled.)
+  if (place.scrollY() !== 0) left.set(here, place.scrollY())
 
   return ({ pathname, hash, back, title }) => {
+    here = place.entry()
     const changed = shown !== undefined && shown !== pathname
     shown = pathname
     if (!changed) return

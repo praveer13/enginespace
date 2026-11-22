@@ -29,6 +29,7 @@ import { floorSession } from '../packages/play/engine-floor/session'
 import type { FloorAction } from '../packages/play/engine-floor/types'
 import { referencePath } from '../packages/sim/lifecycle'
 import type { Scenario } from '../packages/sim/lifecycle'
+import { controlNamed } from './support/tab-target'
 
 const root = path.resolve(import.meta.dirname, '..')
 
@@ -105,6 +106,8 @@ async function open(page: Page, entropy: number | null = null) {
 
 /** Presses Tab until the focused control is named like `name`, and fails after `limit` presses. */
 async function tabTo(page: Page, name: RegExp, limit = 60) {
+  // The control is waited for before the first key: a walk that starts before it is in the page goes past where it will be.
+  await controlNamed(page, name)
   for (let i = 0; i < limit; i++) {
     await page.keyboard.press('Tab')
     if (name.test(await activeName(page))) return

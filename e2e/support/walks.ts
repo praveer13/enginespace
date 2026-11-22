@@ -86,14 +86,36 @@ async function tabTo(walk: Walk, name: RegExp, limit = 60): Promise<Focus> {
 }
 
 /** Presses Tab until `target` has focus. */
-async function tabToLocator(walk: Walk, target: Locator, limit = 120): Promise<void> {
+export async function tabToLocator(walk: Walk, target: Locator, limit = 120): Promise<void> {
   // The control is waited for before the first key: a walk that starts before it is in the page counts its presses against the wrong page.
   await target.waitFor({ state: 'attached' })
+  const from = walk.trail.length
+  const start = await activeOf(target.page())
   for (let presses = 0; presses < limit; presses++) {
     if (await target.evaluate((element) => element === document.activeElement).catch(() => false)) return
     await walk.press('Tab')
   }
-  throw new Error(`Tab never reached ${String(target)} in ${limit} presses; it went through ${walk.trail.map((stop) => stop.name).join(' > ')}`)
+  throw new Error(await missed(walk, target, limit, start, from))
+}
+
+/** What focus was on, as a reader would name it, with its tag. */
+const activeOf = (page: Page): Promise<string> =>
+  page.evaluate(() => {
+    const active = document.activeElement
+    if (active === null || active === document.body) return 'the page itself'
+    return `${(active.getAttribute('aria-label') ?? active.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 60)} (${active.tagName.toLowerCase()})`
+  })
+
+/**
+ * Why a Tab walk failed, so that a failure explains itself: where focus was before the first key, what the target was by then, and the stops
+ * of this walk alone (the walk's trail holds every stop since the page opened).
+ */
+async function missed(walk: Walk, target: Locator, limit: number, start: string, from: number): Promise<string> {
+  const state = await target
+    .evaluate((element) => `${element.isConnected ? 'in the page' : 'gone'}${element.matches(':disabled') ? ', disabled' : ''}${element.getClientRects().length === 0 ? ', not drawn' : ''}, tabindex ${(element as HTMLElement).tabIndex}`)
+    .catch(() => 'not in the page')
+  const stops = walk.trail.slice(from).map((stop) => stop.name)
+  return `Tab never reached ${String(target)} (${state}) in ${limit} presses from ${start}; this walk went through ${stops.join(' > ')}`
 }
 
 /* ------------------------------------------------------------------------------------------------------------------ */
@@ -621,6 +643,10 @@ async function call(page: Page, walk: Walk, answer: number): Promise<void> {
     await page.keyboard.press('Enter')
   }
   await expect(page.locator('[data-full-prediction="called"]')).toBeVisible()
+  // The game puts focus on the stage's first lever, or on Step, a frame after the commit (FullControls' focusNext); until then focus is on the
+  // page itself. A key pressed in that frame races the move: a Tab that the move lands just before goes one stop past the lever, and the walk
+  // then goes round a page that has more stops than its presses. So the next key waits for the move.
+  await expect.poll(() => page.evaluate(() => document.activeElement?.closest('[data-full-levers], [data-full-step]') != null)).toBe(true)
 }
 
 /** A key of the game's, pressed with focus inside the game but on no text field. */

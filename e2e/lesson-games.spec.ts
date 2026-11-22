@@ -19,7 +19,6 @@
  *   npx playwright test e2e/lesson-games.spec.ts
  */
 import AxeBuilder from '@axe-core/playwright'
-import type { Locator } from '@playwright/test'
 import { GAMES, drawInBand, levelOf } from '../packages/play'
 import { POOL_PARTS } from '../packages/play/pool/copy'
 import { benchSession } from '../packages/play/broken-bench/session'
@@ -28,7 +27,7 @@ import { TOTAL_GAME_BLOCKS, TOTAL_LESSONS } from '../tests/content/module-counts
 import { walkOf } from './support/front'
 import { embedOf, lessonGames, openerOfRoute, playEvents, startBlock, ticketOf, type LessonGame, type StoredPlay } from './support/lessons'
 import { expect, open, quiet, test, withSettings } from './support/site'
-import { benchLevelWalk, WALKS, type Walk } from './support/walks'
+import { benchLevelWalk, tabToLocator, WALKS } from './support/walks'
 
 declare global {
   interface Window {
@@ -45,15 +44,6 @@ function titleOf(block: LessonGame): string {
   const level = game === undefined ? undefined : levelOf(game, block.level)
   if (level === undefined) throw new Error(`the registry has no level ${block.game}/${block.level}`)
   return level.title
-}
-
-/** Presses Tab until `target` has focus: the walk reads every stop on the way. */
-async function tabToLocator(walk: Walk, target: Locator, limit: number): Promise<void> {
-  for (let presses = 0; presses < limit; presses++) {
-    if (await target.evaluate((element) => element === document.activeElement).catch(() => false)) return
-    await walk.press('Tab')
-  }
-  throw new Error(`Tab never reached ${String(target)} in ${limit} presses; it went through ${walk.trail.map((stop) => stop.name).join(' > ')}`)
 }
 
 test.describe('the blocks', () => {

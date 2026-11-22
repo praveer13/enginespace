@@ -8,16 +8,18 @@
  *     live region, in that order, and a route that names no title says nothing.
  *   - Back and Forward put a page back where the learner left it, by history entry. An entry that was never scrolled is left to the
  *     browser, which may have restored it already. A scroll belongs to the entry the history is on when it happens, so the offset of a
- *     page the browser moved by shortening the document is not taken for the learner's.
+ *     page the browser moved by shortening the document is not taken for the learner's; and only while that entry's page is the one
+ *     drawn, so a scroll that the browser tells of after Back has changed the history is not the next page's. A scroll made before the
+ *     module came is kept.
  */
 import { describe, expect, test } from 'bun:test'
 import { createRouteChange } from '../../src/route-change'
 import type { Arrival, Place } from '../../src/route-change'
 
 /** A browser that writes down what it is asked to do, scrolls when told to, and has the elements `ids` names. */
-function stand(ids: string[] = []) {
+function stand(ids: string[] = [], at = 0) {
   const done: string[] = []
-  let offset = 0
+  let offset = at
   let current = 'default'
   let onScroll = () => {}
   const place: Place = {
@@ -49,6 +51,8 @@ function stand(ids: string[] = []) {
   return {
     done,
     scroll,
+    /** The browser tells of a scroll it made a frame ago: the listener hears it now, with the offset as it is now. */
+    told: () => onScroll(),
     /** The router changes the history, and a moment later the page is drawn and `arrive` is called. */
     enter(key: string) {
       current = key
@@ -171,6 +175,34 @@ describe('a scroll between the history changing and the page being drawn', () =>
     enter('k1')
     scroll(0)
     arrive('/about')
+    done.length = 0
+    go('/settings', 'default', { back: true })
+    expect(done.filter((line) => line.startsWith('scrolled'))).toEqual(['scrolled to 640'])
+  })
+})
+
+describe('a scroll that the browser tells of late', () => {
+  test("is not the entry's that Back has just put the history on, before its page is drawn", () => {
+    const { go, enter, arrive, done, scroll, told } = stand()
+    go('/settings', 'default')
+    scroll(640)
+    go('/about', 'k1')
+    go('/settings', 'default', { back: true })
+    go('/about', 'k1', { back: true })
+    // Back again, quickly: the history is on the long page's entry before the browser tells of the scroll to the top of the short page.
+    enter('default')
+    told()
+    done.length = 0
+    arrive('/settings', { back: true })
+    expect(done.filter((line) => line.startsWith('scrolled'))).toEqual(['scrolled to 640'])
+  })
+})
+
+describe('a scroll made before this module was loaded', () => {
+  test('is kept for the entry the page is on', () => {
+    const { go, done } = stand([], 640)
+    go('/settings', 'default')
+    go('/about', 'k1')
     done.length = 0
     go('/settings', 'default', { back: true })
     expect(done.filter((line) => line.startsWith('scrolled'))).toEqual(['scrolled to 640'])

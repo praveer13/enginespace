@@ -46,7 +46,21 @@ const PAGE = '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
 
 let bundle = ''
 
+/**
+ * What the page asked for and what it said, test by test: a test that fails prints it, so that a page whose hook never came (accept 1's first
+ * test, twice under load) says whether the script was asked for, served and run, and what the page threw.
+ */
+let heard: string[] = []
+
 base.beforeAll(async () => {
+  // Vite takes the kind of JSX it writes (React's development `jsxDEV` or `jsx`) from process.env.NODE_ENV, which it sets only where nothing
+  // has: a Vite dev server of a spec that ran earlier in this worker (pool, loop, engine-floor and others) leaves it "development". The harness
+  // was then written for React's development JSX against the production React that `define` picks, threw "jsxDEV is not a function" before
+  // it set `window.__es`, and the first test waited for the hook until its timeout: a spec that passed alone, in a fresh worker, and failed
+  // where the run gave its worker another spec first. So the harness is built as production whatever ran before, and the worker's own value
+  // is put back for the specs that follow.
+  const nodeEnv = process.env.NODE_ENV
+  process.env.NODE_ENV = 'production'
   const built = await build({
     root,
     configFile: false,
@@ -60,6 +74,9 @@ base.beforeAll(async () => {
       emptyOutDir: false,
       lib: { entry: path.join(root, 'e2e/support/ledger-harness.tsx'), formats: ['iife'], name: 'EsHarness', fileName: 'harness' },
     },
+  }).finally(() => {
+    if (nodeEnv === undefined) delete process.env.NODE_ENV
+    else process.env.NODE_ENV = nodeEnv
   })
   const outputs = (Array.isArray(built) ? built : [built]).flatMap((result) => ('output' in result ? result.output : []))
   const chunk = outputs.find((output) => output.type === 'chunk')
@@ -70,6 +87,9 @@ base.beforeAll(async () => {
 const test = base.extend({
   context: async ({ context }, use) => {
     const stray: string[] = []
+    heard = [`the harness script is ${bundle.length} characters`]
+    const at = Date.now()
+    const note = (line: string) => heard.push(`${((Date.now() - at) / 1000).toFixed(1)} s: ${line}`)
     await context.route('**/*', (route) => {
       const url = route.request().url()
       if (!url.startsWith(`${ORIGIN}/`)) {
@@ -77,13 +97,30 @@ const test = base.extend({
         return route.abort()
       }
       const { pathname } = new URL(url)
+      note(`served ${pathname}`)
       if (pathname === '/') return route.fulfill({ contentType: 'text/html', body: PAGE })
       if (pathname === '/harness.js') return route.fulfill({ contentType: 'text/javascript', body: bundle })
       return route.fulfill({ status: 404, body: '' })
     })
+    context.on('weberror', (error) => note(`the page threw: ${error.error().message}`))
+    context.on('console', (message) => note(`console.${message.type()}: ${message.text()}`))
+    context.on('requestfailed', (request) => note(`failed ${request.url()}: ${request.failure()?.errorText ?? ''}`))
     await use(context)
     expect(stray, 'the page makes no request that leaves its origin').toEqual([])
   },
+})
+
+test.afterEach(async ({ context }, testInfo) => {
+  if (testInfo.status === testInfo.expectedStatus) return
+  const pages = await Promise.all(
+    context.pages().map(async (page) => {
+      const state = await page
+        .evaluate(() => `${document.readyState}, hook ${typeof window.__es}, ${document.scripts.length} script(s)`)
+        .catch((error: unknown) => `not readable: ${String(error)}`)
+      return `page ${page.url()}: ${state}`
+    }),
+  )
+  console.log(`What the failed test's pages asked for and said:\n${[...heard, ...pages].join('\n')}`)
 })
 
 /* ------------------------------------------------------------------------------------------------------------------ */
