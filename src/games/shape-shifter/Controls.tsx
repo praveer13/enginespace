@@ -10,7 +10,7 @@ import { Marker } from '@/design/components/Marker'
 import { sameAction } from '@/games/kit/first-move'
 import { LessonGuessContext } from '@/games/kit/lessonGuess'
 import { changeLine } from './announce'
-import { earlyKey, KEY_SETTLE, seatInDock } from './hand'
+import { earlyKey, heldKey, KEY_SETTLE, seatInDock } from './hand'
 import { Words } from './CodeWords'
 import { choicesOf, picks } from './focus'
 import type { ShiftMode, ShiftRun } from './types'
@@ -224,7 +224,13 @@ function OpBar({ run, view, rings }: { run: ShiftRun; view: ShiftView; rings: Ri
   }
 
   return (
-    <div className="es-shift-dock__ops">
+    // A key held on an operation or a choice repeats; its repeats are not presses (heldKey, hand.ts), so a held Enter applies nothing.
+    <div
+      className="es-shift-dock__ops"
+      onKeyDownCapture={(event) => {
+        if (heldKey(event)) event.preventDefault()
+      }}
+    >
       <div
         ref={barRef}
         role="toolbar"
@@ -335,7 +341,7 @@ function Stepper({ name, face, value, min, max, onSet, ringMore }: { name: strin
     onSet(next)
   }
   return (
-    <div ref={group} className="es-shift-dock__stepper" role="group" aria-label={name} data-stepper={name}>
+    <div ref={group} className="es-shift-dock__stepper" role="group" aria-label={name} data-stepper={name} tabIndex={-1}>
       <span className="es-shift-dock__stepper-name" aria-hidden="true">
         {face}
       </span>
@@ -474,8 +480,10 @@ export function Controls({ run, mode }: ControlsProps) {
     if (ring !== null && ring !== undefined) seatInDock(ring)
   }, [ringed, guessing])
 
-  // When the guess closes or a new target opens, focus goes to the bar's first control if the learner's focus was in the dock or nowhere.
-  const key = `${at}|${guessing ? 'guess' : 'play'}`
+  // When the guess closes or a new target opens, focus goes to the bar's first control if the learner's focus was in the dock or nowhere. On
+  // `grid` it goes to the first stepper's group, which presses nothing: its first control is "one more", and the key that committed the
+  // guess, pressed again, would press it. Tab goes on to it.
+  const key = `${at}|${guessing ? 'guess' : view.grid !== null ? 'steppers' : 'play'}`
   const lastKey = useRef(key)
   useEffect(() => {
     if (lastKey.current === key) return
@@ -484,7 +492,7 @@ export function Controls({ run, mode }: ControlsProps) {
     const lost = here === null || here === document.body || !here.isConnected || ('disabled' in here && here.disabled === true)
     const dock = body.current?.closest('[data-dock]') ?? null
     if (!lost && !(dock?.contains(here) ?? false)) return
-    const first = body.current?.querySelector<HTMLElement>('input, button[data-roving][tabindex="0"], button:not(:disabled)')
+    const first = body.current?.querySelector<HTMLElement>(key.endsWith('|steppers') ? '[data-stepper]' : 'input, button[data-roving][tabindex="0"], button:not(:disabled)')
     first?.focus({ preventScroll: true })
   }, [key])
 

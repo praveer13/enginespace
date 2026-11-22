@@ -729,6 +729,7 @@
 .es-shift-dock__choices {
   display: flex;
   flex-wrap: wrap;
+  align-items: flex-start;
   gap: var(--es-space-2);
 }
 
@@ -952,6 +953,14 @@
   gap: var(--es-space-1);
 }
 
+/* Focus is put on a stepper's group, which presses nothing, when the grid's guess closes (Controls.tsx): its ring stands just clear of the
+   buttons, inside the gap to the next column. */
+.es-shift-dock__stepper:focus-visible {
+  outline: 3px solid var(--es-text-1);
+  outline-offset: 2px;
+  border-radius: var(--es-radius-control);
+}
+
 .es-shift-dock__stepper-name {
   display: none;
   font-size: var(--es-size-caption);
@@ -1050,6 +1059,27 @@
   /* Two dimensions' steppers and the row's name fit a 390 px dock's 326 px with this gap; with more the last button ran past the box. */
   .es-shift-dock__steppers {
     column-gap: var(--es-space-2);
+  }
+}
+
+/* Under 25rem the ring's word on a stepper's "one more" stands under the ring, from its right edge back under the value, and takes no width
+   of its own: the steppers keep the columns they have without it, so the last dimension's "one more" stays inside a phone's dock while the
+   ring is on and while its room is held. The room under the ring is kept as before. */
+@media (max-width: 24.999rem) {
+  .es-shift-dock__stepper .es-shift-dock__ring {
+    position: relative;
+    padding-bottom: calc(var(--es-space-1) + 1.25rem);
+  }
+
+  .es-shift-dock__stepper .es-shift-dock__ring .es-marker__tab {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    white-space: nowrap;
+  }
+
+  .es-shift-dock__stepper .es-shift-dock__ring--gone {
+    padding-bottom: 0;
   }
 }
 

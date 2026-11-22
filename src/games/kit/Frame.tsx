@@ -642,13 +642,18 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
               Undo
             </Button>
           ) : null}
-          {/* A graded run never replays its own seed: a restart draws a fresh one, as starting it did (ASSESSMENT §4.1). */}
-          <Button size="sm" variant="quiet" onClick={() => (mode === 'graded' ? newNumbers() : onRestart())}>
-            Restart level
-          </Button>
-          <Button size="sm" variant="quiet" onClick={newNumbers}>
-            New numbers
-          </Button>
+          {/* A graded run never replays its own seed: a restart draws a fresh one, as starting it did (ASSESSMENT §4.1). A Prove run has one
+              seed until its end, so neither is offered while it is on: a target that failed stays failed. */}
+          {proving && outcome === null ? null : (
+            <>
+              <Button size="sm" variant="quiet" onClick={() => (mode === 'graded' ? newNumbers() : onRestart())}>
+                Restart level
+              </Button>
+              <Button size="sm" variant="quiet" onClick={newNumbers}>
+                New numbers
+              </Button>
+            </>
+          )}
         </div>
         <div className="es-frame__mode">
           {proving ? prove.foot : props.modeSwitch}
