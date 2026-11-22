@@ -34,7 +34,7 @@ import { ReadoutStrip } from '@/games/shape-shifter/ReadoutStrip'
 import type { ShiftRun } from '@/games/shape-shifter/types'
 import { View2D } from '@/games/shape-shifter/View2D'
 import { changeLine } from '@/games/shape-shifter/announce'
-import { resultBy, SAME_SPOT, SAME_TIME, scrollToShow, seatBy, strayPress } from '@/games/shape-shifter/hand'
+import { earlyKey, KEY_SETTLE, resultBy, SAME_SPOT, SAME_TIME, scrollToShow, seatBy, seatInBoxBy, strayPress } from '@/games/shape-shifter/hand'
 
 const repo = path.resolve(import.meta.dirname, '../..')
 const LEVELS = SHAPE_SHIFTER.levels.map((level) => level.id as ShiftLevelId)
@@ -309,6 +309,39 @@ describe('what stays under the hand', () => {
     expect(seatBy(215, 8, 900, 565)).toBe(207)
     expect(seatBy(4, 8, 900, 565)).toBe(0)
     expect(seatBy(215, 8, 560, 565)).toBe(0)
+  })
+
+  test("a key's press of a picker's choice, moments after the picker opened, is the opening key pressed twice; a pointer's never is", () => {
+    // Enter on `view`, then Enter again 80 or 250 ms later: the second landed on the choice the picker had focused, and applied it.
+    expect(earlyKey(1000, 1080, 0)).toBe(true)
+    expect(earlyKey(1000, 1250, 0)).toBe(true)
+    expect(earlyKey(1000, 1000 + KEY_SETTLE, 0)).toBe(false)
+    expect(earlyKey(1000, 1080, 1)).toBe(false)
+  })
+
+  test("the ringed control is seated in a dock's box that scrolls: over its foot's \"More below\", with room for the ring's edge", () => {
+    // 390 x 844, grid's first move: the ring at 735 to 779 in the dock's box at 565 to 753, under the readout.
+    expect(seatInBoxBy({ top: 735, bottom: 779 }, { top: 565, bottom: 753 })).toBe(54)
+    expect(seatInBoxBy({ top: 600, bottom: 644 }, { top: 565, bottom: 753 })).toBe(0)
+    expect(seatInBoxBy({ top: 560, bottom: 604 }, { top: 565, bottom: 753 })).toBe(-13)
+    // Taller than the room: its top, under the ring's edge.
+    expect(seatInBoxBy({ top: 700, bottom: 900 }, { top: 565, bottom: 753 })).toBe(127)
+  })
+
+  test('a first move that was made keeps its ring\'s room, drawn empty, while the strip is held: the control is the same button, in the same place', () => {
+    const level = practice('grid')
+    const state = shiftReduce(shiftInit(level), { t: 'commit', prediction: 80 })
+    const first = shiftKit('grid', level.seed).firstMove
+    const on = renderToStaticMarkup(h(Controls, { run: fakeRun(state, { intro: { askShown: true, ring: first } }), mode: 'practice' }))
+    const spent = renderToStaticMarkup(h(Controls, { run: fakeRun(state, { intro: { askShown: true, ring: null, spent: first } }), mode: 'practice' }))
+    expect(on).toContain('class="es-marker es-shift-dock__ring"')
+    expect(spent).toContain('class="es-marker es-shift-dock__ring es-shift-dock__ring--spent"')
+    // The same markup but for the class: the button is not drawn again, and nothing round it changes its size.
+    expect(spent.replace(' es-shift-dock__ring--spent', '')).toBe(on)
+    const css = readFileSync(path.join(repo, 'src/games/shape-shifter/shape-shifter.css'), 'utf8')
+    expect(css).toMatch(/\.es-shift-dock__ring:is\(\.es-shift-dock__ring--spent, \.es-shift-dock__ring--gone\) \.es-marker__ring \{\s*box-shadow: none;/)
+    expect(css).toMatch(/\.es-shift-dock__ring--spent \.es-marker__tab \{\s*visibility: hidden;/)
+    expect(css).toMatch(/\.es-shift-dock__ring--gone \.es-marker__tab \{\s*display: none;/)
   })
 
   test('at the result the goal comes into view only where the ways on stay over the readout', () => {

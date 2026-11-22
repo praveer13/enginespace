@@ -1,6 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { drawInBand, levelOf } from '@es/play'
-import { copyOf } from '@es/play/shape-shifter/copy'
+import { copyOf, fewestPracticeGoal } from '@es/play/shape-shifter/copy'
 import { SHAPE_SHIFTER } from '@es/play/shape-shifter/entry'
 import { shiftLevel, shiftSession } from '@es/play/shape-shifter/session'
 import type { ShiftLevelId } from '@es/play/shape-shifter/types'
@@ -200,7 +200,8 @@ function ShiftLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, 
           return true
         }}
         goal={(run) => {
-          const goal = run.view.goal
+          // `fewest` in practice has undo and the same targets each time, which its graded line says it has not.
+          const goal = run.view.level === 'fewest' && run.mode === 'practice' ? fewestPracticeGoal(run.view.offered, run.view.task.of) : run.view.goal
           return {
             aim: <Words line={goal.aim} />,
             control: <Words line={goal.controls} />,

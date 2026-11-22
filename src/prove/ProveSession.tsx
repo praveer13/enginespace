@@ -7,7 +7,7 @@ import type { ProveStamp } from '@/games/kit/record'
 import type { GameComponent } from '@/games/registry'
 import { ProveContext, type ProveFrame } from './context'
 import { PROVE_COPY } from './copy'
-import { afterAttempt, opensWords, proveRef, stakeAt, stakeOf, type ProveStake } from './window'
+import { afterAttempt, openAt, openKey, opensWords, proveRef, stakeAt, stakeOf, type ProveStake } from './window'
 import './prove.css'
 
 /*
@@ -19,8 +19,11 @@ import './prove.css'
  *   2. Start mounts the game on its Prove level in graded mode, so its seed is drawn then and not before (each game draws a graded run's
  *      seed when the run starts). The frame reads the Prove run from ProveContext: the readouts are hidden until the result, and the foot
  *      strip says what the attempt is worth.
- *   3. A run that ends is stamped when it ends: `proved` when it counts, passed or not, and `practice` inside the 24 hours after the last
- *      attempt that counted (src/games/kit/record.ts). The note under the result says which, and when the next attempt that counts opens.
+ *   3. An attempt that counts is written when Start is pressed (window.ts, `openKey`), so one left before its end, by a reload or by
+ *      leaving, counts as a miss: no seed is drawn again on the same window.
+ *   4. A run that ends is stamped when it ends: `proved` when it counts, passed or not, and `practice` inside the 24 hours after the last
+ *      attempt that counted (src/games/kit/record.ts); the run that Start began counts as Start found it. Its open record is then taken
+ *      out. The note under the result says which, and when the next attempt that counts opens.
  *
  * The attestation holds for the Prove runs of this visit to the page: a run played again from the result is a Prove run too. Leaving
  * Prove mode, or a run of another level or in practice, records as it would anywhere else.
@@ -56,10 +59,16 @@ export default function ProveSession({ entry, level, Game, record }: ProveSessio
   const [started, setStarted] = useState(false)
   const [attested, setAttested] = useState(false)
   const [played, setPlayed] = useState<Played | null>(null)
+  // The attempt Start began and that has not ended, with whether it counts; and the open records this visit wrote, which are its own.
+  const [attempt, setAttempt] = useState<{ readonly at: number; readonly counts: boolean } | null>(null)
+  const [mine] = useState(() => new Set<number>())
 
-  // What an attempt made now is worth: the ledger's window, moved on by this visit's own attempt until the ledger has read it back.
-  const ledgerStake = evidence.ready ? stakeOf(evidence.events, ref, now) : null
-  const stake = played === null ? ledgerStake : afterAttempt(ledgerStake ?? OPEN, played)
+  // What an attempt made now is worth: the ledger's window, with an attempt left before its end (another visit's open record), moved on by
+  // this visit's own attempt until the ledger has read it back. While Start's run is on, it is worth what it was worth at Start.
+  const open = openAt(evidence.working.get(openKey(ref))?.value)
+  const left = open === null || mine.has(open) ? null : open
+  const ledgerStake = evidence.ready ? stakeOf(evidence.events, ref, now, 'play', left) : null
+  const stake = attempt !== null ? (attempt.counts ? OPEN : (ledgerStake ?? OPEN)) : played === null ? ledgerStake : afterAttempt(ledgerStake ?? OPEN, played)
 
   // The run's own `onFinish` (useRun.ts holds the latest, so this reads the stake as it stands when the run ends).
   const onFinish = (result: RunResult, mode: GameMode) => {
@@ -68,9 +77,12 @@ export default function ProveSession({ entry, level, Game, record }: ProveSessio
       return
     }
     const at = clock()
-    // A run that ends before the ledger is read is judged on what is known: no attempt that counted.
-    const counts = stakeAt(stake ?? OPEN, at).counts
+    // Start's run counts as Start found it. A run played again from the result is judged when it ends, and one that ends before the ledger
+    // is read on what is known: no attempt that counted.
+    const counts = attempt !== null ? attempt.counts : stakeAt(stake ?? OPEN, at).counts
     record(result, mode, { counts })
+    if (attempt?.counts === true) void evidence.deleteWorking(openKey(ref))
+    setAttempt(null)
     setPlayed({
       record: result.record,
       at,
@@ -156,7 +168,15 @@ export default function ProveSession({ entry, level, Game, record }: ProveSessio
       attested={attested}
       onAttest={setAttested}
       onStart={() => {
-        setNow(clock())
+        const at = clock()
+        // The attempt is written as it starts, when it counts: one left before its end is then a miss, not a fresh draw.
+        const counts = stakeAt(stake ?? OPEN, at).counts
+        if (counts) {
+          mine.add(at)
+          void evidence.setWorking(openKey(ref), { at: new Date(at).toISOString() })
+        }
+        setAttempt({ at, counts })
+        setNow(at)
         setStarted(true)
       }}
       back={back}
@@ -185,9 +205,11 @@ export function ProvePanel({ entry, levelTitle, stake, when, attested, onAttest,
       ? PROVE_COPY.reading
       : stake.counts || when === null
         ? PROVE_COPY.counts
-        : stake.last?.ok === false
-          ? PROVE_COPY.waitMissed(when)
-          : PROVE_COPY.waitPassed(when)
+        : stake.last?.left === true
+          ? PROVE_COPY.waitLeft(when)
+          : stake.last?.ok === false
+            ? PROVE_COPY.waitMissed(when)
+            : PROVE_COPY.waitPassed(when)
   return (
     <section
       className="es-prove"

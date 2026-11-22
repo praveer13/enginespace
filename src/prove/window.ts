@@ -6,6 +6,11 @@ import type { LedgerEvent } from '@es/ledger/types'
  * a Prove run can be played at once, on fresh seeds, and is stamped `practice` (src/games/kit/record.ts). A failed attempt can therefore be
  * retried straight away at practice weight, and a credited one opens a 24-hour window before the next credited attempt.
  *
+ * An attempt that counts is written when it starts, as the ledger's working record `openKey(ref)` with the time it started, and taken out
+ * when the run ends and its event is written. A record still there is an attempt left before its end, by a reload, by leaving the page or
+ * by Leave Prove mode: it counts as a miss at the time it started, and opens the window as a miss does. Otherwise a target that failed could
+ * be wiped, and the seed drawn again until the first target looked easy. The record is a working record, not evidence: it credits nothing.
+ *
  * The 24 hours are kernelspace's (`RETRY_AFTER_MS` in its prove.ts at d478f91), as ASSESSMENT §7.1 records. Everything here is a function
  * of its arguments: the clock is passed in, so a test sets it.
  */
@@ -17,8 +22,8 @@ export const PROVE_WINDOW_MS = 24 * 60 * 60 * 1000
 export interface ProveStake {
   /** Whether an attempt made now counts: no attempt that counted lies in the 24 hours before now. */
   readonly counts: boolean
-  /** The newest attempt that counted, at any time, if there is one. */
-  readonly last: { readonly at: number; readonly ok: boolean } | null
+  /** The newest attempt that counted, at any time, if there is one: `left` when it was left before its end. */
+  readonly last: { readonly at: number; readonly ok: boolean; readonly left?: true } | null
   /** When the next attempt that counts opens, in ms; null when one made now counts. */
   readonly opensAt: number | null
 }
@@ -26,18 +31,30 @@ export interface ProveStake {
 /** The ref a Prove run of this level writes: the level's own `play:` ref, as any run of it does. */
 export const proveRef = (game: string, level: string): string => `play:${game}/${level}`
 
+/** The working record of a Prove attempt of `ref` that has started and not yet ended: `{ at }`, the time it started. */
+export const openKey = (ref: string): string => `prove-open:${ref}`
+
+/** When the open attempt in a working record's value started, in ms, or null where the value holds none. */
+export function openAt(value: unknown): number | null {
+  if (typeof value !== 'object' || value === null || !('at' in value) || typeof value.at !== 'string') return null
+  const at = Date.parse(value.at)
+  return Number.isFinite(at) ? at : null
+}
+
 /**
  * What an attempt made at `now` is worth, from the events the ledger holds. Events of other refs and other provenances are left out. A game's Prove
  * run is a `play` event; "Defend your receipt" writes a `prove` event of its lab (src/receipts/defend), and reads its window with `kind` `prove`.
+ * `left` is when an attempt that counted started and never ended (openKey), or null: newer than every event, it is the last attempt, a miss.
  */
-export function stakeOf(events: readonly LedgerEvent[], ref: string, now: number, kind: 'play' | 'prove' = 'play'): ProveStake {
-  let last: { at: number; ok: boolean } | null = null
+export function stakeOf(events: readonly LedgerEvent[], ref: string, now: number, kind: 'play' | 'prove' = 'play', left: number | null = null): ProveStake {
+  let last: { at: number; ok: boolean; left?: true } | null = null
   for (const event of events) {
     if (event.kind !== kind || event.ref !== ref || event.provenance !== 'proved') continue
     const at = Date.parse(event.at)
     if (!Number.isFinite(at)) continue
     if (last === null || at > last.at) last = { at, ok: event.ok }
   }
+  if (left !== null && (last === null || left > last.at)) last = { at: left, ok: false, left: true }
   const opensAt = last === null ? null : last.at + PROVE_WINDOW_MS
   return opensAt !== null && now < opensAt ? { counts: false, last, opensAt } : { counts: true, last, opensAt: null }
 }

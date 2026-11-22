@@ -824,6 +824,8 @@ async function shiftOp(page: Page, walk: Walk, op: ShiftOp): Promise<void> {
   await page.keyboard.press('Enter')
   if (op.op === 'contiguous') return
   await expect.poll(() => page.evaluate(() => document.activeElement?.closest('[data-shift-picker]') != null), { message: 'focus is in the picker' }).toBe(true)
+  // A key's press of a choice counts once the picker has stood a moment (Controls.tsx): sooner, it is the key that opened it, pressed twice.
+  await page.locator('[data-shift-picker][data-settled]').waitFor()
   await arrowTo(page, walk, '[data-shift-picker]', `[data-choice="${choiceFace(op)}"]`)
   await page.keyboard.press('Enter')
 }

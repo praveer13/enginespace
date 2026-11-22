@@ -403,7 +403,7 @@ A Prove attempt opens a panel that asks the learner to close their coding agent 
 
 ### 7.3 Retries and returns
 
-A failed Prove attempt can be retried at once on fresh seeds at `practice` weight; a credited one opens a 24-hour window before the next credited attempt. One question per module returns in Today 30 days after the first `proved` event (kernelspace H4; `RETURN_AFTER_DAYS` [measured at d478f91]).
+A failed Prove attempt can be retried at once on fresh seeds at `practice` weight; a credited one opens a 24-hour window before the next credited attempt. An attempt that counts is written when it starts, so one left before its end (a reload, Leave Prove mode, a closed tab) counts as a miss and opens the window as a miss does: a target that has failed cannot be wiped by drawing the seed again. One question per module returns in Today 30 days after the first `proved` event (kernelspace H4; `RETURN_AFTER_DAYS` [measured at d478f91]).
 
 ## 8. Keep: Today, VRK₃₀ and change cards
 

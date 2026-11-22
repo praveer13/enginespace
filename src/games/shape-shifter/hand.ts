@@ -3,9 +3,11 @@
  *
  *   A press that lands where the press before it landed, moments after it, on a control that was not the one pressed then, is a second
  *   press meant for the first control: the result, the next target's guess or the steppers came up under the pointer in between. It is
- *   ignored, so a double tap on contiguous() or Launch never presses Next level, New numbers or Skip the guess. A key press is never
- *   ignored, and a control pressed again (a stepper's "one more" held down) is still the same control. A picker's choice is never a stray:
- *   the picker opens under the bar, never under the press that opened it, so a choice at that spot is one the learner scrolled to.
+ *   ignored, so a double tap on contiguous() or Launch never presses Next level, New numbers or Skip the guess. A key press is ignored
+ *   in one place only: a picker takes focus to a choice as it opens, so a key that opened it, pressed again at once, would press that
+ *   choice (earlyKey). A control pressed again (a stepper's "one more" held down) is still the same control. A picker's choice pressed by a
+ *   pointer is never a stray: the picker opens under the bar, never under the press that opened it, so a choice at that spot is one the
+ *   learner scrolled to.
  *
  *   On a phone the drawing stands in the page's flow over the pinned dock, so the cells and the buffer are read with the page: a tensor
  *   that grows or shrinks would move a dock that stands in the flow (scrolled to the page's foot, or on a screen too short to pin it).
@@ -62,6 +64,53 @@ export function guardPresses(root: HTMLElement): () => void {
   return () => {
     root.removeEventListener('pointerdown', down, true)
     root.removeEventListener('click', click, true)
+  }
+}
+
+/**
+ * How long (ms) after a picker opens a key's press of one of its choices is still the key that opened it [estimated: two presses of Enter
+ * meant as one land 80 to 250 ms apart, and a held key repeats after about 500 ms].
+ */
+export const KEY_SETTLE = 500
+
+/**
+ * Whether a press of a picker's choice is a key pressed twice: a key's click (no pointer, `detail` 0) that came within KEY_SETTLE of the
+ * picker opening (`openedAt` and `at` on the page's clock). A pointer's press is never one: the picker opens under the bar, away from it. Pure.
+ */
+export function earlyKey(openedAt: number, at: number, detail: number): boolean {
+  return detail === 0 && at - openedAt < KEY_SETTLE
+}
+
+/** The height (px) of a box's "More below" at its foot (shape-shifter.css, frame.css: 1.75rem), which a control seated in the box stays over. */
+const MORE_BELOW = 28
+
+/** The room (px) kept over a seated control's top, for its ring's edge. */
+const SEAT_ABOVE = 8
+
+/**
+ * How far (px) a box that scrolls scrolls to show `target` whole over its foot's "More below", or its top where it is taller than the room:
+ * 0 where it is shown already. Pure.
+ */
+export function seatInBoxBy(target: { top: number; bottom: number }, box: { top: number; bottom: number }, below = MORE_BELOW): number {
+  const room = box.bottom - below
+  const top = box.top + SEAT_ABOVE
+  if (target.top >= top && target.bottom <= room) return 0
+  if (target.top < top) return target.top - top
+  return Math.min(target.bottom - room, target.top - top)
+}
+
+/**
+ * Brings `target` into view inside the dock that holds it (or inside `within`, where given), by scrolling the boxes that scroll there and
+ * never the page: a pinned dock whose steppers or picker scroll inside it keeps the control the intro rings over the readout, where the
+ * learner can see it and press it.
+ */
+export function seatInDock(target: HTMLElement, within?: Element | null): void {
+  const room = within ?? target.closest('[data-dock]')
+  if (room === null) return
+  for (let box = target.parentElement; box !== null && room.contains(box); box = box.parentElement) {
+    if (!/auto|scroll/.test(getComputedStyle(box).overflowY) || box.scrollHeight <= box.clientHeight + 1) continue
+    const by = seatInBoxBy(target.getBoundingClientRect(), box.getBoundingClientRect())
+    if (Math.abs(by) >= 1) box.scrollTop += by
   }
 }
 
