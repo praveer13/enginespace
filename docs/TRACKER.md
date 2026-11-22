@@ -1888,6 +1888,8 @@ The plan of wave 1 did not foresee these; the coordinator added each from a chec
 - [=] W2b-T64 · Room on the game routes, so that a sixth game can register (wave 1b)
 - [=] W2b-T65 · Keyboard walks that start before their controls exist: two tests that failed the merge gate at random (wave 1b)
 - [=] W2b-T66 · The merge gate lists a renamed file under both names, so that a rename cannot skip the browser tests of the feature it left (wave 1b)
+- [=] W2b-T67 · Tensor views' level tests finish inside their own timeouts at nightly size (wave 1b, after its exit check)
+- [=] W2b-T68 · Three browser tests that failed the merge gate at random: the TR2 lesson-predict walk, scroll restored on Back, and one ledger conformance test (wave 1b, after its exit check)
 
 ---
 
