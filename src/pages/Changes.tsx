@@ -52,7 +52,9 @@ export function Component() {
                     Kind
                   </th>
                   <th scope="col">Pinned to</th>
-                  <th scope="col">Last read</th>
+                  <th scope="col" className="es-pins__readcol">
+                    Last read
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -69,8 +71,12 @@ export function Component() {
                         {entry.version === undefined ? null : <span>{entry.version}</span>}
                         {entry.commit === undefined ? null : <code>{shortCommit(entry.commit)}</code>}
                       </div>
+                      {/* A phone has no room for the date's column either: it sits under the pin, as the kind sits under the name. */}
+                      <span className="es-pins__readline">
+                        Last read <time dateTime={entry.checkedAt}>{entry.checkedAt}</time>
+                      </span>
                     </td>
-                    <td className="es-pins__read">
+                    <td className="es-pins__read es-pins__readcol">
                       <time dateTime={entry.checkedAt}>{entry.checkedAt}</time>
                     </td>
                   </tr>

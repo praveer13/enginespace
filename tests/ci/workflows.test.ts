@@ -728,6 +728,14 @@ describe('reserved steps', () => {
     'W2-T08',
     // W2's grader track, whose checks the tree meets in files (W2b-T01 set their markers to it), and W2b-T01 itself.
     'W2-T01', 'W2-T03', 'W2-T05', 'W2-T06', 'W2-T09', 'W2-T10', 'W2-T28', 'W2-T43', 'W2b-T01',
+    // Wave 1 of the second plan, in wave-2m1a and wave-2m1b: the tasks of W2 that the two halves built, and every W2b task that merged, which
+    // the exit review of wave 1b (W2b-T39) marked `[=]`. W2-T16 waits for the owner's weights job and stays `[~]`;
+    // W2-T44 stays `[ ]`, because tests/content/predict.test.ts holds its heading open.
+    'W2-T14', 'W2-T18', 'W2-T42', 'W2b-T02', 'W2b-T43', 'W2b-T03', 'W2b-T04', 'W2b-T05', 'W2b-T06', 'W2b-T07', 'W2b-T40', 'W2b-T09',
+    'W2b-T10', 'W2b-T11', 'W2b-T12', 'W2b-T13', 'W2b-T14', 'W2b-T15', 'W2b-T45', 'W2b-T16', 'W2b-T41', 'W2b-T17', 'W2b-T18', 'W2b-T19', 'W2b-T20',
+    'W2b-T22', 'W2b-T21', 'W2b-T44', 'W2b-T23', 'W2b-T24', 'W2b-T25', 'W2b-T47', 'W2b-T30', 'W2b-T48', 'W2b-T49', 'W2b-T31', 'W2b-T50', 'W2b-T37',
+    'W2b-T42', 'W2b-T26', 'W2b-T27', 'W2b-T46', 'W2b-T28', 'W2b-T29', 'W2b-T32', 'W2b-T51', 'W2b-T52', 'W2b-T33', 'W2b-T34', 'W2b-T35', 'W2b-T36',
+    'W2b-T53',
   ]
 
   /** A reserved step is one whose whole command is the echo. A step that echoes it only where a file is missing (the content compile, prepare-pages, the labs) switches on by file, and is not reserved. */
