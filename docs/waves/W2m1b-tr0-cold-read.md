@@ -171,7 +171,7 @@ Each row of this report, closed: rewritten in the lessons at the commit whose su
 - `l2:59`, "streams": rewritten. The part on syncs says a queue that holds GPU work is called a stream.
 - `l2:32`, the batch dimension the game does not have: rewritten ("The batch counts the prompts run together, and the level leaves it out.").
 - `l2:74`, `range(24)` not said to be arbitrary: rewritten, in the sentence after the loop.
-- `l2:5`, "Builds on" names T5.L3 and T0.L6, which the prose does not use: rewritten to T4.L1 and T5.L1. The module page's prerequisites are the `course.yaml` entry and are unchanged: listed for the owner, since TR0 is an advised primer and each lesson now carries the terms it leans on.
+- `l2:5`, "Builds on" names T5.L3 and T0.L6, which the prose does not use: rewritten to T0.L3 (strides) and T5.L1 (attention heads). The module page's prerequisites are the `course.yaml` entry and are unchanged: listed for the owner, since TR0 is an advised primer and each lesson now carries the terms it leans on.
 - `l3:39`, RMSNorm in the configuration table before it is given: rewritten ("the small number every norm adds before its square root").
 - `l3:58`, `silu`, the gate and the up projection: rewritten. The MLP's step says the activation of the gate projection multiplies the up projection element by element, and that `silu` acts on each element on its own.
 - `l3:101`, "the mask", never given, and a second meaning in lesson 4: rewritten. Step 5 says the mask added to the scores is causal and what it lets a token read; the cache's table names it "the causal mask".

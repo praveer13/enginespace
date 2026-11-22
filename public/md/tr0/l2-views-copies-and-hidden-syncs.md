@@ -2,7 +2,7 @@
 
 _PyTorch for the Rust-first, and reading Triton · lesson `tr0.l2` · review · about 50 minutes [estimated]_
 
-Builds on kernelspace: `ks:T4.L1`, `ks:T5.L1`.
+Builds on kernelspace: `ks:T0.L3`, `ks:T5.L1`.
 
 Knowledge components: `tr0.view-vs-copy`, `tr0.hidden-syncs`.
 

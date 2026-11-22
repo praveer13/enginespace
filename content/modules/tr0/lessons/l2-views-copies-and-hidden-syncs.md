@@ -4,7 +4,7 @@ module: tr0
 title: "Views, copies, and the syncs you cannot see"
 minutes: 50                       # [estimated]; the compiler recomputes reading minutes and warns past 20 %
 kcs: [tr0.view-vs-copy, tr0.hidden-syncs]
-builds_on: [ks:T4.L1, ks:T5.L1]
+builds_on: [ks:T0.L3, ks:T5.L1]
 status: review                    # draft | review | live
 lanes: [B]
 games: [shape-shifter]
