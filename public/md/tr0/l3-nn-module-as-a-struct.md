@@ -22,7 +22,7 @@ A checkpoint is a file of named tensors, and the module tree is the code that co
 model.layers.0.self_attn.q_proj.weight
 ```
 
-How `nn.Module` builds such names is not in the PyTorch documents the course read [unverified]. The lab's loader checks it for you, because it refuses a name that has no field to go into.
+How `nn.Module` builds such names is not in the PyTorch documents the course read [unverified]. The lab checks only the numbers your `build` returns, so a name that fits no field is yours to catch: `load_state_dict(strict=True)` refuses one [unverified].
 
 The configuration fixes every size of Qwen3-0.6B, so a forward pass is written from it and never from typed numbers. These are its values, each read at the model's pinned revision.
 
@@ -57,7 +57,7 @@ Each piece, in the order the layer runs them:
 5. **The scores.** They are scaled by the head size to the power of minus one half. **head size to the power -0.5** [measured]
 6. **The MLP.** `Qwen3MLP` applies the activation to the gate projection, multiplies by the up projection and applies the down projection, and all three have no bias. **down(act(gate(x)) * up(x))** [measured] The activation is `silu`. **silu** [measured]
 
-Where the layer reshapes, it uses the calls of the first two lessons: `view` into heads and `transpose(1, 2)`, which are free, and a `reshape` with a `contiguous()` after the attention. **view, then transpose(1, 2)** [measured] **reshape, then contiguous** [measured]
+Where the layer reshapes, it uses the calls of the first two lessons: `view` into heads and `transpose(1, 2)`, which are free. The attention function ends with `contiguous()`, the one copy, and the layer's `reshape` after it is a view. **view, then transpose(1, 2)** [measured] **transpose(1, 2), then contiguous** [measured]
 
 ## Shapes through one layer
 
@@ -73,7 +73,7 @@ Each shape is the batch, the tokens and then the hidden size, or the vocabulary 
 
 A module returns what its code makes, so the strides the grader records are your code's. A contiguous tensor has the strides above, and one that a `transpose` left has others.
 
-Inside the attention the query takes the path the pinned code gives it. The projection's `(1, 6, 2048)` output is viewed as `(1, 6, 16, 128)` and then transposed. Here are the steps, with the elements each moved. Printed by the course's model on 2026-11-21 at `0dc2dcc`.
+The query is viewed, normed on each head and transposed. The norm keeps shape and strides, so the table skips it. The projection's `(1, 6, 2048)` output is viewed as `(1, 6, 16, 128)` and then transposed. Here are the steps and the elements each moved. Printed by the course's model on 2026-11-21 at `0dc2dcc`.
 
 | After | Shape [synthetic] | Strides [synthetic] | Moved [synthetic] |
 |---|---|---|---|
@@ -81,7 +81,7 @@ Inside the attention the query takes the path the pinned code gives it. The proj
 | `view([1, 6, 16, 128])` | `(1, 6, 16, 128)` | `(12288, 2048, 128, 1)` | 0 |
 | `transpose(1, 2)` | `(1, 16, 6, 128)` | `(12288, 128, 2048, 1)` | 0 |
 
-Neither step moved an element. The second dimension of the result has stride `128`, one head's width, and the third has `2048`, a whole projection row. Going back, a `view` to `(1, 6, 2048)` is refused, because no one stride walks the heads and then the tokens [synthetic]. That is why the layer makes a copy at the end of the attention and not a view.
+Neither step moved an element. The second dimension of the result has stride `128`, one head's width, the third `2048`, a whole projection row. Going back, a `view` to `(1, 6, 2048)` is refused: no one stride walks the heads and then the tokens [synthetic]. That is why the attention function ends with a copy and the layer's `reshape` after it is a view.
 
 Check the strides of a reshape like this one before you read on.
 
@@ -129,7 +129,7 @@ Three questions on new tensors: two ask for a stride after the reshapes of atten
 - `qwen3.config.rope-theta`: Qwen3-0.6B's rotary embedding has a base (theta) of 1000000. Value 1000000 [measured], checked 2026-11-20 (source: Qwen/Qwen3-0.6B at c1899de2, config.json, rope_theta <https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L22>, read 2026-11-20).
 - `qwen3.config.tied-embeddings`: Qwen3-0.6B ties its output projection to its embedding table, so its checkpoint holds one table for both. Value true [measured], checked 2026-11-20 (source: Qwen/Qwen3-0.6B at c1899de2, config.json, tie_word_embeddings <https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L24>, read 2026-11-20).
 - `qwen3.config.vocab-size`: Qwen3-0.6B's vocabulary has 151936 entries. Value 151936 [measured], checked 2026-11-20 (source: Qwen/Qwen3-0.6B at c1899de2, config.json, vocab_size <https://huggingface.co/Qwen/Qwen3-0.6B/resolve/c1899de289a04d12100db370d81485cdf75e47ca/config.json#L29>, read 2026-11-20).
-- `transformers.qwen3.attn-contiguous`: After the attention, the output is reshaped to (batch, tokens, heads times head size) and made contiguous before the output projection. Value reshape, then contiguous [measured], checked 2026-11-20 (source: transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3Attention.forward <https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L270>, read 2026-11-20).
+- `transformers.qwen3.attn-fn-contiguous`: The attention function ends by swapping the heads and the tokens back with transpose(1, 2) and making the result contiguous, so the tensor the layer then reshapes is already in one run. Value transpose(1, 2), then contiguous [measured], checked 2026-11-21 (source: transformers v5.19.0, models/qwen3/modeling_qwen3.py, eager_attention_forward <https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L197>, read 2026-11-21).
 - `transformers.qwen3.attn-projections`: Qwen3Attention has three separate projections for the query, the key and the value, and an output projection. The query's output width is the number of attention heads times the head size, and the key's and the value's is the number of key and value heads times the head size. Value q_proj, k_proj, v_proj and o_proj [measured], checked 2026-11-20 (source: transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3Attention.__init__ <https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L217-L227>, read 2026-11-20).
 - `transformers.qwen3.attn-scaling`: The attention scores are scaled by the head size to the power of minus one half. Value head size to the power -0.5 [measured], checked 2026-11-20 (source: transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3Attention.__init__ <https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L213>, read 2026-11-20).
 - `transformers.qwen3.attn-views`: The attention reshapes each projection with view into (batch, tokens, heads, head size) and swaps the first two inner dimensions with transpose(1, 2). Both are views. Value view, then transpose(1, 2) [measured], checked 2026-11-20 (source: transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3Attention.forward <https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L244-L246>, read 2026-11-20).

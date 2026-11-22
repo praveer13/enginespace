@@ -285,6 +285,15 @@ The "how checked" column says what was done. "requote.ts and read" means the scr
 | `labs/gpu/tr0-forward/LAB.md:95` | stage 3 compares against a recompute by the reference and by the learner's uncached pass | `tr0_forward.py` L12-L13 | verified |
 | `labs/gpu/tr0-forward/LAB.md:105` | each grade writes under `receipts/` | `grade --help`: `--out DIR` (default: receipts) | verified |
 
+## Closing lines (W2b-T36)
+
+- W1: fixed. Lessons 2 and 3 now say the copy is made at the end of the attention function (`transpose(1, 2).contiguous()`), and that the layer's own `reshape(...).contiguous()` finds a tensor already in one run. A new claim `transformers.qwen3.attn-fn-contiguous` (L197) holds the quote, and the text of `transformers.qwen3.attn-contiguous` says what L270 does and no more.
+- W2: fixed. Lesson 3 no longer says the lab's loader refuses a name. It says the lab checks the numbers `build` returns and that `load_state_dict(strict=True)` refuses a stray name [unverified].
+- W3: fixed. The card `tensor` now says a Triton interpreter run of the course's kernel wrote what the grid model counts for two launches, and that no compiled run has been compared.
+- N1: fixed in lesson 3 (the norm on each head sits between the view and the transpose and keeps shape and strides).
+- N2 and N3: left. Neither is wrong; N2 would cite a claim of another module.
+- F1 and F3 are outside this task's files and stay open.
+
 ## Follow-ups
 
 - F1. **`scripts/claims/requote.ts` puts a quote on the wrong lines in a file with characters outside the Basic Multilingual Plane.** `locate()` walks the text by code point (`for (const ch of text)`) and appends each character to `squashed` with one entry in `lineOf`. But `squashed.indexOf` counts UTF-16 units, and a character outside the BMP is two of them, so every such character before a match moves the match's line one character later. `src/transformers/models/qwen3/modeling_qwen3.py` at v5.19.0 has 96 such characters in its banner, and the script reports 5 verified quotes as "moved" (exit 1). One fix: push the line twice for a surrogate pair, or iterate by UTF-16 index. Add a test with an emoji line above the quote. The script is outside this task's files, so it was not changed.

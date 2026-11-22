@@ -1163,9 +1163,22 @@
   ttlDays: 90
   pin: transformers
 
+- id: transformers.qwen3.attn-fn-contiguous
+  value: 'transpose(1, 2), then contiguous'
+  text: 'The attention function ends by swapping the heads and the tokens back with transpose(1, 2) and making the result contiguous, so the tensor the layer then reshapes is already in one run.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L197
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, eager_attention_forward'
+    quote: 'attn_output = attn_output.transpose(1, 2).contiguous()'
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: transformers
+
 - id: transformers.qwen3.attn-contiguous
   value: 'reshape, then contiguous'
-  text: 'After the attention, the output is reshaped to (batch, tokens, heads times head size) and made contiguous before the output projection.'
+  text: 'After the attention function, the layer reshapes its output to (batch, tokens, heads times head size) and calls contiguous before the output projection.'
   tag: measured
   source:
     url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L270

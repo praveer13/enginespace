@@ -28,7 +28,7 @@ A checkpoint is a file of named tensors, and the module tree is the code that co
 model.layers.0.self_attn.q_proj.weight
 ```
 
-How `nn.Module` builds such names is not in the PyTorch documents the course read [unverified]. The lab's loader checks it for you, because it refuses a name that has no field to go into.
+How `nn.Module` builds such names is not in the PyTorch documents the course read [unverified]. The lab checks only the numbers your `build` returns, so a name that fits no field is yours to catch: `load_state_dict(strict=True)` refuses one [unverified].
 
 The configuration fixes every size of Qwen3-0.6B, so a forward pass is written from it and never from typed numbers. These are its values, each read at the model's pinned revision.
 
@@ -67,7 +67,7 @@ Each piece, in the order the layer runs them:
 5. **The scores.** They are scaled by the head size to the power of minus one half. {{claim:transformers.qwen3.attn-scaling}}
 6. **The MLP.** `Qwen3MLP` applies the activation to the gate projection, multiplies by the up projection and applies the down projection, and all three have no bias. {{claim:transformers.qwen3.mlp}} The activation is `silu`. {{claim:qwen3.config.activation}}
 
-Where the layer reshapes, it uses the calls of the first two lessons: `view` into heads and `transpose(1, 2)`, which are free, and a `reshape` with a `contiguous()` after the attention. {{claim:transformers.qwen3.attn-views}} {{claim:transformers.qwen3.attn-contiguous}}
+Where the layer reshapes, it uses the calls of the first two lessons: `view` into heads and `transpose(1, 2)`, which are free. The attention function ends with `contiguous()`, the one copy, and the layer's `reshape` after it is a view. {{claim:transformers.qwen3.attn-views}} {{claim:transformers.qwen3.attn-fn-contiguous}}
 
 ## Shapes through one layer
 
@@ -83,7 +83,7 @@ Each shape is the batch, the tokens and then the hidden size, or the vocabulary 
 
 A module returns what its code makes, so the strides the grader records are your code's. A contiguous tensor has the strides above, and one that a `transpose` left has others.
 
-Inside the attention the query takes the path the pinned code gives it. The projection's `(1, 6, 2048)` output is viewed as `(1, 6, 16, 128)` and then transposed. Here are the steps, with the elements each moved. Printed by the course's model on 2026-11-21 at `0dc2dcc`.
+The query is viewed, normed on each head and transposed. The norm keeps shape and strides, so the table skips it. The projection's `(1, 6, 2048)` output is viewed as `(1, 6, 16, 128)` and then transposed. Here are the steps and the elements each moved. Printed by the course's model on 2026-11-21 at `0dc2dcc`.
 
 | After | Shape [synthetic] | Strides [synthetic] | Moved [synthetic] |
 |---|---|---|---|
@@ -91,7 +91,7 @@ Inside the attention the query takes the path the pinned code gives it. The proj
 | `view([1, 6, 16, 128])` | `(1, 6, 16, 128)` | `(12288, 2048, 128, 1)` | 0 |
 | `transpose(1, 2)` | `(1, 16, 6, 128)` | `(12288, 128, 2048, 1)` | 0 |
 
-Neither step moved an element. The second dimension of the result has stride `128`, one head's width, and the third has `2048`, a whole projection row. Going back, a `view` to `(1, 6, 2048)` is refused, because no one stride walks the heads and then the tokens [synthetic]. That is why the layer makes a copy at the end of the attention and not a view.
+Neither step moved an element. The second dimension of the result has stride `128`, one head's width, the third `2048`, a whole projection row. Going back, a `view` to `(1, 6, 2048)` is refused: no one stride walks the heads and then the tokens [synthetic]. That is why the attention function ends with a copy and the layer's `reshape` after it is a view.
 
 Check the strides of a reshape like this one before you read on.
 
