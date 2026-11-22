@@ -46,6 +46,12 @@ const PAGE = '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>
 
 let bundle = ''
 
+/**
+ * What the page asked for and what it said, test by test: a test that fails prints it, so that a page whose hook never came (accept 1's first
+ * test, twice under load) says whether the script was asked for, served and run, and what the page threw.
+ */
+let heard: string[] = []
+
 base.beforeAll(async () => {
   const built = await build({
     root,
@@ -70,6 +76,9 @@ base.beforeAll(async () => {
 const test = base.extend({
   context: async ({ context }, use) => {
     const stray: string[] = []
+    heard = [`the harness script is ${bundle.length} characters`]
+    const at = Date.now()
+    const note = (line: string) => heard.push(`${((Date.now() - at) / 1000).toFixed(1)} s: ${line}`)
     await context.route('**/*', (route) => {
       const url = route.request().url()
       if (!url.startsWith(`${ORIGIN}/`)) {
@@ -77,13 +86,30 @@ const test = base.extend({
         return route.abort()
       }
       const { pathname } = new URL(url)
+      note(`served ${pathname}`)
       if (pathname === '/') return route.fulfill({ contentType: 'text/html', body: PAGE })
       if (pathname === '/harness.js') return route.fulfill({ contentType: 'text/javascript', body: bundle })
       return route.fulfill({ status: 404, body: '' })
     })
+    context.on('weberror', (error) => note(`the page threw: ${error.error().message}`))
+    context.on('console', (message) => note(`console.${message.type()}: ${message.text()}`))
+    context.on('requestfailed', (request) => note(`failed ${request.url()}: ${request.failure()?.errorText ?? ''}`))
     await use(context)
     expect(stray, 'the page makes no request that leaves its origin').toEqual([])
   },
+})
+
+test.afterEach(async ({ context }, testInfo) => {
+  if (testInfo.status === testInfo.expectedStatus) return
+  const pages = await Promise.all(
+    context.pages().map(async (page) => {
+      const state = await page
+        .evaluate(() => `${document.readyState}, hook ${typeof window.__es}, ${document.scripts.length} script(s)`)
+        .catch((error: unknown) => `not readable: ${String(error)}`)
+      return `page ${page.url()}: ${state}`
+    }),
+  )
+  console.log(`What the failed test's pages asked for and said:\n${[...heard, ...pages].join('\n')}`)
 })
 
 /* ------------------------------------------------------------------------------------------------------------------ */

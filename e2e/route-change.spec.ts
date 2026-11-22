@@ -152,7 +152,18 @@ test.describe('the scroll', () => {
     await quiet(page)
     const room = await page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)
     expect(room, 'the page is taller than the window, or there is nothing to scroll').toBeGreaterThan(offset + 60)
-    await page.evaluate((y) => window.scrollTo(0, y), offset)
+    // The part that keeps each page's offset comes in its own chunk, and makes the live region when it comes: it is there before the scroll.
+    await expect(said(page)).toBeAttached(ARRIVE)
+    // The browser tells the page of a scroll a frame after it made it, so the offset is the page's once that has been told, and not before:
+    // a link followed in that frame would leave the page before it heard of the scroll.
+    await page.evaluate(
+      (y) =>
+        new Promise<void>((resolve) => {
+          window.addEventListener('scroll', () => resolve(), { once: true })
+          window.scrollTo(0, y)
+        }),
+      offset,
+    )
     await expect.poll(() => scrolled(page), ARRIVE).toBe(offset)
   }
   /** A click of the page's own script, so that Playwright does not scroll the link into view first and move the offset. */

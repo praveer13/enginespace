@@ -30,7 +30,7 @@ import { walkOf } from './support/front'
 import { ledgerEvents, playEvents, predictEvents, startBlock } from './support/lessons'
 import type { StoredPlay } from './support/lessons'
 import { expect, open, quiet, test, withSettings } from './support/site'
-import { WALKS } from './support/walks'
+import { tabToLocator, WALKS } from './support/walks'
 import type { Walk } from './support/walks'
 
 const ticketOf = (page: Page, id: string): Locator => page.locator(`section[data-block="predict"][data-predict="${id}"]`)
@@ -40,17 +40,6 @@ const printedTruth = async (page: Page, id: string): Promise<string> => (await t
 
 /** The code that a reveal loads: the reveal itself, and a module's readings. A page that has not revealed anything has asked for none of it. */
 const READING = /\/assets\/(reveal|tr1|tr2|tr5a|commit-tr[0-9a-z]+)-[\w-]+\.js$/
-
-/** Presses Tab until `target` has focus: the walk reads every stop on the way. */
-async function tabToLocator(walk: Walk, target: Locator, limit: number): Promise<void> {
-  // The control is waited for before the first key: a walk that starts before it is in the page leaves it behind (or starts from the top of the page).
-  await target.waitFor({ state: 'attached' })
-  for (let presses = 0; presses < limit; presses++) {
-    if (await target.evaluate((element) => element === document.activeElement).catch(() => false)) return
-    await walk.press('Tab')
-  }
-  throw new Error(`Tab never reached ${String(target)} in ${limit} presses; it went through ${walk.trail.map((stop) => stop.name).join(' > ')}`)
-}
 
 /** The truth that the model reads from the last run of a game block, from the `play` event that the run wrote. */
 async function truthFrom(page: Page, id: string, play: StoredPlay): Promise<number | string> {
