@@ -53,6 +53,14 @@ let bundle = ''
 let heard: string[] = []
 
 base.beforeAll(async () => {
+  // Vite takes the kind of JSX it writes (React's development `jsxDEV` or `jsx`) from process.env.NODE_ENV, which it sets only where nothing
+  // has: a Vite dev server of a spec that ran earlier in this worker (pool, loop, engine-floor and others) leaves it "development". The harness
+  // was then written for React's development JSX against the production React that `define` picks, threw "jsxDEV is not a function" before
+  // it set `window.__es`, and the first test waited for the hook until its timeout: a spec that passed alone, in a fresh worker, and failed
+  // where the run gave its worker another spec first. So the harness is built as production whatever ran before, and the worker's own value
+  // is put back for the specs that follow.
+  const nodeEnv = process.env.NODE_ENV
+  process.env.NODE_ENV = 'production'
   const built = await build({
     root,
     configFile: false,
@@ -66,6 +74,9 @@ base.beforeAll(async () => {
       emptyOutDir: false,
       lib: { entry: path.join(root, 'e2e/support/ledger-harness.tsx'), formats: ['iife'], name: 'EsHarness', fileName: 'harness' },
     },
+  }).finally(() => {
+    if (nodeEnv === undefined) delete process.env.NODE_ENV
+    else process.env.NODE_ENV = nodeEnv
   })
   const outputs = (Array.isArray(built) ? built : [built]).flatMap((result) => ('output' in result ? result.output : []))
   const chunk = outputs.find((output) => output.type === 'chunk')
