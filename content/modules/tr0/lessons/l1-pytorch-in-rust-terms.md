@@ -52,10 +52,10 @@ That is why `view([24])` on it is refused. One dimension of 24 elements needs on
 
 PyTorch's rule for a view has two cases. Each new dimension must lie inside one old dimension, or span old dimensions whose strides chain. {{claim:torch.view.needs-compatible-strides}} Two neighbouring dimensions chain when the outer one's stride is the inner one's size times the inner one's stride. One step along the outer dimension then lands just past a full run of the inner one, so the pair reads the buffer as one run, with the inner stride.
 
-| Tensor | Outer stride [derived] | Inner size times inner stride [derived] | Chain | `view([24])` |
-|---|---|---|---|---|
-| `(4, 6)`, strides `(6, 1)` | `6` | `6 * 1 = 6` | yes | a view, stride `1` |
-| `(6, 4)`, strides `(1, 6)`, after the transpose | `1` | `4 * 6 = 24` | no | refused |
+| Tensor | Outer stride [derived] | Inner size times inner stride [derived] | `view([24])` |
+|---|---|---|---|
+| the start, `(4, 6)` with strides `(6, 1)` | `6` | `6 * 1 = 6` | a view, stride `1`: they chain |
+| the transpose, `(6, 4)` with strides `(1, 6)` | `1` | `4 * 6 = 24` | refused: they do not chain |
 
 A new dimension that lies inside one old dimension needs no chain. `view([2, 3, 4])` on the transposed tensor cuts its first dimension of 6 in two and leaves the second alone, so it is a view, with strides `(3, 1, 6)` [derived]. `view([3, 8])` needs its second dimension to span part of the first old dimension and all of the second, and those two do not chain, so it is refused like `view([24])`.
 

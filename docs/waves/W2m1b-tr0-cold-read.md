@@ -184,7 +184,7 @@ Each row of this report, closed: rewritten in the lessons at the commit whose su
 - `l3:66` to `:70`, five bullets that are a table: rewritten as a table, after the checkpoint, so the part stays under the pacing bound.
 - `l4:126`, "the course's Python `3.12`" before lesson 5 names it: rewritten ("Python `3.12`, the one the course's environments use").
 - `l4:39`, "four lines" over a kernel of eight: rewritten ("a kernel spells it out in a few lines").
-- `l4:114` to `:120`, seven kernels as a list a table can carry: rewritten as a table of kernel, file, what one program covers, and sources; four rows say "not read".
+- `l4:114` to `:120`, seven kernels as a list a table can carry: stands, after a try. As a table of kernel, file, what one program covers and sources, the long kernel and file names broke inside their words at 1280 px and below, and the claim chips printed their values in a column of their own, so the table read worse than the list. The list keeps one kernel to a line, with its link, its file and its marks.
 - `l4`, the seven vLLM kernels' terms (block tables, slot mappings, Gumbel sampling, prefill inputs): stand. Nothing in the lesson leans on what they do.
 - `l5:39`, "the next module": rewritten. The NVTX line matters in TR3, the module that profiles an engine's step.
 - `l5:47`, three date chips after one sentence, in a part about kernels: rewritten as a table of release and the day its first files went up, after the part's kernel paragraph.

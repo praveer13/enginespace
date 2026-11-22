@@ -87,7 +87,7 @@ describe('TR0 lesson 1: the numbers it prints are the model\'s', () => {
     expect('error' in applyOp(transposed, { op: 'view', shape: [24] })).toBe(true)
     expect('error' in applyOp(viewsRun()[0].view, { op: 'view', shape: [24] })).toBe(false)
     expect(lesson1).toContain('so it is a view, with strides `(3, 1, 6)` [derived]')
-    expect(lesson1).toContain('| `(6, 4)`, strides `(1, 6)`, after the transpose | `1` | `4 * 6 = 24` | no | refused |')
+    expect(lesson1).toContain('| the transpose, `(6, 4)` with strides `(1, 6)` | `1` | `4 * 6 = 24` | refused: they do not chain |')
   })
 
   test('the table of slices, transposes and copies is what the model gives for each call', () => {
@@ -186,7 +186,7 @@ describe("TR0 lesson 4: the grid's numbers are the model's, and the walk-through
   })
 
   test('every Model Runner V2 kernel the lesson walks through is one the interpreter ran, by a claim that says so, and the rest are named as not run', () => {
-    const kernels = [...lesson4.matchAll(/^\| \[`(_[a-z_]+_kernel)`\]\(https:\/\/github\.com\/vllm-project\/vllm\/blob\/4ba787ec9959e566d3b587a796dff07673324da5\/[^)]+\) \| `[a-z_/]+\.py` \|.*\{\{claim:(vllm\.mrv2\.interp\.[a-z-]+)\}\} \|$/gm)]
+    const kernels = [...lesson4.matchAll(/^- \[`(_[a-z_]+_kernel)`\]\(https:\/\/github\.com\/vllm-project\/vllm\/blob\/4ba787ec9959e566d3b587a796dff07673324da5\/[^)]+\), in `[a-z_/]+\.py`\..*\{\{claim:(vllm\.mrv2\.interp\.[a-z-]+)\}\}$/gm)]
     expect(kernels.length).toBe(7)
     for (const [, kernel, claim] of kernels) {
       const block = claimsText.split('\n- id: ').find((entry) => entry.startsWith(`${claim}\n`)) ?? ''
