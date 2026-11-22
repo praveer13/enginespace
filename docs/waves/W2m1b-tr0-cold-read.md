@@ -147,3 +147,66 @@ N5 and N8 were read as the owner answered them on 2026-11-19 (`docs/waves/W2m1a-
 ## For the rewrite task
 
 In order of how far the reader got before stopping: `l1:39` (the chain rule, which the Test asks); `l3:56` with `l3:98` (the rotation); `l3` Test; `l5` Test; `copy.ts:123` (the goal line gives the guess's answer); `l2:36` (the box before the definition); `l5:15` (four pieces); `l3:25` and `l3:84`; then the terms listed per lesson. The screen findings in the frame (the hidden aim at 390 px, "More below" over buttons, the clipped launch panel, the stale power-of-two line, the debrief's last two lines) are outside the lesson files.
+
+## Closing lines (W2b-T53)
+
+Each row of this report, closed: rewritten in the lessons at the commit whose subject starts "W2b-T53", or listed for the owner with the reason. Line numbers are this report's, of the export before the rewrite.
+
+**The lost-at rows.**
+
+- `l1:39`, the chain rule: rewritten. Lesson 1 now says when two dimensions chain (the outer stride is the inner size times the inner stride), sets the contiguous `(4, 6)` and its transpose side by side in a table of the two strides, and works a split that is a view (`view([2, 3, 4])` on the transpose, strides `(3, 1, 6)`) and a merge that is refused (`view([3, 8])`). A test holds both examples to the tensor model. The Test's chain question now asks what the page taught.
+- `l2:36`, the spawn-and-join box before the definition of a sync: rewritten. The box moved into the part on syncs, after the two lists of calls that wait and that do not, and its last sentence, which pointed at the second half, is gone.
+- `l3:56` with `l3:98`, the rotation: rewritten. Step 4 of the layer now says what is rotated (the query and the key, not the values), by what (an angle for each pair of a head's dimensions, the token's position times a frequency set by the rotary base), and how (`q * cos + rotate_half(q) * sin`). The cache's table row on where the rotation starts now has its reason beside it: with a cache, the new tokens are numbered from the count already cached. Eight new claims of the pinned `transformers` file carry it and the steps below (`transformers.qwen3.rope-angles`, `rope-apply`, `position-ids`, `repeat-kv`, `attn-softmax`, `causal-mask`, `lm-head`, `tied-keys`).
+- `l4`, on the screen, the `grid` goal line that gives the guess's answer (`copy.ts:123` against `:115`): **listed for the owner.** The practice goal line prints "The reference leaves 80 lanes masked." above the guess that asks for that number. Changing it moves three assertions of `tests/copy/game-copy.test.ts` (the regex for a practice level's stated count, the check that the beat holds the least masked count, and the line that pins the sentence with its 80), and the merge gate refuses a changed number in an assertion unless the coordinator allows it. The proposed edit: the practice `grid` beat says "Match the reference's masked lanes, the fewest any launch can leave; its count shows when you launch.", and the three assertions move with it. The other fix, hiding the beat until the guess is committed, is the frame's.
+- `l5:15`, "the same four pieces": rewritten. Lesson 5 now says the layer runs the third lesson's steps in the same order, and says where the residual add went: Mini-SGLang's norm takes the new output and the residual, adds them inside its call and returns the normalized sum and the sum.
+
+**Terms used before they were given, and other places the reader stopped.**
+
+- `l1:33`, `reshape` and `contiguous()` used before they are given, and the controls' calls not in the primer: rewritten. The primer now says what `transpose`, `view`, `contiguous()` and `reshape` make.
+- `l1`, "storage" first explained at line 35: rewritten. The primer's first fact calls the buffer PyTorch's storage.
+- `l1`, "in place" on the screen: rewritten in the primer ("The target counts the elements in place: those that already sit where the target reads them."). The readout's own label is the game's and is unchanged.
+- `l1`, Read part 1 tells a reader who has not played that they did: rewritten ("The level asks for a `(4, 6)` tensor read column by column."; the same in lessons 2 and 4). That Read sits in full view under an unplayed game is the page's layout: listed for the owner.
+- `l1` and `l4`, the guess prompts printed with their backticks: rewritten. The four TR0 prompts that held code spans now hold none, since the guess panel prints a prompt as plain text. The prompts' copies in `packages/play/predictions/same.ts`, `tr0.ts` and `commit-tr0.ts` moved with them. The panel's not drawing code spans is the renderer's (`src/content/render/Tagged.tsx`), and other modules' prompts have the same mark: listed.
+- `l2:9` and `l2:30`, "kernel" before it is given: rewritten. The setup's first sentence says a kernel is a function that runs on the GPU.
+- `l2:59`, "streams": rewritten. The part on syncs says a queue that holds GPU work is called a stream.
+- `l2:32`, the batch dimension the game does not have: rewritten ("The batch counts the prompts run together, and the level leaves it out.").
+- `l2:74`, `range(24)` not said to be arbitrary: rewritten, in the sentence after the loop.
+- `l2:5`, "Builds on" names T5.L3 and T0.L6, which the prose does not use: rewritten to T4.L1 and T5.L1. The module page's prerequisites are the `course.yaml` entry and are unchanged: listed for the owner, since TR0 is an advised primer and each lesson now carries the terms it leans on.
+- `l3:39`, RMSNorm in the configuration table before it is given: rewritten ("the small number every norm adds before its square root").
+- `l3:58`, `silu`, the gate and the up projection: rewritten. The MLP's step says the activation of the gate projection multiplies the up projection element by element, and that `silu` acts on each element on its own.
+- `l3:101`, "the mask", never given, and a second meaning in lesson 4: rewritten. Step 5 says the mask added to the scores is causal and what it lets a token read; the cache's table names it "the causal mask".
+- `l3:94` and `l3:64`, "logits", "lm_head" and "output head": rewritten into one sentence: the output head `lm_head` turns each token's vector into a score for each vocabulary entry, and those scores are the logits.
+- `l3:41`, which two query heads a key and value head serves: rewritten. `repeat_kv` repeats each head in place, so query heads 0 and 1 read head 0 and heads 2 and 3 read head 1.
+- `l3:25`, the dotted names said to be unverified after line 19 stated them: rewritten. The page shows two names the pinned `transformers` writes itself (`lm_head.weight` and `model.embed_tokens.weight`), and says the pattern is read from names like those and not from a rule.
+- `l3:84`, "Going back" from what: rewritten. The paragraph says the attention's output comes back heads first, `o_proj` needs tokens first, and on the tensor in the table a `view` to `(1, 6, 2048)` is refused because its heads and tokens do not chain.
+- `l3:13` and `:15`, the paragraph and the box that say the same: rewritten. The paragraph is one sentence now.
+- `l3:53` to `:58`, no softmax, no weighted sum, no repeat of the key and value heads: rewritten. Step 5, "The attention", holds the repeat, the scaled scores, the mask, the softmax and the weighted sum of the values, and `o_proj`.
+- `l3:66` to `:70`, five bullets that are a table: rewritten as a table, after the checkpoint, so the part stays under the pacing bound.
+- `l4:126`, "the course's Python `3.12`" before lesson 5 names it: rewritten ("Python `3.12`, the one the course's environments use").
+- `l4:39`, "four lines" over a kernel of eight: rewritten ("a kernel spells it out in a few lines").
+- `l4:114` to `:120`, seven kernels as a list a table can carry: rewritten as a table of kernel, file, what one program covers, and sources; four rows say "not read".
+- `l4`, the seven vLLM kernels' terms (block tables, slot mappings, Gumbel sampling, prefill inputs): stand. Nothing in the lesson leans on what they do.
+- `l5:39`, "the next module": rewritten. The NVTX line matters in TR3, the module that profiles an engine's step.
+- `l5:47`, three date chips after one sentence, in a part about kernels: rewritten as a table of release and the day its first files went up, after the part's kernel paragraph.
+- `l5:53` and `:57`, the speculative rejection sampler and "a draft": rewritten. The page says the last kind of kernel is the verify step of speculative decoding from T5.L8, and what the rejection sampler decides.
+- `l5:59`, Triton's documentation against its code: rewritten. The page gives the code's rule (a range whose length is not a power of two is refused), says it is the fourth lesson's rule for `BLOCK`, and says the documentation words it about the start and that the code is what runs.
+- `l5:69` to `:73`, the radix tree never said: rewritten. The part opens on T5.L6's radix tree: requests that start with the same tokens share one path, and a lookup returns the longest prefix the tree holds.
+- `l5:33`, "the attention layer that `RopeAttn` calls" never named: rewritten so that nothing promises a name: `RopeAttn.forward` passes the merged output to a second attention layer that holds the rotary embedding and the two norms.
+- `l5:49` to `:53`, five bullets that are a table: **listed.** The rows stay bullets, because `tests/content/tr0-module.test.ts` holds each row's opening words and its printed line count, and turning them into a table moves those assertions, which the merge gate refuses without the coordinator's allow. `l5:55`, eight claim marks after one sentence: rewritten. Each bullet now ends in its own claims.
+
+**The Tests.**
+
+- `l1` Test: closed by the chain-rule rewrite above.
+- `l3` Test grades lessons 1 and 2's skills, not lesson 3's: **listed for the owner.** No item family yet asks for a checkpoint name's path, the order of the layer's steps, a projection's width, the key and value grouping or the cache's contract; a family is an items task (`packages/play/items/`, its registry and vectors), not a rewrite of the lesson. The Exit check's lead now says which lesson each question goes back to.
+- `l5` Test grades lesson 2's syncs: **listed for the owner**, for the same reason: no family asks for the merged projection's width, what `gate_up_proj` merges, or which program of the temperature kernel's launch covers a vocabulary entry. The Exit check's lead now says the two sync questions are the second lesson's.
+
+**On the screen, outside the lesson files: listed for the owner.** None of these is in a lesson, a claim or the level copy; each is the frame's or the Tensor views views': the goal's aim hidden behind "more" at 390 px; "More below" over the bottom row of buttons and over "Run again" and "New numbers"; the launch panel clipping "BLOCK", "Grid" and the "+" at 1440 px; "BLOCK must be a power of two." shown beside a valid BLOCK; the BLOCK steppers counting by one; the grid following BLOCK without a word; the debrief's "Counted: none on this path." and "on seed 00000000"; the guess card over the "Tiles" heading at 390 px; the header's "Start: TR1 lesson 1" on a page headed "Lesson 1 of 5", which is right by N8 and reads as a wrong turn. The export's "Practice." label on Test item blocks is the compiler's.
+
+**The passages W2b-T36 changed, read again.**
+
+- Lesson 2, the paragraph on where `transformers` copies (W1): stands. The batch sentence was added after its first claim mark.
+- Lesson 3, the copy at the end of the attention function (W1): rewritten. The sentence moved into the paragraph under the query's table, where the refused `view` explains why the copy is needed, and its claim mark moved with it.
+- Lesson 3, the lab's loader (W2): stands, after the dotted-name paragraph before it was rewritten.
+- Lesson 3, the norm on each head between the view and the transpose (N1): stands, in the query's paragraph; the step list's item 3 was shortened.
+- The card `tensor`, its line on Triton's interpreter (W3): rewritten. "Wrote what the grid model counts" said the kernel wrote counts; the counts are the course script's arithmetic. The line now says the kernel wrote what PyTorch computes, and that on the one-dimensional launch its last program's mask was false on the two lanes the grid model counts as masked.
+- `content/claims/tr0.yaml`, `transformers.qwen3.attn-fn-contiguous` and the narrowed `attn-contiguous`: stand.
