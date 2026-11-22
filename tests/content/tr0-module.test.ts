@@ -78,6 +78,18 @@ describe('TR0 lesson 1: the numbers it prints are the model\'s', () => {
     expect(lesson1).toContain(`all ${viewsRun()[2].moved} of them [synthetic]`)
   })
 
+  test('the chain rule\'s worked examples on the transposed tensor are the model\'s: a split of one dimension is a view, a merge of two that do not chain is refused', () => {
+    const transposed = viewsRun()[1].view
+    expect([transposed.shape, transposed.strides]).toEqual([[6, 4], [1, 6]])
+    const split = applyOp(transposed, { op: 'view', shape: [2, 3, 4] })
+    expect('error' in split ? null : split.view.strides).toEqual([3, 1, 6])
+    expect('error' in applyOp(transposed, { op: 'view', shape: [3, 8] })).toBe(true)
+    expect('error' in applyOp(transposed, { op: 'view', shape: [24] })).toBe(true)
+    expect('error' in applyOp(viewsRun()[0].view, { op: 'view', shape: [24] })).toBe(false)
+    expect(lesson1).toContain('so it is a view, with strides `(3, 1, 6)` [derived]')
+    expect(lesson1).toContain('| `(6, 4)`, strides `(1, 6)`, after the transpose | `1` | `4 * 6 = 24` | no | refused |')
+  })
+
   test('the table of slices, transposes and copies is what the model gives for each call', () => {
     const [table] = findTables(lesson1).filter((t) => t.header.startsWith('| Call on a contiguous `(4, 6)` tensor |'))
     expect(table).toBeDefined()
@@ -174,7 +186,7 @@ describe("TR0 lesson 4: the grid's numbers are the model's, and the walk-through
   })
 
   test('every Model Runner V2 kernel the lesson walks through is one the interpreter ran, by a claim that says so, and the rest are named as not run', () => {
-    const kernels = [...lesson4.matchAll(/^- \[`(_[a-z_]+_kernel)`\]\(https:\/\/github\.com\/vllm-project\/vllm\/blob\/4ba787ec9959e566d3b587a796dff07673324da5\/[^)]+\), in `[a-z_/]+\.py`\..*\{\{claim:(vllm\.mrv2\.interp\.[a-z-]+)\}\}$/gm)]
+    const kernels = [...lesson4.matchAll(/^\| \[`(_[a-z_]+_kernel)`\]\(https:\/\/github\.com\/vllm-project\/vllm\/blob\/4ba787ec9959e566d3b587a796dff07673324da5\/[^)]+\) \| `[a-z_/]+\.py` \|.*\{\{claim:(vllm\.mrv2\.interp\.[a-z-]+)\}\} \|$/gm)]
     expect(kernels.length).toBe(7)
     for (const [, kernel, claim] of kernels) {
       const block = claimsText.split('\n- id: ').find((entry) => entry.startsWith(`${claim}\n`)) ?? ''
@@ -308,16 +320,17 @@ describe("TR0 lesson 3: every value of Qwen3 is a claim on the pinned config.jso
   test('the shapes at the five points are the hidden size and the vocabulary, with the strides of a contiguous tensor', () => {
     const hidden = Number(values.get('qwen3.config.hidden-size')?.value)
     const vocab = Number(values.get('qwen3.config.vocab-size')?.value)
-    const lines = lesson3.split('\n').filter((line) => / leaves with /.test(line) || /^- The first layer's (attention|MLP) leaves with the same/.test(line) || /^- The final norm leaves/.test(line))
+    const [table] = findTables(lesson3).filter((t) => t.header.startsWith('| Module |'))
+    expect(table).toBeDefined()
     const view = (last: number) => contiguousView([1, QUERY_TOKENS, last])
-    const tuple = (xs: readonly number[]) => `(${xs.join(', ')})`
-    const full = (last: number) => `shape \`${tuple(view(last).shape)}\` and strides \`${tuple(view(last).strides)}\``
-    expect(lines).toEqual([
-      `- The embedding leaves with ${full(hidden)}.`,
-      "- The first layer's attention leaves with the same shape and strides.",
-      "- The first layer's MLP leaves with the same shape and strides.",
-      '- The final norm leaves with the same shape and strides.',
-      `- The head leaves with ${full(vocab)}.`,
+    const tuple = (xs: readonly number[]) => `\`(${xs.join(', ')})\``
+    const row = (module: string, last: number) => [module, tuple(view(last).shape), tuple(view(last).strides)]
+    expect(table.rows.map((r) => [...r])).toEqual([
+      row('`embed_tokens`', hidden),
+      row("the first layer's `self_attn`", hidden),
+      row("the first layer's `mlp`", hidden),
+      row('`norm`', hidden),
+      row('`lm_head`', vocab),
     ])
   })
 

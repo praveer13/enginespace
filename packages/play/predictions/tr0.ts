@@ -32,7 +32,7 @@ function gridOf(run: RunRecord): GridLevel {
 
 export const REFERENCES: Readonly<Record<string, Reference>> = {
   'tr0.l1.p1': {
-    says: ['`(4, 6)`', 'column by column', 'one copy'],
+    says: ['(4, 6)', 'column by column', 'one copy'],
     reads: "Counted from the reference's plan on the run's tensor: the elements its one copy writes into a new buffer.",
     truth: (run) => levelOf(run, 'views').tasks[0].moved,
   },
@@ -42,7 +42,7 @@ export const REFERENCES: Readonly<Record<string, Reference>> = {
     truth: (run) => levelOf(run, 'three-d').tasks[0].answer,
   },
   'tr0.l4.p1': {
-    says: ['`(12, 20)`', 'exactly once', 'six programs'],
+    says: ['(12, 20)', 'exactly once', 'six programs'],
     reads: "Counted from the reference's launch on the run's tensor: the lanes of its programs that fall past the tensor's edge, the fewest of any launch that covers it in the level's programs.",
     truth: (run) => gridOf(run).tasks[0].least,
   },

@@ -2,11 +2,11 @@
 
 _PyTorch for the Rust-first, and reading Triton · lesson `tr0.l2` · review · about 50 minutes [estimated]_
 
-Builds on kernelspace: `ks:T5.L3`, `ks:T0.L6`.
+Builds on kernelspace: `ks:T4.L1`, `ks:T5.L1`.
 
 Knowledge components: `tr0.view-vs-copy`, `tr0.hidden-syncs`.
 
-An attention kernel reads each head's keys as one block, laid out as `[heads, tokens, head size]`. The projection that makes the keys returns `[tokens, heads · head size]`. Lay that output out as one block per head, with the fewest copies.
+A kernel is a function that runs on the GPU. An attention kernel reads each head's keys as one block, laid out as `[heads, tokens, head size]`. The projection that makes the keys returns `[tokens, heads · head size]`. Lay that output out as one block per head, with the fewest copies.
 
 > **Predict `tr0.l2.p1`.** The level's projection output has shape (4, 8) [synthetic], and the reference splits it into heads and then brings the head dimension first. After that permute, how far apart in the buffer are two neighbouring tokens of one head?
 >
@@ -16,7 +16,7 @@ An attention kernel reads each head's keys as one block, laid out as `[heads, to
 
 ## Where engines copy
 
-You just turned a `(4, 8)` projection output into one contiguous block per head. Here is the reference's run, a line for each step, with the elements it moved. Printed by the course's model on 2026-11-21 at `0dc2dcc`.
+The level turns a `(4, 8)` projection output into one contiguous block per head. Here is the reference's run, a line for each step, with the elements it moved. Printed by the course's model on 2026-11-21 at `0dc2dcc`.
 
 | After | Shape [synthetic] | Strides [synthetic] | Moved [synthetic] |
 |---|---|---|---|
@@ -29,13 +29,9 @@ The split into heads moved nothing, because the eight columns already hold two h
 
 A kernel that loads one head's keys as a block wants that block in one run of the buffer, and the permuted tensor has none. `contiguous()` writes it: all 32 elements move [synthetic], and each head becomes one run of `16` elements, the first stride of the result. The reshaping was free, and the layout the kernel needs cost one copy at the end of it.
 
-The pinned `transformers` does the same in Qwen3's attention. It reshapes each projection with `view` into `(batch, tokens, heads, head size)` and swaps two dimensions with `transpose(1, 2)`, and both are views. **view, then transpose(1, 2)** [measured] The attention function then swaps the heads and the tokens back and makes the result contiguous, and that is where the copy is made. **transpose(1, 2), then contiguous** [measured] The layer's own `reshape(...).contiguous()` before the output projection finds a tensor already in one run, so it is a view and moves nothing. **reshape, then contiguous** [measured] The copy comes after the free steps and not between them.
+The pinned `transformers` does the same in Qwen3's attention. It reshapes each projection with `view` into `(batch, tokens, heads, head size)` and swaps two dimensions with `transpose(1, 2)`, and both are views. **view, then transpose(1, 2)** [measured] The batch counts the prompts run together, and the level leaves it out. The attention function then swaps the heads and the tokens back and makes the result contiguous, and that is where the copy is made. **transpose(1, 2), then contiguous** [measured] The layer's own `reshape(...).contiguous()` before the output projection finds a tensor already in one run, so it is a view and moves nothing. **reshape, then contiguous** [measured] The copy comes after the free steps and not between them.
 
 `view` and `reshape` differ in what they say when a copy is needed. A `view` of a shape the strides cannot express is refused, as the first lesson showed. `reshape` returns a view where the shape fits and a copy where it does not, and the page of the pinned PyTorch says that code should not rely on which of the two it got. **do not rely on which** [measured] So a `reshape` in model code can hide a copy that a `view` would have refused loudly. Neither tells you the copy is there: the strides do.
-
-> **A spawn and a join.** A GPU call is like spawning a thread: the call returns at once, and the work runs somewhere else. A sync is like joining it: the caller blocks until the work is done. Code that never joins runs ahead of the work and knows nothing of what has finished.
->
-> Where it breaks: A join waits for the one thread it belongs to, and you write it yourself. A sync waits for the work that was queued on the GPU before it, and it hides inside calls that do not read like waiting, such as item and tolist. Finding those calls is this lesson's second half.
 
 Check which calls copy on a tensor of three dimensions before you read on.
 
@@ -43,7 +39,7 @@ Check which calls copy on a tensor of three dimensions before you read on.
 
 ## The syncs you cannot see
 
-A copy has a second price when the tensor lives on a GPU. GPU operations are asynchronous by default. **asynchronous by default** [measured] A call that uses the GPU enqueues its operations on the device, and the device does not necessarily run them until later. **enqueued, not run** [measured] So `y = x.sum()` on a GPU tensor returns before the sum is done, and the Python that follows runs while the GPU works.
+A copy has a second price when the tensor lives on a GPU. GPU operations are asynchronous by default. **asynchronous by default** [measured] A call that uses the GPU enqueues its operations on the device, and the device does not necessarily run them until later. **enqueued, not run** [measured] A queue that holds such work on the GPU is called a stream. So `y = x.sum()` on a GPU tensor returns before the sum is done, and the Python that follows runs while the GPU works.
 
 A **sync** is a call that makes the CPU wait until the GPU has finished the work queued before it. Engine code is full of lines that look like plain Python and are syncs. Commit to a count first.
 
@@ -64,6 +60,10 @@ These lines do not wait, because they only queue work or move no data:
 - `z = x @ w`. A GPU operation, so asynchronous by default. **asynchronous by default** [measured]
 - `v = x.view(-1)`. A view moves no data, so there is nothing to wait for. **a view moves no data** [measured]
 
+> **A spawn and a join.** A GPU call is like spawning a thread: the call returns at once, and the work runs somewhere else. A sync is like joining it: the caller blocks until the work is done. Code that never joins runs ahead of the work and knows nothing of what has finished.
+>
+> Where it breaks: A join waits for the one thread it belongs to, and you write it yourself. A sync waits for the work that was queued on the GPU before it, and it hides inside calls that do not read like waiting, such as item and tolist.
+
 A copy to the CPU can ask not to wait: `to()` and `copy_()` take a `non_blocking` argument, which lets the caller skip the synchronization when it is not needed. **non_blocking skips the wait** [measured] Without it, `x.to('cpu')` waits as `x.cpu()` does.
 
 The same calls decide how a GPU run is timed. A time measured with no synchronization is not accurate, because the clock stops when the work is queued and not when it is done. **timing without a wait is wrong** [measured] A timer around a GPU call needs a sync before it reads the clock, and that sync is one the program meant.
@@ -76,6 +76,8 @@ for layer in range(24):
     n = h.sum().item()
 done = h.tolist()
 ```
+
+The loop's 24 passes [estimated] are arbitrary: they stand for a model's layers, and no model's count is meant.
 
 Each pass waits once, at `.item()`, and `.tolist()` after the loop waits once more. So the loop waits `25` times [derived]. The `block(h)` and the `.sum()` wait for nothing.
 

@@ -32,7 +32,7 @@ const MERGED_MULTIPLIES = 1
 
 export const COMMITS: Readonly<Record<string, Commit>> = {
   'tr0.l1.p2': {
-    says: ['`(3, 5)`', '`y = x[:, ::2]`', '`y.stride(1)`'],
+    says: ['(3, 5)', 'y = x[:, ::2]', "stride of y's columns"],
     working: [
       `A contiguous tensor of shape (3, 5) is read row by row, so its strides are (${figure(5)}, ${figure(1)}): one step down a row skips the row's ${figure(5)} elements, and one step along it moves one.`,
       'A slice with a step keeps the buffer and the offset, and multiplies the stride of its dimension by the step.',
@@ -72,7 +72,7 @@ export const COMMITS: Readonly<Record<string, Commit>> = {
     truth: () => 16 * 128,
   },
   'tr0.l4.p2': {
-    says: ['`BLOCK = 128`', '`1000`', '`triton.cdiv`'],
+    says: ['BLOCK = 128', '1000', 'triton.cdiv'],
     working: [
       `triton.cdiv(1000, 128) rounds ${figure(1000)} ÷ ${figure(128)} up, so the grid has ${figure(launch1000().programs)} programs.`,
       `Each program has BLOCK lanes, so the launch has ${figure(launch1000().programs)} × ${figure(128)} = ${figure(launch1000().lanes)} lanes.`,

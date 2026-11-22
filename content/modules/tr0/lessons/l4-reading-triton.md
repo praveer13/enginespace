@@ -22,7 +22,7 @@ The level draws the tensor's cells and each program as a tile over them. Cover t
 
 :::predict
 id: tr0.l4.p1
-prompt: The level's tensor has shape `(12, 20)`, and the reference covers each of its elements exactly once with at most six programs. How many lanes will it leave masked?
+prompt: The level's tensor has shape (12, 20) [synthetic], and the reference covers each of its elements exactly once with at most six programs. How many lanes will it leave masked?
 answer: { kind: numeric, unit: lanes, rel_tol: 0 }
 reveal: after-game
 kcs: [tr0.triton-masks]
@@ -36,7 +36,7 @@ mode: practice
 
 ## From the grid to `tl.program_id`
 
-You just covered a `(12, 20)` tensor with a grid of programs. Here is the reference's launch beside two that look sensible and mask more. Printed by the course's model on 2026-11-21 at `7037bd7`.
+The level asks you to cover a `(12, 20)` tensor with a grid of programs. Here is the reference's launch beside two that look sensible and mask more. Printed by the course's model on 2026-11-21 at `7037bd7`.
 
 | Launch | The reference [synthetic] | One program [synthetic] | Square tiles [synthetic] |
 |---|---|---|---|
@@ -48,7 +48,7 @@ You just covered a `(12, 20)` tensor with a grid of programs. Here is the refere
 
 The 20 columns divide by a BLOCK of 4 [synthetic], so no lane is masked along dimension 1. The 12 rows would divide by 4 too, but 3 programs down and 5 across make 15 [synthetic], more than the level allows. The cap of six programs is the level's and not Triton's: without one, a BLOCK of `1` would mask nothing. So the reference fits the dimension that divides and masks along the other. Each of its programs covers 16 rows where the tensor has 12, and 16 of its 64 lanes are masked [synthetic]. Square tiles fit neither dimension.
 
-That table is the arithmetic of one tile. A kernel spells it in four lines. This is the course's own kernel, which scales a one-dimensional tensor, and not an engine's:
+That table is the arithmetic of one tile, and a kernel spells it out in a few lines. This is the course's own kernel, which scales a one-dimensional tensor, and not an engine's:
 
 ```python
 @triton.jit
@@ -78,7 +78,7 @@ A masked lane is still one of the program's lanes. The mask stops its load and i
 
 :::predict
 id: tr0.l4.p2
-prompt: "The kernel `scale` runs with `BLOCK = 128` over a tensor of `1000` elements, on the grid that `triton.cdiv` gives. How many of its lanes are masked?"
+prompt: "The kernel scale runs with BLOCK = 128 [estimated] over a tensor of 1000 [estimated] elements, on the grid that triton.cdiv gives. How many of its lanes are masked?"
 answer: { kind: numeric, unit: lanes, rel_tol: 0 }
 reveal: at-commit
 kcs: [tr0.triton-masks]
@@ -131,19 +131,21 @@ The course ran its two kernels this way on a CPU, with Triton `3.8.0`, on 2026-1
 
 The same run read vLLM's Model Runner V2, the engine's default way of running the model, at commit `4ba787ec`. It read the Triton kernels of five of the engine's files, gave seven of them small inputs of its own, and ran each under the interpreter. All seven wrote what PyTorch computes. {{claim:vllm.mrv2.interpreter-run}}
 
-- [`_temperature_kernel`](https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/sample/gumbel.py#L22-L39), in `sample/gumbel.py`. One program covers one token on axis `0` and one block of its vocabulary on axis `1`, masked past the vocabulary. {{claim:vllm.mrv2.temperature-mask}} {{claim:vllm.mrv2.interp.temperature}}
-- [`_gumbel_sample_kernel`](https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/sample/gumbel.py#L282), in `sample/gumbel.py`. {{claim:vllm.mrv2.interp.gumbel-sample}}
-- [`_apply_write_kernel`](https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/buffer_utils.py#L317-L348), in `buffer_utils.py`. One program covers one write on axis `0` and one block of its content on axis `1`, masked past the content. {{claim:vllm.mrv2.apply-write-mask}} {{claim:vllm.mrv2.interp.apply-write}}
-- [`_gather_block_tables_kernel`](https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/block_table.py#L275-L291), in `block_table.py`. One program copies one batch row of one KV cache group. {{claim:vllm.mrv2.block-table-grid}} {{claim:vllm.mrv2.interp.gather-block-tables}}
-- [`_compute_slot_mappings_kernel`](https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/block_table.py#L334), in `block_table.py`. {{claim:vllm.mrv2.interp.slot-mappings}}
-- [`_prepare_prefill_inputs_kernel`](https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/input_batch.py#L280), in `input_batch.py`. {{claim:vllm.mrv2.interp.prepare-prefill}}
-- [`_prepare_pos_seq_lens_kernel`](https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/input_batch.py#L357), in `input_batch.py`. {{claim:vllm.mrv2.interp.pos-seq-lens}}
+| Kernel | File | What one program covers | Sources |
+|---|---|---|---|
+| [`_temperature_kernel`](https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/sample/gumbel.py#L22-L39) | `sample/gumbel.py` | one token on axis `0` and one block of its vocabulary on axis `1`, masked past the vocabulary | {{claim:vllm.mrv2.temperature-mask}} {{claim:vllm.mrv2.interp.temperature}} |
+| [`_gumbel_sample_kernel`](https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/sample/gumbel.py#L282) | `sample/gumbel.py` | not read | {{claim:vllm.mrv2.interp.gumbel-sample}} |
+| [`_apply_write_kernel`](https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/buffer_utils.py#L317-L348) | `buffer_utils.py` | one write on axis `0` and one block of its content on axis `1`, masked past the content | {{claim:vllm.mrv2.apply-write-mask}} {{claim:vllm.mrv2.interp.apply-write}} |
+| [`_gather_block_tables_kernel`](https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/block_table.py#L275-L291) | `block_table.py` | it copies one batch row of one KV cache group | {{claim:vllm.mrv2.block-table-grid}} {{claim:vllm.mrv2.interp.gather-block-tables}} |
+| [`_compute_slot_mappings_kernel`](https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/block_table.py#L334) | `block_table.py` | not read | {{claim:vllm.mrv2.interp.slot-mappings}} |
+| [`_prepare_prefill_inputs_kernel`](https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/input_batch.py#L280) | `input_batch.py` | not read | {{claim:vllm.mrv2.interp.prepare-prefill}} |
+| [`_prepare_pos_seq_lens_kernel`](https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/vllm/v1/worker/gpu/input_batch.py#L357) | `input_batch.py` | not read | {{claim:vllm.mrv2.interp.pos-seq-lens}} |
 
-Each mark holds what the course gave the kernel and what it checked. For four of the seven, the course has not read which part of the input one program covers, so the list says only that they ran. The temperature kernel is this lesson's kernel at engine size: `block_idx * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)`, masked where the index is not below `vocab_size`. Eleven other kernels of the same files were given no input, so none of them has run under the interpreter, and none is shown here. {{claim:vllm.mrv2.interp.not-run}}
+Each kernel's last mark holds what the course gave it and what it checked. For four of the seven, the course has not read which part of the input one program covers, so their rows say "not read". The temperature kernel is this lesson's kernel at engine size: `block_idx * BLOCK_SIZE + tl.arange(0, BLOCK_SIZE)`, masked where the index is not below `vocab_size`. Eleven other kernels of the same files were given no input, so none of them has run under the interpreter, and none is shown here. {{claim:vllm.mrv2.interp.not-run}}
 
 A kernel that ran here has run on a CPU, one program at a time, on the course's small inputs. That says nothing of whether it runs, or how fast, on a GPU.
 
-To step the course's kernel yourself takes about 20 minutes [estimated], and it is optional. PyTorch `2.14.0` requires Triton `3.8` on Linux. {{claim:torch.release.triton-pin}} A Triton 3.8.0 wheel off Linux, for macOS or Windows, is one the course has not checked [unverified]. Off Linux, read the course's run printed above. Triton `3.8.0` runs on Python `3.10` to `3.14`, so the course's Python `3.12` is inside its range. {{claim:triton.release.python-range}} On Linux, in that Python with `torch==2.14.0` and `triton==3.8.0`, put the kernel `scale` in a file with `tl.device_print("offs", offs)` after its mask, and run:
+To step the course's kernel yourself takes about 20 minutes [estimated], and it is optional. PyTorch `2.14.0` requires Triton `3.8` on Linux. {{claim:torch.release.triton-pin}} A Triton 3.8.0 wheel off Linux, for macOS or Windows, is one the course has not checked [unverified]. Off Linux, read the course's run printed above. Triton `3.8.0` runs on Python `3.10` to `3.14`, so Python `3.12`, the one the course's environments use, is inside its range. {{claim:triton.release.python-range}} On Linux, in that Python with `torch==2.14.0` and `triton==3.8.0`, put the kernel `scale` in a file with `tl.device_print("offs", offs)` after its mask, and run:
 
 ```python
 import os

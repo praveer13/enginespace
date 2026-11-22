@@ -8,15 +8,15 @@ Knowledge components: `tr0.tensor-metadata`, `tr0.view-vs-copy`, `tr0.broadcast-
 
 In Rust, a slice `&v[a..b]` is a pointer, a length and a stride of one that nobody writes down: the next element is always one place further on. A PyTorch tensor is the same idea with the stride written down, one for each dimension:
 
-- A **tensor** is a **buffer** of **elements**, read through an offset, a shape and one **stride** for each dimension.
+- A **tensor** is a **buffer** of **elements**, PyTorch's storage, read through an offset, a shape and one **stride** for each dimension.
 - A stride is how far in the buffer one step along its dimension moves. It counts elements, not bytes.
 - A contiguous tensor's elements sit in the buffer row by row, in the order of their indices.
-- A **view** is a new tensor that reads another tensor's buffer through new metadata.
-- A **copy** writes a new buffer, with every element moved into it.
+- A **view** is a new tensor that reads another tensor's buffer through new metadata. `transpose` and `view` make views.
+- A **copy** writes a new buffer, with every element moved into it. `contiguous()` makes one when the tensor is not contiguous, and `reshape` makes a view where it can and a copy where it cannot.
 
-The level draws the tensor's cells, a table of its shape and strides beside them, and the buffer under the cells. Turn the tensor so that it reads column by column.
+The level draws the tensor's cells, a table of its shape and strides beside them, and the buffer under the cells. The target counts the elements in place: those that already sit where the target reads them. Turn the tensor so that it reads column by column.
 
-> **Predict `tr0.l1.p1`.** The level's tensor has shape `(4, 6)`, and the reference reads it column by column, as one row, with one copy. How many elements will that copy move?
+> **Predict `tr0.l1.p1`.** The level's tensor has shape (4, 6) [synthetic], and the reference reads it column by column, as one row, with one copy. How many elements will that copy move?
 >
 > The learner commits to a number in `elements`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
 
@@ -24,7 +24,7 @@ The level draws the tensor's cells, a table of its shape and strides beside them
 
 ## What the transpose did
 
-You just made a `(4, 6)` tensor read column by column. The reference's first move, `transpose(0, 1)`, moved nothing: the buffer under the cells held still, and only the table beside it changed. Here is the reference's run, a line for each step. Printed by the course's model on 2026-11-21 at `c83faee`.
+The level asks for a `(4, 6)` tensor read column by column. The reference's first move, `transpose(0, 1)`, moved nothing: the buffer under the cells held still, and only the table beside it changed. Here is the reference's run, a line for each step. Printed by the course's model on 2026-11-21 at `c83faee`.
 
 | After | Shape [synthetic] | Strides [synthetic] | Contiguous | Elements moved [synthetic] |
 |---|---|---|---|---|
@@ -36,7 +36,18 @@ The buffer is what the title calls storage: one flat run of elements. The shape 
 
 The transposed tensor is not contiguous. Read in the order of its indices, it walks the buffer 0, 6, 12, 18, then back to 1 [synthetic]. A view of a contiguous tensor can be one that is not. **a view of a contiguous tensor may not be contiguous** [measured]
 
-That is why `view([24])` on it is refused. One dimension of 24 elements needs one stride, a fixed step from each element to the next, and no single step walks 0, 6, 12, 18, 1 [synthetic]. A new shape is a view only where each new dimension lies inside an old one, or spans old dimensions whose strides chain. **the new size must fit the old strides** [measured] Otherwise the new shape cannot be had without a copy. **not possible without a copy** [measured] `reshape` makes that copy for you: it returns a view where the shape fits the strides, and a copy where it does not. **a view if the shape is compatible** [measured]
+That is why `view([24])` on it is refused. One dimension of 24 elements needs one stride, a fixed step from each element to the next, and no single step walks 0, 6, 12, 18, 1 [synthetic].
+
+PyTorch's rule for a view has two cases. Each new dimension must lie inside one old dimension, or span old dimensions whose strides chain. **the new size must fit the old strides** [measured] Two neighbouring dimensions chain when the outer one's stride is the inner one's size times the inner one's stride. One step along the outer dimension then lands just past a full run of the inner one, so the pair reads the buffer as one run, with the inner stride.
+
+| Tensor | Outer stride [derived] | Inner size times inner stride [derived] | Chain | `view([24])` |
+|---|---|---|---|---|
+| `(4, 6)`, strides `(6, 1)` | `6` | `6 * 1 = 6` | yes | a view, stride `1` |
+| `(6, 4)`, strides `(1, 6)`, after the transpose | `1` | `4 * 6 = 24` | no | refused |
+
+A new dimension that lies inside one old dimension needs no chain. `view([2, 3, 4])` on the transposed tensor cuts its first dimension of 6 in two and leaves the second alone, so it is a view, with strides `(3, 1, 6)` [derived]. `view([3, 8])` needs its second dimension to span part of the first old dimension and all of the second, and those two do not chain, so it is refused like `view([24])`.
+
+Where the strides do not allow a view, the new shape cannot be had without a copy. **not possible without a copy** [measured] `reshape` makes that copy for you: it returns a view where the shape fits the strides, and a copy where it does not. **a view if the shape is compatible** [measured]
 
 A copy moves every element, all 24 of them [synthetic], the first and the last too, although those two land at the address they already had. `contiguous()` is the same copy, made on purpose. It returns the tensor itself when the tensor is contiguous already, and a new buffer when it is not. **a copy when it is not** [measured]
 
@@ -69,7 +80,7 @@ A contiguous tensor's strides follow from its shape. The last stride is one, and
 
 Indexing with a slice makes a view, the way `&v[a..b]` does, and indexing with a list of positions makes a copy. **basic indexing views, advanced copies** [measured] Commit to the stride of a slice with a step before you read how it is worked out.
 
-> **Predict `tr0.l1.p2`.** A contiguous tensor `x` of shape `(3, 5)` is sliced as `y = x[:, ::2]`, every second column. What does `y.stride(1)` return?
+> **Predict `tr0.l1.p2`.** A contiguous tensor x of shape (3, 5) [estimated] is sliced as y = x[:, ::2], every second column. What is the stride of y's columns?
 >
 > The learner commits to a number in `elements`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
 

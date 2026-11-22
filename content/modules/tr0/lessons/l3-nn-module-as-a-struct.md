@@ -13,7 +13,7 @@ The last two lessons showed what a call does to one tensor, and an engine's mode
 
 ## A module is a struct
 
-In Rust, a struct holds other structs and arrays, and an `impl` block gives it a method that computes from them. A PyTorch `nn.Module` has the same parts: its fields are the tensors it owns and the modules inside it, and its `forward` method is the computation. A model is a module made of modules, the way a struct can hold structs.
+A PyTorch `nn.Module` is model code's struct with an `impl` block. A model is a module made of modules, the way a struct can hold structs.
 
 :::card
 kind: isomorphism
@@ -22,13 +22,13 @@ body: "In Rust, a struct's fields are other structs and arrays, and an impl bloc
 breaks: "A Rust struct's fields are fixed and checked when the program compiles. A module's fields are attributes that Python sets while the module is being built, so a misnamed field or a shape that does not fit shows up as an error only when the code reaches it."
 :::
 
-A checkpoint is a file of named tensors, and the module tree is the code that consumes them. A tensor's name is the path to it through the fields, joined with dots. This name is the weight of the query projection of the attention of the first layer:
+A checkpoint is a file of named tensors, and the module tree is the code that consumes them. The names are paths through the fields, joined with dots. The pinned `transformers` writes two of them itself, when it ties the output head's weight to the embedding table's: `lm_head.weight` and `model.embed_tokens.weight`. {{claim:transformers.qwen3.tied-keys}} By the same pattern, this would be the weight of the query projection of the attention of the first layer:
 
 ```text
 model.layers.0.self_attn.q_proj.weight
 ```
 
-How `nn.Module` builds such names is not in the PyTorch documents the course read [unverified]. The lab checks only the numbers your `build` returns, so a name that fits no field is yours to catch: `load_state_dict(strict=True)` refuses one [unverified].
+How `nn.Module` builds such names is not in the PyTorch documents the course read [unverified], so the pattern is read from names like the two above and not from a rule. The lab checks only the numbers your `build` returns, so a name that fits no field is yours to catch: `load_state_dict(strict=True)` refuses one [unverified].
 
 The configuration fixes every size of Qwen3-0.6B, so a forward pass is written from it and never from typed numbers. These are its values, each read at the model's pinned revision.
 
@@ -42,7 +42,7 @@ The configuration fixes every size of Qwen3-0.6B, so a forward pass is written f
 | the longest position the configuration allows | {{claim:qwen3.config.max-positions}} |
 | the width inside the MLP | {{claim:qwen3.config.intermediate-size}} |
 | the rows of the embedding table | {{claim:qwen3.config.vocab-size}} |
-| the epsilon of every RMSNorm | {{claim:qwen3.config.rms-eps}} |
+| the small number every norm adds before its square root (`rms_norm_eps`) | {{claim:qwen3.config.rms-eps}} |
 
 Each key and value head serves {{claim:qwen3.config.query-group}} query heads, and the hidden size is not the number of heads times the head size. Commit to the size of the query projection with that in mind.
 
@@ -56,34 +56,22 @@ kcs: [tr0.module-as-struct]
 
 ## Qwen3's decoder layer at the pin
 
-The pin is `transformers` `5.19.0`. One decoder layer keeps its input as the residual, normalizes the input, runs the attention and adds the residual back. It then does the same four steps for the MLP, with the post-attention norm. {{claim:transformers.qwen3.decoder-order}} The model is an embedding table of `vocab_size` rows and `hidden_size` columns, then the layers, then a final norm. {{claim:transformers.qwen3.embedding}} Qwen3-0.6B ties its output head to the embedding table, so the checkpoint holds one table for both. {{claim:qwen3.config.tied-embeddings}}
+At the pin, `transformers` `5.19.0`, one decoder layer keeps its input as the residual, normalizes the input, runs the attention and adds the residual back. It does the same for the MLP, with the post-attention norm. {{claim:transformers.qwen3.decoder-order}} The model is an embedding table, then the layers, then a final norm. {{claim:transformers.qwen3.embedding}} The output head `lm_head` then turns each token's vector into one score for each entry of the vocabulary, and those scores are the logits. {{claim:transformers.qwen3.lm-head}} Qwen3-0.6B ties the head to the embedding table, so the checkpoint holds one table for both. {{claim:qwen3.config.tied-embeddings}}
 
-Each piece, in the order the layer runs them:
+Inside the layer, in the order it runs them:
 
-1. **The norm.** `Qwen3RMSNorm` casts to `float32`, takes the mean of the squares over the last dimension, multiplies by the reciprocal square root of that mean plus epsilon, casts back, and then multiplies by its weight. {{claim:transformers.qwen3.rmsnorm}}
-2. **The projections.** The attention has three separate projections, `q_proj`, `k_proj` and `v_proj`, and an output projection `o_proj`. The query's output width is the number of heads times the head size, and the key's and the value's is the number of key and value heads times the head size. {{claim:transformers.qwen3.attn-projections}} That is {{claim:qwen3.config.q-proj-rows}} rows for the query and {{claim:qwen3.config.kv-proj-rows}} for each of the other two. The attention's output goes back through `o_proj` to the hidden size, so the residual can be added [derived].
-3. **The norm on each head.** The query and the key each get an RMSNorm built over the head size, and it acts on one head's vector and not on the hidden size. {{claim:transformers.qwen3.qk-norm}}
-4. **The rotation.** `rotate_half` splits the last dimension in two and returns the negated second half followed by the first. {{claim:transformers.qwen3.rotate-half}} The rotary base is `1000000`. {{claim:qwen3.config.rope-theta}}
-5. **The scores.** They are scaled by the head size to the power of minus one half. {{claim:transformers.qwen3.attn-scaling}}
-6. **The MLP.** `Qwen3MLP` applies the activation to the gate projection, multiplies by the up projection and applies the down projection, and all three have no bias. {{claim:transformers.qwen3.mlp}} The activation is `silu`. {{claim:qwen3.config.activation}}
-
-Where the layer reshapes, it uses the calls of the first two lessons: `view` into heads and `transpose(1, 2)`, which are free. The attention function ends with `contiguous()`, the one copy, and the layer's `reshape` after it is a view. {{claim:transformers.qwen3.attn-views}} {{claim:transformers.qwen3.attn-fn-contiguous}}
+1. **The norm.** Qwen3's norm, `Qwen3RMSNorm`, casts to `float32`, takes the mean of the squares over the last dimension, multiplies by the reciprocal square root of that mean plus epsilon, casts back, and multiplies by its weight. {{claim:transformers.qwen3.rmsnorm}}
+2. **The projections.** `q_proj`, `k_proj` and `v_proj` make the query, the key and the value. The query's width is the number of heads times the head size, and the key's and the value's is the number of key and value heads times the head size. {{claim:transformers.qwen3.attn-projections}} That is {{claim:qwen3.config.q-proj-rows}} rows for the query and {{claim:qwen3.config.kv-proj-rows}} for each of the other two.
+3. **The norm on each head.** The query and the key each get an RMSNorm over the head size, which acts on one head's vector. {{claim:transformers.qwen3.qk-norm}}
+4. **The rotation.** Attention alone does not know where a token sits, and the rotation tells it. Each pair of a head's dimensions has a frequency set by the rotary base, `1000000`, and a token's angle for that pair is its position times the frequency. {{claim:transformers.qwen3.rope-angles}} {{claim:qwen3.config.rope-theta}} `rotate_half` splits the last dimension in two and returns the negated second half followed by the first. {{claim:transformers.qwen3.rotate-half}} The query becomes itself times the cosine of its angles plus `rotate_half` of itself times the sine, and so does the key. The values are not turned. {{claim:transformers.qwen3.rope-apply}}
+5. **The attention.** `repeat_kv` repeats each key and value head in place, so query heads 0 and 1 read key and value head 0, and heads 2 and 3 read head 1 [derived]. {{claim:transformers.qwen3.repeat-kv}} The scores are the query times the transposed keys, scaled by the head size to the power of minus one half. {{claim:transformers.qwen3.attn-scaling}} The mask is added, a softmax turns each row of scores into weights, and the weights multiply the values. {{claim:transformers.qwen3.attn-softmax}} The mask is causal: it lets a token read itself and the tokens before it, and none after. {{claim:transformers.qwen3.causal-mask}} `o_proj` takes the result back to the hidden size, so the residual can be added [derived].
+6. **The MLP.** `Qwen3MLP` applies the activation to the gate projection, multiplies by the up projection element by element, and applies the down projection, and all three have no bias. {{claim:transformers.qwen3.mlp}} The activation is `silu`. {{claim:qwen3.config.activation}}
 
 ## Shapes through one layer
 
-The lab's grader records the shape and the strides of what leaves five modules of your forward pass: `embed_tokens`, the first layer's `self_attn` and `mlp`, `norm` and `lm_head`. Take one prompt of `6` tokens [estimated]. The `6` is arbitrary: it is this lesson's, and no engine's.
+Take one prompt of `6` tokens [estimated]. The `6` is arbitrary: it is this lesson's, and no engine's.
 
-- The embedding leaves with shape `(1, 6, 1024)` and strides `(6144, 1024, 1)`.
-- The first layer's attention leaves with the same shape and strides.
-- The first layer's MLP leaves with the same shape and strides.
-- The final norm leaves with the same shape and strides.
-- The head leaves with shape `(1, 6, 151936)` and strides `(911616, 151936, 1)`.
-
-Each shape is the batch, the tokens and then the hidden size, or the vocabulary at the head [derived]. Each stride is the one a contiguous tensor of that shape has [derived].
-
-A module returns what its code makes, so the strides the grader records are your code's. A contiguous tensor has the strides above, and one that a `transpose` left has others.
-
-The query is viewed, normed on each head and transposed. The norm keeps shape and strides, so the table skips it. The projection's `(1, 6, 2048)` output is viewed as `(1, 6, 16, 128)` and then transposed. Here are the steps and the elements each moved. Printed by the course's model on 2026-11-21 at `0dc2dcc`.
+The attention moves tensors with the first two lessons' calls. The query is viewed into heads, normed on each head and transposed, and both moves are views. {{claim:transformers.qwen3.attn-views}} The norm keeps shape and strides, so the table skips it. The projection's `(1, 6, 2048)` output is viewed as `(1, 6, 16, 128)` and then transposed. Printed by the course's model on 2026-11-21 at `0dc2dcc`.
 
 | After | Shape [synthetic] | Strides [synthetic] | Moved [synthetic] |
 |---|---|---|---|
@@ -91,7 +79,7 @@ The query is viewed, normed on each head and transposed. The norm keeps shape an
 | `view([1, 6, 16, 128])` | `(1, 6, 16, 128)` | `(12288, 2048, 128, 1)` | 0 |
 | `transpose(1, 2)` | `(1, 16, 6, 128)` | `(12288, 128, 2048, 1)` | 0 |
 
-Neither step moved an element. The second dimension of the result has stride `128`, one head's width, the third `2048`, a whole projection row. Going back, a `view` to `(1, 6, 2048)` is refused: no one stride walks the heads and then the tokens [synthetic]. That is why the attention function ends with a copy and the layer's `reshape` after it is a view.
+Both steps are views. The result's second stride is `128`, one head's width, and its third `2048`, a projection row. The attention's output comes back heads first, and `o_proj` needs tokens first. On the tensor in the table, a `view` to `(1, 6, 2048)` is refused: its heads and tokens do not chain, so no one stride walks them [synthetic]. So the attention function swaps them back and ends with `contiguous()`, the one copy, and the layer's `reshape` after it is a view. {{claim:transformers.qwen3.attn-fn-contiguous}}
 
 Check the strides of a reshape like this one before you read on.
 
@@ -100,6 +88,18 @@ family: tr0.strides-of
 level: 2
 count: 1
 :::
+
+The lab's grader records the shape and the strides of what leaves five modules of your forward pass. On the same prompt of `6` tokens they are these.
+
+| Module | Shape [derived] | Strides [derived] |
+|---|---|---|
+| `embed_tokens` | `(1, 6, 1024)` | `(6144, 1024, 1)` |
+| the first layer's `self_attn` | `(1, 6, 1024)` | `(6144, 1024, 1)` |
+| the first layer's `mlp` | `(1, 6, 1024)` | `(6144, 1024, 1)` |
+| `norm` | `(1, 6, 1024)` | `(6144, 1024, 1)` |
+| `lm_head` | `(1, 6, 151936)` | `(911616, 151936, 1)` |
+
+Each shape is the batch, the tokens and the hidden size, or the vocabulary at the head, and each stride is a contiguous tensor's. The grader records your code's strides, so a tensor that a `transpose` left shows others.
 
 ## The cache's contract
 
@@ -112,9 +112,9 @@ The contract is one sentence: the logits of each step equal the logits of a full
 | where the rotation starts | position `0` | the cache's length |
 | the queries | every token | the new tokens only |
 | the keys and values | every token's, recomputed | the whole cache, with the new ones appended |
-| the mask | square | one row for each new token, over every cached position and itself |
+| the causal mask | square | one row for each new token, over every cached position and itself |
 
-A cache written at the wrong position gives logits that are nearly right and not equal, which is why the check compares them with a recompute and not with a plausible word. The contract says nothing about how an engine stores the cache or how large it grows. It only says that the cache must not change an answer.
+The rotation's row follows from its angles, which come from each token's position: with a cache, the new tokens are numbered from the count already cached. {{claim:transformers.qwen3.position-ids}} A cache written at the wrong position gives logits that are nearly right and not equal, which is why the check compares them with a recompute and not with a plausible word. The contract says nothing about how an engine stores the cache or how large it grows. It only says that the cache must not change an answer.
 
 :::card
 kind: build-this
@@ -123,7 +123,7 @@ id: build-tr0-forward
 
 ## Exit check
 
-Three questions on new tensors: two ask for a stride after the reshapes of attention, and one asks what a chain of calls does.
+Three questions on new tensors: two ask for a stride after the reshapes of attention, as this lesson's query table did, and one asks what a chain of calls does, as the first two lessons did.
 
 :::item
 family: tr0.strides-of
