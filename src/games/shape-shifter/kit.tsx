@@ -108,9 +108,10 @@ export function shiftKit(levelId: ShiftLevelId, seed: number): GameKit<ShiftActi
     firstMove,
     firstMoveWords: moveWords(firstMove),
     firstAsk: 'optional',
-    // The first move is often pressed again where it was (a stepper's "one more", a second operation from the bar): the strip is held blank
-    // until the hand leaves the dock, so the controls under it do not move.
-    holdsStrip: true,
+    // On `grid` the first move is pressed again where it was (BLOCK's "one more", up to the value the reference sets): the strip is held
+    // blank until the hand leaves the dock, so the steppers under it do not move. On a level of the operation bar the next press is a
+    // picker's choice or another operation, never at the first one's spot, so the strip goes with the first move.
+    holdsStrip: start.grid !== null,
     askOpen,
     isAsk: (action) => action.t === 'commit',
     askWords: (view) => plainWords(view.predict.ask),

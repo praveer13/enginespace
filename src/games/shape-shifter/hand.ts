@@ -4,10 +4,10 @@
  *   A press that lands where the press before it landed, moments after it, on a control that was not the one pressed then, is a second
  *   press meant for the first control: the result, the next target's guess or the steppers came up under the pointer in between. It is
  *   ignored, so a double tap on contiguous() or Launch never presses Next level, New numbers or Skip the guess. A key press is ignored
- *   in one place only: a picker takes focus to a choice as it opens, so a key that opened it, pressed again at once, would press that
- *   choice (earlyKey). A control pressed again (a stepper's "one more" held down) is still the same control. A picker's choice pressed by a
- *   pointer is never a stray: the picker opens under the bar, never under the press that opened it, so a choice at that spot is one the
- *   learner scrolled to.
+ *   in two ways only: a picker takes focus to a choice as it opens, so a key that opened it, pressed again at once, would press that
+ *   choice (earlyKey); and Enter held down on the operation bar or a picker repeats, and its repeats press nothing (heldKey). A control
+ *   pressed again (a stepper's "one more" held down) is still the same control. A picker's choice pressed by a pointer is never a stray:
+ *   the picker opens under the bar, never under the press that opened it, so a choice at that spot is one the learner scrolled to.
  *
  *   On a phone the drawing stands in the page's flow over the pinned dock, so the cells and the buffer are read with the page: a tensor
  *   that grows or shrinks would move a dock that stands in the flow (scrolled to the page's foot, or on a screen too short to pin it).
@@ -79,6 +79,15 @@ export const KEY_SETTLE = 500
  */
 export function earlyKey(openedAt: number, at: number, detail: number): boolean {
   return detail === 0 && at - openedAt < KEY_SETTLE
+}
+
+/**
+ * Whether a key's press is Enter held down and repeating (`repeat`), which a button takes as one more press each time (Space presses once,
+ * when it is let go). On the operation bar and in its pickers it is dropped: Enter held on an operation would otherwise open its picker and,
+ * a moment later, press the choice in focus. A stepper's "one more" is not on the bar, so a key held there keeps counting. Pure.
+ */
+export function heldKey(event: { readonly repeat: boolean; readonly key: string }): boolean {
+  return event.repeat && event.key === 'Enter'
 }
 
 /** The height (px) of a box's "More below" at its foot (shape-shifter.css, frame.css: 1.75rem), which a control seated in the box stays over. */

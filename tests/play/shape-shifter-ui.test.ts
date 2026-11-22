@@ -34,7 +34,7 @@ import { ReadoutStrip } from '@/games/shape-shifter/ReadoutStrip'
 import type { ShiftRun } from '@/games/shape-shifter/types'
 import { View2D } from '@/games/shape-shifter/View2D'
 import { changeLine } from '@/games/shape-shifter/announce'
-import { earlyKey, KEY_SETTLE, resultBy, SAME_SPOT, SAME_TIME, scrollToShow, seatBy, seatInBoxBy, strayPress } from '@/games/shape-shifter/hand'
+import { earlyKey, heldKey, KEY_SETTLE, resultBy, SAME_SPOT, SAME_TIME, scrollToShow, seatBy, seatInBoxBy, strayPress } from '@/games/shape-shifter/hand'
 
 const repo = path.resolve(import.meta.dirname, '../..')
 const LEVELS = SHAPE_SHIFTER.levels.map((level) => level.id as ShiftLevelId)
@@ -317,6 +317,37 @@ describe('what stays under the hand', () => {
     expect(earlyKey(1000, 1250, 0)).toBe(true)
     expect(earlyKey(1000, 1000 + KEY_SETTLE, 0)).toBe(false)
     expect(earlyKey(1000, 1080, 1)).toBe(false)
+  })
+
+  test('Enter held down on the operation bar or a picker presses once: its repeats press nothing, however long it is held', () => {
+    // Held on `view` past the picker's settle, Enter's repeats pressed the choice in focus and applied it.
+    expect(heldKey({ repeat: true, key: 'Enter' })).toBe(true)
+    expect(heldKey({ repeat: false, key: 'Enter' })).toBe(false)
+    // Space presses when it is let go, once, however long it is held; the arrows that move along the bar repeat as they always have.
+    expect(heldKey({ repeat: true, key: ' ' })).toBe(false)
+    expect(heldKey({ repeat: true, key: 'ArrowRight' })).toBe(false)
+    const controls = readFileSync(path.join(repo, 'src/games/shape-shifter/Controls.tsx'), 'utf8')
+    expect(controls).toMatch(/className="es-shift-dock__ops"\s*onKeyDownCapture=\{\(event\) => \{\s*if \(heldKey\(event\)\) event\.preventDefault\(\)/)
+  })
+
+  test("the strip is held after the first move on `grid` only, where the first move is pressed again at its spot; the bar's buttons keep their own height beside a ring", () => {
+    for (const id of LEVELS) expect([id, shiftKit(id, practice(id).seed).holdsStrip]).toEqual([id, id === 'grid'])
+    const css = readFileSync(path.join(repo, 'src/games/shape-shifter/shape-shifter.css'), 'utf8')
+    expect(css).toMatch(/\.es-shift-dock__bar,\s*\.es-shift-dock__choices \{\s*display: flex;\s*flex-wrap: wrap;\s*align-items: flex-start;/)
+  })
+
+  test("under 25rem the ring's word on a stepper takes no width of its own, and keeps its room under the ring", () => {
+    const css = readFileSync(path.join(repo, 'src/games/shape-shifter/shape-shifter.css'), 'utf8')
+    const narrow = css.slice(css.indexOf('@media (max-width: 24.999rem)'))
+    expect(narrow).toMatch(/\.es-shift-dock__stepper \.es-shift-dock__ring \.es-marker__tab \{\s*position: absolute;/)
+    expect(narrow).toMatch(/\.es-shift-dock__stepper \.es-shift-dock__ring \{\s*position: relative;\s*padding-bottom: calc\(var\(--es-space-1\) \+ 1\.25rem\);/)
+  })
+
+  test("the grid's steppers are groups focus can be put on, which press nothing: the guess closing puts focus there, not on \"one more\"", () => {
+    const level = practice('grid')
+    const state = shiftReduce(shiftInit(level), { t: 'commit', prediction: 80 })
+    const markup = renderToStaticMarkup(h(Controls, { run: fakeRun(state), mode: 'practice' }))
+    expect(markup).toMatch(/<div class="es-shift-dock__stepper" role="group" aria-label="BLOCK along dimension 0" data-stepper="BLOCK along dimension 0" tabindex="-1">/)
   })
 
   test("the ringed control is seated in a dock's box that scrolls: over its foot's \"More below\", with room for the ring's edge", () => {

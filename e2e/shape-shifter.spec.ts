@@ -389,7 +389,117 @@ test.describe('a key pressed twice', () => {
   }
 })
 
+test.describe('a key held down, and Enter twice on the grid\'s guess', () => {
+  test('Enter held on `view` well past the picker\'s settle opens its picker and applies nothing; the next press applies the choice', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openLevel(page, 'fewest')
+    await page.getByRole('button', { name: 'Skip the guess' }).click()
+    await page.locator('[data-shift-bar] [data-op="view"]').focus()
+    // Held for about 1.2 s: the key's first press, then its repeats every 33 ms after half a second, as a system's key repeat sends them.
+    await page.keyboard.down('Enter')
+    await page.waitForTimeout(500)
+    for (let repeat = 0; repeat < 20; repeat++) {
+      await page.keyboard.down('Enter')
+      await page.waitForTimeout(33)
+    }
+    await page.keyboard.up('Enter')
+    await page.waitForTimeout(300)
+    await expect(page.locator('[data-shift-picker="view"]')).toBeVisible()
+    await expect(page.locator('.es-shift-dock__where')).toHaveText('Target 1 of 3 · operation 1')
+    await expect(game(page).locator('[data-moment]')).toHaveCount(0)
+    await page.locator('[data-shift-picker][data-settled]').waitFor()
+    await page.keyboard.press('Enter')
+    await expect(page.locator('.es-shift-dock__where')).not.toHaveText('Target 1 of 3 · operation 1')
+  })
+
+  for (const gap of [80, 600]) {
+    test(`Enter twice on the grid's guess, ${gap} ms apart, commits it and presses no stepper`, async ({ page }) => {
+      await page.setViewportSize({ width: 1440, height: 900 })
+      await openLevel(page, 'grid')
+      const field = page.getByRole('textbox', { name: 'Your guess' })
+      await field.fill('20')
+      await field.press('Enter')
+      await page.waitForTimeout(gap)
+      await page.keyboard.press('Enter')
+      await page.waitForTimeout(300)
+      await expect(page.locator('[data-shift-predict]')).toHaveCount(0)
+      await expect(page.locator('[data-stepper="BLOCK along dimension 0"] output')).toHaveText('1')
+      // Focus is on the first stepper's group, which presses nothing, and Tab goes on to its "one more".
+      await expect.poll(() => page.evaluate(() => document.activeElement?.getAttribute('data-stepper'))).toBe('BLOCK along dimension 0')
+      await page.keyboard.press('Tab')
+      await expect(page.getByRole('button', { name: 'BLOCK along dimension 0: one more' })).toBeFocused()
+    })
+  }
+})
+
+test.describe('the ring on a level of the operation bar, and on a phone\'s steppers', () => {
+  test.use({ hasTouch: true })
+
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`at ${viewport.width} x ${viewport.height} on \`views\` the bar's buttons keep their own 44 px beside the ring, and the strip goes with the first move`, async ({ page }) => {
+      await page.setViewportSize(viewport)
+      await openLevel(page, 'views', 'fresh')
+      const intro = game(page).locator('.es-intro').first()
+      for (let guard = 0; guard < 12 && ['parts', 'look'].includes((await intro.getAttribute('data-intro')) ?? ''); guard++) await page.locator('[data-intro-next]').click()
+      await page.getByRole('button', { name: 'Skip the guess' }).click()
+      await expect(page.locator('.es-marker__ring [data-op="transpose"]')).toBeVisible()
+      const heights = () => page.locator('[data-shift-bar] button').evaluateAll((all) => all.map((button) => Math.round(button.getBoundingClientRect().height)))
+      expect(await heights()).toEqual([44, 44, 44, 44])
+      await page.locator('[data-shift-bar] [data-op="transpose"]').tap()
+      await page.locator('[data-shift-picker] [data-choice="0 and 1"]').tap()
+      await expect(game(page).locator('.es-intro')).toHaveCount(0)
+      expect(await heights()).toEqual([44, 44, 44, 44])
+    })
+  }
+
+  test('at 390 x 844 on `grid` dimension 1\'s "one more" is whole in the dock while the ring is on its neighbour and while its room is held', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 })
+    await openLevel(page, 'grid', 'fresh')
+    const intro = game(page).locator('.es-intro').first()
+    for (let guard = 0; guard < 12 && ['parts', 'look'].includes((await intro.getAttribute('data-intro')) ?? ''); guard++) await page.locator('[data-intro-next]').click()
+    await guess(page, 80)
+    const whole = () =>
+      page.getByRole('button', { name: 'BLOCK along dimension 1: one more' }).evaluate((button) => {
+        const r = button.getBoundingClientRect()
+        const own = [r.left + 2, r.left + r.width / 2, r.right - 2].every((x) => button.contains(document.elementFromPoint(x, r.top + r.height / 2)))
+        return { own, right: Math.round(r.right), width: window.innerWidth }
+      })
+    await expect(page.locator('.es-marker__ring [data-step="more"]')).toHaveCount(1)
+    expect((await whole()).own, `while the ring is on: ${JSON.stringify(await whole())}`).toBe(true)
+    await page.waitForTimeout(1000)
+    await tapAt(page, '.es-marker__ring [data-step="more"]')
+    await expect(page.locator('[data-stepper="BLOCK along dimension 0"] output')).toHaveText('2')
+    await expect(game(page).locator('.es-intro')).toHaveCount(1)
+    expect((await whole()).own, `while the room is held: ${JSON.stringify(await whole())}`).toBe(true)
+  })
+})
+
 test.describe('Prove mode', () => {
+  test('a Prove run keeps the seed it drew until its end: no Restart level or New numbers while it is on, and at its result they start a run recorded as practice', async ({ page }) => {
+    test.setTimeout(120_000)
+    await openLevel(page, 'fewest')
+    await page.locator('[data-prove-entry]').click()
+    await page.getByLabel('My coding agent and any AI chat are closed.').check()
+    await page.getByRole('button', { name: 'Start the Prove run' }).click()
+    await expect(game(page)).toHaveAttribute('data-mode', 'graded')
+    const foot = page.locator('.es-frame__foot')
+    await expect(foot.getByRole('button', { name: 'Restart level' })).toHaveCount(0)
+    await expect(foot.getByRole('button', { name: 'New numbers' })).toHaveCount(0)
+    const seed = Number(await game(page).getAttribute('data-seed'))
+    for (const task of buildLevel('fewest', seed).tasks) {
+      if (await page.locator('[data-shift-predict]').isVisible()) await page.getByRole('button', { name: 'Skip the guess' }).click()
+      for (const op of 'ghost' in task ? task.ghost : []) await tap(page, { t: 'op', op })
+    }
+    await expect(verdict(page)).toHaveText('Passed')
+    await expect(page.locator('[data-prove-after]')).toHaveAttribute('data-prove-after', 'proved')
+    await foot.getByRole('button', { name: 'New numbers' }).click()
+    await expect(page.locator('[data-prove-foot]')).toContainText('Recorded as practice')
+    expect(Number(await game(page).getAttribute('data-seed'))).not.toBe(seed)
+  })
+
   test('a Prove run left before its end counts as a miss: a reload finds the attempt that counts spent, and the next run is practice', async ({ page }) => {
     test.setTimeout(120_000)
     await openLevel(page, 'fewest')

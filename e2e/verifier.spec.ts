@@ -428,6 +428,17 @@ test.describe('Prove mode (ASSESSMENT §7.2)', () => {
     await expect(page.locator('[data-prove-stake]')).toContainText('You have proved this level. The next attempt that counts opens at ')
   })
 
+  test('a Prove run keeps the seed it drew until its end: neither Restart level nor New numbers is offered while it is on', async ({ page }) => {
+    await openProve(page)
+    await startProve(page)
+    const first = await seedOf(page)
+    const foot = page.locator('.es-frame__foot')
+    await expect(foot.getByRole('button', { name: 'Restart level' })).toHaveCount(0)
+    await expect(foot.getByRole('button', { name: 'New numbers' })).toHaveCount(0)
+    await expect(page.locator('[data-prove-foot]')).toContainText('This attempt counts.')
+    expect(await seedOf(page)).toBe(first)
+  })
+
   test('the seed is drawn when the Prove run starts, and a failed attempt is played again at once on fresh numbers, recorded as practice', async ({ page }) => {
     await openProve(page)
     await startProve(page)
