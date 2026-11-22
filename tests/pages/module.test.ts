@@ -106,6 +106,19 @@ describe('the amber button', () => {
     } else expect(textOf(way(html))).not.toContain('Continue')
   })
 
+  test('on a planned module with no lessons, from an empty ledger, never says a lesson is done, and still offers the way on', () => {
+    const planned = INDEX.modules.filter((entry) => (LESSON_INDEX.modules[entry.id] ?? []).length === 0).map((entry) => entry.id)
+    expect(planned.length).toBeGreaterThan(0)
+    const step = nextStep([], MAP.lessons, null)
+    for (const id of planned) {
+      const view: ModuleWay = { step, last: null, states: new Map(), lessons: MAP.lessons.filter((lesson) => lesson.module === id) }
+      const html = render(h(ModuleView, { id, module: null, entry: INDEX.modules.find((entry) => entry.id === id), lessons: LESSON_INDEX.modules[id] ?? [], claims: null, today: '2026-11-16', ready: true, way: view }), `/m/${id}`)
+      expect(textOf(way(html)), id).not.toContain('is done')
+      expect(textOf(way(html)), id).toContain(`Next: ${step.reason}.`)
+      expect(way(html), id).toContain(`href="${step.href}"`)
+    }
+  })
+
   test('waits for the ledger and says so, and offers no place it has not read', () => {
     const html = page('tr2', null)
     expect(way(html)).toContain('role="status"')
