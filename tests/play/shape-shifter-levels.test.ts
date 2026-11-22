@@ -31,6 +31,21 @@ import { habitReaches, S, practiceOf, stateAfter } from './shape-shifter-support
 setDefaultTimeout(120_000)
 
 const SEEDS = seeds(1)
+
+/*
+ * The seeded properties below run as one test for each CHUNK of the seeds, not one test over all of them: at the nightly 10,000 seeds one
+ * test over every seed ran for 135 to 743 s against its 120 s timeout (the exit review's measurement), while a chunk of 100 seeds takes a
+ * few seconds to 11 s. The timeout is the one every test has (above), the seeds and what each asserts are unchanged, and a test of each
+ * describe asserts that the chunks that ran are exactly SEEDS, each once.
+ */
+const CHUNK = 100
+const CHUNKS: readonly (readonly number[])[] = Array.from({ length: Math.ceil(SEEDS.length / CHUNK) }, (_, i) => SEEDS.slice(i * CHUNK, (i + 1) * CHUNK))
+const rangeOf = (chunk: readonly number[]): string => `seeds ${chunk[0]} to ${chunk[chunk.length - 1]}`
+
+test('the chunks of seeds are SEEDS, in order, each seed once', () => {
+  expect(CHUNKS.flat()).toEqual(SEEDS)
+  expect(CHUNKS.every((chunk) => chunk.length > 0 && chunk.length <= CHUNK)).toBe(true)
+})
 const layout = (level: ShiftLevel): LayoutLevel => {
   if (level.kind !== 'layout') throw new Error('a layout level was expected')
   return level
@@ -72,25 +87,39 @@ describe('the practice levels are the tensors GAMES.md §4.3 prints, and their r
     expect([plan?.copies, plan?.moved, plan?.ops.length]).toEqual([1, 32, 3])
   })
 
-  test(`on every banded seed of the three practice levels (${SEEDS.length}), the reference reaches the target with the model's fewest copies`, () => {
-    for (const id of ['views', 'stride-zero', 'three-d'] as const) {
-      for (const seed of SEEDS) {
-        const level = layout(S.level(id, seed))
-        expect([id, seed, S.inBand(id, seed)]).toEqual([id, seed, true])
-        for (const task of level.tasks) {
-          const ghost = ghostOf(task)
-          expect([id, seed, ghost !== null && reaches(ghost.end, task.goal)]).toEqual([id, seed, true])
-          const plan = fewestPlan(task.start, task.goal)
-          expect([id, seed, plan?.copies, plan?.ops.length]).toEqual([id, seed, task.copies, task.ghost.length])
+  const practiceRan: number[] = []
+  for (const chunk of CHUNKS) {
+    test(`on every banded seed of the three practice levels (${rangeOf(chunk)}), the reference reaches the target with the model's fewest copies`, () => {
+      practiceRan.push(...chunk)
+      for (const id of ['views', 'stride-zero', 'three-d'] as const) {
+        for (const seed of chunk) {
+          const level = layout(S.level(id, seed))
+          expect([id, seed, S.inBand(id, seed)]).toEqual([id, seed, true])
+          for (const task of level.tasks) {
+            const ghost = ghostOf(task)
+            expect([id, seed, ghost !== null && reaches(ghost.end, task.goal)]).toEqual([id, seed, true])
+            const plan = fewestPlan(task.start, task.goal)
+            expect([id, seed, plan?.copies, plan?.ops.length]).toEqual([id, seed, task.copies, task.ghost.length])
+          }
         }
       }
-    }
+    })
+  }
+
+  test(`the practice levels' seeds were covered once each (${SEEDS.length})`, () => {
+    expect(practiceRan).toEqual(SEEDS)
   })
 
   test('a `view` of the transposed [4, 6] to one row is refused, and `reshape` copies in its place', () => {
     const level = practiceOf('views')
-    const flipped = stateAfter(level, { t: 'op', op: { op: 'transpose', a: 0, b: 1 } })
-    const refused = shiftReduce(flipped, { t: 'op', op: { op: 'view', shape: [24] } })
+    const flipped = stateAfter(level, {
+      t: 'op',
+      op: { op: 'transpose', a: 0, b: 1 },
+    })
+    const refused = shiftReduce(flipped, {
+      t: 'op',
+      op: { op: 'view', shape: [24] },
+    })
     const run = refused.runs[0]
     expect(run.kind === 'layout' ? [run.refused.length, run.copies, run.ops.length] : null).toEqual([1, 0, 1])
   })
@@ -100,83 +129,124 @@ describe("`fewest`'s targets: the reference is the model's optimum, and the habi
   const KINDS: readonly FewestKind[] = ['copy-before-view', 'no-copy']
   const WANT: Readonly<Record<FewestKind, number>> = { 'copy-before-view': 1, 'no-copy': 0 }
 
-  test('acceptance of each band is measured, and is over §2.1\'s floor of 20%', () => {
+  // One stream of draws for each kind, as before: the chunks take it in turn, in order, so the candidates are the ones one test drew.
+  const acceptRng = Object.fromEntries(KINDS.map((kind) => [kind, rngFor(7, `shape-shifter-levels/${kind}`)])) as Record<FewestKind, ReturnType<typeof rngFor>>
+  const acceptance = Object.fromEntries(KINDS.map((kind) => [kind, { candidates: 0, drawn: 0, kept: 0 }])) as Record<
+    FewestKind,
+    { candidates: number; drawn: number; kept: number }
+  >
+  for (const chunk of CHUNKS) {
+    test(`acceptance of each band is drawn (${rangeOf(chunk)} of the candidates)`, () => {
+      for (const kind of KINDS) {
+        const tally = acceptance[kind]
+        for (let i = 0; i < chunk.length; i++) {
+          tally.candidates++
+          const candidate = drawCandidate(kind, acceptRng[kind])
+          if (candidate === null) continue
+          tally.drawn++
+          if (acceptCandidate(kind, candidate) !== null) tally.kept++
+        }
+      }
+    })
+  }
+
+  test("acceptance of each band is measured, and is over §2.1's floor of 20%", () => {
     const lines: string[] = []
     for (const kind of KINDS) {
-      const rng = rngFor(7, `shape-shifter-levels/${kind}`)
-      let drawn = 0
-      let kept = 0
-      for (let i = 0; i < SEEDS.length; i++) {
-        const candidate = drawCandidate(kind, rng)
-        if (candidate === null) continue
-        drawn++
-        if (acceptCandidate(kind, candidate) !== null) kept++
-      }
+      const { candidates, drawn, kept } = acceptance[kind]
+      expect([kind, candidates]).toEqual([kind, SEEDS.length])
       lines.push(`${kind}: ${kept} of ${drawn} candidates kept (${((100 * kept) / drawn).toFixed(1)}%)`)
       expect(kept / drawn).toBeGreaterThanOrEqual(0.2)
     }
     console.log(`Tensor views, fewest's band, acceptance over ${SEEDS.length} candidates of each kind [measured]:\n  ${lines.join('\n  ')}`)
   })
 
-  test('every kept candidate: the model\'s fewest copies, a naive path with at least one more, six operations, and no habit reaches it', () => {
-    for (const kind of KINDS) {
-      const rng = rngFor(11, `shape-shifter-levels/kept/${kind}`)
-      let kept = 0
-      for (let i = 0; i < SEEDS.length; i++) {
-        const d = drawCandidate(kind, rng)
-        const task = d === null ? null : acceptCandidate(kind, d)
-        if (d === null || task === null) continue
-        kept++
-        const goal = goalAfter(d.start, d.chain, d.contiguous)
-        expect(goal).not.toBeNull()
-        if (goal === null) continue
-        const plan = fewestPlan(d.start, goal, PLAN_OPS)
-        expect([kind, plan?.copies]).toEqual([kind, WANT[kind]])
-        expect([kind, task.copies, task.ghost.length <= PLAN_OPS]).toEqual([kind, WANT[kind], true])
-        const naive = naivePlan(d.start, d.chain, goal.contiguous)
-        expect([kind, (naive?.copies ?? -1) >= (plan?.copies ?? 99) + 1]).toEqual([kind, true])
-        const habits = kind === 'copy-before-view' ? (['views-then-copy'] as const) : (['copy-before-view', 'copy-first', 'copy-before-every'] as const)
-        for (const habit of habits) expect([kind, habit, habitReaches(habit, d.start, goal, WANT[kind])]).toEqual([kind, habit, false])
-        // Every tensor along the chain has rank 3 or less, the chain holds no slice and no expand, and the tensor has 12 to 64 elements.
-        expect(goal.shape.length).toBeLessThanOrEqual(3)
-        expect(numel(goal.shape)).toBeGreaterThanOrEqual(12)
-        expect(numel(goal.shape)).toBeLessThanOrEqual(64)
-        expect(d.chain.every((o) => o.op === 'reshape' || o.op === 'permute')).toBe(true)
-        // A start's buffer spans at most 64 addresses, so the strip fits beside the cells.
-        expect(Math.max(...addresses(d.start)) + 1).toBeLessThanOrEqual(64)
-        // The no-copy kind starts from a tensor that is not contiguous, and its target is not.
-        if (kind === 'no-copy') expect([task.goal.contiguous, addresses(d.start).join() === Array.from({ length: numel(d.start.shape) }, (_, i) => i).join()]).toEqual([false, false])
+  const keptRng = Object.fromEntries(KINDS.map((kind) => [kind, rngFor(11, `shape-shifter-levels/kept/${kind}`)])) as Record<
+    FewestKind,
+    ReturnType<typeof rngFor>
+  >
+  const keptTally = Object.fromEntries(KINDS.map((kind) => [kind, { candidates: 0, kept: 0 }])) as Record<FewestKind, { candidates: number; kept: number }>
+  for (const chunk of CHUNKS) {
+    test(`every kept candidate (${rangeOf(chunk)} of the candidates): the model's fewest copies, a naive path with at least one more, six operations, and no habit reaches it`, () => {
+      for (const kind of KINDS) {
+        const rng = keptRng[kind]
+        let kept = 0
+        for (let i = 0; i < chunk.length; i++) {
+          keptTally[kind].candidates++
+          const d = drawCandidate(kind, rng)
+          const task = d === null ? null : acceptCandidate(kind, d)
+          if (d === null || task === null) continue
+          kept++
+          const goal = goalAfter(d.start, d.chain, d.contiguous)
+          expect(goal).not.toBeNull()
+          if (goal === null) continue
+          const plan = fewestPlan(d.start, goal, PLAN_OPS)
+          expect([kind, plan?.copies]).toEqual([kind, WANT[kind]])
+          expect([kind, task.copies, task.ghost.length <= PLAN_OPS]).toEqual([kind, WANT[kind], true])
+          const naive = naivePlan(d.start, d.chain, goal.contiguous)
+          expect([kind, (naive?.copies ?? -1) >= (plan?.copies ?? 99) + 1]).toEqual([kind, true])
+          const habits = kind === 'copy-before-view' ? (['views-then-copy'] as const) : (['copy-before-view', 'copy-first', 'copy-before-every'] as const)
+          for (const habit of habits) expect([kind, habit, habitReaches(habit, d.start, goal, WANT[kind])]).toEqual([kind, habit, false])
+          // Every tensor along the chain has rank 3 or less, the chain holds no slice and no expand, and the tensor has 12 to 64 elements.
+          expect(goal.shape.length).toBeLessThanOrEqual(3)
+          expect(numel(goal.shape)).toBeGreaterThanOrEqual(12)
+          expect(numel(goal.shape)).toBeLessThanOrEqual(64)
+          expect(d.chain.every((o) => o.op === 'reshape' || o.op === 'permute')).toBe(true)
+          // A start's buffer spans at most 64 addresses, so the strip fits beside the cells.
+          expect(Math.max(...addresses(d.start)) + 1).toBeLessThanOrEqual(64)
+          // The no-copy kind starts from a tensor that is not contiguous, and its target is not.
+          if (kind === 'no-copy')
+            expect([task.goal.contiguous, addresses(d.start).join() === Array.from({ length: numel(d.start.shape) }, (_, i) => i).join()]).toEqual([
+              false,
+              false,
+            ])
+        }
+        keptTally[kind].kept += kept
       }
-      expect(kept).toBeGreaterThan(SEEDS.length / 10)
+    })
+  }
+
+  test(`kept candidates were checked over ${SEEDS.length} candidates of each kind, and more than a tenth were kept`, () => {
+    for (const kind of KINDS) {
+      expect([kind, keptTally[kind].candidates]).toEqual([kind, SEEDS.length])
+      expect(keptTally[kind].kept).toBeGreaterThan(SEEDS.length / 10)
     }
   })
 
-  test(`on every banded seed (${SEEDS.length}) a run holds three targets, one of each kind and a third of either, each with the model's fewest copies`, () => {
-    let both = 0
-    for (const seed of SEEDS) {
-      expect(S.inBand('fewest', seed)).toBe(true)
-      const level = layout(S.level('fewest', seed))
-      expect(level.tasks).toHaveLength(3)
-      const kinds = level.tasks.map((task) => task.kind)
-      expect(kinds.includes('copy-before-view') && kinds.includes('no-copy')).toBe(true)
-      if (new Set(kinds).size === 2) both++
-      const goals = new Set(level.tasks.map((task) => `${task.goal.shape}|${task.goal.elements}`))
-      expect(goals.size).toBe(3)
-      for (const task of level.tasks) {
-        expect([seed, task.copies]).toEqual([seed, WANT[task.kind as FewestKind]])
-        const plan = fewestPlan(task.start, task.goal, PLAN_OPS)
-        expect([seed, plan?.copies]).toEqual([seed, task.copies])
-        expect(task.ghost.length).toBeLessThanOrEqual(PLAN_OPS)
-        expect(task.answer).toBe(task.copies)
-        const ghost = ghostOf(task)
-        expect([seed, ghost !== null && reaches(ghost.end, task.goal), ghost?.copies]).toEqual([seed, true, task.copies])
-        // The reference uses only the buttons the level offers, and never `reshape` or `expand`.
-        expect(task.ghost.every((o) => level.offered.includes(o.op))).toBe(true)
+  const runRan: number[] = []
+  let both = 0
+  for (const chunk of CHUNKS) {
+    test(`on every banded seed (${rangeOf(chunk)}) a run holds three targets, one of each kind and a third of either, each with the model's fewest copies`, () => {
+      runRan.push(...chunk)
+      for (const seed of chunk) {
+        expect(S.inBand('fewest', seed)).toBe(true)
+        const level = layout(S.level('fewest', seed))
+        expect(level.tasks).toHaveLength(3)
+        const kinds = level.tasks.map((task) => task.kind)
+        expect(kinds.includes('copy-before-view') && kinds.includes('no-copy')).toBe(true)
+        if (new Set(kinds).size === 2) both++
+        const goals = new Set(level.tasks.map((task) => `${task.goal.shape}|${task.goal.elements}`))
+        expect(goals.size).toBe(3)
+        for (const task of level.tasks) {
+          expect([seed, task.copies]).toEqual([seed, WANT[task.kind as FewestKind]])
+          const plan = fewestPlan(task.start, task.goal, PLAN_OPS)
+          expect([seed, plan?.copies]).toEqual([seed, task.copies])
+          expect(task.ghost.length).toBeLessThanOrEqual(PLAN_OPS)
+          expect(task.answer).toBe(task.copies)
+          const ghost = ghostOf(task)
+          expect([seed, ghost !== null && reaches(ghost.end, task.goal), ghost?.copies]).toEqual([seed, true, task.copies])
+          // The reference uses only the buttons the level offers, and never `reshape` or `expand`.
+          expect(task.ghost.every((o) => level.offered.includes(o.op))).toBe(true)
+        }
+        // Played through the session, the reference passes its own level.
+        const ghost = S.ghost(level)
+        expect([seed, S.done(ghost), S.grade(ghost, ghost).ok]).toEqual([seed, true, true])
       }
-      // Played through the session, the reference passes its own level.
-      const ghost = S.ghost(level)
-      expect([seed, S.done(ghost), S.grade(ghost, ghost).ok]).toEqual([seed, true, true])
-    }
+    })
+  }
+
+  test(`every banded seed (${SEEDS.length}) held a run of three targets, once each, and both mixes of the third target turn up`, () => {
+    expect(runRan).toEqual(SEEDS)
     // The third target is of either kind at even odds, so both mixes turn up.
     expect(both).toBeGreaterThan(0)
   })
