@@ -26,6 +26,14 @@ const SHORT = [
   { width: 320, height: 256 },
 ]
 
+/** TR0 end to end (W2b-T33): its module page, each of its lessons, the Tensor views game and the forward pass lab. */
+const TR0_ROUTES = [...LESSONS.filter((lesson) => lesson.module === 'tr0').map((lesson) => lesson.route), '/m/tr0', '/play/shape-shifter', '/labs/tr0.forward']
+
+test("TR0's routes are among the routes checked above, all five lessons included", () => {
+  expect(LESSONS.filter((lesson) => lesson.module === 'tr0'), 'the TR0 lessons of the compiled map').toHaveLength(5)
+  expect(ROUTES, 'TR0 routes in the list of checked routes').toEqual(expect.arrayContaining(TR0_ROUTES))
+})
+
 test.describe('every route holds the checks of REDESIGN 5.2', () => {
   for (const route of ROUTES) {
     test(`${route}`, async ({ page, context }) => {
