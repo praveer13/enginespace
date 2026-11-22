@@ -322,6 +322,20 @@ test.describe('copying', () => {
     await ticket(page).getByRole('button', { name: 'Copy the command' }).click()
     expect(await page.evaluate(() => window.getSelection()?.toString().replace(/\s+/g, ' '))).toBe(`enginespace grade ${STAGE} --challenge ${made}`)
   })
+
+  test("prints, for a lab with a page, the lab page's own grade command, which runs in the kit as it is copied", async ({ page }) => {
+    const id = 'tr0.forward.s3'
+    await open(page, '/labs/tr0.forward')
+    const onLab = (await page.locator('[data-command-line]').filter({ hasText: `grade ${id} ` }).first().textContent()) ?? ''
+    expect(onLab).toContain('uv run --project envs/cpu enginespace grade')
+    await open(page, ROUTE)
+    await issue(page, 'tr0.forward', id)
+    const made = await tokenText(page)
+    const printed = ((await ticket(page, id).locator('.es-chit__command code').textContent()) ?? '').replace(/\s+/g, ' ').trim()
+    expect(printed).toBe(onLab.replace('<token>', made))
+    await ticket(page, id).getByRole('button', { name: 'Copy the command' }).click()
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(onLab.replace('<token>', made))
+  })
 })
 
 /* ------------------------------------------------------------------------------------------------------------------ */

@@ -26,6 +26,7 @@ import { formatChallenge, NONCE_ALPHABET, NONCE_LENGTH } from '@es/schema/challe
 import type { ChallengeParts } from '@es/schema/challenge'
 import { CHALLENGE_TTL_DAYS, stateAt } from '@es/verify/binding'
 import type { ChallengeState } from '@es/verify/binding'
+import { GRADED_LABS } from '@/labs/published'
 
 /** How long a token is good for, in days [estimated]: ARCHITECTURE §8.4 and ASSESSMENT §5.3. The definition is the binding rule's (packages/verify/binding.ts). */
 export { CHALLENGE_TTL_DAYS, stateAt }
@@ -167,5 +168,25 @@ export function countChallenges(held: readonly HeldChallenge[]): ChallengeCounts
   return counts
 }
 
-/** The command that runs a challenge on the learner's machine (A§9.4). The token is quoted by nothing: it holds no character a shell reads. */
-export const gradeCommand = (stage: string, token: string): string => `enginespace grade ${stage} --challenge ${token}`
+/** Where a lab page's command takes the token. */
+const TOKEN_SLOT = '<token>'
+
+/**
+ * The command that runs a challenge on the learner's machine (A§9.4), in two parts around the token. A lab with a page prints its own
+ * command for each stage (src/labs/published.ts), which runs the grader through the kit's environment, so the ticket prints that same
+ * command: a bare `enginespace` is on no PATH after the kit's `uv sync`. A lab with no page yet keeps the grader's bare command.
+ */
+export function gradeCommandParts(stage: string): { readonly before: string; readonly after: string } {
+  for (const lab of Object.values(GRADED_LABS)) {
+    const line = lab.stages.find((candidate) => candidate.id === stage)?.run.line
+    const at = line?.indexOf(TOKEN_SLOT) ?? -1
+    if (line !== undefined && at >= 0) return { before: line.slice(0, at), after: line.slice(at + TOKEN_SLOT.length) }
+  }
+  return { before: `enginespace grade ${stage} --challenge `, after: '' }
+}
+
+/** The whole command, with the token in it. The token is quoted by nothing: it holds no character a shell reads. */
+export function gradeCommand(stage: string, token: string): string {
+  const { before, after } = gradeCommandParts(stage)
+  return `${before}${token}${after}`
+}

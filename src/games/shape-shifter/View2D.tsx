@@ -125,8 +125,49 @@ function Table({ layout }: { layout: LayoutView }) {
   )
 }
 
+/** The target's rows: its elements in logical order, a run of the last dimension's size each, grouped by first index at rank 3. */
+function targetRows(shape: readonly number[], elements: readonly number[]): { readonly slice: number | null; readonly rows: readonly (readonly number[])[] }[] {
+  const width = shape.length === 0 ? elements.length : (shape[shape.length - 1] ?? 1)
+  const rows: number[][] = []
+  for (let i = 0; i < elements.length; i += Math.max(1, width)) rows.push(elements.slice(i, i + Math.max(1, width)))
+  if (shape.length < 3) return [{ slice: null, rows }]
+  const per = shape[1] ?? 1
+  const groups: { slice: number; rows: number[][] }[] = []
+  for (let s = 0; s < (shape[0] ?? 1); s++) groups.push({ slice: s, rows: rows.slice(s * per, (s + 1) * per) })
+  return groups
+}
+
+/** The target drawn as its numbers: one box per row, in order, so what to reach can be read before the first move. */
+function TargetElements({ shape, elements, open }: { shape: readonly number[]; elements: readonly number[]; open: boolean }) {
+  const groups = targetRows(shape, elements)
+  return (
+    <div className="es-shift__goal" aria-hidden="true" data-shift-target-elements="" data-open={open || undefined}>
+      <p className="es-shift__goal-note">{shape.length === 1 ? 'Its elements in order:' : shape.length === 3 ? 'Its elements in order, a box per row, grouped by the first index [i]:' : 'Its elements in order, a box per row:'}</p>
+      {groups.map((group) => (
+        <div key={group.slice ?? 'all'} className="es-shift__goal-group">
+          {group.slice === null ? null : <span className="es-shift__goal-tag">[{group.slice}]</span>}
+          <span className="es-shift__goal-rows">
+            {group.rows.map((row, r) => (
+              <span key={r} className="es-shift__goal-row">
+                {row.map((element, c) => (
+                  <span key={c} className="es-shift__goal-cell font-numeric" data-goal-element={element}>
+                    {element}
+                  </span>
+                ))}
+              </span>
+            ))}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
 function Target({ layout }: { layout: LayoutView }) {
   const { target } = layout
+  // On a phone the target's numbers wait behind a toggle, so the cells and the buffer keep their place over the pinned dock; at a desk
+  // they stand under the target line and the toggle is not drawn (shape-shifter.css).
+  const [open, setOpen] = useState(false)
   return (
     <section className="es-shift__target" aria-label="Target" data-shift-target="" data-met={target.met || undefined}>
       <h3 className="es-shift__label">
@@ -138,7 +179,11 @@ function Target({ layout }: { layout: LayoutView }) {
         <span data-shift-inplace="">
           {n(target.inPlace)} of {n(target.of)} in place
         </span>
+        <button type="button" className="es-shift__goal-toggle" aria-expanded={open} onClick={() => setOpen(!open)} data-shift-target-toggle="">
+          {open ? 'hide its order' : 'show its order'}
+        </button>
       </p>
+      <TargetElements shape={target.shape} elements={target.elements} open={open} />
     </section>
   )
 }

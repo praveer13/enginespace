@@ -21,11 +21,13 @@ import {
   ENTROPY_WORDS,
   expiryOf,
   gradeCommand,
+  gradeCommandParts,
   heldChallenges,
   issueChallenge,
   stateAt,
 } from '@/receipts/challenge'
 import { RECEIPT_STAGES } from '@/receipts/labs'
+import { GRADED_LABS } from '@/labs/published'
 import { seeds } from '../seeds'
 import { entropyOf, Ledger, sha256, wordsOf } from './support'
 
@@ -211,5 +213,17 @@ describe('the command', () => {
     const token = issueChallenge('tr8.replay.s2', AT, 0, entropyOf(5)).token
     expect(gradeCommand('tr8.replay.s2', token)).toBe(`enginespace grade tr8.replay.s2 --challenge ${token}`)
     expect(token).toMatch(/^[A-Za-z0-9.:_-]+$/)
+  })
+
+  test("is, for a lab with a page, that page's own command for the stage, so it runs as printed in the kit after `uv sync`", () => {
+    const stages = Object.values(GRADED_LABS).flatMap((lab) => lab.stages)
+    expect(stages.map((stage) => stage.id)).toContain('tr0.forward.s3')
+    for (const stage of stages) {
+      const token = issueChallenge(stage.id, AT, 0, entropyOf(7)).token
+      expect(gradeCommand(stage.id, token)).toBe(stage.run.line.replace('<token>', token))
+      expect(gradeCommandParts(stage.id).before + token + gradeCommandParts(stage.id).after).toBe(gradeCommand(stage.id, token))
+    }
+    const token = issueChallenge('tr0.forward.s3', AT, 0, entropyOf(7)).token
+    expect(gradeCommand('tr0.forward.s3', token)).toBe(`uv run --project envs/cpu enginespace grade tr0.forward.s3 --challenge ${token}`)
   })
 })

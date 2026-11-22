@@ -25,6 +25,23 @@ const ELEMENT_COLUMNS: readonly MirrorColumn[] = [
   { key: 'note', head: 'Note' },
 ]
 
+const TARGET_COLUMNS: readonly MirrorColumn[] = [
+  { key: 'index', head: 'Index' },
+  { key: 'element', head: 'Element', numeric: true },
+]
+
+/** The index of the element at `flat` in a tensor of `shape`, in row-major order. */
+function indexAt(shape: readonly number[], flat: number): number[] {
+  const index: number[] = []
+  let rest = flat
+  for (let d = shape.length - 1; d >= 0; d--) {
+    const size = shape[d] ?? 1
+    index[d] = rest % size
+    rest = Math.floor(rest / size)
+  }
+  return index
+}
+
 const PROGRAM_COLUMNS: readonly MirrorColumn[] = [
   { key: 'program', head: 'Program' },
   { key: 'lanes', head: 'Lanes', numeric: true },
@@ -79,6 +96,15 @@ function LayoutMirror({ id, layout, pick, onPick }: { id: string; layout: Layout
           const flat = Number(row.slice('element-'.length))
           onPick(pick?.kind === 'element' && pick.flat === flat ? null : { kind: 'element', flat })
         }}
+      />
+      <MirrorTable
+        head="Target"
+        caption="The target's elements in logical order: the index each one has in the target, and its number"
+        columns={TARGET_COLUMNS}
+        rows={layout.target.elements.map((element, flat) => ({
+          id: `target-${flat}`,
+          cells: { index: <span className="font-numeric">{tupleText(indexAt(layout.target.shape, flat))}</span>, element: n(element) },
+        }))}
       />
     </>
   )

@@ -227,6 +227,24 @@ describe('the drawing, the readout and the table', () => {
     expect(layout.readouts.moved).toBe(0)
   })
 
+  test("every target of a view level is drawn as its elements in order, and State as a table lists them with their index in the target", () => {
+    for (const level of [shiftLevel('fewest', 11), shiftLevel('fewest', 12345), practice('views'), practice('three-d')]) {
+      for (let at = 0; at < level.tasks.length; at++) {
+        const task = level.tasks[at]
+        if (task === undefined || !('goal' in task)) throw new Error('a layout task')
+        const state: ShiftState = { ...shiftInit(level), at }
+        const run = fakeRun(state)
+        const drawn = renderToStaticMarkup(h(View2D, { run, pick: null, onPick: () => undefined }))
+        expect(drawn).toContain('data-shift-target-elements')
+        expect(drawn).toContain('aria-expanded="false"')
+        expect([...drawn.matchAll(/data-goal-element="(\d+)"/g)].map((m) => Number(m[1]))).toEqual([...task.goal.elements])
+        const table = renderToStaticMarkup(h(Mirror, { run, pick: null, onPick: () => undefined }))
+        expect(table).toContain("The target&#x27;s elements in logical order")
+        for (const element of task.goal.elements) expect(table).toContain(`>${element}</span>`)
+      }
+    }
+  })
+
   test('a graded `grid` shows its counts after Launch only, and `L` launches', () => {
     const level = shiftLevel('grid', 7)
     expect(level.graded).toBe(true)

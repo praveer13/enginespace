@@ -205,9 +205,16 @@ function whichOptions(scene: Which, level: Level, seed: number): ChoiceOption[] 
   return shown(FAMILY, 'which-program', level, seed, options)
 }
 
+/*
+ * The first step of each solution is the rule alone, with no figure of the scene: at level 1 it is the step a learner is shown before
+ * answering, and the questions of a lesson's Test are asked at level 1, so it must not compute the key or any part of it.
+ */
+const WHICH_RULE: Rich = rich('A program covers one tile: on each dimension, the places from its index times BLOCK up to BLOCK further. So the program that holds a place is found from the place and BLOCK alone, one dimension at a time.')
+
 function whichSteps(scene: Which): Step[] {
   return [
-    { text: rich('A program covers one tile of ', code(tuple(scene.launch.block)), ' lanes, so the program that holds a place is the place divided by BLOCK on each dimension, rounded down: ', code(tuple(scene.at.map((x, d) => Math.floor(x / scene.launch.block[d])))), '.') },
+    { text: WHICH_RULE },
+    { text: rich('Here BLOCK is ', code(tuple(scene.launch.block)), ', and each place divided by its BLOCK, rounded down, gives ', code(tuple(scene.at.map((x, d) => Math.floor(x / scene.launch.block[d])))), '.') },
     { text: whichWhy(scene) },
   ]
 }
@@ -219,7 +226,10 @@ function whichSteps(scene: Which): Step[] {
 function programsSteps(launch: Launch): Step[] {
   const key = coverage(launch).programs
   const per = launch.shape.map((n, d) => cdiv(n, launch.block[d]))
-  const steps: Step[] = [{ text: rich('The default grid has cdiv(n, BLOCK) programs along each dimension: the size divided by BLOCK, rounded up, because a program that covers a partial tile still runs. That is ', ...per.flatMap((p, d) => [d === 0 ? '' : ' and ', num(p, { tag: 'derived', unit: 'programs' })]), '.') }]
+  const steps: Step[] = [
+    { text: rich('The default grid has cdiv(n, BLOCK) programs along each dimension: the size divided by BLOCK, rounded up, because a program that covers a partial tile still runs.') },
+    { text: rich('Along ', launch.shape.length === 1 ? 'the vector' : 'each dimension', ' that is ', ...per.flatMap((p, d) => [d === 0 ? '' : ' and ', num(p, { tag: 'derived', unit: 'programs' })]), '.') },
+  ]
   steps.push(
     launch.shape.length === 1
       ? { text: rich('A vector has one dimension, so that is the whole launch.'), result: num(key, { tag: 'derived', unit: 'programs' }) }
@@ -232,8 +242,9 @@ function maskedSteps(launch: Launch): Step[] {
   const c = coverage(launch)
   const covered = c.lanes - c.masked
   return [
+    { text: rich('Every program runs all of its lanes, and a lane is masked when its place is past the end of the tensor. So the masked lanes are the lanes of the whole launch less the lanes that fall inside the tensor.') },
     { text: rich('The launch runs ', num(c.programs, { tag: 'derived', unit: 'programs' }), ' of ', num(c.lanes / c.programs, { tag: 'derived', unit: 'lanes' }), ' each, which is ', num(c.lanes, { tag: 'derived', unit: 'lanes' }), '.') },
-    { text: rich('A lane is masked when its place is past the end of the tensor. The lanes that fall inside it are ', num(covered, { tag: 'derived', unit: 'lanes' }), ', as many as the tensor has elements that a program reaches.') },
+    { text: rich('The lanes that fall inside the tensor are ', num(covered, { tag: 'derived', unit: 'lanes' }), ', as many as the tensor has elements that a program reaches.') },
     { text: rich('The rest are masked: they neither load nor store.'), result: num(c.masked, { tag: 'derived', unit: 'lanes' }) },
   ]
 }
