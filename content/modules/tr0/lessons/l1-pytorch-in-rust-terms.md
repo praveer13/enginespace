@@ -12,17 +12,17 @@ games: [shape-shifter]
 
 In Rust, a slice `&v[a..b]` is a pointer, a length and a stride of one that nobody writes down: the next element is always one place further on. A PyTorch tensor is the same idea with the stride written down, one for each dimension:
 
-- A **tensor** is a **buffer** of **elements**, read through an offset, a shape and one **stride** for each dimension.
+- A **tensor** is a **buffer** of **elements**, PyTorch's storage, read through an offset, a shape and one **stride** for each dimension.
 - A stride is how far in the buffer one step along its dimension moves. It counts elements, not bytes.
 - A contiguous tensor's elements sit in the buffer row by row, in the order of their indices.
-- A **view** is a new tensor that reads another tensor's buffer through new metadata.
-- A **copy** writes a new buffer, with every element moved into it.
+- A **view** is a new tensor that reads another tensor's buffer through new metadata. `transpose` and `view` make views.
+- A **copy** writes a new buffer, with every element moved into it. `contiguous()` makes one when the tensor is not contiguous, and `reshape` makes a view where it can and a copy where it cannot.
 
-The level draws the tensor's cells, a table of its shape and strides beside them, and the buffer under the cells. Turn the tensor so that it reads column by column.
+The level draws the tensor's cells, a table of its shape and strides beside them, and the buffer under the cells. The target counts the elements in place: those that already sit where the target reads them. Turn the tensor so that it reads column by column.
 
 :::predict
 id: tr0.l1.p1
-prompt: The level's tensor has shape `(4, 6)`, and the reference reads it column by column, as one row, with one copy. How many elements will that copy move?
+prompt: The level's tensor has shape (4, 6) [synthetic], and the reference reads it column by column, as one row, with one copy. How many elements will that copy move?
 answer: { kind: numeric, unit: elements, rel_tol: 0 }
 reveal: after-game
 kcs: [tr0.view-vs-copy]
@@ -36,7 +36,7 @@ mode: practice
 
 ## What the transpose did
 
-You just made a `(4, 6)` tensor read column by column. The reference's first move, `transpose(0, 1)`, moved nothing: the buffer under the cells held still, and only the table beside it changed. Here is the reference's run, a line for each step. Printed by the course's model on 2026-11-21 at `c83faee`.
+The level asks for a `(4, 6)` tensor read column by column. The reference's first move, `transpose(0, 1)`, moved nothing: the buffer under the cells held still, and only the table beside it changed. Here is the reference's run, a line for each step. Printed by the course's model on 2026-11-21 at `c83faee`.
 
 | After | Shape [synthetic] | Strides [synthetic] | Contiguous | Elements moved [synthetic] |
 |---|---|---|---|---|
@@ -48,7 +48,18 @@ The buffer is what the title calls storage: one flat run of elements. The shape 
 
 The transposed tensor is not contiguous. Read in the order of its indices, it walks the buffer 0, 6, 12, 18, then back to 1 [synthetic]. A view of a contiguous tensor can be one that is not. {{claim:torch.views.can-be-noncontiguous}}
 
-That is why `view([24])` on it is refused. One dimension of 24 elements needs one stride, a fixed step from each element to the next, and no single step walks 0, 6, 12, 18, 1 [synthetic]. A new shape is a view only where each new dimension lies inside an old one, or spans old dimensions whose strides chain. {{claim:torch.view.needs-compatible-strides}} Otherwise the new shape cannot be had without a copy. {{claim:torch.view.otherwise-copy}} `reshape` makes that copy for you: it returns a view where the shape fits the strides, and a copy where it does not. {{claim:torch.reshape.view-if-compatible}}
+That is why `view([24])` on it is refused. One dimension of 24 elements needs one stride, a fixed step from each element to the next, and no single step walks 0, 6, 12, 18, 1 [synthetic].
+
+PyTorch's rule for a view has two cases. Each new dimension must lie inside one old dimension, or span old dimensions whose strides chain. {{claim:torch.view.needs-compatible-strides}} Two neighbouring dimensions chain when the outer one's stride is the inner one's size times the inner one's stride. One step along the outer dimension then lands just past a full run of the inner one, so the pair reads the buffer as one run, with the inner stride.
+
+| Tensor | Outer stride [derived] | Inner size times inner stride [derived] | `view([24])` |
+|---|---|---|---|
+| the start, `(4, 6)` with strides `(6, 1)` | `6` | `6 * 1 = 6` | a view, stride `1`: they chain |
+| the transpose, `(6, 4)` with strides `(1, 6)` | `1` | `4 * 6 = 24` | refused: they do not chain |
+
+A new dimension that lies inside one old dimension needs no chain. `view([2, 3, 4])` on the transposed tensor cuts its first dimension of 6 in two and leaves the second alone, so it is a view, with strides `(3, 1, 6)` [derived]. `view([3, 8])` needs its second dimension to span part of the first old dimension and all of the second, and those two do not chain, so it is refused like `view([24])`.
+
+Where the strides do not allow a view, the new shape cannot be had without a copy. {{claim:torch.view.otherwise-copy}} `reshape` makes that copy for you: it returns a view where the shape fits the strides, and a copy where it does not. {{claim:torch.reshape.view-if-compatible}}
 
 A copy moves every element, all 24 of them [synthetic], the first and the last too, although those two land at the address they already had. `contiguous()` is the same copy, made on purpose. It returns the tensor itself when the tensor is contiguous already, and a new buffer when it is not. {{claim:torch.views.contiguous-copies}}
 
@@ -90,7 +101,7 @@ Indexing with a slice makes a view, the way `&v[a..b]` does, and indexing with a
 
 :::predict
 id: tr0.l1.p2
-prompt: "A contiguous tensor `x` of shape `(3, 5)` is sliced as `y = x[:, ::2]`, every second column. What does `y.stride(1)` return?"
+prompt: "A contiguous tensor x of shape (3, 5) [estimated] is sliced as y = x[:, ::2], every second column. What is the stride of y's columns?"
 answer: { kind: numeric, unit: elements, rel_tol: 0 }
 reveal: at-commit
 kcs: [tr0.tensor-metadata]

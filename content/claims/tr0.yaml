@@ -1241,6 +1241,112 @@
   ttlDays: 90
   pin: transformers
 
+# The eight claims from transformers.qwen3.rope-angles to transformers.qwen3.lm-head were read on 2026-11-21 from the file as the released transformers 5.19.0
+# wheel ships it, read as text and never run. Its lines match the tag's at the anchors above (rotate_half at L134-L136, the copy at L197, the scaling at L213).
+- id: transformers.qwen3.rope-angles
+  value: 'position times a frequency per pair'
+  text: 'The rotary embedding computes one inverse frequency for each pair of a head''s dimensions from the base rope_theta, and multiplies each token''s position by those frequencies, so the angles grow with the position.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L118-L124
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3RotaryEmbedding'
+    quote: 'freqs = position_ids[..., None].float() * self.inv_freq.to(device=x.device, dtype=torch.float)'
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.rope-apply
+  value: 'q * cos + rotate_half(q) * sin'
+  text: 'apply_rotary_pos_emb rotates the query and the key, and nothing else: each is multiplied by the cosine of its angles, and rotate_half of it by the sine, and the two are added.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L140-L162
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, apply_rotary_pos_emb'
+    quote: 'q_embed = (q * cos) + (rotate_half(q) * sin)'
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.position-ids
+  value: 'new tokens numbered from the cache length'
+  text: 'When no positions are passed, Qwen3Model numbers the new tokens from the count of tokens already in the cache, or from 0 with no cache.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L378-L381
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3Model.forward'
+    quote: 'position_ids = torch.arange(inputs_embeds.shape[1], device=inputs_embeds.device) + past_seen_tokens'
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.repeat-kv
+  value: 'each key and value head repeated in place'
+  text: 'Before the scores, repeat_kv repeats each key and value head for the query heads of its group, as torch.repeat_interleave does along the head dimension, so neighbouring query heads share one key and value head.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L165-L175
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, repeat_kv'
+    quote: 'This is the equivalent of torch.repeat_interleave(x, dim=1, repeats=n_rep).'
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.attn-softmax
+  value: 'scores, mask, softmax, values'
+  text: 'The attention multiplies the query by the transposed keys and scales the scores, adds the mask, takes a softmax over the last dimension, and multiplies the weights by the values.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L190-L196
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, eager_attention_forward'
+    quote: 'attn_weights = nn.functional.softmax(attn_weights, dim=-1, dtype=torch.float32).to(query.dtype)'
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.causal-mask
+  value: 'a causal mask'
+  text: 'Qwen3Model builds the mask that the attention adds to its scores with create_causal_mask.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L394-L396
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3Model.forward'
+    quote: '"full_attention": create_causal_mask(**mask_kwargs),'
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.tied-keys
+  value: 'lm_head.weight tied to model.embed_tokens.weight'
+  text: 'Qwen3ForCausalLM names the tensors it ties by their dotted paths: lm_head.weight to model.embed_tokens.weight.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L424
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3ForCausalLM'
+    quote: '_tied_weights_keys = {"lm_head.weight": "model.embed_tokens.weight"}'
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: transformers
+
+- id: transformers.qwen3.lm-head
+  value: 'hidden_size to vocab_size, the logits'
+  text: 'The output head lm_head is a linear layer from the hidden size to the vocabulary size, and what it returns is named the logits.'
+  tag: measured
+  source:
+    url: https://github.com/huggingface/transformers/blob/v5.19.0/src/transformers/models/qwen3/modeling_qwen3.py#L433-L482
+    title: 'transformers v5.19.0, models/qwen3/modeling_qwen3.py, Qwen3ForCausalLM'
+    quote: 'self.lm_head = nn.Linear(config.hidden_size, config.vocab_size, bias=False)'
+    accessed: 2026-11-21
+  verifiedAt: 2026-11-21
+  ttlDays: 90
+  pin: transformers
+
 
 # SGLang at v0.5.23: the one PyO3 example (lesson 5; the Data Plane owns the seam) ----------------------------------------
 

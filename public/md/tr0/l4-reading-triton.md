@@ -16,7 +16,7 @@ Triton is a language for GPU kernels, written as Python functions. Reading one t
 
 The level draws the tensor's cells and each program as a tile over them. Cover the tensor, and count what each edge masks.
 
-> **Predict `tr0.l4.p1`.** The level's tensor has shape `(12, 20)`, and the reference covers each of its elements exactly once with at most six programs. How many lanes will it leave masked?
+> **Predict `tr0.l4.p1`.** The level's tensor has shape (12, 20) [synthetic], and the reference covers each of its elements exactly once with at most six programs. How many lanes will it leave masked?
 >
 > The learner commits to a number in `lanes`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
 
@@ -24,7 +24,7 @@ The level draws the tensor's cells and each program as a tile over them. Cover t
 
 ## From the grid to `tl.program_id`
 
-You just covered a `(12, 20)` tensor with a grid of programs. Here is the reference's launch beside two that look sensible and mask more. Printed by the course's model on 2026-11-21 at `7037bd7`.
+The level asks you to cover a `(12, 20)` tensor with a grid of programs. Here is the reference's launch beside two that look sensible and mask more. Printed by the course's model on 2026-11-21 at `7037bd7`.
 
 | Launch | The reference [synthetic] | One program [synthetic] | Square tiles [synthetic] |
 |---|---|---|---|
@@ -36,7 +36,7 @@ You just covered a `(12, 20)` tensor with a grid of programs. Here is the refere
 
 The 20 columns divide by a BLOCK of 4 [synthetic], so no lane is masked along dimension 1. The 12 rows would divide by 4 too, but 3 programs down and 5 across make 15 [synthetic], more than the level allows. The cap of six programs is the level's and not Triton's: without one, a BLOCK of `1` would mask nothing. So the reference fits the dimension that divides and masks along the other. Each of its programs covers 16 rows where the tensor has 12, and 16 of its 64 lanes are masked [synthetic]. Square tiles fit neither dimension.
 
-That table is the arithmetic of one tile. A kernel spells it in four lines. This is the course's own kernel, which scales a one-dimensional tensor, and not an engine's:
+That table is the arithmetic of one tile, and a kernel spells it out in a few lines. This is the course's own kernel, which scales a one-dimensional tensor, and not an engine's:
 
 ```python
 @triton.jit
@@ -64,7 +64,7 @@ The grid is sized on the CPU, at the launch: `scale[(triton.cdiv(n, 4),)](x, y, 
 
 A masked lane is still one of the program's lanes. The mask stops its load and its store, and does not give the lane back to the GPU.
 
-> **Predict `tr0.l4.p2`.** The kernel `scale` runs with `BLOCK = 128` over a tensor of `1000` elements, on the grid that `triton.cdiv` gives. How many of its lanes are masked?
+> **Predict `tr0.l4.p2`.** The kernel scale runs with BLOCK = 128 [estimated] over a tensor of 1000 [estimated] elements, on the grid that triton.cdiv gives. How many of its lanes are masked?
 >
 > The learner commits to a number in `lanes`, graded within a relative tolerance of `0` [estimated] before the reveal. Ask them to commit to an answer and say why before you discuss it.
 
@@ -123,7 +123,7 @@ Each mark holds what the course gave the kernel and what it checked. For four of
 
 A kernel that ran here has run on a CPU, one program at a time, on the course's small inputs. That says nothing of whether it runs, or how fast, on a GPU.
 
-To step the course's kernel yourself takes about 20 minutes [estimated], and it is optional. PyTorch `2.14.0` requires Triton `3.8` on Linux. **triton~=3.8.0** [measured] A Triton 3.8.0 wheel off Linux, for macOS or Windows, is one the course has not checked [unverified]. Off Linux, read the course's run printed above. Triton `3.8.0` runs on Python `3.10` to `3.14`, so the course's Python `3.12` is inside its range. **>=3.10,<3.15** [measured] On Linux, in that Python with `torch==2.14.0` and `triton==3.8.0`, put the kernel `scale` in a file with `tl.device_print("offs", offs)` after its mask, and run:
+To step the course's kernel yourself takes about 20 minutes [estimated], and it is optional. PyTorch `2.14.0` requires Triton `3.8` on Linux. **triton~=3.8.0** [measured] A Triton 3.8.0 wheel off Linux, for macOS or Windows, is one the course has not checked [unverified]. Off Linux, read the course's run printed above. Triton `3.8.0` runs on Python `3.10` to `3.14`, so Python `3.12`, the one the course's environments use, is inside its range. **>=3.10,<3.15** [measured] On Linux, in that Python with `torch==2.14.0` and `triton==3.8.0`, put the kernel `scale` in a file with `tl.device_print("offs", offs)` after its mask, and run:
 
 ```python
 import os
