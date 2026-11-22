@@ -37,5 +37,5 @@ The notional machine behind Tensor views (`shape-shifter`): `packages/sim/tensor
 ## Calibrated against
 
 - **PyTorch's own answers for the view rules.** `tests/fixtures/tensor/torch-vectors.json` holds the shapes, strides, offsets and shared storage that the pinned `torch` on the CPU gave for thousands of cases, written by a script in the locked CPU environment, and a test replays each one through the model.
-- **Nothing for the grid yet.** The grid's counts are arithmetic and are held to their formulas. No Triton run, interpreted or compiled, has been compared with them.
+- **Triton's interpreter, for two launches.** The grid's counts are arithmetic and are held to their formulas. A run of the course's kernel in Triton's interpreter wrote what the grid model counts for two launches, and no compiled run has been compared with them.
 - **The model's own invariants,** which its tests check on seeded cases, and the ghost's agreement with an independent search on small tensors.
