@@ -142,7 +142,10 @@ function WayOn({ id, way, ready, lessons }: { id: string; way: ModuleWay | undef
   const target = lessons[at]
   const step = way?.step ?? null
   if (step !== null && (step.module === id || target === undefined)) {
-    const sentence = step.module === id ? (way?.last === null || way?.last === undefined ? undefined : `${way.last} Next: ${step.reason}.`) : `Every lesson of ${moduleCode(id)} is done. Next: ${step.reason}.`
+    // "Done" is said only of a module that has lessons and every one of them done. A module with none has nothing to finish:
+    // the page already says it is not published and has no lessons, so the line names only the way on.
+    const elsewhere = lessons.length === 0 ? `Next: ${step.reason}.` : `Every lesson of ${moduleCode(id)} is done. Next: ${step.reason}.`
+    const sentence = step.module === id ? (way?.last === null || way?.last === undefined ? undefined : `${way.last} Next: ${step.reason}.`) : elsewhere
     return (
       <>
         {sentence === undefined ? null : <p className="es-module__last">{sentence}</p>}
