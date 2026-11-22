@@ -103,7 +103,9 @@ export function Debrief({ run, outcome, next, onNext, embedded = false }: Debrie
       <TextLink to="/map">Open the course</TextLink>
     )
 
-  // The guesses, one a target: the last target's is the one the view still holds, and the record has every commit.
+  // The guesses, one a target: the last target's is the one the view still holds, and the record has every commit. A unit's word for one of
+  // it is "1 copy", never "1 copies" (here, and not in words.ts, which would bring the game's own chunk into this one).
+  const UNIT_ONE = { elements: 'element', addresses: 'address', copies: 'copy', lanes: 'lane' } as const
   const guesses = outcome.record.actions.filter((action) => action.t === 'commit').length
   const guess = view.predict.guess
   const answer = view.predict.answer
@@ -112,7 +114,7 @@ export function Debrief({ run, outcome, next, onNext, embedded = false }: Debrie
     <div data-shift-lesson-guess="">{lesson?.reveal}</div>
   ) : guess === null && guesses === 0 ? (
     <p data-shift-guess="">
-      You skipped the guess. The answer: {figure(answer)} {unit}.
+      You skipped the guess. {view.task.of > 1 ? 'The answer for the last target' : 'The answer'}: {figure(answer)} {answer === 1 ? UNIT_ONE[view.predict.unit] : unit}.
     </p>
   ) : guess === null ? null : (
     <NumberLine

@@ -93,7 +93,7 @@ function layoutCopy(level: LayoutLevel): ShiftCopy {
     }
     default: {
       const n = level.needed
-      const rule = `Passes when, on each of ${n} new targets, your copies equal the reference's and no ${code('view')} was refused.`
+      const rule = fewestRule(n)
       return {
         title: SHIFT_TITLES.fewest,
         goal: {
@@ -107,6 +107,23 @@ function layoutCopy(level: LayoutLevel): ShiftCopy {
         passRule: rule,
       }
     }
+  }
+}
+
+/** `fewest`'s pass rule, which a graded run and a Prove run are held to. */
+const fewestRule = (n: number): string => `Passes when, on each of ${n} new targets, your copies equal the reference's and no ${code('view')} was refused.`
+
+/**
+ * `fewest`'s goal line in practice, on its practice seed: the targets are the same each time, Undo takes a move back, and a refused `view`
+ * fails its target only until it is undone; the graded rule is said as the graded run's. A graded or Prove run reads the level's own line
+ * (layoutCopy).
+ */
+export function fewestPracticeGoal(offered: readonly OpKind[], needed: number): GoalLine {
+  return {
+    aim: 'Reach each target with as few copies as you can.',
+    controls: `${stepControls(offered)} In practice the targets are the same each time and Undo takes a move back: a ${code('view')} the strides cannot express fails that target until you undo it.`,
+    beat: `Practice is not graded. The graded rule: ${fewestRule(needed)}`,
+    ends: `Ends when each of the ${needed} targets is reached or has failed.`,
   }
 }
 

@@ -27,7 +27,7 @@ import { playDraft, provenanceOf } from '@/games/kit/record'
 import { ProveContext, type ProveFrame } from '@/prove/context'
 import { PROVE_COPY } from '@/prove/copy'
 import ProveSession, { ProvePanel } from '@/prove/ProveSession'
-import { afterAttempt, opensWords, PROVE_WINDOW_MS, proveRef, stakeAt, stakeOf } from '@/prove/window'
+import { afterAttempt, openAt, openKey, opensWords, PROVE_WINDOW_MS, proveRef, stakeAt, stakeOf } from '@/prove/window'
 
 const HOUR = 3_600_000
 const T0 = Date.parse('2026-11-20T09:00:00.000Z')
@@ -104,6 +104,21 @@ describe('the window, with a set clock (ASSESSMENT §7.3)', () => {
     expect(stakeAt(closed, T0 + 24 * HOUR).counts).toBe(true)
   })
 
+  test('an attempt that counted and was left before its end is a miss at the time it started, and opens the window as a miss does', () => {
+    // Start wrote the open record at T0; the run was left (a reload, Leave Prove mode) and wrote no event.
+    expect(stakeOf([], REF, T0 + HOUR, 'play', T0)).toEqual({ counts: false, last: { at: T0, ok: false, left: true }, opensAt: T0 + 24 * HOUR })
+    expect(stakeOf([], REF, T0 + 24 * HOUR, 'play', T0).counts).toBe(true)
+    // An older attempt that ended is overruled by the newer one that was left, and an attempt that ended after its start overrules it.
+    expect(stakeOf([play(REF, T0 - 30 * HOUR, 'proved')], REF, T0 + HOUR, 'play', T0).last).toEqual({ at: T0, ok: false, left: true })
+    expect(stakeOf([play(REF, T0 + 10 * 60_000, 'proved')], REF, T0 + HOUR, 'play', T0).last).toEqual({ at: T0 + 10 * 60_000, ok: true })
+  })
+
+  test("the open record's key and value: the level's ref under its own namespace, and the time the attempt started", () => {
+    expect(openKey(REF)).toBe('prove-open:play:verifier/exact')
+    expect(openAt({ at: new Date(T0).toISOString() })).toBe(T0)
+    for (const bad of [null, 'x', { at: 3 }, { at: 'not a time' }, {}]) expect(openAt(bad)).toBeNull()
+  })
+
   test('when the next attempt opens, in words: today, tomorrow, or a date', () => {
     const utc = { timeZone: 'UTC', locale: 'en-GB' }
     expect(opensWords(T0 + 3 * HOUR, T0, utc)).toBe('at 12:00 today')
@@ -163,6 +178,9 @@ describe('the panel', () => {
     expect(words(passed)).toContain(PROVE_COPY.waitPassed('at 09:00 tomorrow'))
     const missed = panel({ stake: { counts: false, last: { at: T0, ok: false }, opensAt: T0 + 24 * HOUR }, when: 'at 09:00 tomorrow' })
     expect(words(missed)).toContain(PROVE_COPY.waitMissed('at 09:00 tomorrow'))
+    const left = panel({ stake: { counts: false, last: { at: T0, ok: false, left: true }, opensAt: T0 + 24 * HOUR }, when: 'at 09:00 tomorrow' })
+    expect(words(left)).toContain(PROVE_COPY.waitLeft('at 09:00 tomorrow'))
+    expect(words(panel())).toContain('leaving the run before its end, or reloading the page, counts as a miss')
   })
 
   test('holds no word of src/copy/banned.ts, in its markup or in any line it can say', () => {

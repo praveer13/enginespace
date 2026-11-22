@@ -108,6 +108,9 @@ export function shiftKit(levelId: ShiftLevelId, seed: number): GameKit<ShiftActi
     firstMove,
     firstMoveWords: moveWords(firstMove),
     firstAsk: 'optional',
+    // The first move is often pressed again where it was (a stepper's "one more", a second operation from the bar): the strip is held blank
+    // until the hand leaves the dock, so the controls under it do not move.
+    holdsStrip: true,
     askOpen,
     isAsk: (action) => action.t === 'commit',
     askWords: (view) => plainWords(view.predict.ask),

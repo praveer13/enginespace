@@ -851,6 +851,25 @@
   margin: 4px;
 }
 
+/* Once the first move is made the ring is gone, and its room stays while the strip over it is held (Controls.tsx): the control does not move.
+   When the strip goes, the room goes with it, and the marker's box stays round the control, drawn as nothing. */
+.es-shift-dock__ring:is(.es-shift-dock__ring--spent, .es-shift-dock__ring--gone) .es-marker__ring {
+  box-shadow: none;
+}
+
+.es-shift-dock__ring--spent .es-marker__tab {
+  visibility: hidden;
+}
+
+.es-shift-dock__ring--gone {
+  gap: 0;
+  margin: 0;
+}
+
+.es-shift-dock__ring--gone .es-marker__tab {
+  display: none;
+}
+
 /* The grid's steppers, as a table: BLOCK and the grid down the side, the dimensions across the top; each is one less, the value, one more. */
 .es-shift-dock__steppers {
   display: grid;
@@ -873,6 +892,17 @@
   min-height: 3.5rem;
   overflow-y: auto;
   overscroll-behavior: contain;
+}
+
+/* While the first run's strip stands over them, the steppers scroll with the dock and not in a box of their own: the dock is seated on the
+   ringed one, whole with its word (Controls.tsx), and the dock's one "More below" says what is under it. */
+.es-frame[data-game='shape-shifter'][data-phase='play'][data-intro] .es-frame__dock-main > .es-shift-dock:has([data-shift-steppers]),
+.es-frame[data-intro] .es-shift-dock:has([data-shift-steppers]) :is(.es-shift-dock__decision, .es-shift-dock__body, .es-shift-dock__grid, .es-shift-dock__steppers) {
+  flex: none;
+}
+
+.es-frame[data-intro] .es-shift-dock__steppers {
+  overflow-y: visible;
 }
 
 @supports (container-type: scroll-state) {

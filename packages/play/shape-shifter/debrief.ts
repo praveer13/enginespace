@@ -59,7 +59,7 @@ function layoutDebrief(level: LayoutLevel, mine: ShiftState): Debrief {
     const turn = run.placed[d.index]
     if (d.copied) {
       return {
-        sentence: `Your ${code(kindName(op.op))} here is a copy the reference never makes: the operation after it was a view either way, so the target needed no copy at this point.`,
+        sentence: `Your ${code(kindName(op.op))} here spent a copy the target did not need: from the tensor before it, the reference reaches the target with the copies it had left, and from the tensor after it, it cannot.`,
         names: { turn },
       }
     }

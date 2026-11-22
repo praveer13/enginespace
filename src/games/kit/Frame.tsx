@@ -68,8 +68,12 @@ export type FrameRun<Action extends GameAction, View, Score, Ask> = RunCore<Acti
   restart(seed?: Seed): void
   /** Whether the page has a ledger: a game's page and a lesson do, the front page does not (D-038). */
   readonly ledger: boolean
-  /** The first run, as the game's own controls follow it: whether the first ask may show yet, and the control the amber ring is on. */
-  readonly intro: { readonly askShown: boolean; readonly ring: Action | null }
+  /**
+   * The first run, as the game's own controls follow it: whether the first ask may show yet, and the control the amber ring is on. In a
+   * game whose kit holds the strip (`holdsStrip`), the ring is off once the first move is made, and `spent` names the control it was on
+   * while the strip is held blank: a control drawn in the ring's room keeps that room, so nothing moves under the hand.
+   */
+  readonly intro: { readonly askShown: boolean; readonly ring: Action | null; readonly spent?: Action | null }
   /** The learner skipped the session's optional first ask, which dispatches nothing (the frame keeps it, so the intro hears it). */
   readonly guessSkipped: boolean
   skipGuess(): void
@@ -206,8 +210,10 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     return () => window.clearTimeout(timer)
   }, [stripAwaited])
   // A real move ends the intro. If it is a digit typed into a field (the event in hand is an input event), the strip stays in its place, drawn
-  // blank, until focus moves on (and not at all on a phone, Intro.tsx): taking it out would carry the field away from under the hand.
-  const endIntro = () => {
+  // blank, until focus moves on (and not at all on a phone, Intro.tsx): taking it out would carry the field away from under the hand. In a
+  // game whose kit holds the strip, any real move holds it so, until the hand leaves the dock (Intro.tsx): the controls under it, pressed
+  // again, stay where they were pressed.
+  const endIntro = (moved = false) => {
     if (intro === null) return
     if (!intro.checking)
       keepShown(
@@ -215,7 +221,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
         intro.parts.map((part) => part.id),
       )
     setShown(readShown(game.id))
-    setIntro(window.event?.type === 'input' ? { ...intro, ended: true } : null)
+    setIntro(window.event?.type === 'input' ? { ...intro, ended: 'typed' } : moved && kit?.holdsStrip === true && !intro.checking ? { ...intro, ended: 'held' } : null)
   }
   /**
    * A dispatched action tells the intro what the learner did: the ask's own answer moves it on, and any real move ends it, also one made
@@ -224,9 +230,9 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
    */
   const tellIntro = (signal: { moved: boolean; askOpen: boolean }) => {
     if (intro?.checking && signal.moved) endIntro()
-    if (intro === null || intro.checking) return
+    if (intro === null || intro.checking || intro.ended === 'held') return
     const after = introAfter(intro.steps, intro.at, signal)
-    if (after === null) endIntro()
+    if (after === null) endIntro(signal.moved)
     else if (after !== intro.at) setIntro({ ...intro, at: after })
   }
   const dispatch = (action: A) => {
@@ -286,7 +292,8 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     ledger,
     intro: {
       askShown: askShown(step),
-      ring: kit === undefined ? null : introRing(step, kit),
+      ring: kit === undefined || intro?.ended === 'held' ? null : introRing(step, kit),
+      spent: kit === undefined || intro?.ended !== 'held' ? null : introRing(step, kit),
     },
     guessSkipped: skipped,
     skipGuess: () => {
@@ -600,7 +607,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
                           if (after === null) endIntro()
                           else setIntro({ ...intro, at: after })
                         }}
-                        onEnd={endIntro}
+                        onEnd={() => endIntro()}
                         onAct={() => introAct(intro.steps[intro.at], kit, dispatch)}
                       />
                     )}

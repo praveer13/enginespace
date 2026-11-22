@@ -10,6 +10,7 @@ import { Marker } from '@/design/components/Marker'
 import { sameAction } from '@/games/kit/first-move'
 import { LessonGuessContext } from '@/games/kit/lessonGuess'
 import { changeLine } from './announce'
+import { earlyKey, KEY_SETTLE, seatInDock } from './hand'
 import { Words } from './CodeWords'
 import { choicesOf, picks } from './focus'
 import type { ShiftMode, ShiftRun } from './types'
@@ -33,11 +34,35 @@ import { choiceLabel, opButton, orderChoice, pairChoice, shapeChoice, UNIT_WORDS
  * move: its operation's button, and in its picker the choice it takes.
  */
 
-/** The control the intro points at, in the marker's ring; any other control as it is. */
-function Ringed({ on, children }: { on: boolean; children: ReactNode }) {
-  if (!on) return children
+/**
+ * Whether a control wears the first run's ring: `on` while the intro points at it; `spent` once the first move is made, while the frame holds
+ * the strip over it (the ring is not drawn, its room is kept); `gone` once the strip has gone (the ring and its room are gone, the marker's
+ * box stays, so the control is never drawn again, which would drop the focus on it); and `off` otherwise.
+ */
+type Ring = 'on' | 'spent' | 'gone' | 'off'
+
+/** The ring the intro has on a control now, the one whose room is held, and the one it had on this target. */
+interface Rings {
+  readonly ring: ShiftAction | null
+  readonly spent: ShiftAction | null
+  readonly gone: ShiftAction | null
+}
+
+/** The ring's state for the controls that `matches` picks out. */
+function ringOf(rings: Rings, matches: (action: ShiftAction) => boolean): Ring {
+  if (rings.ring !== null && matches(rings.ring)) return 'on'
+  if (rings.spent !== null && matches(rings.spent)) return 'spent'
+  return rings.gone !== null && matches(rings.gone) ? 'gone' : 'off'
+}
+
+/**
+ * The control the intro points at, in the marker's ring; any other control as it is. A spent ring keeps the marker's box with nothing drawn
+ * in it, so the control is not drawn again and does not move: a second press lands on it, and focus stays on it.
+ */
+function Ringed({ on, children }: { on: Ring | boolean; children: ReactNode }) {
+  if (on === false || on === 'off') return children
   return (
-    <Marker kind="ring" word="first move" className="es-shift-dock__ring">
+    <Marker kind="ring" word="first move" className={on === true || on === 'on' ? 'es-shift-dock__ring' : `es-shift-dock__ring es-shift-dock__ring--${on}`}>
       {children}
     </Marker>
   )
@@ -143,7 +168,7 @@ const PICKER_HEAD: Readonly<Record<OpKind, string>> = {
   slice: '',
 }
 
-function OpBar({ run, view }: { run: ShiftRun; view: ShiftView }) {
+function OpBar({ run, view, rings }: { run: ShiftRun; view: ShiftView; rings: Rings }) {
   const layout = view.layout
   const offered = view.offered
   const [open, setOpen] = useState<OpKind | null>(null)
@@ -153,19 +178,33 @@ function OpBar({ run, view }: { run: ShiftRun; view: ShiftView }) {
   const pickerRow = useRow(choices.length)
   const barRef = useRef<HTMLDivElement>(null)
   const pickerRef = useRef<HTMLDivElement>(null)
-  const ring = run.intro.ring
-  const ringOp = ring !== null && ring.t === 'op' ? ring.op : null
   const pickerId = useId()
 
-  // A picker that opens takes focus to its first choice (or the ringed one), so the keyboard is where the choice is made.
+  // A picker that opens takes focus to its first choice (or the ringed one), so the keyboard is where the choice is made. A key that presses
+  // a choice moments after the picker opened is the key that opened it, pressed twice (earlyKey, hand.ts): it is ignored.
   const opened = useRef<OpKind | null>(null)
+  const openedAt = useRef(0)
+  const byKey = useRef(false)
+  // Whether the open picker takes a key's press of its choices yet: `data-settled` on the picker says so, for a reader and a test.
+  const [settled, setSettled] = useState(false)
+  useEffect(() => {
+    if (open === null) return
+    openedAt.current = performance.now()
+    const timer = window.setTimeout(() => setSettled(true), KEY_SETTLE)
+    return () => window.clearTimeout(timer)
+  }, [open])
   useEffect(() => {
     if (open === opened.current) return
     opened.current = open
     if (open === null) return
-    const ringed = pickerRef.current?.querySelector<HTMLButtonElement>('.es-marker button[data-roving]')
+    const ringed = pickerRef.current?.querySelector<HTMLButtonElement>('.es-shift-dock__ring:not(.es-shift-dock__ring--spent) button[data-roving]')
     const first = ringed ?? pickerRef.current?.querySelector<HTMLButtonElement>('button[data-roving]')
-    first?.focus({ preventScroll: true })
+    if (first === null || first === undefined) return
+    first.focus({ preventScroll: true })
+    // The choice in focus is seated in the picker's own room, and the bar does not move. A picker opened by a key brings that choice into
+    // view on the page too, over the readout (its scroll-margin): the key's learner reads the choice before the next key presses it.
+    seatInDock(first, pickerRef.current)
+    if (byKey.current) first.scrollIntoView({ block: 'nearest' })
   }, [open])
 
   // The bar is where the next operation starts: once a choice has applied (or Escape has closed the picker), focus goes back to the button
@@ -197,7 +236,7 @@ function OpBar({ run, view }: { run: ShiftRun; view: ShiftView }) {
         onKeyDown={bar.onKeyDown}
       >
         {offered.map((kind, at) => {
-          const ringed = ringOp !== null && ringOp.op === kind
+          const ringed = ringOf(rings, (action) => action.t === 'op' && action.op.op === kind)
           return (
             <Ringed key={kind} on={ringed}>
               <button
@@ -209,9 +248,13 @@ function OpBar({ run, view }: { run: ShiftRun; view: ShiftView }) {
                 aria-expanded={picks(kind) ? open === kind : undefined}
                 aria-controls={picks(kind) && open === kind ? pickerId : undefined}
                 onFocus={() => bar.note(at)}
-                onClick={() => {
+                onClick={(event) => {
+                  byKey.current = event.detail === 0
                   if (!picks(kind)) apply({ op: 'contiguous' })
-                  else setOpen(open === kind ? null : kind)
+                  else {
+                    setSettled(false)
+                    setOpen(open === kind ? null : kind)
+                  }
                 }}
               >
                 <code>{opButton(kind)}</code>
@@ -229,6 +272,7 @@ function OpBar({ run, view }: { run: ShiftRun; view: ShiftView }) {
           className="es-shift-dock__picker"
           data-native-keys="arrows"
           data-shift-picker={open}
+          data-settled={settled ? '' : undefined}
           onKeyDown={(event) => {
             if (event.key === 'Escape') {
               event.preventDefault()
@@ -245,7 +289,7 @@ function OpBar({ run, view }: { run: ShiftRun; view: ShiftView }) {
           </p>
           <div className="es-shift-dock__choices">
             {choices.map((op, at) => (
-              <Ringed key={choiceFace(op)} on={sameAction(ring, { t: 'op', op } as ShiftAction)}>
+              <Ringed key={choiceFace(op)} on={ringOf(rings, (action) => sameAction(action, { t: 'op', op } as ShiftAction))}>
                 <button
                   type="button"
                   className="es-shift-dock__choice font-numeric"
@@ -254,7 +298,10 @@ function OpBar({ run, view }: { run: ShiftRun; view: ShiftView }) {
                   tabIndex={at === pickerRow.stop ? 0 : -1}
                   aria-label={choiceLabel(op)}
                   onFocus={() => pickerRow.note(at)}
-                  onClick={() => apply(op)}
+                  onClick={(event) => {
+                    if (earlyKey(openedAt.current, event.timeStamp, event.detail)) return
+                    apply(op)
+                  }}
                 >
                   {choiceFace(op)}
                 </button>
@@ -271,7 +318,7 @@ function OpBar({ run, view }: { run: ShiftRun; view: ShiftView }) {
 /* The grid's steppers                                                                                                */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-function Stepper({ name, face, value, min, max, onSet, ringMore }: { name: string; face: ReactNode; value: number; min: number; max: number; onSet: (value: number) => void; ringMore: boolean }) {
+function Stepper({ name, face, value, min, max, onSet, ringMore }: { name: string; face: ReactNode; value: number; min: number; max: number; onSet: (value: number) => void; ringMore: Ring }) {
   // The first press ends the first run, and its ring goes from round the button: the button is drawn again, and focus stays on it, so
   // a key held on "one more" keeps counting.
   const group = useRef<HTMLDivElement>(null)
@@ -307,10 +354,9 @@ function Stepper({ name, face, value, min, max, onSet, ringMore }: { name: strin
   )
 }
 
-function GridControls({ run, view, mode }: { run: ShiftRun; view: ShiftView; mode: ShiftMode }) {
+function GridControls({ run, view, mode, rings }: { run: ShiftRun; view: ShiftView; mode: ShiftMode; rings: Rings }) {
   const grid = view.grid
   if (grid === null) return null
-  const ring = run.intro.ring
   const dims = grid.shape.map((_, d) => d)
   return (
     <div className="es-shift-dock__grid" data-shift-steppers="">
@@ -334,7 +380,7 @@ function GridControls({ run, view, mode }: { run: ShiftRun; view: ShiftView; mod
             min={1}
             max={BLOCK_MAX}
             onSet={(value) => run.dispatch({ t: 'block', dim: d, value })}
-            ringMore={ring !== null && ring.t === 'block' && ring.dim === d}
+            ringMore={ringOf(rings, (action) => action.t === 'block' && action.dim === d)}
           />
         ))}
         <span className="es-shift-dock__side" aria-hidden="true">
@@ -349,12 +395,12 @@ function GridControls({ run, view, mode }: { run: ShiftRun; view: ShiftView; mod
             min={1}
             max={GRID_MAX}
             onSet={(value) => run.dispatch({ t: 'grid', dim: d, value })}
-            ringMore={ring !== null && ring.t === 'grid' && ring.dim === d}
+            ringMore={ringOf(rings, (action) => action.t === 'grid' && action.dim === d)}
           />
         ))}
       </div>
       <div className="es-shift-dock__row">
-        <Ringed on={ring !== null && ring.t === 'launch'}>
+        <Ringed on={ringOf(rings, (action) => action.t === 'launch')}>
           <Button variant="ink" aria-keyshortcuts="L" onClick={() => run.dispatch({ t: 'launch' })} data-shift-launch-button="">
             Launch
           </Button>
@@ -411,6 +457,23 @@ export function Controls({ run, mode }: ControlsProps) {
   const titleId = useId()
   const body = useRef<HTMLDivElement>(null)
 
+  // The control the ring was on keeps the ring's room, drawn empty, while the strip is held over it (it goes when the hand leaves the dock,
+  // Frame.tsx), and the marker's box for the rest of its target, so the control is never drawn again under a press or a key (React's way to
+  // keep state from a prop).
+  const [kept, setKept] = useState<{ readonly at: number; readonly action: ShiftAction } | null>(null)
+  const live = run.intro.ring ?? run.intro.spent ?? null
+  if (live !== null && (kept === null || kept.at !== at || !sameAction(kept.action, live))) setKept({ at, action: live })
+  const rings: Rings = { ring: run.intro.ring, spent: run.intro.spent ?? null, gone: live === null && kept?.at === at ? kept.action : null }
+
+  // The control the intro rings is seated in the dock's room as the ring comes on: on a short pinned dock it stood in the steppers' own
+  // scroll, under the readout. It runs after the frame has set the dock's new phase at its top (Frame.tsx), and scrolls the dock no
+  // further than the ringed control needs.
+  const ringed = JSON.stringify(run.intro.ring)
+  useEffect(() => {
+    const ring = body.current?.querySelector<HTMLElement>('.es-shift-dock__ring:not(.es-shift-dock__ring--spent, .es-shift-dock__ring--gone)')
+    if (ring !== null && ring !== undefined) seatInDock(ring)
+  }, [ringed, guessing])
+
   // When the guess closes or a new target opens, focus goes to the bar's first control if the learner's focus was in the dock or nowhere.
   const key = `${at}|${guessing ? 'guess' : 'play'}`
   const lastKey = useRef(key)
@@ -434,7 +497,7 @@ export function Controls({ run, mode }: ControlsProps) {
           <span className="es-shift-dock__where">{whereLine(view)}</span>
         </h3>
         <div ref={body} className="es-shift-dock__body">
-          {guessing ? <Guess key={at} run={run} onSkip={skip} /> : view.grid !== null ? <GridControls run={run} view={view} mode={mode} /> : <OpBar key={at} run={run} view={view} />}
+          {guessing ? <Guess key={at} run={run} onSkip={skip} /> : view.grid !== null ? <GridControls run={run} view={view} mode={mode} rings={rings} /> : <OpBar key={at} run={run} view={view} rings={rings} />}
         </div>
       </section>
     </div>

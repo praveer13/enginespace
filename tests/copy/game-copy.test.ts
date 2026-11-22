@@ -21,7 +21,7 @@ import { BAR_PERMILLE } from '@es/play/loop/full/close'
 import { FULL_COPY } from '@es/play/loop/full/copy'
 import { buildFullLevel } from '@es/play/loop/full/levels'
 import { POOL_COPY } from '@es/play/pool/copy'
-import { copyOf, SHIFT_TITLES } from '@es/play/shape-shifter/copy'
+import { copyOf, fewestPracticeGoal, SHIFT_TITLES } from '@es/play/shape-shifter/copy'
 import { SHAPE_SHIFTER } from '@es/play/shape-shifter/entry'
 import { buildLevel as shiftLevel } from '@es/play/shape-shifter/levels'
 import type { ShiftLevel } from '@es/play/shape-shifter/types'
@@ -327,5 +327,22 @@ describe('Tensor views: every level has a title, a goal line and its pass rule, 
     expect(words.passRule).toBe("Passes when, on each of 3 new targets, your copies equal the reference's and no `view` was refused.")
     expect(words.goal.controls).toBe('You choose one operation at a time: `view`, `transpose`, `permute` or `contiguous()`. There is no undo, and a `view` the strides cannot express fails that target.')
     expect(words.goal.ends).toBe('Ends when each of the 3 targets is reached or has failed.')
+  })
+
+  test("`fewest` in practice says what practice has: the same targets each time, and Undo, which takes a refused `view` back", () => {
+    const level = shiftLevel('fewest', SHAPE_SHIFTER.levels.find((entry) => entry.id === 'fewest')?.practiceSeed ?? -1)
+    if (level.kind !== 'layout') throw new Error('fewest is a layout level')
+    const goal = fewestPracticeGoal(level.offered, level.needed)
+    expect(goal).toEqual({
+      aim: 'Reach each target with as few copies as you can.',
+      controls:
+        'You choose one operation at a time: `view`, `transpose`, `permute` or `contiguous()`. In practice the targets are the same each time and Undo takes a move back: a `view` the strides cannot express fails that target until you undo it.',
+      beat: "Practice is not graded. The graded rule: Passes when, on each of 3 new targets, your copies equal the reference's and no `view` was refused.",
+      ends: 'Ends when each of the 3 targets is reached or has failed.',
+    })
+    const words = Object.values(goal).join(' ')
+    // "new targets" is said of the graded run alone, and undo is never denied.
+    expect([/no undo/i.test(words), words.split('new targets').length - 1, goal.beat.indexOf('new targets') > goal.beat.indexOf('The graded rule:')]).toEqual([false, 1, true])
+    expect(findBanned(words)).toEqual([])
   })
 })

@@ -50,7 +50,7 @@ describe('the layout levels: the latest operation after which the reference coul
     expect(mineRun.copies).toBeGreaterThanOrEqual(1)
     const debrief = S.debrief(finishAll(mine), S.ghost(level))
     expect(debrief.names).toEqual({ turn: copiedAt })
-    expect(debrief.sentence).toMatch(/copy the reference never makes/)
+    expect(debrief.sentence).toMatch(/spent a copy the target did not need/)
     noDigit(debrief.sentence)
     expect(findBanned(debrief.sentence)).toEqual([])
   })
@@ -98,8 +98,24 @@ describe('the layout levels: the latest operation after which the reference coul
     )
     expect(S.score(wasteful).copies).toBe(2)
     const debrief = S.debrief(wasteful, S.ghost(level))
-    expect(debrief.sentence).toMatch(/Your `contiguous\(\)` here is a copy the reference never makes/)
+    expect(debrief.sentence).toMatch(/Your `contiguous\(\)` here spent a copy the target did not need/)
     expect(debrief.names).toEqual({ turn: 2 })
+    noDigit(debrief.sentence)
+  })
+
+  test('a copy named as one the target did not need claims only what the search shows: the operation after it is not said to be a view', () => {
+    // The check's run (fewest, seed 0): target 1 as the reference plays it, then on target 2 contiguous() twice, a view and a permute. The
+    // second contiguous() would itself have copied without the first, so "the operation after it was a view either way" was false.
+    const level = layout(S.level('fewest', 0))
+    let state = playedBefore(level, 1)
+    const copiedAt = state.history.length
+    for (const o of [{ op: 'contiguous' }, { op: 'contiguous' }, { op: 'view', shape: [3, 2, 2] }, { op: 'permute', order: [1, 2, 0] }] as const) state = shiftReduce(state, op(o))
+    const debrief = S.debrief(finishAll(state), S.ghost(level))
+    expect(debrief.names).toEqual({ turn: copiedAt })
+    expect(debrief.sentence).toBe(
+      'Your `contiguous()` here spent a copy the target did not need: from the tensor before it, the reference reaches the target with the copies it had left, and from the tensor after it, it cannot.',
+    )
+    expect(debrief.sentence).not.toMatch(/either way/)
     noDigit(debrief.sentence)
   })
 

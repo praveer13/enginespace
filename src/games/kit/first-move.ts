@@ -81,6 +81,11 @@ export interface GameKit<Action extends GameAction, View, Props = never> {
   readonly look?: (view: View) => KitLook | null
   /** The part ids a level draws: a level the ledger says was played has its parts met. */
   readonly levelParts?: (level: string) => readonly string[]
+  /**
+   * Whether the strip is held blank in its place after the first move until the hand leaves the dock, rather than taken out at once: for a
+   * game whose first move is pressed again where it was (a stepper's "one more"), which the strip's going would move from under the hand.
+   */
+  readonly holdsStrip?: boolean
 }
 
 export type IntroStep = 'parts' | 'look' | 'move' | 'ask' | 'point'
@@ -122,8 +127,11 @@ export interface IntroState {
   readonly turns: number
   /** On a phone, the part the list shows. */
   readonly partAt: number
-  /** The intro is over, and its strip waits blank in its place while a digit is being typed (Frame.tsx). */
-  readonly ended?: boolean
+  /**
+   * The intro is over, and its strip waits blank in its place (Frame.tsx): `typed` while a digit is being typed, `held` after a real move in a
+   * game whose kit holds the strip, until the hand leaves the dock.
+   */
+  readonly ended?: 'typed' | 'held'
 }
 
 export interface IntroPlanInput {
