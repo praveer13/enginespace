@@ -162,12 +162,12 @@ export function shell(page: Pick<PageText, 'heading' | 'description'>, base: str
   // out of the window as the page arrived, which the browser counts as a shift of the footer's whole box. A footer that arrives moves nothing.
   return chrome === null
     ? `<main>${main}</main>`
-    : `${chrome.skip}${chrome.header}<main id="main" tabindex="-1" class="es-shell__main">${main}</main>`
+    : `${chrome.jump}${chrome.header}<main id="main" tabindex="-1" class="es-shell__main">${main}</main>`
 }
 
 /** The frame of the app above its page: the skip link and the header, as the template's own front-page shell writes them. */
 export interface Chrome {
-  skip: string
+  jump: string
   header: string
 }
 
@@ -186,10 +186,10 @@ export function chromeOf(template: string): Chrome | null {
     const to = from < 0 ? -1 : inside.indexOf(close, from)
     return to < 0 ? null : inside.slice(from, to + close.length)
   }
-  const skip = piece('<a href="#main" class="es-skip">', '</a>')
+  const jump = piece('<a href="#main" class="es-skip">', '</a>')
   const header = piece('<header>', '</header>')
-  if (skip === null || header === null) return null
-  return { skip, header: header.replace(' aria-current="page"', '').replace(' active"', '"') }
+  if (jump === null || header === null) return null
+  return { jump, header: header.replace(' aria-current="page"', '').replace(' active"', '"') }
 }
 
 const descriptionMeta = (description: string): string => `<meta name="description" content="${escapeHtml(description)}" />`

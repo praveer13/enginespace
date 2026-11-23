@@ -53,7 +53,7 @@ describe("chromeOf and the shell inside the app's frame", () => {
 
   test('takes the skip link and the first header of the template root, without the front page\'s mark, and leaves the footer', () => {
     const chrome = chromeOf(`<html><body><div id="root">${frame}</div></body></html>`)
-    expect(chrome?.skip).toBe('<a href="#main" class="es-skip"><span>Skip</span></a>')
+    expect(chrome?.jump).toBe('<a href="#main" class="es-skip"><span>Skip</span></a>')
     expect(chrome?.header).toBe('<header><nav class="es-header"><a class="es-header__plate" href="/">enginespace</a></nav></header>')
   })
 
@@ -72,7 +72,7 @@ describe("chromeOf and the shell inside the app's frame", () => {
   })
 
   test('puts the shell in a main that the app\'s own main replaces, under the header', () => {
-    const html = shell(PAGE, '/', { skip: '<a>s</a>', header: '<header>h</header>' })
+    const html = shell(PAGE, '/', { jump: '<a>s</a>', header: '<header>h</header>' })
     expect(html.startsWith('<a>s</a><header>h</header><main id="main" tabindex="-1" class="es-shell__main"><h1>Course map</h1>')).toBe(true)
     expect(html).not.toContain('<footer')
   })
