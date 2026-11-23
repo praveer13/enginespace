@@ -574,6 +574,9 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
             {outcome === null ? (
               <>
                 {intro !== null && kit !== undefined ? (
+                  <>
+                  {/* The room the strip takes, held from the first draw: the strip comes with its chunk, and what stands under it must not move when it does. */}
+                  {stripLate ? null : <div className="es-intro-room" aria-hidden="true" />}
                   <Suspense fallback={null}>
                     {intro.checking ? (
                       <IntroLedger
@@ -612,6 +615,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
                       />
                     )}
                   </Suspense>
+                  </>
                 ) : null}
                 {/* A named moment, said once, in the dock beside the drawing it names, so the drawing stays in view (REDESIGN §2.6). */}
                 {moment === null ? null : <MomentNote moment={moment} />}

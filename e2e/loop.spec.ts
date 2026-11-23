@@ -92,6 +92,10 @@ const activeName = (page: Page) =>
  */
 async function open(page: Page, level: string) {
   await page.goto(`${origin}/play/loop?level=${level}`, { waitUntil: 'domcontentloaded' })
+  // A preview server first serves the front page's own shell on this route, which holds a loop section too: the wait is for this route's page,
+  // its heading and its diagram's now marker, so a check never reads the shell's empty boxes.
+  await expect(page.locator('h1').first()).toHaveText(/^step loop$/i, { timeout: BOOT })
+  await expect(page.locator('[data-loop-view] [data-lane-now]').first()).toBeAttached({ timeout: BOOT })
   await expect(game(page)).toBeVisible({ timeout: BOOT })
   await page.evaluate(() => document.fonts.ready)
 }
@@ -387,11 +391,9 @@ test.describe('action, state and result share one screen', () => {
           return r.width > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight + 1 && r.right <= innerWidth + 1
         })
       expect(await page.evaluate(() => scrollY)).toBe(0)
-      // The diagram is drawn at a default width for one frame, then at the box's measured width, with now scrolled into view: the check is
-      // of the settled picture, which is there once the page has measured its box.
-      await expect.poll(() => inView('[data-lane-now] .es-marker__word'), { timeout: BOOT }).toBe(true)
-      await expect.poll(() => inView('.es-lanes__chips button'), { timeout: BOOT }).toBe(true)
-      await expect.poll(() => inView('[data-loop-readout]'), { timeout: BOOT }).toBe(true)
+      expect(await inView('[data-lane-now] .es-marker__word')).toBe(true)
+      expect(await inView('.es-lanes__chips button')).toBe(true)
+      expect(await inView('[data-loop-readout]')).toBe(true)
       // A level of many steps: the track keeps now in its box as the run goes on.
       await open(page, 'first-4-par')
       // The game's frame is in the page before its diagram and its tickets are: the run starts when the first ticket is there to press.
@@ -410,6 +412,49 @@ test.describe('action, state and result share one screen', () => {
       expect(await inView('[data-lane-now] .es-marker__word')).toBe(true)
       expect(await inView('[data-loop-step]')).toBe(true)
       expect(await inView('[data-loop-readout]')).toBe(true)
+    })
+  }
+})
+
+/*
+ * The first screen of a first visit, where the intro's strip is a chunk that comes after the game is drawn (DC-A, DC-B): the readout does not
+ * move when the strip arrives, and the strip's own Next, the current control, is in the screen at the sizes that were cut.
+ */
+test.describe('the first run\'s strip', () => {
+  for (const [width, height] of [
+    [390, 844],
+    [360, 640],
+    [320, 640],
+    [844, 390],
+    [640, 400],
+  ] as const) {
+    test(`at ${width} x ${height}: the readout stays where it was drawn when the strip arrives, and Next is in the screen`, async ({ page }) => {
+      test.setTimeout(120_000)
+      await page.setViewportSize({ width, height })
+      // A busy machine: the strip's chunk comes well after the game's first draw.
+      const cdp = await page.context().newCDPSession(page)
+      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 })
+      await open(page, 'first-1-fill')
+      await page.evaluate(() => {
+        const tops: number[] = []
+        ;(window as unknown as { __readoutTops: number[] }).__readoutTops = tops
+        const sample = () => {
+          const readout = document.querySelector('[data-loop-readout]')
+          if (readout !== null) tops.push(Math.round(readout.getBoundingClientRect().top))
+          requestAnimationFrame(sample)
+        }
+        sample()
+      })
+      await expect(page.locator('.es-intro [data-intro-next]')).toBeVisible({ timeout: BOOT })
+      await page.waitForTimeout(400)
+      const tops = await page.evaluate(() => (window as unknown as { __readoutTops: number[] }).__readoutTops)
+      expect(tops.length).toBeGreaterThan(0)
+      expect([...new Set(tops)], 'the readout\'s top at every frame').toHaveLength(1)
+      const next = await page.locator('.es-intro [data-intro-next]').evaluate((element) => {
+        const r = element.getBoundingClientRect()
+        return r.top >= 0 && r.bottom <= innerHeight + 1 && r.left >= 0 && r.right <= innerWidth + 1
+      })
+      expect(next, 'Next in the screen').toBe(true)
     })
   }
 })
