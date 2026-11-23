@@ -83,7 +83,9 @@ export function activityRows(events: readonly LedgerEvent[], context: RowContext
       case 'play': {
         const parts = refParts(event.ref)
         const named = context.levelName(parts[0] ?? '', parts[1] ?? '')
-        rows.push({ ...base, what: `Played ${named ?? 'a level'}`, result: resultOf(event), kind: graded.has(event.ref) ? 'graded' : 'practice' })
+        // A run proved with the agent closed (src/prove) says so: it reads differently from a graded run played with the agent open.
+        const closed = event.provenance === 'proved' ? ', agent closed' : ''
+        rows.push({ ...base, what: `Played ${named ?? 'a level'}${closed}`, result: resultOf(event), kind: graded.has(event.ref) ? 'graded' : 'practice' })
         break
       }
       case 'lab-check':

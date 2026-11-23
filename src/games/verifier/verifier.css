@@ -223,7 +223,9 @@
   font-family: var(--es-font-mono);
   font-size: var(--es-size-caption);
   line-height: 1.2;
-  white-space: nowrap;
+  /* A column may be narrower than its name ("token 0" at 320 px, six columns across): the name wraps under itself and never runs into the next. */
+  text-align: center;
+  overflow-wrap: anywhere;
 }
 
 /* Under the first row, each further row keeps its bars and drops the token names the first row already wrote. */
