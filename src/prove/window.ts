@@ -9,7 +9,7 @@ import type { LedgerEvent } from '@es/ledger/types'
  * An attempt that counts is written when it starts, as the ledger's working record `openKey(ref)` with the time it started and the time it
  * was last seen alive, and taken out when the run ends and its event is written. The tab that plays it writes the time again about every
  * 30 seconds (`BEAT_MS`). An attempt left before its end, by a reload, by leaving the page or by Leave Prove mode, is written by the page
- * that leaves it as a `play` event of the level, `proved`, a miss, with `data.left` set to the time it started (src/games/kit/record.ts):
+ * that leaves it as a `play` event of the level, `proved`, a miss, with `data.left` set to the time it started (src/games/kit/left.ts):
  * it counts as a miss at the time it started, and opens the window as a miss does, and the export shows it. Otherwise a target that failed
  * could be wiped, and the seed drawn again until the first target looked easy.
  *

@@ -32,6 +32,7 @@
 import { weightOf } from '@es/ledger/provenance'
 import type { LedgerEvent } from '@es/ledger/types'
 import type { FamilyCount, MapLesson } from '@es/schema/compiled'
+import { ranToEnd } from '@/evidence/ran'
 import { ATTEMPT_WORDS, moduleCode } from './words'
 
 /** A lesson's sections (REDESIGN §2.5). */
@@ -266,7 +267,7 @@ export function testState(lesson: MapLesson, events: readonly LedgerEvent[]): Te
 /** Whether a Run is done: a play event for each of its opener's refs, one that was left before its end (`data.left`) not among them. Null when the lesson opens on reading. */
 export function runDone(lesson: MapLesson, events: readonly LedgerEvent[]): boolean | null {
   if (lesson.opener === 'read' || lesson.run.length === 0) return null
-  return lesson.run.every((ref) => events.some((event) => event.kind === 'play' && event.data?.left === undefined && event.ref === ref))
+  return lesson.run.every((ref) => events.some((event) => ranToEnd(event) && event.ref === ref))
 }
 
 /** Every lesson's standing, from the events, in course order. */

@@ -12,6 +12,7 @@ import { createElement as h, type ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { StaticRouter } from 'react-router'
 import { buildExport, decodeEvent, parseExport, serializeExport, stampEvent } from '@es/ledger'
+import { canonicalJson } from '@es/sim/core/json'
 import type { LedgerEvent, WriterContext } from '@es/ledger'
 import { applyAction, drawInBand, finishRun, GAMES, levelOf, startRun } from '@es/play'
 import type { RunResult } from '@es/play'
@@ -23,7 +24,8 @@ import { verifierSession } from '@es/play/verifier/session'
 import { excessPlates } from '@es/play/verifier/state'
 import { findBanned } from '@/copy/banned'
 import { Frame } from '@/games/kit/Frame'
-import { leftDraft, playDraft, provenanceOf } from '@/games/kit/record'
+import { leftDraft } from '@/games/kit/left'
+import { playDraft, provenanceOf, sha256Text } from '@/games/kit/record'
 import { ProveContext, type ProveFrame } from '@/prove/context'
 import { PROVE_COPY } from '@/prove/copy'
 import ProveSession, { ProvePanel } from '@/prove/ProveSession'
@@ -153,12 +155,12 @@ describe('the window, with a set clock (ASSESSMENT §7.3)', () => {
 
   test('the event of a left attempt is a miss of the level, proved when it counted, unseen when it was a graded run, and the codec takes it', async () => {
     const began = new Date(T0).toISOString()
-    const proved = await leftDraft({ game: 'verifier', level: 'exact', mode: 'graded', began, prove: { counts: true } }, async () => 'b'.repeat(64))
+    const proved = await leftDraft({ game: 'verifier', level: 'exact', began, prove: { counts: true } }, async () => 'b'.repeat(64))
     expect(proved).toMatchObject({ kind: 'play', ref: REF, score: 0, ok: false, provenance: 'proved', data: { actions: '[]', left: began } })
     expect('seed' in proved).toBe(false)
-    const graded = await leftDraft({ game: 'verifier', level: 'exact', mode: 'graded', began, seed: 7, rev: 'abcd1234' }, async () => 'b'.repeat(64))
+    const graded = await leftDraft({ game: 'verifier', level: 'exact', began, seed: 7, rev: 'abcd1234' }, async () => 'b'.repeat(64))
     expect(graded).toMatchObject({ provenance: 'unseen', seed: 7, rev: 'abcd1234', ok: false })
-    const practice = await leftDraft({ game: 'verifier', level: 'exact', mode: 'graded', began, prove: { counts: false } }, async () => 'b'.repeat(64))
+    const practice = await leftDraft({ game: 'verifier', level: 'exact', began, prove: { counts: false } }, async () => 'b'.repeat(64))
     expect(practice.provenance).toBe('practice')
     for (const draft of [proved, graded, practice]) {
       const decoded = decodeEvent(stampEvent(writer(T0 + HOUR), draft))
@@ -166,9 +168,19 @@ describe('the window, with a set clock (ASSESSMENT §7.3)', () => {
     }
   })
 
+  test('left.ts writes again the lines it shares with record.ts, and they agree: the provenance of a left run is the one a run of that stamp has, and the hash is the same', async () => {
+    const began = new Date(T0).toISOString()
+    for (const prove of [undefined, { counts: true }, { counts: false }]) {
+      const draft = await leftDraft({ game: 'verifier', level: 'exact', began, ...(prove === undefined ? {} : { prove }) })
+      expect(draft.provenance).toBe(provenanceOf('graded', prove))
+      expect(draft.data.actions).toBe(canonicalJson([]))
+      expect(draft.data.actionsSha256).toBe(await sha256Text(canonicalJson([])))
+    }
+  })
+
   test('the export shows a left attempt as a miss, and a file of schema version 2 with no such event still reads', async () => {
     const began = new Date(T0).toISOString()
-    const event = stampEvent(writer(T0 + HOUR), await leftDraft({ game: 'verifier', level: 'exact', mode: 'graded', began, prove: { counts: true } }, async () => 'b'.repeat(64)))
+    const event = stampEvent(writer(T0 + HOUR), await leftDraft({ game: 'verifier', level: 'exact', began, prove: { counts: true } }, async () => 'b'.repeat(64)))
     const file = buildExport({ ledger: { events: [event], receipts: [] }, exportedAt: new Date(T0 + 2 * HOUR).toISOString(), device: 'dev-a1' })
     const text = serializeExport(file)
     const parsed = parseExport(text)

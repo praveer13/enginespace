@@ -3,7 +3,8 @@ import { Link } from 'react-router'
 import type { GameEntry, GameMode, RunRecord, RunResult } from '@es/play'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { useEvidence } from '@/evidence/useEvidence'
-import { leftDraft, recordLeft, type ProveStamp } from '@/games/kit/record'
+import { leftDraft, recordLeft } from '@/games/kit/left'
+import type { ProveStamp } from '@/games/kit/record'
 import type { GameComponent } from '@/games/registry'
 import { ProveContext, type ProveFrame } from './context'
 import { PROVE_COPY } from './copy'
@@ -159,7 +160,7 @@ export default function ProveSession({ entry, level, Game, record }: ProveSessio
       live.current = null
       spent.current = true
       note.write(ref, open.began)
-      void recordLeft({ game: entry.id, level, mode: 'graded', began: open.began, prove: { counts: true } }).then((written) => {
+      void recordLeft({ game: entry.id, level, began: open.began, prove: { counts: true } }).then((written) => {
         if (written.ok) {
           void latest.current.deleteWorking(openKey(ref))
           note.clear(ref)
@@ -190,7 +191,7 @@ export default function ProveSession({ entry, level, Game, record }: ProveSessio
     const written = evidence.events.some((event) => event.kind === 'play' && event.ref === ref && event.data.left === began)
     void (async () => {
       if (!written) {
-        const added = await latest.current.append(await leftDraft({ game: entry.id, level, mode: 'graded', began, prove: { counts: true } }))
+        const added = await latest.current.append(await leftDraft({ game: entry.id, level, began, prove: { counts: true } }))
         if (!added.ok) {
           settling.current = null
           return
