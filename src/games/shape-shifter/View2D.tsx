@@ -221,9 +221,27 @@ function orderPath(layout: LayoutView, box: CellsLayout): { d: string; start: { 
   return { d, start: first }
 }
 
+/** The least cell a numbered tensor is drawn with, where the width allows it: its number is then 9 px (shape-shifter.css). */
+const READABLE = 20
+
+/**
+ * The cells at `tall` px of height, unless that draws them under READABLE: a tall, thin tensor ([24, 2], or [6, 4] on a phone) then takes
+ * the least height at which its cells are READABLE (or as large as the width allows), and the box it stands in scrolls at a desk, or the
+ * page carries it on a phone. So no number is drawn too small to read.
+ */
+function readableLayout(shape: readonly number[], room: number, tall: number): CellsLayout {
+  const box = cellsLayout(shape, room, tall)
+  if (box.size >= READABLE) return box
+  const most = Math.min(READABLE, cellsLayout(shape, room, Number.MAX_SAFE_INTEGER).size)
+  let high = tall
+  let taller = box
+  while (taller.size < most) taller = cellsLayout(shape, room, (high += 4))
+  return taller
+}
+
 function Cells({ layout, pick, onPick, room, tall }: { layout: LayoutView; pick: number | null; onPick: (flat: number | null) => void; room: number; tall: number }) {
   const shape = layout.table.map((row) => row.size)
-  const box = cellsLayout(shape, room, tall)
+  const box = readableLayout(shape, room, tall)
   const path = orderPath(layout, box)
   const chosen = selectionOf(layout, pick)
   // A cell is keyed by its element, so a view that moves the element to a new index moves its cell there (240 ms, none under reduced
@@ -319,8 +337,9 @@ function Buffer({ buffer, old = false, selected, onPick, room }: { buffer: Buffe
 
 function LayoutDrawing({ layout, pick, onPick }: { layout: LayoutView; pick: number | null; onPick: (flat: number | null) => void }) {
   const [cellsBox, cellsRoom] = useRoom(480)
-  // On a phone the table's line, the cells and the buffer stand together over the pinned dock: the cells keep to CELLS_TALL_PHONE.
-  const tall = usePhone() ? CELLS_TALL_PHONE : CELLS_TALL
+  // On a phone the table's line, the cells and the buffer's first row stand together over the pinned dock at 390 x 844: the cells keep to
+  // 20 px under CELLS_TALL_PHONE, and never under READABLE.
+  const tall = usePhone() ? CELLS_TALL_PHONE - 20 : CELLS_TALL
   const chosen = selectionOf(layout, pick)
   const root = useKeepDock()
   return (
@@ -375,8 +394,10 @@ function GridDrawing({ grid, pick, onPick }: { grid: GridView; pick: ShiftPick |
   const drawn = grid.programs.length > 0
   const tallRows = drawn ? Math.max(rows, (grid.grid[0] ?? 1) * (grid.block[0] ?? 1)) : rows
   const wideCols = drawn ? Math.max(cols, (grid.grid[1] ?? 1) * (grid.block[1] ?? 1)) : cols
-  const high = usePhone() ? CELLS_TALL_PHONE + 56 : CELLS_TALL
-  const size = Math.max(4, Math.min(CELL_MAX, Math.floor(room / wideCols), Math.floor(high / tallRows)))
+  const high = usePhone() ? CELLS_TALL_PHONE + 40 : CELLS_TALL
+  // A tall grid of large tiles takes more height before its cells go under CELL_FLOOR, as far as the width allows: a cell holds no number,
+  // and at CELL_FLOOR its fill and its tile's outline still read.
+  const size = Math.max(4, Math.min(CELL_FLOOR, Math.floor(room / wideCols)), Math.min(CELL_MAX, Math.floor(room / wideCols), Math.floor(high / tallRows)))
   const inHand = programAt(grid, pick)
   const root = useKeepDock()
   const covered = new Set<string>()
@@ -421,7 +442,7 @@ function GridDrawing({ grid, pick, onPick }: { grid: GridView; pick: ShiftPick |
             <span className="font-numeric">{tupleText(grid.grid)}</span>
           </p>
           <p className="es-shift__meta" data-shift-programs="">
-            <PartName id="program">programs</PartName> {n(grid.programCount)} of at most {n(grid.cap)}
+            programs {n(grid.programCount)} of at most {n(grid.cap)}
             {grid.programCount > grid.cap ? <span className="es-shift__count"> · too many to launch</span> : null}
           </p>
         </section>
@@ -431,7 +452,8 @@ function GridDrawing({ grid, pick, onPick }: { grid: GridView; pick: ShiftPick |
           <h3 className="es-shift__label">
             <span>Tiles</span>
             <span className="es-shift__count">
-              one program each; a lane past the edge is <PartName id="mask">masked</PartName>
+              {/* The program's name is a button here, a line clear of BLOCK's and the grid's, so no two buttons' 44 px boxes overlap on a phone. */}
+              one <PartName id="program">program</PartName> each; a lane past the edge is <PartName id="mask">masked</PartName>
             </span>
           </h3>
           <div className="es-shift__cells" style={{ width: wideCols * size, height: tallRows * size, '--es-cell': `${size}px` } as CSSProperties} aria-hidden="true" data-small={size < 14 || undefined}>

@@ -481,7 +481,12 @@ export function Controls({ run, mode }: ControlsProps) {
   const ringed = JSON.stringify(run.intro.ring)
   useEffect(() => {
     const ring = body.current?.querySelector<HTMLElement>('.es-shift-dock__ring:not(.es-shift-dock__ring--spent, .es-shift-dock__ring--gone)')
-    if (ring !== null && ring !== undefined) seatInDock(ring)
+    if (ring === null || ring === undefined) return
+    // Where the steppers stand one under another (a phone under 24rem), BLOCK's last dimension is seated with the ringed first one, so its
+    // "one more" is whole in the dock while the first-move strip is held over the ringed one, and nothing need move under the hand.
+    const last = [...(body.current?.querySelectorAll<HTMLElement>('[data-stepper^="BLOCK along"]') ?? [])].at(-1)
+    if (last !== undefined && !last.contains(ring)) seatInDock(last)
+    seatInDock(ring)
   }, [ringed, guessing])
 
   // When the guess closes or a new target opens, focus goes to the bar's first control if the learner's focus was in the dock or nowhere. On
