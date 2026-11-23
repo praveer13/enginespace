@@ -81,7 +81,11 @@ function useRow(count: number) {
     event.preventDefault()
     const to = Math.max(0, Math.min(next, buttons.length - 1))
     setAt(to)
-    buttons[to]?.focus()
+    const target = buttons[to]
+    if (target === undefined) return
+    // The page stays where it is (DC-F); a box that scrolls inside the dock brings the button into its own view.
+    target.focus({ preventScroll: true })
+    seatInDock(target)
   }
   return { stop, onKeyDown, note: setAt }
 }

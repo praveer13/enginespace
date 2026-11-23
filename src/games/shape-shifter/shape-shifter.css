@@ -163,6 +163,7 @@
   display: flex;
   flex-wrap: wrap;
   flex-basis: 100%;
+  min-width: 0;
   align-items: flex-start;
   gap: var(--es-space-1) var(--es-space-3);
   margin-top: var(--es-space-1);
@@ -208,6 +209,7 @@
   display: flex;
   align-items: flex-start;
   gap: var(--es-space-1);
+  min-width: 0;
   max-width: 100%;
 }
 
@@ -216,6 +218,19 @@
   flex-wrap: wrap;
   gap: var(--es-space-1);
   min-width: 0;
+}
+
+/* A 1-D target is one row, in order, whatever the room: a row longer than its box scrolls inside the box, and the page keeps its width. */
+.es-shift__goal-rows[data-one-row] {
+  flex-wrap: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.es-shift__goal-rows[data-one-row] .es-shift__goal-row {
+  flex: none;
+  flex-wrap: nowrap;
 }
 
 .es-shift__goal-tag {
@@ -877,7 +892,7 @@
   grid-template-columns: auto repeat(var(--es-dims), max-content);
   align-items: center;
   justify-content: start;
-  gap: var(--es-space-1) var(--es-space-4);
+  gap: var(--es-space-1) var(--es-space-2);
 }
 
 /* As a picker does, steppers longer than the dock's room scroll inside their own box, and Launch under them stays whole in the dock. */
@@ -948,7 +963,7 @@
 
 .es-shift-dock__stepper {
   display: grid;
-  grid-template-columns: auto 2.25rem auto;
+  grid-template-columns: auto 2rem auto;
   align-items: center;
   gap: var(--es-space-1);
 }
