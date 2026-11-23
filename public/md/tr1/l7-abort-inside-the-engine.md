@@ -146,9 +146,9 @@ A client that leaves is not the only reason to abort a request. vLLM's engine co
 
 Three questions on new numbers. Two ask which state a request is in, or which status it ends in, after an abort, and one asks in which process a stage of an abort's path runs.
 
-> **Practice.** Items from the generator family `tr1.request-state`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr1.request-state`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
-> **Practice.** Items from the generator family `tr1.where-does-it-run`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr1.where-does-it-run`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 The module's last test is the graded map, and it is the proof of the module. The `map` level draws a fresh scenario of any of the five engines: streaming or not, one rank or two, with an abort or without, with a prefix hit or without, and with one sample or two. You lay its whole path from the stage list in one run. There is no undo and no live readout, and nothing is timed. Every stage you lay is matched, in order, to a span of the scenario's synthetic trace, and the stage list holds real stages of the other engines, so knowing one engine's most common path is not enough. It passes when the whole path is right on its first run, on three fresh seeds [estimated].
 

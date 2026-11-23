@@ -93,9 +93,9 @@ The level draws three new targets, and each is to be reached with as few copies 
 
 > **Play.** The game `shape-shifter`, level `fewest`, in `graded` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
-> **Practice.** Items from the generator family `tr0.find-the-sync`, level `1`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr0.find-the-sync`, level `1`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
-> **Practice.** Items from the generator family `tr0.view-or-copy`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr0.view-or-copy`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## Claims cited
 

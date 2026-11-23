@@ -112,7 +112,7 @@ The same reasoning governs a pull request to an engine. Upstream's test never fa
 
 This lesson tests one skill: testing a sampler for exactness with a chi-square goodness-of-fit test, and saying what its level and its power tell you (`tr6.exactness-testing`). The question set is three items on fresh seeds, drawn from the degrees of freedom of a test, the chance that it fails an exact sampler, which check sees a bug of a given size and place, and the draws until a bias shows. The lab's `exact` check is the same skill on your Rust code.
 
-> **Practice.** Items from the generator family `tr6.exactness-test`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr6.exactness-test`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## Claims cited
 

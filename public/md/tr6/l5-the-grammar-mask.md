@@ -93,9 +93,9 @@ SGLang meets the same problem differently, and its answers are a key to check yo
 
 This lesson tests two skills: naming the mask's four phases and where each runs (`tr6.mask-phases`), and predicting how long the GPU waits for a grammar mask, whether the fill hides or not (`tr6.mask-overlap`). The question set is three items on fresh seeds, one on the phases and two on the gap. The two gap items are the course's graded task for the mask, `tr6.mask-fits`, which draws the model of Service's `mask` level on fresh numbers and holds an answer to within 10% [estimated] of the model's gap.
 
-> **Practice.** Items from the generator family `tr6.mask-phases`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr6.mask-phases`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
-> **Practice.** Items from the generator family `tr6.mask-fits`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr6.mask-fits`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## Claims cited
 

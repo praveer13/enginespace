@@ -182,9 +182,9 @@ The last stages of the path are a mailbox in both. SGLang's tokenizer manager ke
 
 Three questions on new numbers. Two ask in which process and on which thread or stream a stage of SGLang's path runs, and one asks which mechanism joins two of its stages. The graded map at the end of the module tests the same skill on a whole path.
 
-> **Practice.** Items from the generator family `tr1.where-does-it-run`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr1.where-does-it-run`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
-> **Practice.** Items from the generator family `tr1.which-mechanism`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr1.which-mechanism`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## Claims cited
 

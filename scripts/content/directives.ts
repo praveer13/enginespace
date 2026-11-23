@@ -260,9 +260,10 @@ const quote = (text: string): string => text.split('\n').map((line) => `> ${line
 /**
  * A block as Markdown for the learner's agent (A§4.6). Nothing in a block is a key or an answer: a prediction holds the shape
  * of its answer, and the course's model computes the reference when the prediction is revealed (A§1, I3). So the export says
- * what the learner is asked to do, and tells the agent to let them commit before it discusses anything.
+ * what the learner is asked to do, and tells the agent to let them commit before it discusses anything. An item block under the
+ * lesson's last `##` is the lesson's Test (`inTest`), and is named so: every other item block is Practice.
  */
-export function blockMarkdown(block: DirectiveBlock): string {
+export function blockMarkdown(block: DirectiveBlock, inTest = false): string {
   switch (block.type) {
     case 'predict': {
       const shape =
@@ -274,7 +275,7 @@ export function blockMarkdown(block: DirectiveBlock): string {
       return quote(`**Predict \`${block.id}\`.** ${block.prompt}\n\nThe learner commits to ${shape} before the reveal. Ask them to commit to an answer and say why before you discuss it.`)
     }
     case 'item':
-      return quote(`**Practice.** Items from the generator family \`${block.family}\`, level \`${block.level}\`, ${block.variant === undefined ? '' : `the variant \`${block.variant}\`, `}\`${block.count}\` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.`)
+      return quote(`**${inTest ? 'Test' : 'Practice'}.** Items from the generator family \`${block.family}\`, level \`${block.level}\`, ${block.variant === undefined ? '' : `the variant \`${block.variant}\`, `}\`${block.count}\` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.`)
     case 'game':
       return quote(`**Play.** The game \`${block.id}\`, level \`${block.level}\`, in \`${block.mode}\` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.`)
     case 'trace':

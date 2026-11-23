@@ -144,7 +144,7 @@ It serves chat completions, tensor parallelism, chunked prefill, a radix cache, 
 
 Three questions on new numbers. Each names a stage of a pinned engine's path and asks in which process and on which thread or stream it runs. The engine may be Mini-SGLang, or vLLM or SGLang, which the later lessons of this module read: the question gives the stage's code and its source, and a question on an engine you have not read yet is a preview of those lessons. The graded map at the end of the module tests the same skill on a whole path.
 
-> **Practice.** Items from the generator family `tr1.where-does-it-run`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr1.where-does-it-run`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## Claims cited
 

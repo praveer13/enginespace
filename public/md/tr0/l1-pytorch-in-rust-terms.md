@@ -122,9 +122,9 @@ A copy across devices costs more than its bytes. The CPU waits for the GPU while
 
 Three questions, on new tensors: two ask for a stride after a slice, a transpose, a `permute` or an `expand`, and one asks what a chain of calls does.
 
-> **Practice.** Items from the generator family `tr0.strides-of`, level `1`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr0.strides-of`, level `1`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
-> **Practice.** Items from the generator family `tr0.view-or-copy`, level `1`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr0.view-or-copy`, level `1`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## Claims cited
 

@@ -669,8 +669,22 @@ function claimsSection(cited: ReadonlySet<string>, sources: Sources): string {
   return claims.length === 0 ? '' : `\n\n## Claims cited\n\n${claims.map(claimLine).join('\n')}`
 }
 
+/** Whether a prose part holds a `##` heading line, outside a fenced code block. */
+function hasSectionHeading(md: string): boolean {
+  let fenced = false
+  for (const line of md.split('\n')) {
+    if (/^\s*(```|~~~)/.test(line)) fenced = !fenced
+    else if (!fenced && /^##\s/.test(line)) return true
+  }
+  return false
+}
+
 function bodyMarkdown(body: Body, sources: Sources): string {
-  return body.parts.map((part) => (part.kind === 'prose' ? exportProse(part.md.trim(), sources) : blockMarkdown(part.block))).join('\n\n')
+  // The lesson's Test is its last `##` part (sections.ts): the item blocks after the last heading are its questions.
+  const lastHeading = body.parts.findLastIndex((part) => part.kind === 'prose' && hasSectionHeading(part.md))
+  return body.parts
+    .map((part, at) => (part.kind === 'prose' ? exportProse(part.md.trim(), sources) : blockMarkdown(part.block, lastHeading >= 0 && at > lastHeading)))
+    .join('\n\n')
 }
 
 function lessonMarkdown(module: ModuleResult, lesson: LessonResult, sources: Sources): string {

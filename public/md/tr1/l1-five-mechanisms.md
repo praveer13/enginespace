@@ -118,7 +118,7 @@ _Three host threads in a row. Thread A hands the request to thread B through a q
 
 Three questions on new numbers. Each shows one stage of a real engine's path, with the place it starts and the place it ends, and asks which mechanism joins them. The graded map at the end of the module tests the same skill on a whole path.
 
-> **Practice.** Items from the generator family `tr1.which-mechanism`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr1.which-mechanism`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## Claims cited
 
