@@ -21,10 +21,7 @@ beforeAll(() => {
     port: 0,
     fetch(req) {
       const url = new URL(req.url)
-      seen.push({
-        path: url.pathname,
-        headers: Object.fromEntries(req.headers.entries()),
-      })
+      seen.push({ path: url.pathname, headers: Object.fromEntries(req.headers.entries()) })
       if (url.pathname.endsWith('/ok.py')) return new Response(FILE)
       if (url.pathname.endsWith('/gone.py')) return new Response('nope', { status: 404 })
       if (url.pathname.endsWith('/limited.py')) return new Response('slow down', { status: 429 })
@@ -43,13 +40,7 @@ const claim = (id: string, file: string, lines: string, quote: string, pin = 'vl
 
 describe('parseAnchor and rawUrl', () => {
   test('reads a file at a ref with a line range, a single line and none', () => {
-    expect(parseAnchor('https://github.com/o/r/blob/v1.2/a/b.py#L3-L9')).toEqual({
-      owner: 'o',
-      repo: 'r',
-      ref: 'v1.2',
-      path: 'a/b.py',
-      lines: { from: 3, to: 9 },
-    })
+    expect(parseAnchor('https://github.com/o/r/blob/v1.2/a/b.py#L3-L9')).toEqual({ owner: 'o', repo: 'r', ref: 'v1.2', path: 'a/b.py', lines: { from: 3, to: 9 } })
     expect(parseAnchor('https://github.com/o/r/blob/v1/a.py#L7')?.lines).toEqual({ from: 7, to: 7 })
     expect(parseAnchor('https://github.com/o/r/blob/v1/a.py')?.lines).toBeUndefined()
   })
@@ -71,10 +62,7 @@ describe('locate and judge', () => {
   })
   test('inside, outside and absent', () => {
     expect(judge(FILE, 'return x', { from: 5, to: 5 }).status).toBe('verified')
-    expect(judge(FILE, 'return x', { from: 1, to: 3 })).toEqual({
-      status: 'moved',
-      note: 'found at L5',
-    })
+    expect(judge(FILE, 'return x', { from: 1, to: 3 })).toEqual({ status: 'moved', note: 'found at L5' })
     expect(judge(FILE, 'not there', { from: 1, to: 6 }).status).toBe('missing')
     expect(judge(FILE, 'tail').status).toBe('verified')
   })
@@ -168,7 +156,10 @@ describe('requote against a local server', () => {
   })
 
   test('a rate limit stops the run and says how many claims it covered', async () => {
-    const report = await requote([claim('b.one', 'ok.py', '#L1', 'line one'), claim('b.two', 'limited.py', '#L1', 'x'), claim('b.three', 'ok.py', '#L1', 'line one')], { rawBase: base })
+    const report = await requote(
+      [claim('b.one', 'ok.py', '#L1', 'line one'), claim('b.two', 'limited.py', '#L1', 'x'), claim('b.three', 'ok.py', '#L1', 'line one')],
+      { rawBase: base },
+    )
     expect(report.rows.map((r) => r.status)).toEqual(['verified', 'not reached', 'not reached'])
     expect(report.covered).toBe(1)
     expect(report.total).toBe(3)
