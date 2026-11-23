@@ -1,5 +1,5 @@
 /*
- * What the app knows of the ref-to-KC map (kcmap.ts), assembled from what is built: the compiled map's exact refs, the game registry, the
+ * What the app knows of the ref-to-KC map (kcmap.ts), assembled from what is built: the compiled map's exact refs, the game rows, the
  * item families' faces and the graded forge labs' tables. A page that shows progress calls these two and hands them to `deriveProgress`.
  *
  * Every source is data, and none is the code it describes (D-059), because the map and the module pages carry whatever they import:
@@ -16,8 +16,8 @@
  * The KCs of a grader lab's stages are the table of packages/verify/stage-kcs.ts (data only), empty until a lab's task adds its rows. A receipt
  * of a stage with no row earns its lab's KCs, and an event whose ref names no KC still counts for its module.
  */
-import { GAMES } from '@es/play'
 import { faceById } from '@es/play/items/catalog'
+import { ROWS } from '@es/play/rows'
 import type { CourseMap } from '@es/schema/compiled'
 import { STAGE_KCS } from '@es/verify/stage-kcs'
 import { kcsOfLab } from '@es/sim/forge/check-kcs'
@@ -27,12 +27,12 @@ import type { KcSources } from './kcmap'
 export function appSources(map: Pick<CourseMap, 'refs'>): KcSources {
   return {
     refs: map.refs,
-    game: (game) => GAMES.get(game)?.kcs ?? [],
+    game: (game) => ROWS.get(game)?.kcs ?? [],
     variant: (family, variant) => faceById(family)?.variants.find((spec) => spec.id === variant)?.kcs ?? [],
     lab: kcsOfLab,
     stage: (stage) => (Object.hasOwn(STAGE_KCS, stage) ? STAGE_KCS[stage] : []),
   }
 }
 
-/** A game's home module: the first its registry entry lists (packages/play/types.ts), as the Evidence page counts a game run. */
-export const homeModule = (game: string): string | undefined => GAMES.get(game)?.modules[0]
+/** A game's home module: the first its row lists (packages/play/rows.ts), as the Evidence page counts a game run. */
+export const homeModule = (game: string): string | undefined => ROWS.get(game)?.modules[0]

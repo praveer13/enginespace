@@ -5,7 +5,7 @@
  *
  *   review:<kc>                  that KC itself
  *   item:gen/<family>/<variant>  the KCs of that variant of the family (A§8.2: a variant assesses its own)
- *   play:<game>/<level>          the KCs the game exercises (the registry's `kcs`; a level names none of its own yet)
+ *   play:<game>/<level>          the KCs the game exercises (the game row's `kcs`; a level names none of its own yet)
  *
  *   predict:<lesson>#<id>        the KCs the lesson's prediction names, from the compiled map's `refs` (W1-T06; src/progress/kcmap.ts reads
  *                                the same). A prediction of either reveal, after the run or at commit (D-067), writes the same event. It may
@@ -16,12 +16,12 @@
  *   - lab:, prove:, receipt:   the KCs of a lab's checks are named by the lab tasks (W1-T10, W1-T22, W1-T27);
  *   - trace:, challenge:, screen:, change:   a trace belongs to every module that reads it, and the rest are not graded.
  *
- * What is known to the build is passed in as `KcSources`: the app builds them from the families' faces (the catalog) and the game registry
+ * What is known to the build is passed in as `KcSources`: the app builds them from the families' faces (the catalog) and the game rows
  * (`sourcesOf`), and a test builds them from fixtures. The map's `refs`, once the page reads the map, add the other refs here and nowhere else.
  */
-import { GAMES } from '@es/play'
 import { CATALOG } from '@es/play/items/catalog'
 import type { GenFace } from '@es/play/items/types'
+import { ROWS } from '@es/play/rows'
 import { parseRef } from '@es/schema/refs'
 
 export interface KcSources {
@@ -59,12 +59,12 @@ export function kcsOfRef(ref: string, sources: KcSources): readonly string[] {
   return kcs.length < 2 ? kcs : [...new Set(kcs)]
 }
 
-/** The sources of this build: the item families and the games of the registries. */
+/** The sources of this build: the item families and the rows of the games. */
 export function sourcesOf(families: readonly GenFace[] = CATALOG, refs?: KcSources['refs']): KcSources {
   return {
     ...(refs === undefined ? {} : { refs }),
     variant: (family, variant) => families.find((gen) => gen.id === family)?.variants.find((spec) => spec.id === variant)?.kcs ?? [],
-    game: (game) => GAMES.get(game)?.kcs ?? [],
+    game: (game) => ROWS.get(game)?.kcs ?? [],
   }
 }
 

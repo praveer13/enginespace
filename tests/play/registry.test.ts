@@ -12,6 +12,7 @@ import path from 'node:path'
 import { GAME_MODES as SCHEMA_GAME_MODES } from '@es/schema/content'
 import { COMMON_KEYS, GAMES, GAME_MODES, PHASES, PHASE_NAMES, createRegistry, keyProblems, keymapOf, levelOf } from '@es/play'
 import type { KeyBinding } from '@es/play'
+import { createRows, ROWS } from '@es/play/rows'
 import { GAME_COMPONENTS, GAME_RECORDS, loadGame, resolveGame, type GameComponent, type RecordLoader } from '@/games/registry'
 import { checkGames, checkRecordLoader, filesAt, worldAt } from '../../scripts/verify-games'
 import { backticked, between, read } from '../ci/support'
@@ -140,6 +141,46 @@ describe('the games of the course', () => {
   test('the component registry, its record loaders and the records list the same ids (verify:games says which is missing)', () => {
     expect(Object.keys(GAME_COMPONENTS).sort()).toEqual(GAMES.games.map((game) => game.id).sort())
     expect(Object.keys(GAME_RECORDS).sort()).toEqual(GAMES.games.map((game) => game.id).sort())
+  })
+})
+
+describe('the game rows (packages/play/rows.ts)', () => {
+  test('are the registry\'s games in the registry\'s order, and each row holds its entry\'s id, modules, title, KCs, levels (id, title, graded) and Prove level', () => {
+    expect(ROWS.rows.map((row) => row.id)).toEqual(GAMES.games.map((game) => game.id))
+    for (const game of GAMES.games) {
+      const row = ROWS.get(game.id)
+      expect([game.id, row]).toEqual([
+        game.id,
+        {
+          id: game.id,
+          modules: game.modules,
+          title: game.title,
+          kcs: game.kcs,
+          levels: game.levels.map(({ id, title, graded }) => ({ id, title, graded })),
+          ...(game.prove === undefined ? {} : { prove: game.prove }),
+        },
+      ])
+    }
+  })
+
+  test('carry nothing a page that lists levels does not read: no subtitle, keys, claims, card or loader, and no level seed or stage', () => {
+    for (const row of ROWS.rows) {
+      expect(Object.keys(row).filter((field) => !['id', 'modules', 'title', 'kcs', 'levels', 'prove'].includes(field))).toEqual([])
+      for (const level of row.levels) expect(Object.keys(level).sort()).toEqual(['graded', 'id', 'title'])
+    }
+  })
+
+  test('are what Today, the progress code, the Evidence page, the Games index, a module page and About read: none of them imports GAMES, whose entries carry every game\'s keys and claims', () => {
+    for (const file of ['src/progress/sources.ts', 'src/progress/useProgress.ts', 'src/items/today/kcs.ts', 'src/pages/Today.tsx', 'src/pages/Evidence.tsx', 'src/pages/PlayIndex.tsx', 'src/map/ModuleProgress.tsx', 'src/pages/About.tsx']) {
+      expect([file, /import[^\n]*\bGAMES\b/.test(read(file))]).toEqual([file, false])
+    }
+  })
+
+  test('name a game by its id alone: a name such as constructor has no row, and two rows may not share an id', () => {
+    expect(ROWS.get('constructor')).toBeUndefined()
+    expect(ROWS.get('loop')?.modules[0]).toBe('tr2')
+    const [first] = ROWS.rows
+    expect(() => createRows([first, first])).toThrow('two games have a row as "loop"')
   })
 })
 
