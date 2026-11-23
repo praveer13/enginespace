@@ -26,6 +26,9 @@ setDefaultTimeout(120_000)
 
 const SEEDS = seeds(1)
 
+/** The seeds the design's measurements are made on (the accept list's 200): fixed, so that a figure it prints is the same on a pull request and at night. */
+const MEASURED = 200 // not seeds
+
 /*
  * The seeded properties below run as one test for each CHUNK of the seeds, not one test over all of them (the nightly run's 10,000 seeds are one
  * test over every seed otherwise). The timeout is the one every test has (above), and a test asserts that the chunks that ran are exactly SEEDS.
@@ -75,12 +78,12 @@ describe('every level is built on every seed, and its reference passes it throug
 })
 
 describe("the reference's moves on a graded case stay under the design's bound", () => {
-  test(`on 200 seeds a graded case needs at most ${MOST_MARKS} marks of the reference's own, and the session's moves are counted`, () => {
+  test(`on ${MEASURED} seeds a graded case needs at most ${MOST_MARKS} marks of the reference's own, and the session's moves are counted`, () => {
     let most = 0
     let total = 0
     let cases = 0
     let moves = 0
-    for (let seed = 1; seed <= 200; seed++) {
+    for (let seed = 1; seed <= MEASURED; seed++) {
       for (const id of ['gap', 'attribute'] as const) {
         const level = S.level(id, seed)
         const actions = ghostActions(level)
@@ -101,7 +104,7 @@ describe("the reference's moves on a graded case stay under the design's bound",
         if (id === 'attribute') moves += actions.length
       }
     }
-    console.log(`reference marks per graded attribute case over 200 seeds [synthetic, ${cases} cases]: most ${most}, mean ${(total / cases).toFixed(2)}; actions per graded run (3 cases): mean ${(moves / 200).toFixed(1)}`)
+    console.log(`reference marks per graded attribute case over ${MEASURED} seeds [synthetic, ${cases} cases]: most ${most}, mean ${(total / cases).toFixed(2)}; actions per graded run (3 cases): mean ${(moves / MEASURED).toFixed(1)}`)
     expect(most).toBeLessThanOrEqual(MOST_MARKS)
   })
 
@@ -128,7 +131,7 @@ describe("the band's own rules hold on the cases a graded level draws", () => {
   test('the largest gap is at least 1.5 times the second, the window is at least 10% non-kernel, and in at least half of graded cases a longer span lies under GPU-busy time', () => {
     let decoys = 0
     let cases = 0
-    for (let seed = 1; seed <= 200; seed++) {
+    for (let seed = 1; seed <= MEASURED; seed++) {
       const level = S.level('attribute', seed)
       level.cases.forEach((_, i) => {
         const c = caseOf(level, i)

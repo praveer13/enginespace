@@ -24,7 +24,7 @@ import { brute, LEVELS, mainThreadSpans, randomWalk, S } from './gap-hunt-suppor
 setDefaultTimeout(120_000)
 
 const SEEDS = seeds(1)
-const WALKS = Array.from({ length: 200 }, (_, i) => i + 1)
+const WALKS = Array.from({ length: 200 }, (_, i) => i + 1) // not seeds: the 200 walks of DC-E, the same on a pull request and at night
 
 describe('the readouts are the state, recounted', () => {
   for (const [name, chunk] of [['walks 1 to 100', WALKS.slice(0, 100)], ['walks 101 to 200', WALKS.slice(100)]] as const) {
