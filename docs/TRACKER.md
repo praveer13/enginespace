@@ -1176,7 +1176,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   14. DC-H, with the HEAVY run by the coordinator
 - **Browser tests:** features: gap-hunt, gap-hunt-sizes, trace-view, keep-list, lesson-games, prove-mode; smoke: walks, a11y, screens, network, reduced-motion; nightly width: walks (gap-hunt), all four levels at 360 and 1280 px, and the first-run tests at 1440x900 and 390x844
 - **Owner default:** N1, N2, N11, Q-5, O-5 (`pinned` waits)
-- **Before you write (2026-11-18):** one case needs a second GPU stream from the trace generator, so that an empty stretch on one stream is not read as an idle GPU, and the `attribute` level's goal line waits for the owner's word on "bubble" against "CPU gap". See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", (a) and (e).
+- **Before you write (2026-11-18, rewritten 2026-11-22):** one case needs a second GPU stream from the trace generator, so that an empty stretch on one stream is not read as an idle GPU. For the word of the `attribute` level's goal line, the build takes "CPU gap" as the default; the owner may overturn it (N2), and the word is read from `GAP_WORD` in `src/copy/terms.ts`, so an answer is a one-line change. See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", items 1 to 12 and point (a).
 
 #### [ ] W2-T21 · Owner: capture 6-10 reference traces · M · owner · deps: W2-T04, W2-T19
 - **Goal:** Per O-5:
@@ -1219,7 +1219,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   4. The export names each Test as a Test (W2b-T77's test passes on `public/md/tr3`)
 - **Browser tests:** features: lesson-games, lesson-predict, trace-view, map, titles, items, front; smoke: first-visit, a11y, screens; nightly width: a11y at 320 px on the module page and each touched lesson; nightly width: walks (gap-hunt) for the lesson's levels
 - **Owner default:** Q-5; the lab waits for wave 3 (wave 3 holds the lab)
-- **Before you write (2026-11-18):** four rules for reading a GPU timeline, each at its lesson, the place of rule 11's form, three pointers and four questions for the owner. See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", (a) to (f).
+- **Before you write (2026-11-18, rewritten 2026-11-22):** the lessons' openers, first acts, own KCs, Tests and minutes, the module page's prerequisite line, the step floor from the `qwen3.*` claims, the promises of TR2's and TR0's lessons, the form and its word, and the defaults taken for the four questions of 2026-11-18. See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", items 2, 3 and 13 to 19 and points (a) to (f).
 
 ### TR4: backends as a consumer
 
@@ -1962,8 +1962,8 @@ The plan of wave 1 did not foresee these; the coordinator added each from a chec
 |---|---|---|
 | D-077 | W2b-T70 | The gate's minutes per merge: 40, and 50 for a kit merge (N18) |
 | D-078 | W2b-T71 | The `e2e-features` job, with each shard's measured minutes (N14) |
-| D-079 | W2b-T96 | TR3's design: the form's category (N2) and the decisions of the rewritten brief |
-| D-080 | W2b-T96 | Whether one real profiler trace can be captured in the locked CPU environment with no download, and where its file would live (N19) |
+| D-079 | W2b-T96 | TR3's design: the role line (N1), the levels, the Prove level, the KCs and the defaults of the rewritten brief, N19's among them |
+| D-080 | W2b-T96 | The form's category, "CPU gap", held in one key, with "bubble" kept for TR2 (N2) |
 | D-081 | W2b-T118 | TR5b's design: the game and the lab's stages (N1, N10) |
 | D-082 | W2b-T118 | KV offload's camera table against the 2D (N3) |
 | D-083 | spare, lane 2a:Gate | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |

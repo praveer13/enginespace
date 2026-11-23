@@ -1475,6 +1475,28 @@ Before wave 1a of the build that followed wave R ended, the coordinator put thre
 
 ---
 
+## TR3's design, 2026-11-22
+
+### D-079 · Trace attribution's role line is "You attribute the gap.", and TR3 is built on four levels with `attribute` as its Prove level
+
+- **Status:** proposed (W2b-T96, 2026-11-22); the owner confirms. It takes N1's default for Trace attribution only, as the build's choice, and the defaults of TR3's four questions of 2026-11-18, N19, O-14, O-17 and Q-5; the owner has answered none of them.
+- **Decision:** the role line of Trace attribution (`gap-hunt`) is "You attribute the gap.", in the roster and in GAMES.md §2.6, which move together. Wave 2 builds the levels `read`, `graphs`, `gap` and `attribute` on synthetic traces; `gap` and `attribute` are graded, and `attribute` is the Prove level. `pinned` and `yours` are not built or registered, and each shows a plain waiting line. TR3's eight KCs enter the graph, each planned on an item family or a graded level, and none on the lab alone. The lab gets no run without the profiler per side of a toggled pair, the six lessons carry no "what changed" table, and no TR3 claim quotes the book.
+- **Context:** the roster said "You account for a step."; the tracker's W2-T20 says "You attribute the gap.", and it is later. `pinned` needs the owner's traces (W2-T21, O-5), and `yours` the profiling lab, which waits for wave 3. `curriculum/TR3-profile-a-real-engine.md`, "Before you write", gives each item with its reason, the levels' goal lines and pass sentences, the bound of 12 marks on a graded case, and each lesson's first act.
+- **Alternatives:** keep the older role line, which names the partition and not the gap the graded levels end on; register `pinned` with no traces, which `verify:games` cannot build; plan the KCs that only an item family can grade in a browser on the lab's stages, which would leave them unearnable until wave 3.
+- **Consequences:** `tests/play/roster.test.ts` holds the roster to GAMES.md §2.6's new line; `verify:kc` counts eight planned KCs until W2b-T105, W2b-T106 and W2-T20 land; ASSESSMENT §4.3 keeps its `pinned` row, and the module's browser credit rests on `attribute` until the owner's traces exist.
+- **Revisit when:** the owner answers N1, records the reference traces (W2-T21), or answers one of TR3's questions of 2026-11-18.
+
+### D-080 · TR3's form says "CPU gap", from one key, and TR2 keeps "bubble"
+
+- **Status:** proposed (W2b-T96, 2026-11-22). It is the build's default for N2, which the owner has not answered and may overturn.
+- **Decision:** TR3's one written form is `step time = GPU-busy + CPU gap + both idle`, written once in TR3's lesson 4. The word "CPU gap" lives in one key, `GAP_WORD` of `src/copy/terms.ts`, with its row in the terms table as the course's own word, "A bubble as a trace shows it: GPU idle, main thread busy."; the form, the `attribute` level's goal line and TR3's item stems read it from there. "Bubble" stays TR2's coined word: no published lesson, level or KC is renamed, and TR3's lesson 4 says once that a CPU gap is the bubble as a trace shows it.
+- **Context:** the built course uses both words for one stretch: "bubble" in TR2's lessons and levels, and "CPU gap" in the trace model, the viewer, the game's subtitle, two built texts and the course's second outcome. `content/README.md` rule 11 asks that every term of a form be something the learner measures, and in TR3 the learner measures the trace model's category.
+- **Alternatives:** "bubble" in the form, which names a category the trace model and the viewer do not have; both words with two meanings, which breaks REDESIGN §2.7's one term, one meaning.
+- **Consequences:** `tests/copy/terms-tr3.test.ts` holds the design, the viewer's word, the game's subtitle, `content/README.md` rule 11 and the tracker's W2-T20 to the key. If the owner answers "bubble", the key changes and the form, the goal line and the stems follow it at the next regenerate; the test then fails on each other place that states the old word (the viewer's category word, the game's subtitle), so none is missed.
+- **Revisit when:** the owner answers N2.
+
+---
+
 ## Open owner questions
 
 | # | Question | Default until answered | Needed by |
