@@ -19,6 +19,9 @@ name: Labs
 # file does not change for that. Until then the detect job prints "pending: <task>" for the lab that is missing, and the job
 # for it is skipped.
 #
+# The pack check (W2b-T71) compares the committed kit, public/labs/ and src/receipts/graders.ts with what scripts/pack-kit.ts makes from labs/ and
+# course.lock.json, so a change to the packed files or to the scripts that pack them runs it too.
+#
 # The receipt fixtures step (W2-T08) reads the bestiary and the synthetic fixtures (tests/verify/, built on tests/schema/receipt-support.ts), the owner's
 # bundles once they exist (tests/fixtures/receipts/) and the hardware atlas that the floors read (src/receipts/atlas.ts), so a change to any of them runs it.
 #
@@ -52,6 +55,10 @@ on:
       - 'tests/schema/receipt-support.ts'
       - 'src/receipts/atlas.ts'
       - 'vendor/kernelspace/**'
+      - 'public/labs/**'
+      - 'src/receipts/graders.ts'
+      - 'scripts/pack-kit.ts'
+      - 'scripts/pack-labs.ts'
       - '.github/workflows/labs.yml'
   workflow_dispatch:
 
@@ -243,6 +250,12 @@ jobs:
         run: uv run --project labs/grader enginespace selftest --no-suite
       - run: bun run verify:schema
       - run: bun run verify:vectors
+
+      # W2b-T71: the published kit is what its sources pack to. The wheel, the kit zip, public/labs/manifest.json and src/receipts/graders.ts
+      # are committed, and a source that changed without a repack would send a learner a kit that no longer matches (the merge gate runs this
+      # for a branch that touches a kit member, and nothing ran it for a pull request). It writes nothing and needs no Python.
+      - name: The packed kit is what its sources pack to
+        run: bun scripts/pack-kit.ts --check
 
       # W2-T08: the receipt fixtures pass the browser's rules (packages/verify, ARCHITECTURE §8.5), and the forged bestiary fails them check by check, with
       # the bound printed. The fixtures are the synthetic ones of tests/verify until the owner's bundles are committed to tests/fixtures/receipts/ (W2-T12),
