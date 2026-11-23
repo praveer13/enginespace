@@ -1,15 +1,52 @@
 /*
- * W2b-T02: the merge gate's plan (scripts/gate/touched.ts), one test for each row of its mapping, and the parts of scripts/gate/run.ts that
- * decide a verdict. The plan is pure, so nothing here starts a browser.
+ * W2b-T02 and W2b-T70: the merge gate's plan (scripts/gate/touched.ts), one test for each row of its mapping, and the parts of
+ * scripts/gate/run.ts that decide a verdict or write a failure down. The plan is pure, so nothing here starts a browser.
  */
 import { describe, expect, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
-import { tmpdir } from 'node:os'
+import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { homedir, tmpdir, userInfo } from 'node:os'
 import path from 'node:path'
 import { WALKED } from '../../e2e/levels'
-import { changedPaths, clean, failures, hostLines, keyOf, pickPython, PYTHONS, sortFailures, uvEnv } from '../../scripts/gate/run'
-import { FORGE_COMMANDS, GAMES, GRADER_COMMANDS, LAB_SPEC, plan, RELOCK_NOT_RUN, SMOKE_SPECS, walkGrep, type Step } from '../../scripts/gate/touched'
+import {
+  changedPaths,
+  clean,
+  failureRecords,
+  failures,
+  failuresHead,
+  hostLines,
+  keyOf,
+  pickPython,
+  PYTHONS,
+  routesAdded,
+  routesOf,
+  sortFailures,
+  supportImporters,
+  uvEnv,
+  verdict,
+  writeFailures,
+} from '../../scripts/gate/run'
+import {
+  FORGE_COMMANDS,
+  GAMES,
+  GRADER_COMMANDS,
+  KIT_RUN,
+  LAB_SPEC,
+  PAGES,
+  plan,
+  PLANNED_GAMES,
+  PROVE_SPECS,
+  RELOCK_NOT_RUN,
+  ROSTER_COMMAND,
+  routeGrep,
+  SIM,
+  SMOKE_SPECS,
+  TRACE_GAMES,
+  UNGATED,
+  walkGrep,
+  type Context,
+  type Step,
+} from '../../scripts/gate/touched'
 import { read, root } from './support'
 
 const specs = readdirSync(path.join(root, 'e2e'))
@@ -60,7 +97,8 @@ describe('the mapping, one row a test', () => {
     expect(step(made, 'features', false)?.specs).toEqual(['lesson-games', 'lesson-games-scene', 'lesson-predict', 'pool', 'pool-scene', 'verifier', 'verifier-scene'])
   })
 
-  for (const path of ['src/games/kit/Frame.tsx', 'src/design/tokens.css', 'src/pages/Game.tsx', 'src/games/registry.ts']) {
+  // W2b-T70: the kit's Frame, first move, intro, run and record, the game page and the registry are the kit-run row (below); the rest keeps this one.
+  for (const path of ['src/games/kit/Debrief.tsx', 'src/design/tokens.css', 'src/index.css']) {
     test(`${path} gives one level of every game, design-parts and screens, and says that the task runs every level`, () => {
       const made = on(path)
       expect(step(made, 'features', false)?.specs).toEqual(['design-parts'])
@@ -71,7 +109,7 @@ describe('the mapping, one row a test', () => {
   }
 
   test('the rest of src/games and of packages/play, which no game owns, is held to the kit\'s checks', () => {
-    for (const file of ['src/games/specials/Specials.tsx', 'src/games/replay-dock.ts', 'packages/play/keys.ts', 'packages/play/items/a.ts']) expect(on(file)).toEqual(on('src/games/kit/a.ts'))
+    for (const file of ['src/games/specials/Specials.tsx', 'src/games/replay-dock.ts', 'packages/play/keys.ts', 'packages/play/registry.ts']) expect(on(file)).toEqual(on('src/games/kit/a.ts'))
   })
 
   test('content/, src/content/ and scripts/content/ give the lesson specs, items, map, titles and today', () => {
@@ -90,8 +128,9 @@ describe('the mapping, one row a test', () => {
     for (const file of ['src/forge/a.ts', 'labs/forge/Cargo.toml']) expect(step(on(file), 'features', false)?.specs).toEqual(['forge', 'forge-hybrid-kv', 'lab-kits', 'rejection-sampler'])
   })
 
-  test('src/trace/ and packages/sim/trace/ give trace-view', () => {
-    for (const file of ['src/trace/a.ts', 'packages/sim/trace/b.ts']) expect(step(on(file), 'features', false)?.specs).toEqual(['trace-view'])
+  // W2b-T70: packages/sim/trace/ is the sim row's now (engine-floor stands on it too); src/trace/ adds the games that embed the viewer once registered.
+  test('src/trace/ gives trace-view', () => {
+    for (const file of ['src/trace/a.ts']) expect(step(on(file), 'features', false)?.specs).toEqual(['trace-view'])
   })
 
   test('src/front/ gives front', () => {
@@ -112,10 +151,11 @@ describe('the mapping, one row a test', () => {
     expect(on('e2e/perf.spec.ts').steps).toEqual([])
   })
 
+  // W2b-T70: src/pages/Today.tsx is the page row's now; a folder that no row names is the example instead.
   test('a path that no row names runs nothing, and says so', () => {
-    const made = on('docs/TRACKER.md', 'README.md', 'src/pages/Today.tsx')
+    const made = on('docs/TRACKER.md', 'README.md', 'src/elsewhere/a.ts')
     expect(made.steps).toEqual([])
-    expect(made.unmapped).toEqual(['README.md', 'docs/TRACKER.md', 'src/pages/Today.tsx'])
+    expect(made.unmapped).toEqual(['README.md', 'docs/TRACKER.md', 'src/elsewhere/a.ts'])
   })
 
   test('rows that meet in one step are joined, each spec once', () => {
@@ -375,6 +415,330 @@ describe('changedPaths reads every touched path, under its old and its new name,
       const paths = changedPaths('base', 'HEAD', dir)
       expect(paths).toEqual(['src/games/pool/café.ts'])
       expect(step(plan(paths, specs), 'features', false)?.specs).toContain('pool')
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+})
+
+/* ------------------------------------------------------------------------------------------------------------------------------------ */
+/* W2b-T70: the rows that closed the holes of wave 1b, the folders that every path must map to, the failure file and the verdict.        */
+/* ------------------------------------------------------------------------------------------------------------------------------------ */
+
+const repoFiles = (): Record<string, string> => {
+  const files: Record<string, string> = {}
+  for (const name of readdirSync(path.join(root, 'e2e'))) if (name.endsWith('.spec.ts')) files[`e2e/${name}`] = read(`e2e/${name}`)
+  for (const name of readdirSync(path.join(root, 'e2e/support'))) files[`e2e/support/${name}`] = read(`e2e/support/${name}`)
+  return files
+}
+const context: Context = { importers: supportImporters(repoFiles()), routesAdded: [] }
+const at = (paths: string[], extra: Context = {}, names: readonly string[] = specs) => plan(paths, names, { ...context, ...extra })
+const tracked = (...prefixes: string[]): string[] => {
+  const run = spawnSync('git', ['-c', 'core.quotePath=false', 'ls-files', '--', ...prefixes], { cwd: root, encoding: 'utf8' })
+  return run.stdout.split('\n').filter(Boolean)
+}
+const nightly = (made: ReturnType<typeof plan>) => step(made, 'smoke', true)
+
+describe('the rows of W2b-T70', () => {
+  test('src/scene/ gives scene-kit and every *-scene spec, and nothing else', () => {
+    const made = on('src/scene/SceneCanvas.tsx')
+    expect(made.steps).toEqual([{ project: 'features', nightly: false, specs: ['lesson-games-scene', 'loop-scene', 'pool-scene', 'scene-kit', 'verifier-scene'], why: ['scene'] }])
+    expect(step(plan(['src/scene/a.ts'], [...specs, 'gap-hunt-scene']), 'features', false)?.specs).toContain('gap-hunt-scene')
+  })
+
+  for (const file of KIT_RUN) {
+    test(`${file} gives the kit row, every game's primary spec and the nightly walks of every game`, () => {
+      const made = on(file)
+      expect(step(made, 'features', false)?.specs).toEqual(['design-parts', ...GAMES.filter((game) => specs.includes(game))].sort())
+      expect(step(made, 'smoke', false)?.specs).toEqual(['screens'])
+      expect(nightly(made)).toMatchObject({ specs: ['walks'], grep: walkGrep(GAMES) })
+      expect(made.notes).toEqual([])
+    })
+  }
+
+  test('a <game>-sizes spec is run by its game\'s row and not by the kit-run row', () => {
+    const names = [...specs, 'pool-sizes']
+    expect(step(plan(['src/games/pool/a.ts'], names), 'features', false)?.specs).toContain('pool-sizes')
+    expect(step(plan(['src/games/kit/Frame.tsx'], names), 'features', false)?.specs).not.toContain('pool-sizes')
+    expect(step(plan(['src/games/kit/Frame.tsx'], names), 'features', false)?.specs).toContain('pool')
+  })
+
+  test('packages/play/roster.ts runs tests/play/roster.test.ts and no browser step', () => {
+    const made = on('packages/play/roster.ts')
+    expect(made.steps).toEqual([])
+    expect(made.commands.map((command) => command.argv.join(' '))).toEqual(['bun test tests/play/roster.test.ts'])
+    expect(made.unmapped).toEqual([])
+    expect(existsSync(path.join(root, ROSTER_COMMAND.argv[2]))).toBe(true)
+  })
+
+  test('src/prove/ and packages/ledger/ give settings, ledger-conformance, every prove-* spec and the specs that hold a Prove describe', () => {
+    for (const file of ['src/prove/window.ts', 'packages/ledger/codec.ts']) {
+      expect(step(on(file), 'features', false)?.specs).toEqual(['ledger-conformance', 'settings', ...PROVE_SPECS].sort())
+      expect(step(plan([file], [...specs, 'prove-mode']), 'features', false)?.specs).toContain('prove-mode')
+    }
+  })
+
+  test('PROVE_SPECS is every spec but prove-* that holds a Prove describe', () => {
+    const holding = specs.filter((name) => !name.startsWith('prove-') && /describe\(\s*['"`]Prove\b/.test(read(`e2e/${name}.spec.ts`)))
+    expect([...PROVE_SPECS].sort()).toEqual(holding.sort())
+  })
+
+  test('packages/play/items/ and src/items/ give items, today and lesson-games', () => {
+    for (const file of ['packages/play/items/catalog.ts', 'src/items/Attempt.tsx']) expect(on(file).steps).toEqual([{ project: 'features', nightly: false, specs: ['items', 'lesson-games', 'today'], why: ['items'] }])
+  })
+
+  test('packages/play/predictions/ gives lesson-predict and keep-list', () => {
+    const made = on('packages/play/predictions/plan.ts')
+    expect(step(made, 'features', false)?.specs).toEqual(['lesson-predict'])
+    expect(step(made, 'smoke', false)?.specs).toEqual(['keep-list'])
+    expect(nightly(made)).toBeUndefined()
+  })
+
+  test('src/labs/ gives lab-page and lab-kits', () => {
+    expect(on('src/labs/copy.ts').steps).toEqual([{ project: 'features', nightly: false, specs: ['lab-kits', 'lab-page'], why: ['labs'] }])
+  })
+
+  test('a page gives its own specs, and a11y and screens at the nightly width for its routes only', () => {
+    const made = on('src/pages/Today.tsx')
+    expect(step(made, 'features', false)?.specs).toEqual(['today'])
+    expect(nightly(made)).toMatchObject({ specs: ['a11y', 'screens'], grep: routeGrep(['/today']) })
+    for (const file of ['src/settings/store.ts', 'src/evidence/rows.ts', 'src/progress/derive.ts', 'src/map/Stop.tsx', 'src/pages/Changes.tsx']) {
+      const page = on(file)
+      expect([file, nightly(page)?.specs]).toEqual([file, ['a11y', 'screens']])
+      expect(page.unmapped).toEqual([])
+    }
+    expect(step(on('src/settings/store.ts'), 'features', false)?.specs).toEqual(['settings'])
+    expect(step(on('src/map/Stop.tsx'), 'features', false)?.specs).toEqual(['map'])
+  })
+
+  test('every file of src/pages/ is a page of the table or the kit-run row, and every spec a page names exists', () => {
+    for (const file of readdirSync(path.join(root, 'src/pages')).map((name) => `src/pages/${name}`)) {
+      const named = PAGES.some((page) => page.paths.includes(file)) || KIT_RUN.includes(file)
+      expect([file, named]).toEqual([file, true])
+    }
+    for (const page of PAGES) for (const name of page.specs) expect([page.paths[0], name, specs.includes(name)]).toEqual([page.paths[0], name, true])
+  })
+
+  test('a route\'s -g pattern takes the tests of that route in a11y and screens, and no other route\'s', () => {
+    const grep = new RegExp(routeGrep(['/changes', '/m/[^/\\s]+']))
+    const titles = {
+      take: [
+        'a11y.spec.ts at 320 px /changes: axe finds no serious or critical violation, and the headings are an outline',
+        'a11y.spec.ts at 1280 px /m/tr2, with its 3D pass drawn: axe finds no serious or critical violation',
+        'a11y.spec.ts R-T48: target sizes /m/tr2 at 360 px: targets are 24 px or more',
+        'screens.spec.ts every route holds the checks of REDESIGN 5.2 /m/tr0',
+      ],
+      leave: [
+        'a11y.spec.ts at 320 px /m/tr2/l3-async-scheduling-closes-the-bubble: axe finds no serious or critical violation',
+        'a11y.spec.ts at 320 px /map: axe finds no serious or critical violation',
+        'a11y.spec.ts R-T48: a lesson of each opener opener A (/m/tr5a/l1-x) at 390 x 844: a ring at every stop',
+        'walks.spec.ts at 360 px KV page pool (pool), "One KV group" (one-group): the keys alone play it',
+      ],
+    }
+    for (const title of titles.take) expect([title, grep.test(title)]).toEqual([title, true])
+    for (const title of titles.leave) expect([title, grep.test(title)]).toEqual([title, false])
+    expect(new RegExp(routeGrep(['/'])).test('a11y.spec.ts at 360 px /: axe finds no serious')).toBe(true)
+    expect(new RegExp(routeGrep(['/'])).test('a11y.spec.ts at 360 px /map: axe finds no serious')).toBe(false)
+  })
+
+  test('the first data row: course.lock.json gives the grader\'s checks and a11y at the nightly width for /changes, and no screens', () => {
+    const made = on('course.lock.json')
+    expect(ids(made)).toEqual(GRADER_IDS)
+    expect(nightly(made)).toMatchObject({ specs: ['a11y'], grep: routeGrep(['/changes']), why: ['changes'] })
+    expect(made.unmapped).toEqual([])
+  })
+
+  test('the second data row: e2e/routes.ts gives a11y at the nightly width for the routes the branch adds, and content/modules/ for the pages of its files', () => {
+    const added = at(['e2e/routes.ts'], { routesAdded: ['/m/tr3', '/m/tr3/l1-a.b'] })
+    expect(nightly(added)).toMatchObject({ specs: ['a11y'], grep: routeGrep(['/m/tr3', '/m/tr3/l1-a\\.b']), why: ['routes'] })
+    expect(at(['e2e/routes.ts']).steps).toEqual([])
+    expect(at(['e2e/routes.ts']).unmapped).toEqual([])
+    const lesson = on('content/modules/tr0/lessons/l3-nn-module-as-a-struct.md', 'content/modules/tr2/module.md')
+    expect(nightly(lesson)).toMatchObject({ specs: ['a11y'], grep: routeGrep(['/m/tr0/l3-nn-module-as-a-struct', '/m/tr2']) })
+    expect(step(lesson, 'features', false)?.specs).toEqual(['items', 'lesson-games', 'lesson-predict', 'map', 'titles', 'today'])
+    expect(nightly(on('content/claims/tr0.yaml'))).toBeUndefined()
+  })
+
+  test('routesAdded reads the routes that e2e/routes.ts gains between two commits', () => {
+    expect(routesOf("export const A = ['/', '/m/tr0', 'x']\nconst B = ['/play/pool?level=a']")).toEqual(['/', '/m/tr0', '/play/pool?level=a'])
+    const dir = mkdtempSync(path.join(tmpdir(), 'es-gate-routes-'))
+    const git = (...args: string[]) => spawnSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid', '-c', 'commit.gpgsign=false', ...args], { cwd: dir, encoding: 'utf8' })
+    try {
+      git('init', '-q', '-b', 'main')
+      mkdirSync(path.join(dir, 'e2e'))
+      writeFileSync(path.join(dir, 'e2e/routes.ts'), "export const R = ['/', '/m/tr0']\n")
+      git('add', '-A')
+      git('commit', '-q', '-m', 'base')
+      writeFileSync(path.join(dir, 'e2e/routes.ts'), "export const R = ['/', '/m/tr0', '/m/tr3']\n")
+      git('commit', '-q', '-am', 'add')
+      expect(routesAdded('HEAD~1', 'HEAD', dir)).toEqual(['/m/tr3'])
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  test('the shell gives route-change, stale-chunk and titles', () => {
+    for (const file of ['src/App.tsx', 'src/main.tsx', 'src/routes.tsx', 'src/route-change.ts', 'src/route-preload.ts'])
+      expect(on(file).steps).toEqual([{ project: 'features', nightly: false, specs: ['route-change', 'stale-chunk', 'titles'], why: ['shell'] }])
+  })
+
+  test('every folder of packages/sim is in the table, and each names registered or planned games and specs that exist', () => {
+    const folders = readdirSync(path.join(root, 'packages/sim'), { withFileTypes: true }).filter((entry) => entry.isDirectory()).map((entry) => entry.name)
+    for (const folder of folders) expect([folder, folder in SIM]).toEqual([folder, true])
+    for (const [model, entry] of Object.entries(SIM)) {
+      for (const game of entry.games) expect([model, game, game === '*' || GAMES.includes(game) || PLANNED_GAMES.includes(game)]).toEqual([model, game, true])
+      for (const name of entry.specs ?? []) expect([model, name, specs.includes(name)]).toEqual([model, name, true])
+    }
+    for (const game of TRACE_GAMES) expect(GAMES.includes(game) || PLANNED_GAMES.includes(game)).toBe(true)
+  })
+
+  test('a model gives the rows of the games that stand on it: kv the pool, tiers forge-hybrid-kv, trace engine-floor and trace-view, core every game', () => {
+    const kv = on('packages/sim/kv/pages.ts')
+    expect(step(kv, 'features', false)?.specs).toEqual(on('src/games/pool/a.ts').steps[0].specs)
+    expect(nightly(kv)?.grep).toBe(walkGrep(['pool']))
+    expect(ids(kv)).toEqual(FORGE_IDS)
+    expect(step(on('packages/sim/tiers/a.ts'), 'features', false)?.specs).toEqual(['forge-hybrid-kv'])
+    const trace = on('packages/sim/trace/b.ts')
+    expect(step(trace, 'features', false)?.specs).toEqual([...step(on('src/games/engine-floor/a.ts'), 'features', false)?.specs ?? [], 'trace-view'].sort())
+    expect(ids(trace)).toEqual(GRADER_IDS)
+    expect(nightly(on('packages/sim/core/rng.ts'))?.grep).toBe(walkGrep(GAMES))
+    expect(on('packages/sim/index.ts').steps).toEqual(on('src/forge/a.ts').steps)
+  })
+
+  test('a planned game\'s folders get its game row before it is registered, without walks', () => {
+    const made = plan(['src/games/switchyard/View2D.tsx'], [...specs, 'switchyard-sizes'])
+    expect(step(made, 'features', false)?.specs).toEqual(['lesson-games', 'lesson-games-scene', 'lesson-predict', 'switchyard-sizes'])
+    expect(nightly(made)).toBeUndefined()
+    expect(made.notes).toEqual([])
+  })
+
+  test('the labs map\'s lab paths give the grader\'s or the forge\'s checks', () => {
+    for (const file of ['packages/sim/workload/a.ts', 'packages/sim/bench/a.ts', 'packages/sim/core/a.ts', 'packages/sim/tensor/a.ts', 'scripts/vectors.ts', 'scripts/export-schemas.ts', 'tests/fixtures/sim/a.json', 'scripts/triton-interp/a.py'])
+      expect([file, ids(on(file))]).toEqual([file, GRADER_IDS])
+    for (const file of ['packages/sim/tiers/a.ts', 'packages/sim/kv/a.ts', 'packages/sim/spec/a.ts', 'scripts/labs/zip.ts', 'scripts/verify-labs.ts', 'scripts/pack-labs.ts'])
+      expect([file, ids(on(file))]).toEqual([file, FORGE_IDS])
+  })
+
+  test('a support file gives the specs that import it, through other support files too; walks.ts is also the walkers row', () => {
+    expect(step(at(['e2e/support/pixels.ts']), 'features', false)?.specs).toEqual(['loop-scene', 'pool-scene', 'verifier-scene'])
+    expect(step(at(['e2e/support/pixels.ts']), 'smoke', false)?.specs).toEqual(['screenshots'])
+    expect(context.importers?.['e2e/support/copy-scan.ts']).toContain('a11y')
+    const walks = at(['e2e/support/walks.ts'])
+    expect(nightly(walks)?.grep).toBe(walkGrep(GAMES))
+    expect(step(walks, 'features', false)?.specs).toContain('shape-shifter')
+    const site = at(['e2e/support/site.ts'])
+    expect(site.steps).toEqual([])
+    expect(site.unmapped).toEqual([])
+    expect(site.notes.join(' ')).toContain('no row, by design')
+  })
+
+  test('the rows that meet at the nightly width are one step, under one -g', () => {
+    const made = on('src/games/pool/a.ts', 'src/pages/Today.tsx')
+    expect(made.steps.filter((candidate) => candidate.nightly)).toHaveLength(1)
+    expect(nightly(made)).toMatchObject({ specs: ['a11y', 'screens', 'walks'], grep: `${walkGrep(['pool'])}|${routeGrep(['/today'])}` })
+  })
+
+  test('no row runs a levels file, or anything at the nightly seed count', () => {
+    const everything = at([...tracked('src', 'packages', 'e2e', 'content', 'labs', 'scripts'), 'course.lock.json'])
+    for (const command of everything.commands) {
+      expect([command.id, command.argv.some((arg) => arg.includes('-levels.test'))]).toEqual([command.id, false])
+      expect([command.id, Object.keys(command.env ?? {}).some((key) => key.startsWith('ES_PROPERTY'))]).toEqual([command.id, false])
+    }
+  })
+})
+
+describe('every folder has a row or a stated reason', () => {
+  test('every tracked file under src/, packages/ and e2e/support/ maps to a row, or is under UNGATED with its reason', () => {
+    const files = tracked('src', 'packages', 'e2e/support')
+    expect(files.length).toBeGreaterThan(300)
+    const folders = new Map<string, string[]>()
+    for (const file of files) {
+      const unmapped = at([file]).unmapped
+      if (unmapped.length > 0) folders.set(path.dirname(file), [...(folders.get(path.dirname(file)) ?? []), file])
+    }
+    expect([...folders.keys()]).toEqual([])
+  })
+
+  test('a folder with no row and no reason fails that test: it is unmapped', () => {
+    expect(at(['src/newfolder/a.ts']).unmapped).toEqual(['src/newfolder/a.ts'])
+    expect(at(['packages/newpackage/a.ts']).unmapped).toEqual(['packages/newpackage/a.ts'])
+    expect(at(['packages/sim/newmodel/a.ts']).unmapped).toEqual(['packages/sim/newmodel/a.ts'])
+  })
+
+  test('each UNGATED entry names a path that exists, with a reason', () => {
+    for (const [prefix, reason] of Object.entries(UNGATED)) {
+      expect([prefix, existsSync(path.join(root, prefix))]).toEqual([prefix, true])
+      expect(reason.length).toBeGreaterThan(20)
+    }
+  })
+
+  test('the plan of a branch that changes documents only is what it was before W2b-T70', () => {
+    expect(on('docs/TRACKER.md', 'AGENTS.md', 'README.md', 'docs/waves/W2m1b-report.md')).toEqual({
+      steps: [],
+      commands: [],
+      notRun: [],
+      unmapped: ['AGENTS.md', 'README.md', 'docs/TRACKER.md', 'docs/waves/W2m1b-report.md'],
+      notes: [],
+    })
+  })
+})
+
+/** A report that Playwright's JSON reporter wrote for a spec with one failing test (two attempts, with stdout and stderr) and one passing. */
+const RECORDED = JSON.parse(String.raw`{"suites":[{"title":"walks.spec.ts","file":"walks.spec.ts","column":0,"line":0,"specs":[],"suites":[{"title":"at 360 px","file":"walks.spec.ts","line":2,"column":6,"specs":[{"title":"a","ok":false,"tags":[],"tests":[{"timeout":30000,"annotations":[],"expectedStatus":"passed","projectId":"","projectName":"","results":[{"workerIndex":0,"parallelIndex":0,"status":"failed","duration":5,"error":{"message":"Error: the debrief shows\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31m2\u001b[39m","stack":"Error: the debrief shows\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31m2\u001b[39m\n    at @ROOT@/e2e/walks.spec.ts:6:40","location":{"file":"@ROOT@/e2e/walks.spec.ts","column":40,"line":6},"snippet":"  4 |     console.log('focus was on the Start button before the first key')\n  5 |     console.error('the walk stopped at stop 3 of 7')\n> 6 |     expect(1 + 1, 'the debrief shows').toBe(3)\n    |                                        ^\n  7 |   })\n  8 |   test('b', async () => {\n  9 |     expect(2).toBe(2)"},"errors":[{"location":{"file":"@ROOT@/e2e/walks.spec.ts","column":40,"line":6},"message":"Error: the debrief shows\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31m2\u001b[39m\n\n  4 |     console.log('focus was on the Start button before the first key')\n  5 |     console.error('the walk stopped at stop 3 of 7')\n> 6 |     expect(1 + 1, 'the debrief shows').toBe(3)\n    |                                        ^\n  7 |   })\n  8 |   test('b', async () => {\n  9 |     expect(2).toBe(2)\n    at @ROOT@/e2e/walks.spec.ts:6:40"}],"stdout":[{"text":"focus was on the Start button before the first key\n"}],"stderr":[{"text":"the walk stopped at stop 3 of 7\n"}],"retry":0,"startTime":"2026-11-23T04:32:41.914Z","annotations":[],"attachments":[{"name":"error-context","contentType":"text/markdown","path":"@ROOT@/test-results/walks-at-360-px-a/error-context.md"}],"errorLocation":{"file":"@ROOT@/e2e/walks.spec.ts","column":40,"line":6}},{"workerIndex":1,"parallelIndex":0,"status":"failed","duration":4,"error":{"message":"Error: the debrief shows\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31m2\u001b[39m","stack":"Error: the debrief shows\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31m2\u001b[39m\n    at @ROOT@/e2e/walks.spec.ts:6:40","location":{"file":"@ROOT@/e2e/walks.spec.ts","column":40,"line":6},"snippet":"  4 |     console.log('focus was on the Start button before the first key')\n  5 |     console.error('the walk stopped at stop 3 of 7')\n> 6 |     expect(1 + 1, 'the debrief shows').toBe(3)\n    |                                        ^\n  7 |   })\n  8 |   test('b', async () => {\n  9 |     expect(2).toBe(2)"},"errors":[{"location":{"file":"@ROOT@/e2e/walks.spec.ts","column":40,"line":6},"message":"Error: the debrief shows\n\n\u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoBe\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // Object.is equality\u001b[22m\n\nExpected: \u001b[32m3\u001b[39m\nReceived: \u001b[31m2\u001b[39m\n\n  4 |     console.log('focus was on the Start button before the first key')\n  5 |     console.error('the walk stopped at stop 3 of 7')\n> 6 |     expect(1 + 1, 'the debrief shows').toBe(3)\n    |                                        ^\n  7 |   })\n  8 |   test('b', async () => {\n  9 |     expect(2).toBe(2)\n    at @ROOT@/e2e/walks.spec.ts:6:40"}],"stdout":[{"text":"focus was on the Start button before the first key\n"}],"stderr":[{"text":"the walk stopped at stop 3 of 7\n"}],"retry":1,"startTime":"2026-11-23T04:32:42.343Z","annotations":[],"attachments":[{"name":"error-context","contentType":"text/markdown","path":"@ROOT@/test-results/walks-at-360-px-a-retry1/error-context.md"}],"errorLocation":{"file":"@ROOT@/e2e/walks.spec.ts","column":40,"line":6}}],"status":"unexpected"}],"id":"3fdb7982bf0ca9bf76dd-70af8a19b4b15cd4972b","file":"walks.spec.ts","line":3,"column":3},{"title":"b","ok":true,"tags":[],"tests":[{"timeout":30000,"annotations":[],"expectedStatus":"passed","projectId":"","projectName":"","results":[{"workerIndex":2,"parallelIndex":0,"status":"passed","duration":3,"errors":[],"stdout":[],"stderr":[],"retry":0,"startTime":"2026-11-23T04:32:42.748Z","annotations":[],"attachments":[]}],"status":"expected"}],"id":"3fdb7982bf0ca9bf76dd-c1f048f1ee2281b74a7a","file":"walks.spec.ts","line":8,"column":3}]}]}],"errors":[],"stats":{"startTime":"2026-11-23T04:32:41.499Z","duration":1285.3629999999998,"expected":1,"skipped":0,"unexpected":1,"flaky":0}}
+`.split('@ROOT@').join(root)) as Parameters<typeof failures>[0]
+
+describe('the verdict reads a recorded report as it did before W2b-T70', () => {
+  const known = (red: { file: string; title: string }[], host: { file: string; title: string; reason: string; shownAt: string; date: string }[] = []) => ({ red, flaky: [], host })
+  const result = (k: ReturnType<typeof known>) => {
+    const { failed, passed } = failures(RECORDED)
+    return { crash: undefined, ...sortFailures(failed, passed, k) }
+  }
+
+  test('a failure in no list fails the gate; red or host listed, it does not; a step that could not run or a failed check does', () => {
+    expect(failures(RECORDED).failed.map((test) => [test.file, test.title])).toEqual([['e2e/walks.spec.ts', 'at 360 px > a']])
+    expect(verdict([result(known([]))], 0)).toBe(1)
+    expect(verdict([result(known([{ file: 'e2e/walks.spec.ts', title: 'at 360 px > a' }]))], 0)).toBe(0)
+    expect(verdict([result(known([], [{ file: 'e2e/walks.spec.ts', title: 'at 360 px > a', reason: 'r [measured 2026-11-22]', shownAt: 'abc1234', date: '2026-11-22' }]))], 0)).toBe(0)
+    expect(verdict([{ crash: 'no test result', refused: [] }], 0)).toBe(1)
+    expect(verdict([], 1)).toBe(1)
+    expect(verdict([], 0)).toBe(0)
+  })
+})
+
+describe('the failures file', () => {
+  test('holds each failed test whole: every attempt, its error and stack, stdout, stderr and attachments, and no ANSI colour', () => {
+    const records = failureRecords(RECORDED)
+    expect(records).toHaveLength(1)
+    const [record] = records
+    expect(record).toStartWith('FAILED e2e/walks.spec.ts > at 360 px > a')
+    expect(record).toContain('attempt 1 of 2 (retry 0)')
+    expect(record).toContain('attempt 2 of 2 (retry 1)')
+    expect(record).toContain('Expected: 3')
+    expect(record).toContain('focus was on the Start button before the first key')
+    expect(record).toContain('the walk stopped at stop 3 of 7')
+    expect(record).toContain('attachment: error-context ./test-results/walks-at-360-px-a/error-context.md')
+    expect(record).not.toContain('\u001b[')
+  })
+
+  test('holds neither the home path nor the login name, and the log prints its first 20 lines', () => {
+    const user = userInfo().username
+    const dir = mkdtempSync(path.join(tmpdir(), 'es-gate-failures-'))
+    const file = path.join(dir, 'failures.txt')
+    try {
+      const noisy = [
+        `FAILED e2e/a.spec.ts > t`,
+        `error: at ${root}/e2e/a.spec.ts:3:1 and ${homedir()}/.cache/ms-playwright/chromium/chrome`,
+        `stderr: user ${user} could not write /tmp/es-gate-x/report.json; ${user}:${user} owns ${homedir()}`,
+        ...Array.from({ length: 30 }, (_, i) => `stdout line ${i}`),
+      ].join('\n')
+      writeFailures(file, [noisy, ...failureRecords(RECORDED)])
+      const text = readFileSync(file, 'utf8')
+      expect(text).not.toContain(homedir())
+      if (user.length > 1) expect(new RegExp(`(?<![A-Za-z0-9_])${user}(?![A-Za-z0-9_])`).test(text)).toBe(false)
+      expect(text).not.toContain(root)
+      expect(text).toContain('./e2e/a.spec.ts:3:1')
+      expect(failuresHead(file)).toHaveLength(20)
+      expect(failuresHead(file)[0]).toBe('FAILED e2e/a.spec.ts > t')
     } finally {
       rmSync(dir, { recursive: true, force: true })
     }
