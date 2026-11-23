@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
-import { GAMES } from '@es/play'
 import { ROSTER } from '@es/play/roster'
+import { ROWS } from '@es/play/rows'
 import { useEvidence } from '@/evidence/useEvidence'
 import { resolveGame } from '@/games/registry'
 import { bestAttempt, gameLines } from '@/games/specials/lines'
@@ -18,7 +18,7 @@ export function Component() {
     () =>
       gameLines(
         ROSTER,
-        (id) => GAMES.get(id),
+        (id) => ROWS.get(id),
         (id) => resolveGame(id).kind === 'game',
       ),
     [],

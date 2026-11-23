@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { GAMES } from '@es/play'
+import { ROWS } from '@es/play/rows'
 import { useMap } from '@/content/load-map'
 import { useIndex } from '@/content/load'
 import { calibrationRows } from '@/evidence/calibration'
@@ -18,8 +18,8 @@ import './panels.css'
  * `useProgress`. Everything shown is derived here from the events and never stored; `EvidenceView` draws it.
  */
 
-/** A game's home module: the first its registry entry lists (packages/play/types.ts). */
-const homeModule = (game: string): string | undefined => GAMES.get(game)?.modules[0]
+/** A game's home module: the first its row lists (packages/play/types.ts). */
+const homeModule = (game: string): string | undefined => ROWS.get(game)?.modules[0]
 
 export function Component() {
   const evidence = useEvidence()

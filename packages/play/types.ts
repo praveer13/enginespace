@@ -214,5 +214,18 @@ export interface GameEntry {
   readonly session: () => Promise<AnySession>
 }
 
+/** A level as a row holds it: what a page that lists levels or names one reads. The seeds and stages stay in the game's entry. */
+export type RowLevel = Pick<LevelEntry, 'id' | 'title' | 'graded'>
+
+/**
+ * The lean row of a game (packages/play/rows.ts): what a page needs when it asks only which modules and KCs a game has, which levels, and
+ * which one is its Prove level. The entry holds the same fields (`tests/play/registry.test.ts` holds the two to each other) and, besides, the
+ * subtitle, keys, claims and loader that only the game's own page reads.
+ */
+export interface GameRow extends Pick<GameEntry, 'id' | 'modules' | 'title' | 'kcs'> {
+  readonly levels: readonly RowLevel[]
+  readonly prove?: string
+}
+
 /** What the shell shows of a game and binds for it. */
 export type GameFace = Pick<GameEntry, 'id' | 'title' | 'subtitle' | 'has3d' | 'keys'> & Partial<Pick<GameEntry, 'prove'>>

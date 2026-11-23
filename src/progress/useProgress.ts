@@ -12,8 +12,8 @@
  * and deleting it changes the label only.
  */
 import { useMemo } from 'react'
-import { GAMES } from '@es/play'
 import { faceById } from '@es/play/items/catalog'
+import { ROWS } from '@es/play/rows'
 import type { CourseMap } from '@es/schema/compiled'
 import type { ItemNamer } from '@/evidence/rows'
 import { useEvidence } from '@/evidence/useEvidence'
@@ -38,9 +38,9 @@ export interface ProgressState {
   lessons: ReadonlyMap<string, LessonState>
 }
 
-/** A level as the learner reads it: "KV page pool, One KV group", from the game registry. */
+/** A level as the learner reads it: "KV page pool, One KV group", from the game rows. */
 export const levelName: LevelNamer = (game, level) => {
-  const entry = GAMES.get(game)
+  const entry = ROWS.get(game)
   const title = entry?.levels.find((candidate) => candidate.id === level)?.title
   return entry === undefined || title === undefined ? undefined : `${entry.title}, ${title}`
 }
