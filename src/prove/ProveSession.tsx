@@ -3,11 +3,11 @@ import { Link } from 'react-router'
 import type { GameEntry, GameMode, RunRecord, RunResult } from '@es/play'
 import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { useEvidence } from '@/evidence/useEvidence'
-import type { ProveStamp } from '@/games/kit/record'
+import { leftDraft, recordLeft, type ProveStamp } from '@/games/kit/record'
 import type { GameComponent } from '@/games/registry'
 import { ProveContext, type ProveFrame } from './context'
 import { PROVE_COPY } from './copy'
-import { afterAttempt, openAt, openKey, opensWords, proveRef, stakeAt, stakeOf, type ProveStake } from './window'
+import { afterAttempt, aliveAt, BEAT_MS, LAPSE_MS, leftNoteKey, openKey, openRecord, opensWords, proveRef, stakeAt, stakeOf, type OpenRecord, type ProveStake } from './window'
 import './prove.css'
 
 /*
@@ -19,8 +19,11 @@ import './prove.css'
  *   2. Start mounts the game on its Prove level in graded mode, so its seed is drawn then and not before (each game draws a graded run's
  *      seed when the run starts). The frame reads the Prove run from ProveContext: the readouts are hidden until the result, and the foot
  *      strip says what the attempt is worth.
- *   3. An attempt that counts is written when Start is pressed (window.ts, `openKey`), so one left before its end, by a reload or by
- *      leaving, counts as a miss: no seed is drawn again on the same window.
+ *   3. An attempt that counts is written when Start is pressed (window.ts, `openKey`), and the tab that plays it writes that it is alive
+ *      about every 30 seconds. One left before its end, by a reload or by leaving, is written by the page that leaves it as a `play` event
+ *      marked left, a miss that the export shows: no seed is drawn again on the same window. Where the page cannot write it (a tab that
+ *      was killed), the next page that finds the record lapsed writes it; until the record lapses, a second tab says an attempt is open in
+ *      another tab.
  *   4. A run that ends is stamped when it ends: `proved` when it counts, passed or not, and `practice` inside the 24 hours after the last
  *      attempt that counted (src/games/kit/record.ts); the run that Start began counts as Start found it. Its open record is then taken
  *      out. The note under the result says which, and when the next attempt that counts opens.
@@ -48,6 +51,31 @@ interface Played {
 
 const OPEN: ProveStake = { counts: true, last: null, opensAt: null }
 
+/** The browser's storage, which a page that is closing can write and a page that is private or locked down may refuse: nothing here depends on it. */
+const note = {
+  read(ref: string): string | null {
+    try {
+      return typeof localStorage === 'undefined' ? null : localStorage.getItem(leftNoteKey(ref))
+    } catch {
+      return null
+    }
+  },
+  write(ref: string, began: string): void {
+    try {
+      localStorage.setItem(leftNoteKey(ref), began)
+    } catch {
+      // The record lapses instead.
+    }
+  },
+  clear(ref: string): void {
+    try {
+      localStorage.removeItem(leftNoteKey(ref))
+    } catch {
+      // Nothing to take out.
+    }
+  },
+}
+
 /** The browser's clock, read when a run starts or ends: in a handler, never while the page draws. */
 const clock = (): number => Date.now()
 
@@ -62,12 +90,25 @@ export default function ProveSession({ entry, level, Game, record }: ProveSessio
   // The attempt Start began and that has not ended, with whether it counts; and the open records this visit wrote, which are its own.
   const [attempt, setAttempt] = useState<{ readonly at: number; readonly counts: boolean } | null>(null)
   const [mine] = useState(() => new Set<number>())
+  // What the page that came before this one wrote as it left: the start of the attempt it left, if it was one (window.ts, `leftNoteKey`).
+  const [leftNote, setLeftNote] = useState(() => note.read(ref))
+  // The attempt this page has open and not ended or left, and whether it was left already (a page that comes back from the back/forward cache
+  // after it was written as left plays on as practice: its attempt was spent). Refs, so that a handler on the page's leaving reads them as they stand.
+  const live = useRef<{ at: number; began: string } | null>(null)
+  const spent = useRef(false)
+  const latest = useRef(evidence)
+  useEffect(() => {
+    latest.current = evidence
+  })
 
   // What an attempt made now is worth: the ledger's window, with an attempt left before its end (another visit's open record), moved on by
-  // this visit's own attempt until the ledger has read it back. While Start's run is on, it is worth what it was worth at Start.
-  const open = openAt(evidence.working.get(openKey(ref))?.value)
-  const left = open === null || mine.has(open) ? null : open
-  const ledgerStake = evidence.ready ? stakeOf(evidence.events, ref, now, 'play', left) : null
+  // this visit's own attempt until the ledger has read it back. While Start's run is on, it is worth what it was worth at Start. A record that
+  // another tab wrote, and that is alive, is an attempt open in that tab.
+  const stored = openRecord(evidence.working.get(openKey(ref))?.value)
+  const foreign: OpenRecord | null = stored === null || mine.has(stored.at) ? null : stored
+  const noted = foreign !== null && leftNote === foreign.began
+  const elsewhere = foreign !== null && !noted && aliveAt(foreign, now)
+  const ledgerStake = evidence.ready ? stakeOf(evidence.events, ref, now, 'play', foreign === null ? null : foreign.at, elsewhere) : null
   const stake = attempt !== null ? (attempt.counts ? OPEN : (ledgerStake ?? OPEN)) : played === null ? ledgerStake : afterAttempt(ledgerStake ?? OPEN, played)
 
   // The run's own `onFinish` (useRun.ts holds the latest, so this reads the stake as it stands when the run ends).
@@ -79,9 +120,10 @@ export default function ProveSession({ entry, level, Game, record }: ProveSessio
     const at = clock()
     // Start's run counts as Start found it. A run played again from the result is judged when it ends, and one that ends before the ledger
     // is read on what is known: no attempt that counted.
-    const counts = attempt !== null ? attempt.counts : stakeAt(stake ?? OPEN, at).counts
+    const counts = attempt !== null ? attempt.counts && !spent.current : stakeAt(stake ?? OPEN, at).counts
     record(result, mode, { counts })
-    if (attempt?.counts === true) void evidence.deleteWorking(openKey(ref))
+    if (live.current !== null) void evidence.deleteWorking(openKey(ref))
+    live.current = null
     setAttempt(null)
     setPlayed({
       record: result.record,
@@ -91,6 +133,74 @@ export default function ProveSession({ entry, level, Game, record }: ProveSessio
     })
     setNow(at)
   }
+
+  // The tab that plays an attempt that counts writes that it is alive, so that a second tab can tell an attempt that is open from one that was left.
+  useEffect(() => {
+    if (attempt === null || !attempt.counts) return
+    const beat = () => {
+      const open = live.current
+      if (open === null) return
+      void latest.current.setWorking(openKey(ref), { at: open.began, beat: new Date(clock()).toISOString() })
+    }
+    const timer = window.setInterval(beat, BEAT_MS)
+    document.addEventListener('visibilitychange', beat)
+    return () => {
+      window.clearInterval(timer)
+      document.removeEventListener('visibilitychange', beat)
+    }
+  }, [attempt, ref])
+
+  // An attempt left before its end is written as a play event marked left, and its open record taken out. This page does it when it is left
+  // (Leave Prove mode, Back, a reload, the page closed); a record that a tab left behind is settled by the next page that finds it lapsed.
+  useEffect(() => {
+    const leave = () => {
+      const open = live.current
+      if (open === null) return
+      live.current = null
+      spent.current = true
+      note.write(ref, open.began)
+      void recordLeft({ game: entry.id, level, mode: 'graded', began: open.began, prove: { counts: true } }).then((written) => {
+        if (written.ok) {
+          void latest.current.deleteWorking(openKey(ref))
+          note.clear(ref)
+        }
+      })
+    }
+    window.addEventListener('pagehide', leave)
+    return () => {
+      window.removeEventListener('pagehide', leave)
+      leave()
+    }
+  }, [entry.id, level, ref])
+
+  // Another tab's record, once it lapses: written as left here. The page that finds it asks again at the moment it lapses.
+  const lapsesIn = foreign === null || !evidence.ready ? null : noted ? 0 : foreign.beat + LAPSE_MS - now
+  const foreignBegan = foreign === null ? null : foreign.began
+  const settling = useRef<string | null>(null)
+  useEffect(() => {
+    if (lapsesIn === null || !evidence.ready || foreignBegan === null) return
+    if (lapsesIn > 0) {
+      const timer = window.setTimeout(() => setNow(clock()), lapsesIn + 50)
+      return () => window.clearTimeout(timer)
+    }
+    // The record is settled once by this page, and by a second tab that settles it too only if it has not yet seen the event.
+    const began = foreignBegan
+    if (settling.current === began) return
+    settling.current = began
+    const written = evidence.events.some((event) => event.kind === 'play' && event.ref === ref && event.data.left === began)
+    void (async () => {
+      if (!written) {
+        const added = await latest.current.append(await leftDraft({ game: entry.id, level, mode: 'graded', began, prove: { counts: true } }))
+        if (!added.ok) {
+          settling.current = null
+          return
+        }
+      }
+      await latest.current.deleteWorking(openKey(ref))
+      note.clear(ref)
+      setLeftNote(null)
+    })()
+  }, [lapsesIn, evidence.ready, evidence.events, foreignBegan, entry.id, level, ref])
 
   const back = `/play/${entry.id}?level=${level}`
   const when = stake?.opensAt === null || stake?.opensAt === undefined ? null : opensWords(stake.opensAt, now)
@@ -182,7 +292,10 @@ export default function ProveSession({ entry, level, Game, record }: ProveSessio
         const counts = stakeAt(stake, at).counts
         if (counts) {
           mine.add(at)
-          void evidence.setWorking(openKey(ref), { at: new Date(at).toISOString() })
+          const began = new Date(at).toISOString()
+          live.current = { at, began }
+          spent.current = false
+          void evidence.setWorking(openKey(ref), { at: began, beat: began })
         }
         setAttempt({ at, counts })
         setNow(at)
@@ -214,11 +327,13 @@ export function ProvePanel({ entry, levelTitle, stake, when, attested, onAttest,
       ? PROVE_COPY.reading
       : stake.counts || when === null
         ? PROVE_COPY.counts
-        : stake.last?.left === true
-          ? PROVE_COPY.waitLeft(when)
-          : stake.last?.ok === false
-            ? PROVE_COPY.waitMissed(when)
-            : PROVE_COPY.waitPassed(when)
+        : stake.last?.elsewhere === true
+          ? PROVE_COPY.waitElsewhere(when)
+          : stake.last?.left === true
+            ? PROVE_COPY.waitLeft(when)
+            : stake.last?.ok === false
+              ? PROVE_COPY.waitMissed(when)
+              : PROVE_COPY.waitPassed(when)
   return (
     <section
       className="es-prove"
