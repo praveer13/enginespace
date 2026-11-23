@@ -1962,8 +1962,8 @@ The plan of wave 1 did not foresee these; the coordinator added each from a chec
 |---|---|---|
 | D-077 | W2b-T70 | The gate's minutes per merge: 40, and 50 for a kit merge (N18) |
 | D-078 | W2b-T71 | The `e2e-features` job, with each shard's measured minutes (N14) |
-| D-079 | W2b-T96 | TR3's design: the form's category (N2) and the decisions of the rewritten brief |
-| D-080 | W2b-T96 | Whether one real profiler trace can be captured in the locked CPU environment with no download, and where its file would live (N19) |
+| D-079 | W2b-T96 | TR3's design: the role line (N1), the levels, the Prove level, the KCs and the defaults of the rewritten brief, N19's among them |
+| D-080 | W2b-T96 | The form's category, "CPU gap", held in one key, with "bubble" kept for TR2 (N2) |
 | D-081 | W2b-T118 | TR5b's design: the game and the lab's stages (N1, N10) |
 | D-082 | W2b-T118 | KV offload's camera table against the 2D (N3) |
 | D-083 | spare, lane 2a:Gate | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
