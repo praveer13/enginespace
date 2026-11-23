@@ -253,6 +253,8 @@ export interface KcInput {
   modules: ReadonlySet<string> | null
   /** The task ids of docs/TRACKER.md, or null when there is none to check `planned` against. */
   tasks: ReadonlySet<string> | null
+  /** The ids of the tasks whose heading says they earn no KC (`earns no KC`): a `planned` line that names one could never be met. */
+  noKcTasks?: ReadonlySet<string> | null
   /** The kernelspace snapshot, or null when there is none to check `ks:` edges against. */
   kernelspace: Snapshot | null
   /** W1-T38's check: no `planned` placeholder may remain. */
@@ -390,6 +392,7 @@ export function checkKc(input: KcInput): { diagnostics: Diagnostic[]; stats: KcS
 
     planned += 1
     if (input.tasks !== null && !input.tasks.has(kc.planned)) error('unknown-task', here('planned'), `${kc.id}: planned for ${kc.planned}, and docs/TRACKER.md has no such task`)
+    else if (input.noKcTasks?.has(kc.planned)) error('no-kc-task', here('planned'), `${kc.id}: planned for ${kc.planned}, and the heading of ${kc.planned} says it earns no KC: name a task that adds a graded item, game level or lab check`)
     if (input.final) error('planned-remaining', here('planned'), `${kc.id}: still planned for ${kc.planned}, and W1-T38 allows no placeholder: add a graded item, game level or lab check, and remove the line`)
     else if (graded.length > 0) warning('stale-planned', here('planned'), `${kc.id}: says planned for ${kc.planned}, and ${graded[0].name} already names it with a graded level: remove the line`)
   })
@@ -428,7 +431,14 @@ export function checkKc(input: KcInput): { diagnostics: Diagnostic[]; stats: KcS
 export function trackerTasks(root: string): Set<string> | null {
   const file = path.join(root, 'docs/TRACKER.md')
   if (!existsSync(file)) return null
-  return new Set([...readFileSync(file, 'utf8').matchAll(/^#### \[.\] ((?:W\d+b?|R)-T\d\d) · /gm)].map((match) => match[1]))
+  return new Set([...readFileSync(file, 'utf8').matchAll(/^#### \[.\] ((?:W\d+b?|R)-T\d{2,3}) · /gm)].map((match) => match[1]))
+}
+
+/** The ids of the tasks whose heading line says `earns no KC`, or null when the tracker is not there. */
+export function noKcTasks(root: string): Set<string> | null {
+  const file = path.join(root, 'docs/TRACKER.md')
+  if (!existsSync(file)) return null
+  return new Set([...readFileSync(file, 'utf8').matchAll(/^#### \[.\] ((?:W\d+b?|R)-T\d{2,3}) · (.*)$/gm)].filter((match) => /earns no KC/i.test(match[2])).map((match) => match[1]))
 }
 
 /** The module ids of content/course.yaml, or null when it is not there or is not a course (verify:content says what is wrong). */
@@ -502,6 +512,7 @@ export async function main(argv: readonly string[]): Promise<number> {
     references: [...gameReferences(GAMES.games), ...items.references, ...labs.references, ...stages.references],
     modules: courseModules(root),
     tasks: trackerTasks(root),
+    noKcTasks: noKcTasks(root),
     kernelspace: snapshot.snapshot,
     final,
   })

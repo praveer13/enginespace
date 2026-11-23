@@ -18,7 +18,7 @@ import type { GameEntry } from '@es/play'
 import { kcGraphSchema } from '@es/schema'
 import { loadYaml } from '../../scripts/content/parse.ts'
 import { renderSnapshot } from '../../scripts/kc/kernelspace.ts'
-import { checkKc, CONFUSABLE_MAX, courseModules, dependentCounts, gameReferences, itemReferences, LABS_FILE, labReferences, readKernelspace, STAGE_LIST_FILE, stageReferences, STAGES_FILE, THRESHOLD_DEPENDENTS, trackerTasks } from '../../scripts/verify-kc.ts'
+import { checkKc, CONFUSABLE_MAX, courseModules, dependentCounts, gameReferences, itemReferences, LABS_FILE, labReferences, readKernelspace, STAGE_LIST_FILE, stageReferences, STAGES_FILE, THRESHOLD_DEPENDENTS, noKcTasks, trackerTasks } from '../../scripts/verify-kc.ts'
 import type { KcInput, Reference } from '../../scripts/verify-kc.ts'
 import { root, trackerTasks as testTasks } from '../ci/support'
 
@@ -284,6 +284,29 @@ describe('references', () => {
     const result = run(wrong, { tasks: new Set(['W1b-T08']) })
     expect(said(result)).toEqual([`error unknown-task ${GRAPH}:${lineOf(wrong, 'planned')}`])
     expect(result.diagnostics[0].message).toContain('planned for W1b-T99, and docs/TRACKER.md has no such task')
+  })
+
+  test('planned reads a task number of two or three digits, and not one of four', () => {
+    const tasks = new Set(['W2b-T105', 'W2b-T99'])
+    expect(said(run(graphOf(kc('tr1.a', { planned: 'W2b-T105' })), { tasks }))).toEqual([])
+    const wrong = graphOf(kc('tr1.a', { planned: 'W2b-T1050' }))
+    // Four digits is not an id: the graph's schema refuses the line before the tracker is asked.
+    expect(said(run(wrong, { tasks }))).toEqual([`error schema ${GRAPH}:${lineOf(wrong, 'planned')}`])
+    const dir = put(tempDir(), { 'docs/TRACKER.md': '#### [ ] W2b-T105 · A task · S · sonnet · deps: —\n#### [ ] W2b-T1050 · Not a task · S · sonnet · deps: —\n#### [ ] W2b-T99 · Another · S · sonnet · deps: —\n' })
+    expect(trackerTasks(dir)).toEqual(new Set(['W2b-T105', 'W2b-T99']))
+  })
+
+  test('planned refuses a task whose heading says it earns no KC', () => {
+    const dir = put(tempDir(), { 'docs/TRACKER.md': '#### [ ] W2b-T38 · A lab that earns no KC · S · sonnet · deps: —\n#### [ ] W2b-T105 · A lab with a check · S · sonnet · deps: —\n' })
+    const noKc = noKcTasks(dir)
+    expect(noKc).toEqual(new Set(['W2b-T38']))
+    expect(noKcTasks(tempDir())).toBeNull()
+    const tasks = trackerTasks(dir)
+    const refused = graphOf(kc('tr1.a', { planned: 'W2b-T38' }))
+    const result = run(refused, { tasks, noKcTasks: noKc })
+    expect(said(result)).toEqual([`error no-kc-task ${GRAPH}:${lineOf(refused, 'planned')}`])
+    expect(result.diagnostics[0].message).toContain('says it earns no KC')
+    expect(said(run(graphOf(kc('tr1.a', { planned: 'W2b-T105' })), { tasks, noKcTasks: noKc }))).toEqual([])
   })
 
   test('--final fails on every placeholder that remains, and says nothing of those that have no reference', () => {

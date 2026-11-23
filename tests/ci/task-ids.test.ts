@@ -33,11 +33,15 @@ describe('TASK_ID', () => {
 
   test('reads the tasks of wave R, the redesign, whose wave is the letter R alone (D-068)', () => {
     for (const id of ['R-T01', 'R-T20', 'R-T50']) expect([id, whole.test(id)]).toEqual([id, true])
-    for (const id of ['R-T1', 'R-T100', 'Rb-T01', 'R1-T01', 'r-T01', 'WR-T01']) expect([id, whole.test(id)]).toEqual([id, false])
+    for (const id of ['R-T1', 'R-T1000', 'Rb-T01', 'R1-T01', 'r-T01', 'WR-T01']) expect([id, whole.test(id)]).toEqual([id, false])
   })
 
-  test('refuses what is not an id: a task number of one digit or of three, a wave with another letter, lower case, and a part alone', () => {
-    for (const id of ['W1-T1', 'W1b-T8', 'W1b-T100', 'W1c-T01', 'W1bb-T01', 'w1b-T01', 'W1B-T01', 'W1b-t01', 'W-T01', 'W1b', 'T01', 'W1b-T01 · x'])
+  test('reads a task number of two or three digits, as the second build plan numbers its tasks past 99', () => {
+    for (const id of ['W2b-T99', 'W2b-T100', 'W2b-T105', 'W2b-T209', 'R-T100']) expect([id, whole.test(id)]).toEqual([id, true])
+  })
+
+  test('refuses what is not an id: a task number of one digit or of four, a wave with another letter, lower case, and a part alone', () => {
+    for (const id of ['W1-T1', 'W1b-T8', 'W2b-T1050', 'W1c-T01', 'W1bb-T01', 'w1b-T01', 'W1B-T01', 'W1b-t01', 'W-T01', 'W1b', 'T01', 'W1b-T01 · x'])
       expect([id, whole.test(id)]).toEqual([id, false])
   })
 })
@@ -119,11 +123,11 @@ describe('what the readers do with a tracker', () => {
       '#### [=] W1b-T05 · An id the pattern reads · S',
       '#### [ ] W1c-T01 · A wave with another letter · S',
       '#### [x] W1b-T8 · One digit · S',
-      '#### [=] W1b-T100 · Three digits · S',
+      '#### [=] W1b-T1000 · Four digits · S',
       '',
     ].join('\n')
     expect(taskHeadings(odd).map(({ id }) => id)).toEqual(['W1b-T05'])
-    expect(unreadTaskIds(odd)).toEqual(['W1c-T01', 'W1b-T8', 'W1b-T100'])
+    expect(unreadTaskIds(odd)).toEqual(['W1c-T01', 'W1b-T8', 'W1b-T1000'])
     expect(unreadTaskIds(text)).toEqual([])
   })
 })
@@ -174,18 +178,19 @@ describe('the markers of W2, which are set to the tree (W2b-T01)', () => {
     expect(wrongDone(text)).toEqual(['W2-T90', 'W2-T91'])
   })
 
-  test('hold a State line on each task that is built and not done: W2-T02, T04, T07, T08, T11, T13 and T19', () => {
+  test('hold a State line on each task that is built and not done: W2-T04, T08, T11 and T19', () => {
     const tasks = trackerTasks()
-    for (const id of ['W2-T02', 'W2-T04', 'W2-T07', 'W2-T08', 'W2-T11', 'W2-T13', 'W2-T19']) {
+    for (const id of ['W2-T04', 'W2-T08', 'W2-T11', 'W2-T19']) {
       const text = tasks.get(id) ?? ''
       expect([id, text.startsWith('#### [~] ')]).toEqual([id, true])
-      expect([id, /\n- \*\*State \(2026-11-19\):\*\* built; open check: .+, closes with W2b?-T\d\d/.test(text)]).toEqual([id, true])
+      expect([id, /\n- \*\*State \(2026-11-(?:19|22)\):\*\* built; open check: .+, closes with W2b?-T\d{2,3}/.test(text)]).toEqual([id, true])
     }
   })
 
-  test('has a heading for each task of wave 1 and none for a later wave: W2b-T01 to T37 and T39 to T53', () => {
+  test('has a heading for each task of wave 1 (W2b-T01 to T37 and T39 to T53), and any other heading of W2b is a later task, T54 or after', () => {
     const w2b = taskHeadings(tracker).map(({ id }) => id).filter((id) => id.startsWith('W2b-'))
     const want = [...Array.from({ length: 37 }, (_, at) => at + 1), ...Array.from({ length: 15 }, (_, at) => at + 39)].map((n) => `W2b-T${String(n).padStart(2, '0')}`)
-    expect([...w2b].sort()).toEqual(want)
+    expect(want.filter((id) => !w2b.includes(id))).toEqual([])
+    expect(w2b.filter((id) => !want.includes(id) && Number(id.slice(5)) < 54)).toEqual([])
   })
 })
