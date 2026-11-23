@@ -17,7 +17,7 @@ The row was 195,740 B against a gate of 200,000 B: 4,260 B of room. Its closure:
 | The item families' faces (`catalog`, 33 families' worth of rows) | 3,138 |
 | Six game entries (title, subtitle, keys, claims, levels with seeds, loader of each game) | 5,827 |
 | The registry that lists them | 311 |
-| Twenty-four shared chunks (hooks, the item attempt, the scheduler, the frame, small parts) | 22,535 |
+| The other shared chunks (hooks, the item attempt, the scheduler, the frame, small parts) | 22,535 |
 | Total | 195,740 |
 
 `/today` reads a game for three things: the KCs it exercises (`src/progress/sources.ts`, `src/items/today/kcs.ts`), its home module, and a level's title with the game's title (`src/progress/useProgress.ts`, for "Last time"). The six entries carried subtitles, keys, claims, card ids, level seeds and loaders for nothing.
