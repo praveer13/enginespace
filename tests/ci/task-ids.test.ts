@@ -313,9 +313,24 @@ describe('the decision numbers that wave 2 reserves (W2b-T180)', () => {
     for (const lane of LANES) expect([lane, rows.filter(({ task }) => task === `spare, lane ${lane}`).length]).toEqual([lane, 2])
   })
 
+  // A record that a reserved number's own task has written (its status names that task) is the reservation used, not a clash.
+  const decisions = read('docs/DECISIONS.md')
+  const records = [...decisions.matchAll(/^### D-(\d{3}) · [^\n]*\n+- \*\*Status:\*\* ([^\n]*)/gm)].map((match) => ({ number: Number(match[1]), status: match[2] }))
+  const reservedFor = new Map(rows.map(({ number, task }) => [Number(number.slice(2)), task]))
+  const usesItsReservation = ({ number, status }: { number: number; status: string }) => {
+    const task = reservedFor.get(number)
+    return task !== undefined && !task.startsWith('spare') && status.includes(`(${task},`)
+  }
+
   test('are above the highest record that docs/DECISIONS.md has written', () => {
-    const written = [...read('docs/DECISIONS.md').matchAll(/^### D-(\d{3}) · /gm)].map((match) => Number(match[1]))
+    const written = records.filter((record) => !usesItsReservation(record)).map(({ number }) => number)
     expect(Math.max(...written)).toBeLessThan(77)
+  })
+
+  test('are each written only by the task the table reserves it for', () => {
+    const atOrAbove = records.filter(({ number }) => reservedFor.has(number))
+    for (const record of atOrAbove) expect([record.number, usesItsReservation(record)]).toEqual([record.number, true])
+    expect(records.length).toBe([...decisions.matchAll(/^### D-\d{3} · /gm)].length)
   })
 })
 
