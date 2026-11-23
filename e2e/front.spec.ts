@@ -13,6 +13,7 @@
  *   - A returning learner reads where they left off and Continue, from `es:next`, with no intro; the page opens no IndexedDB.
  *   - No banned word or build-log id reaches the page, at rest, while playing, at every result and in every live-region line.
  *   - The page is at most 2,000 px long at 1440.
+ *   - On a slow link, at 4x, with the page's chunks held 800 ms, `/`, a module and a lesson scroll by 0 px for 5 s and shift by at most 0.02.
  *
  * How it runs, as e2e/loop-scene.spec.ts does: one test build with `VITE_ES_TEST_HOOKS=1` (it exposes `window.__esScene` and honours
  * `?es-tier=<0-3>`), served by `context.route` so no server runs, with any request off the origin and any error on the page failing
@@ -23,6 +24,7 @@
  * `ES_CHROMIUM=<path to chrome>` runs it with another Chromium build than the one Playwright installed. Each check prints what it
  * measured, for the task's record.
  */
+import { execFileSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -77,6 +79,8 @@ base.beforeAll(async () => {
     .filter(([key, chunk]) => key === 'src/games/loop/Scene3D.tsx' || chunk.name === 'three-vendor')
     .map(([, chunk]) => `/${chunk.file}`)
   expect(chunks3d.length).toBe(2)
+  // The documents of a deploy: every route has its own file, and the static shell and the stylesheets are what a slow link paints first.
+  execFileSync('bun', ['scripts/prepare-pages.ts', '--dist', dist], { cwd: root, stdio: 'pipe' })
 })
 
 base.afterAll(() => {
@@ -102,7 +106,8 @@ const test = base.extend<{ requests: string[] }>({
         }
         requests.push(url.pathname)
         let file = path.join(dist, decodeURIComponent(url.pathname))
-        if (!existsSync(file) || statSync(file).isDirectory()) file = path.join(dist, 'index.html')
+        if (existsSync(file) && statSync(file).isDirectory()) file = path.join(file, 'index.html')
+        if (!existsSync(file)) file = path.join(dist, 'index.html')
         return route.fulfill({ body: readFileSync(file), contentType: TYPES[path.extname(file)] ?? 'application/octet-stream' })
       })
       // The layout shifts and the largest paints, observed from the document's start.
@@ -478,4 +483,85 @@ test.describe('the page\'s length', () => {
     console.log(`the front page at 1440 × 900 is ${height} px long`)
     expect(height).toBeLessThanOrEqual(2000)
   })
+})
+
+/**
+ * A phone on a slow link (DC-F): the chunks of the page arrive 800 ms late, the processor is four times slower, and for five seconds with
+ * no input nothing scrolls and the layout shifts by less than 0.02 [estimated: the three loads of the nightly profile stay under 0.1, and
+ * a learner's eye sees a move of a fifth of that]. The front page's own stylesheets used to arrive after its first paint and moved the
+ * demo by 17 to 44 px; a deep link's shell had no header and put a footer at the foot of the window that the page then pushed out of it.
+ */
+test.describe('a slow link moves nothing and scrolls nothing', () => {
+  const ROUTES = ['/', '/m/tr1', '/m/tr1/l1-five-mechanisms'] as const
+  const SIZES = [
+    [360, 800],
+    [390, 844],
+  ] as const
+  for (const route of ROUTES) {
+    for (const [width, height] of SIZES) {
+      test(`${route} at ${width} × ${height}, at 4x with the chunks held 800 ms`, async ({ page }) => {
+        test.setTimeout(60_000)
+        await page.setViewportSize({ width, height })
+        const cdp = await page.context().newCDPSession(page)
+        await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 })
+        // The entry comes at once and every other file of assets/ after 800 ms; the page's own route has no earlier answer than that.
+        await page.route('**/assets/*', async (request) => {
+          if (!/\/assets\/index-[^/]*\.(?:js|css)$/.test(request.request().url())) await new Promise((resolve) => setTimeout(resolve, 800))
+          await request.fallback()
+        })
+        await page.goto(`${ORIGIN}${route}`, { waitUntil: 'commit' })
+        const scrolls: number[] = []
+        for (let second = 0; second < 5; second++) {
+          await page.waitForTimeout(1000)
+          scrolls.push(await page.evaluate(() => window.scrollY))
+        }
+        const cls = await page.evaluate(() => window.__cls ?? 0)
+        console.log(`${route} at ${width} × ${height}: CLS ${cls.toFixed(4)}, scrollY ${scrolls.join(', ')}`)
+        expect(scrolls, 'window.scrollY each second, with no input').toEqual([0, 0, 0, 0, 0])
+        expect(cls).toBeLessThanOrEqual(0.02)
+      })
+    }
+  }
+})
+
+/**
+ * The static page and the app's page are one box (DC-A): the strips of the instrument stand at the same top with the same height before
+ * the script runs and after it has taken the page over, so the demo reserves its height in CSS and has nothing to drop by. The goal line
+ * was drawn at the body size by the static page and fell to the caption size at the swap.
+ */
+test.describe('the static front page and the app draw the same boxes', () => {
+  for (const [width, height] of [
+    [360, 800],
+    [390, 844],
+    [1440, 900],
+  ] as const) {
+    test(`at ${width} × ${height}`, async ({ page, browser }) => {
+      const read = (target: Page) =>
+        target.evaluate(() =>
+          ['.es-front-strip', '.es-front-goal', '.es-front-diagram', '.es-front-readout', '.es-front-dock', '.es-front-foot'].map((selector) => {
+            const box = document.querySelector(selector)?.getBoundingClientRect()
+            return `${selector} ${Math.round(box?.top ?? -1)} ${Math.round(box?.height ?? -1)}`
+          }),
+        )
+      const still = await browser.newContext({ javaScriptEnabled: false, viewport: { width, height } })
+      try {
+        await still.route('**/*', (route) => {
+          const url = new URL(route.request().url())
+          const file = path.join(dist, decodeURIComponent(url.pathname), url.pathname.endsWith('/') ? 'index.html' : '')
+          return existsSync(file) && statSync(file).isFile() ? route.fulfill({ body: readFileSync(file), contentType: TYPES[path.extname(file)] ?? 'application/octet-stream' }) : route.abort()
+        })
+        const bare = await still.newPage()
+        await bare.goto(`${ORIGIN}/?es-tier=0`)
+        await bare.evaluate(() => document.fonts.ready)
+        const before = await read(bare)
+        await page.setViewportSize({ width, height })
+        await page.goto(`${ORIGIN}/?es-tier=0`)
+        await mounted(page)
+        await page.evaluate(() => document.fonts.ready)
+        expect(await read(page), 'the strips of the app stand where the static page had them').toEqual(before)
+      } finally {
+        await still.close()
+      }
+    })
+  }
 })

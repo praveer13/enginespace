@@ -23,6 +23,13 @@
   color: var(--es-text-1);
 }
 
+/* While the page's data is on its way the page is a screen high, so the footer waits below the fold. A footer that stood at the foot of the
+   window was pushed out of it when the page arrived, and the browser counts that as the footer's whole box moving. */
+.es-module[data-notice='loading'] {
+  min-height: 100vh;
+  align-content: start;
+}
+
 .es-module :is(h1, h2, h3, h4) {
   text-transform: none;
 }

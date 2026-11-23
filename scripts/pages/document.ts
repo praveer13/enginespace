@@ -150,15 +150,46 @@ export const MARK = '<!-- prepared by scripts/prepare-pages.ts -->'
  * scripts. It carries no style of its own: the document's stylesheet dresses the bare elements, and the design system decides how.
  * `base` is the path the site is served under (`/` or `/enginespace/`).
  */
-export function shell(page: Pick<PageText, 'heading' | 'description'>, base: string): string {
-  return [
-    '<main>',
+export function shell(page: Pick<PageText, 'heading' | 'description'>, base: string, chrome: Chrome | null = null): string {
+  const main = [
     `<h1>${escapeHtml(page.heading)}</h1>`,
     `<p>${escapeHtml(page.description)}</p>`,
     `<p><a href="${escapeHtml(base)}">Go to the front page</a></p>`,
     '<noscript><p>enginespace runs in your browser, so this page needs JavaScript.</p></noscript>',
-    '</main>',
   ].join('')
+  // With the template's own frame (below) the shell has the app's header and its main, so the app draws into them and the header stays. The footer
+  // is left out on purpose: the shell is a screen high, the app's page is many, and a footer that stood at the window's foot would be pushed
+  // out of the window as the page arrived, which the browser counts as a shift of the footer's whole box. A footer that arrives moves nothing.
+  return chrome === null
+    ? `<main>${main}</main>`
+    : `${chrome.skip}${chrome.header}<main id="main" tabindex="-1" class="es-shell__main">${main}</main>`
+}
+
+/** The frame of the app above its page: the skip link and the header, as the template's own front-page shell writes them. */
+export interface Chrome {
+  skip: string
+  header: string
+}
+
+/**
+ * The frame that every page of the app has around it, read from the template's root, where the build wrote the front page: its skip link
+ * and its header (without the mark of the page it stands on, which is the front page's). A page's static shell that carried only a bare
+ * heading was replaced by the app's own header, and the page under it moved down from the top of the window as the app drew; with the
+ * header in place the app only fills what is under it. A template that has neither (a fixture) gets the bare shell.
+ */
+export function chromeOf(template: string): Chrome | null {
+  const root = template.indexOf('<div id="root">')
+  if (root < 0) return null
+  const inside = template.slice(root)
+  const piece = (open: string, close: string): string | null => {
+    const from = inside.indexOf(open)
+    const to = from < 0 ? -1 : inside.indexOf(close, from)
+    return to < 0 ? null : inside.slice(from, to + close.length)
+  }
+  const skip = piece('<a href="#main" class="es-skip">', '</a>')
+  const header = piece('<header>', '</header>')
+  if (skip === null || header === null) return null
+  return { skip, header: header.replace(' aria-current="page"', '').replace(' active"', '"') }
 }
 
 const descriptionMeta = (description: string): string => `<meta name="description" content="${escapeHtml(description)}" />`
@@ -177,6 +208,7 @@ export const preloadLinks = (files: readonly string[], base: string): string => 
  * It throws when the template has no <title> or no root to fill.
  */
 export async function render(template: string, page: PageText, base: string, preloads: readonly string[] = []): Promise<string> {
+  const frame = chromeOf(template)
   let titles = 0
   let roots = 0
   let described = false
@@ -204,7 +236,7 @@ export async function render(template: string, page: PageText, base: string, pre
       .on('div#root', {
         element(el) {
           roots += 1
-          el.setInnerContent(`${shell(page, base)}${preloadLinks(preloads, base)}`, { html: true })
+          el.setInnerContent(`${shell(page, base, frame)}${preloadLinks(preloads, base)}`, { html: true })
         },
       })
       .on('body', {

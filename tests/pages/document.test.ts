@@ -5,7 +5,7 @@
  */
 import { describe, expect, test } from 'bun:test'
 import { CSP, CSP_META } from '../../scripts/pages/csp'
-import { cspProblems, decodeHtml, escapeHtml, inlineScriptProblems, inspect, MARK, policyProblems, policyTokens, render, shell } from '../../scripts/pages/document'
+import { chromeOf, cspProblems, decodeHtml, escapeHtml, inlineScriptProblems, inspect, MARK, policyProblems, policyTokens, render, shell } from '../../scripts/pages/document'
 import type { HeadElement } from '../../scripts/pages/document'
 import { headOf, templateHtml, titleOf } from './support'
 
@@ -43,6 +43,38 @@ describe('shell', () => {
 
   test('carries no style and no colour or font of its own: the stylesheet dresses the bare elements', () => {
     expect(shell(PAGE, '/')).not.toMatch(/style=|class=|#[0-9a-f]{3,6}|font/i)
+  })
+})
+
+describe("chromeOf and the shell inside the app's frame", () => {
+  const frame =
+    '<a href="#main" class="es-skip"><span>Skip</span></a><header><nav class="es-header"><a aria-current="page" class="es-header__plate active" href="/">enginespace</a></nav></header>' +
+    '<main><h1>Front</h1><header><h2>inner</h2></header></main><footer><nav>Footer</nav></footer>'
+
+  test('takes the skip link and the first header of the template root, without the front page\'s mark, and leaves the footer', () => {
+    const chrome = chromeOf(`<html><body><div id="root">${frame}</div></body></html>`)
+    expect(chrome?.skip).toBe('<a href="#main" class="es-skip"><span>Skip</span></a>')
+    expect(chrome?.header).toBe('<header><nav class="es-header"><a class="es-header__plate" href="/">enginespace</a></nav></header>')
+  })
+
+  test('finds none in a template that has no frame', () => {
+    expect(chromeOf('<div id="root"><main><h1>Front page</h1></main></div>')).toBeNull()
+    expect(chromeOf('<div id="root"><a href="#main" class="es-skip">x</a></div>')).toBeNull()
+  })
+
+  test('render writes the page under the template\'s header, in the root, with its preloads after', async () => {
+    const out = await render(`<html><head><meta charset="utf-8" /><title>t</title></head><body><div id="root">${frame}</div></body></html>`, PAGE, '/', ['assets/a.js'])
+    const root = out.slice(out.indexOf('<div id="root">'), out.indexOf('</div>', out.indexOf('<div id="root">')) + 6)
+    expect(root).toContain('<header><nav class="es-header"><a class="es-header__plate" href="/">enginespace</a></nav></header><main id="main"')
+    expect(root).toContain('<h1>Course map</h1>')
+    expect(root).not.toContain('<footer')
+    expect(root.endsWith('<link rel="modulepreload" crossorigin href="/assets/a.js"></div>')).toBe(true)
+  })
+
+  test('puts the shell in a main that the app\'s own main replaces, under the header', () => {
+    const html = shell(PAGE, '/', { skip: '<a>s</a>', header: '<header>h</header>' })
+    expect(html.startsWith('<a>s</a><header>h</header><main id="main" tabindex="-1" class="es-shell__main"><h1>Course map</h1>')).toBe(true)
+    expect(html).not.toContain('<footer')
   })
 })
 
