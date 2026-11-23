@@ -258,9 +258,53 @@ describe('permissions and credentials (acceptance 1)', () => {
 })
 
 describe('ci.yml (§10.1)', () => {
-  test('runs on pull requests, and has the jobs fast-gate, tests and e2e-smoke', () => {
+  test('runs on pull requests, and has the jobs fast-gate, tests, e2e-smoke and e2e-features', () => {
     expect(Object.keys(workflow('ci.yml').on ?? {})).toContain('pull_request')
     expect(jobsOf('ci.yml').map(([name]) => name)).toEqual(expect.arrayContaining(['fast-gate', 'tests', 'e2e-smoke']))
+    expect(jobsOf('ci.yml').map(([name]) => name)).toContain('e2e-features')
+  })
+
+  test('e2e-features (W2b-T71, D-078) runs the features project in four shards, in a group of its own that never cancels a running shard, with the smoke job\'s flags and no retry or skip of its own', () => {
+    const job = workflow('ci.yml').jobs?.['e2e-features'] as Job & { concurrency?: { group?: string; 'cancel-in-progress'?: boolean } }
+    expect(job.strategy?.['fail-fast']).toBe(false)
+    expect(job.strategy?.matrix?.shard).toEqual([1, 2, 3, 4])
+    // The group is the job's own, and the shard is in it: one group for four shards would queue three of them and replace a waiting one.
+    expect(job.concurrency?.['cancel-in-progress']).toBe(false)
+    expect(job.concurrency?.group).toContain('e2e-features')
+    expect(job.concurrency?.group).toContain('${{ matrix.shard }}')
+    expect(job.concurrency?.group).not.toBe('ci-${{ github.ref }}')
+    expect(typeof job['timeout-minutes']).toBe('number')
+    expect(job['timeout-minutes']).toBeLessThanOrEqual(25)
+
+    const run = (stepsOf('ci.yml', 'e2e-features').find((step) => step.run?.includes('playwright test'))?.run ?? '').trim()
+    expect(run).toBe('npx playwright test --project=features --shard="$SHARD/4" --reporter=list,html,json')
+    // The smoke job's own command, with the project and the reporters changed: no flag that sets the workers or the retries, so the configuration's apply.
+    const smoke = (stepsOf('ci.yml', 'e2e-smoke').find((step) => step.run?.includes('playwright test'))?.run ?? '').trim()
+    expect(smoke).toBe('npx playwright test --project=smoke --shard="$SHARD/4"')
+    for (const text of [run, ...runsOf('ci.yml', 'e2e-features')]) expect(text).not.toMatch(/--retries|--workers|--grep|--max-failures/)
+    expect(stepsOf('ci.yml', 'e2e-features').find((step) => step.run?.includes('playwright test'))?.env?.SHARD).toBe('${{ matrix.shard }}')
+    // The configuration holds what the job leaves to it, and this task does not edit it.
+    const config = read('playwright.config.ts')
+    expect(config).toContain('retries: CI ? 1 : 0')
+    expect(config).toContain('workers: CI ? 2 : undefined')
+    expect(config).toContain("{ name: 'features', testIgnore: [...SMOKE, LAB], use: chromium }")
+  })
+
+  test('e2e-features prints every test that passed only on its retry, and keeps the report whatever the result', () => {
+    const steps = stepsOf('ci.yml', 'e2e-features')
+    const printer = steps.find((step) => step.run?.includes("'flaky'"))
+    expect(printer?.if).toBe('${{ !cancelled() }}')
+    expect(printer?.run).toContain('features-report.json')
+    expect(steps.findIndex((step) => step === printer)).toBeGreaterThan(steps.findIndex((step) => step.run?.includes('playwright test')))
+    const keep = steps.find((step) => step.uses?.startsWith('actions/upload-artifact@'))
+    expect(keep?.if).toBe('${{ !cancelled() }}')
+    expect(String(keep?.with?.name)).toBe('e2e-features-${{ matrix.shard }}')
+  })
+
+  test('D-078 records the job, and says that it is not a required check until the owner makes it one (N14)', () => {
+    const record = between(read('docs/DECISIONS.md'), '### D-078', '### D-079')
+    expect(record).toContain('e2e-features')
+    expect(record).toContain('not a required check')
   })
 
   test('the fast gate runs lint, typecheck, the compile, the source gates, the build and then the build gates, in that order', () => {
@@ -495,9 +539,16 @@ describe('labs.yml (§10.1)', () => {
       'tests/schema/receipt-support.ts',
       'src/receipts/atlas.ts',
       'vendor/kernelspace/**',
+      'public/labs/**',
+      'src/receipts/graders.ts',
+      'scripts/pack-kit.ts',
+      'scripts/pack-labs.ts',
       '.github/workflows/labs.yml',
     ])
     expect('workflow_dispatch' in labsOn).toBe(true)
+    // W2b-T71: what pack-kit --check compares (the committed packs) and the scripts that pack, which labs/** and scripts/labs/** do not cover.
+    for (const file of ['public/labs/manifest.json', 'src/receipts/graders.ts', 'scripts/pack-kit.ts', 'scripts/pack-labs.ts', 'scripts/labs/zip.ts', 'labs/kit/README.template.md', 'course.lock.json'])
+      expect(names(labsPaths, file), file).toBe(true)
   })
 
   test('has the cpu job (W2-T13): switched on by detect when the CPU environment, its fixture and the script exist and a change touched them, and it syncs from the lock and compares the vectors without writing the fixture', () => {
@@ -664,7 +715,7 @@ describe('labs.yml (§10.1)', () => {
     expect(grader).toContain('bun run verify:vectors')
   })
 
-  test('the grader job (W2-T02) checks the lock, syncs from it, runs the tests as TRACKER words the command, runs the installed command, then the two gates, and then the receipt fixtures and forgeries of W2-T08, in that order; W2-T04 puts the check of the engine environments beside the lock check of the grader', () => {
+  test('the grader job (W2-T02) checks the lock, syncs from it, runs the tests as TRACKER words the command, runs the installed command, then the two gates, then the check that the packed kit is what its sources pack to (W2b-T71), and then the receipt fixtures and forgeries of W2-T08, in that order; W2-T04 puts the check of the engine environments beside the lock check of the grader', () => {
     expect(runsOf('labs.yml', 'grader')).toEqual([
       'npm ci',
       'uv lock --check --project labs/grader',
@@ -674,6 +725,7 @@ describe('labs.yml (§10.1)', () => {
       'uv run --project labs/grader enginespace selftest --no-suite',
       'bun run verify:schema',
       'bun run verify:vectors',
+      'bun scripts/pack-kit.ts --check',
       'bun test tests/verify/bestiary.test.ts tests/verify/fixtures.test.ts',
     ])
     // The commands of TRACKER's acceptance 1 and 4, word for word.
