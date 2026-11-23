@@ -1,0 +1,1563 @@
+{
+ "about": "Gap Hunt cases: trace hashes, the case drawn, its reference split and the score of a perfect answer. Written from huntGolden in tests/sim/trace-hunt-support.ts.",
+ "vectors": [
+  {
+   "seed": 1,
+   "level": "read",
+   "traces": [
+    "4fe572fe9172b325a0e83cd55c99b012910b0cd1fa2cebd379b1480e130e2ef6",
+    "f29a56c01ccde8ca358580af26805d195b0d93095f9b295a830cf00f28b131d8"
+   ],
+   "traceIndex": 1,
+   "step": 3,
+   "ask": "gap",
+   "segments": [
+    [
+     3823112,
+     3985661,
+     "cpu-gap"
+    ],
+    [
+     3985661,
+     4008112,
+     "copy"
+    ],
+    [
+     4008112,
+     4245118,
+     "kernel"
+    ],
+    [
+     4245118,
+     4250816,
+     "copy"
+    ],
+    [
+     4250816,
+     4321949,
+     "both-idle"
+    ],
+    [
+     4321949,
+     4334796,
+     "cpu-gap"
+    ],
+    [
+     4334796,
+     4950952,
+     "kernel"
+    ],
+    [
+     4950952,
+     4973403,
+     "copy"
+    ]
+   ],
+   "overlapNs": 640707,
+   "largestGap": {
+    "fromNs": 3823112,
+    "toNs": 3985661,
+    "cause": 78
+   },
+   "causeKind": "host",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 162549,
+    "windowNs": 162549,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 2,
+   "level": "read",
+   "traces": [
+    "b62fb80cdf8ccc2ac8e3dddeef93bb4bfd771be8aa7325fcd60c6031ff2ebeca",
+    "e077e433ee57a9e0768e379746c614566474a4f5d98a61fc59dc02dfb11fd53a"
+   ],
+   "traceIndex": 1,
+   "step": 1,
+   "ask": "gap",
+   "segments": [
+    [
+     1500632,
+     1749416,
+     "cpu-gap"
+    ],
+    [
+     1749416,
+     1775882,
+     "copy"
+    ],
+    [
+     1775882,
+     1999391,
+     "kernel"
+    ],
+    [
+     1999391,
+     2003066,
+     "copy"
+    ],
+    [
+     2003066,
+     2068444,
+     "both-idle"
+    ],
+    [
+     2068444,
+     2850660,
+     "kernel"
+    ],
+    [
+     2850660,
+     2877126,
+     "copy"
+    ]
+   ],
+   "overlapNs": 823882,
+   "largestGap": {
+    "fromNs": 1500632,
+    "toNs": 1749416,
+    "cause": 28
+   },
+   "causeKind": "eager",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 248784,
+    "windowNs": 248784,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 3,
+   "level": "read",
+   "traces": [
+    "7763faaf466a2ca5ad026acefb2999ef68910d37eea20bc70b3a285a8a7903d4",
+    "978348e8ee823d3be19f961d827942eee07e8bf849257d2eee4de04bb85a9bb0"
+   ],
+   "traceIndex": 0,
+   "step": 0,
+   "ask": "gap",
+   "segments": [
+    [
+     146536,
+     366513,
+     "cpu-gap"
+    ],
+    [
+     366513,
+     385877,
+     "copy"
+    ],
+    [
+     385877,
+     450432,
+     "kernel"
+    ],
+    [
+     450432,
+     554380,
+     "both-idle"
+    ],
+    [
+     554380,
+     569972,
+     "cpu-gap"
+    ],
+    [
+     569972,
+     1241257,
+     "kernel"
+    ],
+    [
+     1241257,
+     1260621,
+     "copy"
+    ]
+   ],
+   "overlapNs": 693649,
+   "largestGap": {
+    "fromNs": 146536,
+    "toNs": 366513,
+    "cause": 1
+   },
+   "causeKind": "sync",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 219977,
+    "windowNs": 219977,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 5,
+   "level": "read",
+   "traces": [
+    "727e51a17908032f7e5b100352b58350ee56fffdee5cde847fe00f2d28ec393a",
+    "6c8ba598abf0ee022c047ed0f69e5aea84d5cd180193aa984a6e0f08e773a645"
+   ],
+   "traceIndex": 1,
+   "step": 3,
+   "ask": "gap",
+   "segments": [
+    [
+     3242784,
+     3414069,
+     "cpu-gap"
+    ],
+    [
+     3414069,
+     3434755,
+     "copy"
+    ],
+    [
+     3434755,
+     3547453,
+     "kernel"
+    ],
+    [
+     3547453,
+     3548897,
+     "copy"
+    ],
+    [
+     3548897,
+     3565935,
+     "both-idle"
+    ],
+    [
+     3565935,
+     3576327,
+     "cpu-gap"
+    ],
+    [
+     3576327,
+     4249722,
+     "kernel"
+    ],
+    [
+     4249722,
+     4270408,
+     "copy"
+    ]
+   ],
+   "overlapNs": 717181,
+   "largestGap": {
+    "fromNs": 3242784,
+    "toNs": 3414069,
+    "cause": 91
+   },
+   "causeKind": "host",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 171285,
+    "windowNs": 171285,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 8,
+   "level": "read",
+   "traces": [
+    "4469a01e2ee59e58ba73481697b7ffd1331df3d7a05e6bc9dfd54661c86f60df",
+    "ac3cccbed2dde78174a22d66562570f17ff671106bdbf9d1afc787e01ec65070"
+   ],
+   "traceIndex": 0,
+   "step": 3,
+   "ask": "gap",
+   "segments": [
+    [
+     3958477,
+     4224469,
+     "cpu-gap"
+    ],
+    [
+     4224469,
+     4246709,
+     "copy"
+    ],
+    [
+     4246709,
+     4328745,
+     "kernel"
+    ],
+    [
+     4328745,
+     4335150,
+     "copy"
+    ],
+    [
+     4335150,
+     4349069,
+     "both-idle"
+    ],
+    [
+     4349069,
+     4364089,
+     "cpu-gap"
+    ],
+    [
+     4364089,
+     5127179,
+     "kernel"
+    ],
+    [
+     5127179,
+     5149419,
+     "copy"
+    ]
+   ],
+   "overlapNs": 801430,
+   "largestGap": {
+    "fromNs": 3958477,
+    "toNs": 4224469,
+    "cause": 85
+   },
+   "causeKind": "eager",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 265992,
+    "windowNs": 265992,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 13,
+   "level": "read",
+   "traces": [
+    "ca7b9fef3272a68206873da159cddef065bbfa6113b815d1842b8075b3b7d984",
+    "2b6d15240e0301fcd9892a5700f60f111390050bd24ec4c270b0a9c70e2599b5"
+   ],
+   "traceIndex": 1,
+   "step": 0,
+   "ask": "gap",
+   "segments": [
+    [
+     113975,
+     338845,
+     "cpu-gap"
+    ],
+    [
+     338845,
+     359213,
+     "copy"
+    ],
+    [
+     359213,
+     431622,
+     "kernel"
+    ],
+    [
+     431622,
+     433134,
+     "copy"
+    ],
+    [
+     433134,
+     437889,
+     "both-idle"
+    ],
+    [
+     437889,
+     439814,
+     "cpu-gap"
+    ],
+    [
+     439814,
+     1141417,
+     "kernel"
+    ],
+    [
+     1141417,
+     1161785,
+     "copy"
+    ]
+   ],
+   "overlapNs": 743971,
+   "largestGap": {
+    "fromNs": 113975,
+    "toNs": 338845,
+    "cause": 4
+   },
+   "causeKind": "eager",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 224870,
+    "windowNs": 224870,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 1,
+   "level": "gap",
+   "traces": [
+    "ab46e46562c3a930fb654f4e2b1adf57d2972ccc77a5fc7ba915a22729f103f6",
+    "594f9d4621dc79158e1747a122b7208fc8b1dfca5aaeb29b18646f66569defe7"
+   ],
+   "traceIndex": 1,
+   "step": 0,
+   "ask": "gap",
+   "segments": [
+    [
+     127781,
+     394707,
+     "cpu-gap"
+    ],
+    [
+     394707,
+     421944,
+     "copy"
+    ],
+    [
+     421944,
+     645020,
+     "kernel"
+    ],
+    [
+     645020,
+     652079,
+     "copy"
+    ],
+    [
+     652079,
+     745278,
+     "both-idle"
+    ],
+    [
+     745278,
+     774209,
+     "cpu-gap"
+    ],
+    [
+     774209,
+     1586156,
+     "kernel"
+    ],
+    [
+     1586156,
+     1613393,
+     "copy"
+    ]
+   ],
+   "overlapNs": 859184,
+   "largestGap": {
+    "fromNs": 127781,
+    "toNs": 394707,
+    "cause": 1
+   },
+   "causeKind": "sync",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 266926,
+    "windowNs": 266926,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 2,
+   "level": "gap",
+   "traces": [
+    "03af5d319eda79a3bcd17a1c1eefd6979eb8da3e78d40c2a53abb271bc01bf6b",
+    "23826115edd8c622771367fdf5d790c28cb21d87b4fcb6e5a2d9def24f2ecf00"
+   ],
+   "traceIndex": 1,
+   "step": 2,
+   "ask": "gap",
+   "segments": [
+    [
+     2740973,
+     2912504,
+     "cpu-gap"
+    ],
+    [
+     2912504,
+     2932265,
+     "copy"
+    ],
+    [
+     2932265,
+     2989014,
+     "kernel"
+    ],
+    [
+     2989014,
+     2989560,
+     "both-idle"
+    ],
+    [
+     2989560,
+     3040716,
+     "cpu-gap"
+    ],
+    [
+     3040716,
+     3734913,
+     "kernel"
+    ],
+    [
+     3734913,
+     3754674,
+     "copy"
+    ]
+   ],
+   "overlapNs": 715358,
+   "largestGap": {
+    "fromNs": 2740973,
+    "toNs": 2912504,
+    "cause": 64
+   },
+   "causeKind": "host",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 171531,
+    "windowNs": 171531,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 3,
+   "level": "gap",
+   "traces": [
+    "8439d7b89ccc028650f05008a976c2f2861d014eaa84e215680d079ee18f278e",
+    "de401fd2dac148b5f6d66cc41bb1bede10f6a1f5649882119d61d637a4e972c4"
+   ],
+   "traceIndex": 1,
+   "step": 3,
+   "ask": "gap",
+   "segments": [
+    [
+     4110027,
+     4390828,
+     "cpu-gap"
+    ],
+    [
+     4390828,
+     4416732,
+     "copy"
+    ],
+    [
+     4416732,
+     4577571,
+     "kernel"
+    ],
+    [
+     4577571,
+     4612786,
+     "both-idle"
+    ],
+    [
+     4612786,
+     4660160,
+     "cpu-gap"
+    ],
+    [
+     4660160,
+     5483682,
+     "kernel"
+    ],
+    [
+     5483682,
+     5509586,
+     "copy"
+    ]
+   ],
+   "overlapNs": 873526,
+   "largestGap": {
+    "fromNs": 4110027,
+    "toNs": 4390828,
+    "cause": 98
+   },
+   "causeKind": "eager",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 280801,
+    "windowNs": 280801,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 5,
+   "level": "gap",
+   "traces": [
+    "786eee7a760eb912c86f1f6c2c74c07ecb8699db2c8beabb7a03aa90ee7ceef0",
+    "56bc1eb17865fc05f77c72c4ab974c087e731ebea5c84eedf3208bbff54bf6e1"
+   ],
+   "traceIndex": 1,
+   "step": 3,
+   "ask": "gap",
+   "segments": [
+    [
+     3700203,
+     3851102,
+     "cpu-gap"
+    ],
+    [
+     3851102,
+     3867087,
+     "copy"
+    ],
+    [
+     3867087,
+     3944399,
+     "kernel"
+    ],
+    [
+     3944399,
+     3951968,
+     "copy"
+    ],
+    [
+     3951968,
+     3956237,
+     "both-idle"
+    ],
+    [
+     3956237,
+     4029509,
+     "cpu-gap"
+    ],
+    [
+     4029509,
+     4559633,
+     "kernel"
+    ],
+    [
+     4559633,
+     4575618,
+     "copy"
+    ]
+   ],
+   "overlapNs": 549209,
+   "largestGap": {
+    "fromNs": 3700203,
+    "toNs": 3851102,
+    "cause": 86
+   },
+   "causeKind": "host",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 150899,
+    "windowNs": 150899,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 8,
+   "level": "gap",
+   "traces": [
+    "19b16e3b5ee0593428d4b1e94a04d6bc343fa393864f97d6a766d397577a36dd",
+    "adf73ad8a5bbc18413313114882b78b04b67aa3a1a6fd89e1d0af766e481fa58"
+   ],
+   "traceIndex": 0,
+   "step": 2,
+   "ask": "gap",
+   "segments": [
+    [
+     1832854,
+     2075902,
+     "cpu-gap"
+    ],
+    [
+     2075902,
+     2096360,
+     "copy"
+    ],
+    [
+     2096360,
+     2272955,
+     "kernel"
+    ],
+    [
+     2272955,
+     2278168,
+     "copy"
+    ],
+    [
+     2278168,
+     2305822,
+     "both-idle"
+    ],
+    [
+     2305822,
+     2320564,
+     "cpu-gap"
+    ],
+    [
+     2320564,
+     2921397,
+     "kernel"
+    ],
+    [
+     2921397,
+     2941855,
+     "copy"
+    ]
+   ],
+   "overlapNs": 637691,
+   "largestGap": {
+    "fromNs": 1832854,
+    "toNs": 2075902,
+    "cause": 64
+   },
+   "causeKind": "host",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 243048,
+    "windowNs": 243048,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 13,
+   "level": "gap",
+   "traces": [
+    "156bd77953ccb87a8912ec7c15e3aa9e04a21cdb105baa2b4d9a75d7962b48ad",
+    "f3948b56025b55f2f4834589f742b664005ec04ea787199742dc28e1750dbc83"
+   ],
+   "traceIndex": 1,
+   "step": 3,
+   "ask": "gap",
+   "segments": [
+    [
+     3438735,
+     3707473,
+     "cpu-gap"
+    ],
+    [
+     3707473,
+     3737069,
+     "copy"
+    ],
+    [
+     3737069,
+     3818348,
+     "kernel"
+    ],
+    [
+     3818348,
+     3825219,
+     "copy"
+    ],
+    [
+     3825219,
+     3832653,
+     "both-idle"
+    ],
+    [
+     3832653,
+     3836355,
+     "cpu-gap"
+    ],
+    [
+     3836355,
+     4879752,
+     "kernel"
+    ],
+    [
+     4879752,
+     4909348,
+     "copy"
+    ]
+   ],
+   "overlapNs": 1075093,
+   "largestGap": {
+    "fromNs": 3438735,
+    "toNs": 3707473,
+    "cause": 104
+   },
+   "causeKind": "host",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 268738,
+    "windowNs": 268738,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 1,
+   "level": "graphs",
+   "traces": [
+    "8a47c1a060419801afa671eb114da5561f143c7627f376a4badc8a282802f92f",
+    "76d65e88fc8dbe49859d852181cd37f8ce44667cdb0373c476413072cfe98f7d"
+   ],
+   "traceIndex": 1,
+   "step": 3,
+   "ask": "attribute",
+   "segments": [
+    [
+     4267946,
+     4403142,
+     "cpu-gap"
+    ],
+    [
+     4403142,
+     4418575,
+     "copy"
+    ],
+    [
+     4418575,
+     4534279,
+     "kernel"
+    ],
+    [
+     4534279,
+     4567687,
+     "both-idle"
+    ],
+    [
+     4567687,
+     4667263,
+     "kernel"
+    ],
+    [
+     4667263,
+     4691127,
+     "both-idle"
+    ],
+    [
+     4691127,
+     5062316,
+     "kernel"
+    ],
+    [
+     5062316,
+     5077749,
+     "copy"
+    ]
+   ],
+   "overlapNs": 388722,
+   "largestGap": {
+    "fromNs": 4267946,
+    "toNs": 4403142,
+    "cause": 51
+   },
+   "causeKind": "eager",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 809803,
+    "windowNs": 809803,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 2,
+   "level": "graphs",
+   "traces": [
+    "332eda56ebcf8bf82fd5dd207fc3c91b36cfaa9ca068bbf37bd7681fabddba36",
+    "8218c49ebebd90a2b93faca68e23cc94637da4cfed297bf876453d2733bfa57b"
+   ],
+   "traceIndex": 1,
+   "step": 1,
+   "ask": "attribute",
+   "segments": [
+    [
+     1740956,
+     1943623,
+     "cpu-gap"
+    ],
+    [
+     1943623,
+     1964053,
+     "copy"
+    ],
+    [
+     1964053,
+     2108995,
+     "kernel"
+    ],
+    [
+     2108995,
+     2116850,
+     "both-idle"
+    ],
+    [
+     2116850,
+     2748255,
+     "kernel"
+    ],
+    [
+     2748255,
+     2768685,
+     "copy"
+    ]
+   ],
+   "overlapNs": 654035,
+   "largestGap": {
+    "fromNs": 1740956,
+    "toNs": 1943623,
+    "cause": 16
+   },
+   "causeKind": "sync",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 1027729,
+    "windowNs": 1027729,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 3,
+   "level": "graphs",
+   "traces": [
+    "280df9e94a6d577242770b24f82576831089917eab8efb3f6c3106d74cc71ac0",
+    "52e29a8a963935ca1ab8410e8c626f4e3b575a9457c7cf77e1be63f9639da0a9"
+   ],
+   "traceIndex": 1,
+   "step": 2,
+   "ask": "attribute",
+   "segments": [
+    [
+     2885114,
+     3012425,
+     "cpu-gap"
+    ],
+    [
+     3012425,
+     3031832,
+     "copy"
+    ],
+    [
+     3031832,
+     3176371,
+     "kernel"
+    ],
+    [
+     3176371,
+     3223992,
+     "both-idle"
+    ],
+    [
+     3223992,
+     3415629,
+     "kernel"
+    ],
+    [
+     3415629,
+     3420063,
+     "both-idle"
+    ],
+    [
+     3420063,
+     3821365,
+     "kernel"
+    ],
+    [
+     3821365,
+     3840772,
+     "copy"
+    ]
+   ],
+   "overlapNs": 422109,
+   "largestGap": {
+    "fromNs": 2885114,
+    "toNs": 3012425,
+    "cause": 33
+   },
+   "causeKind": "host",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 955658,
+    "windowNs": 955658,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 5,
+   "level": "graphs",
+   "traces": [
+    "357666e0e10a5ad42219a6d332e5fa9a23c0f66e7fa77659f67ae4c5c9a19aeb",
+    "8c036ca59b48e3a0ca73f48afa071ac8ae8258178f4bc391c4534c91aa2e4cd5"
+   ],
+   "traceIndex": 1,
+   "step": 1,
+   "ask": "attribute",
+   "segments": [
+    [
+     1103120,
+     1308270,
+     "cpu-gap"
+    ],
+    [
+     1308270,
+     1325596,
+     "copy"
+    ],
+    [
+     1325596,
+     1464096,
+     "kernel"
+    ],
+    [
+     1464096,
+     1522705,
+     "both-idle"
+    ],
+    [
+     1522705,
+     1651078,
+     "kernel"
+    ],
+    [
+     1651078,
+     1653411,
+     "both-idle"
+    ],
+    [
+     1653411,
+     2044963,
+     "kernel"
+    ],
+    [
+     2044963,
+     2062289,
+     "copy"
+    ]
+   ],
+   "overlapNs": 411078,
+   "largestGap": {
+    "fromNs": 1103120,
+    "toNs": 1308270,
+    "cause": 20
+   },
+   "causeKind": "eager",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 959169,
+    "windowNs": 959169,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 8,
+   "level": "graphs",
+   "traces": [
+    "68746d1425dd159f69e7720e45ba042f5d57cfeafe545cb1c9460fd36a4f49ca",
+    "13644eaefd7c9909523622ce4c31b9785cc764996064381103a28d2c387cd617"
+   ],
+   "traceIndex": 1,
+   "step": 2,
+   "ask": "attribute",
+   "segments": [
+    [
+     2552904,
+     2768046,
+     "cpu-gap"
+    ],
+    [
+     2768046,
+     2787118,
+     "copy"
+    ],
+    [
+     2787118,
+     2942029,
+     "kernel"
+    ],
+    [
+     2942029,
+     3020330,
+     "both-idle"
+    ],
+    [
+     3020330,
+     3176351,
+     "kernel"
+    ],
+    [
+     3176351,
+     3230126,
+     "both-idle"
+    ],
+    [
+     3230126,
+     3643965,
+     "kernel"
+    ],
+    [
+     3643965,
+     3663037,
+     "copy"
+    ]
+   ],
+   "overlapNs": 434311,
+   "largestGap": {
+    "fromNs": 2552904,
+    "toNs": 2768046,
+    "cause": 36
+   },
+   "causeKind": "eager",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 1110133,
+    "windowNs": 1110133,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 13,
+   "level": "graphs",
+   "traces": [
+    "47d9271f5110acc5819deb1d1ff49790c8f61ddf33489fb9aeda97430b0fc1f5",
+    "506eeca75f9e93a14280a87b35cb6315dfcaa2a01ad39c2475d26396b7d70e7f"
+   ],
+   "traceIndex": 1,
+   "step": 0,
+   "ask": "attribute",
+   "segments": [
+    [
+     115685,
+     322702,
+     "cpu-gap"
+    ],
+    [
+     322702,
+     352445,
+     "copy"
+    ],
+    [
+     352445,
+     593805,
+     "kernel"
+    ],
+    [
+     593805,
+     615224,
+     "both-idle"
+    ],
+    [
+     615224,
+     1504133,
+     "kernel"
+    ],
+    [
+     1504133,
+     1533876,
+     "copy"
+    ]
+   ],
+   "overlapNs": 921652,
+   "largestGap": {
+    "fromNs": 115685,
+    "toNs": 322702,
+    "cause": 2
+   },
+   "causeKind": "host",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 1418191,
+    "windowNs": 1418191,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 1,
+   "level": "attribute",
+   "traces": [
+    "4009850719512fa3465d0b325b4a7fe04f1440b55ec60543f079ab9184160567",
+    "eea5f55c9650f1b2b8eaad97c1810f0ada30e67f06a3630e19c8f30b153fd0fa"
+   ],
+   "traceIndex": 1,
+   "step": 1,
+   "ask": "attribute",
+   "segments": [
+    [
+     1499816,
+     1642811,
+     "cpu-gap"
+    ],
+    [
+     1642811,
+     1663595,
+     "copy"
+    ],
+    [
+     1663595,
+     1886850,
+     "kernel"
+    ],
+    [
+     1886850,
+     1895415,
+     "copy"
+    ],
+    [
+     1895415,
+     1939647,
+     "both-idle"
+    ],
+    [
+     1939647,
+     1963376,
+     "cpu-gap"
+    ],
+    [
+     1963376,
+     2529920,
+     "kernel"
+    ],
+    [
+     2529920,
+     2550704,
+     "copy"
+    ]
+   ],
+   "overlapNs": 604028,
+   "largestGap": {
+    "fromNs": 1499816,
+    "toNs": 1642811,
+    "cause": 15
+   },
+   "causeKind": "sync",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 1050888,
+    "windowNs": 1050888,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 2,
+   "level": "attribute",
+   "traces": [
+    "81ab012fe5ba13aa636d0480de97b408959c5c4e72409d956cc412f99d4a0596",
+    "81db54863b913d8ce055e6331d00e775f87aec6e3ed14b83a0c98f0e7e3eb749"
+   ],
+   "traceIndex": 0,
+   "step": 0,
+   "ask": "attribute",
+   "segments": [
+    [
+     115876,
+     288716,
+     "cpu-gap"
+    ],
+    [
+     288716,
+     313838,
+     "copy"
+    ],
+    [
+     313838,
+     491736,
+     "kernel"
+    ],
+    [
+     491736,
+     498979,
+     "copy"
+    ],
+    [
+     498979,
+     564843,
+     "both-idle"
+    ],
+    [
+     564843,
+     582043,
+     "cpu-gap"
+    ],
+    [
+     582043,
+     1358788,
+     "kernel"
+    ],
+    [
+     1358788,
+     1383910,
+     "copy"
+    ]
+   ],
+   "overlapNs": 805867,
+   "largestGap": {
+    "fromNs": 115876,
+    "toNs": 288716,
+    "cause": 2
+   },
+   "causeKind": "host",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 1268034,
+    "windowNs": 1268034,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 3,
+   "level": "attribute",
+   "traces": [
+    "d949b00da22191552cebd51d799142c5bc94bda7c914d2961fc9cf87782ee790",
+    "ca036b4ff29f2abafd0e613922153dc8128a220d476064710684c66794df0f0b"
+   ],
+   "traceIndex": 0,
+   "step": 0,
+   "ask": "attribute",
+   "segments": [
+    [
+     148149,
+     458677,
+     "cpu-gap"
+    ],
+    [
+     458677,
+     487752,
+     "copy"
+    ],
+    [
+     487752,
+     688252,
+     "kernel"
+    ],
+    [
+     688252,
+     691056,
+     "copy"
+    ],
+    [
+     691056,
+     751122,
+     "both-idle"
+    ],
+    [
+     751122,
+     1655499,
+     "kernel"
+    ],
+    [
+     1655499,
+     1684574,
+     "copy"
+    ]
+   ],
+   "overlapNs": 951452,
+   "largestGap": {
+    "fromNs": 148149,
+    "toNs": 458677,
+    "cause": 4
+   },
+   "causeKind": "eager",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 1536425,
+    "windowNs": 1536425,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 5,
+   "level": "attribute",
+   "traces": [
+    "b38deb238ce47f16ea6b468b78402214d2ca0b293a6d3a8a3e54b8bc484c5a1e",
+    "e62a619258203e9ddf549b120c5b7dae80a7310660dd5fbcc5c4dfa3dcd6a5e2"
+   ],
+   "traceIndex": 0,
+   "step": 3,
+   "ask": "attribute",
+   "segments": [
+    [
+     4167690,
+     4363827,
+     "cpu-gap"
+    ],
+    [
+     4363827,
+     4382055,
+     "copy"
+    ],
+    [
+     4382055,
+     4606686,
+     "kernel"
+    ],
+    [
+     4606686,
+     4612667,
+     "copy"
+    ],
+    [
+     4612667,
+     4656139,
+     "both-idle"
+    ],
+    [
+     4656139,
+     4675081,
+     "cpu-gap"
+    ],
+    [
+     4675081,
+     5143128,
+     "kernel"
+    ],
+    [
+     5143128,
+     5161356,
+     "copy"
+    ]
+   ],
+   "overlapNs": 502375,
+   "largestGap": {
+    "fromNs": 4167690,
+    "toNs": 4363827,
+    "cause": 91
+   },
+   "causeKind": "host",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 993666,
+    "windowNs": 993666,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 8,
+   "level": "attribute",
+   "traces": [
+    "b64a68c93c356bf36ceb156e3a7ca460093988b871e662d98aa38e538480cb8c",
+    "df3cd884efaa0c9accaf0e3a876b645858acef716c452d02b6ab61af79b2f263"
+   ],
+   "traceIndex": 0,
+   "step": 3,
+   "ask": "attribute",
+   "segments": [
+    [
+     3441043,
+     3640821,
+     "cpu-gap"
+    ],
+    [
+     3640821,
+     3669858,
+     "copy"
+    ],
+    [
+     3669858,
+     3819424,
+     "kernel"
+    ],
+    [
+     3819424,
+     3861558,
+     "both-idle"
+    ],
+    [
+     3861558,
+     3916590,
+     "cpu-gap"
+    ],
+    [
+     3916590,
+     4870455,
+     "kernel"
+    ],
+    [
+     4870455,
+     4899492,
+     "copy"
+    ]
+   ],
+   "overlapNs": 985002,
+   "largestGap": {
+    "fromNs": 3441043,
+    "toNs": 3640821,
+    "cause": 96
+   },
+   "causeKind": "host",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 1458449,
+    "windowNs": 1458449,
+    "causeOk": true,
+    "problems": []
+   }
+  },
+  {
+   "seed": 13,
+   "level": "attribute",
+   "traces": [
+    "e20a0499a098ce13c7a335301d204f69977e0572beef5a728e6fabf13620968d",
+    "191e74a4d4f3905fc69176ad87658be2f4bbdbaece85430b8228293cc7f76960"
+   ],
+   "traceIndex": 0,
+   "step": 3,
+   "ask": "attribute",
+   "segments": [
+    [
+     3641241,
+     3947718,
+     "cpu-gap"
+    ],
+    [
+     3947718,
+     3976522,
+     "copy"
+    ],
+    [
+     3976522,
+     4100242,
+     "kernel"
+    ],
+    [
+     4100242,
+     4105897,
+     "copy"
+    ],
+    [
+     4105897,
+     4167516,
+     "both-idle"
+    ],
+    [
+     4167516,
+     4174449,
+     "cpu-gap"
+    ],
+    [
+     4174449,
+     5145293,
+     "kernel"
+    ],
+    [
+     5145293,
+     5174097,
+     "copy"
+    ]
+   ],
+   "overlapNs": 1002748,
+   "largestGap": {
+    "fromNs": 3641241,
+    "toNs": 3947718,
+    "cause": 84
+   },
+   "causeKind": "sync",
+   "perfect": {
+    "unaccountedNs": 0,
+    "rightNs": 1532856,
+    "windowNs": 1532856,
+    "causeOk": true,
+    "problems": []
+   }
+  }
+ ]
+}
