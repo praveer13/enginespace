@@ -21,6 +21,10 @@ import { BAR_PERMILLE } from '@es/play/loop/full/close'
 import { FULL_COPY } from '@es/play/loop/full/copy'
 import { buildFullLevel } from '@es/play/loop/full/levels'
 import { POOL_COPY } from '@es/play/pool/copy'
+import { copyOf as huntCopy, HUNT_TITLES } from '@es/play/gap-hunt/copy'
+import { GAP_HUNT } from '@es/play/gap-hunt/entry'
+import { buildLevel as huntLevel } from '@es/play/gap-hunt/levels'
+import { PASS_PERCENT } from '@es/play/gap-hunt/score'
 import { copyOf, fewestPracticeGoal, SHIFT_TITLES } from '@es/play/shape-shifter/copy'
 import { SHAPE_SHIFTER } from '@es/play/shape-shifter/entry'
 import { buildLevel as shiftLevel } from '@es/play/shape-shifter/levels'
@@ -33,6 +37,7 @@ import { verifierGrade } from '@es/play/verifier/session'
 import { recipeTv, sweepOfLevel, tokensOf } from '@es/play/verifier/state'
 import { GAMMA_MAX } from '@es/play/verifier/types'
 import { findBanned } from '@/copy/banned'
+import { GAP_WORD } from '@/copy/terms'
 import { read } from '../ci/support'
 import { houseRun, stateAfter } from '../play/verifier-support'
 
@@ -344,5 +349,60 @@ describe('Tensor views: every level has a title, a goal line and its pass rule, 
     // "new targets" is said of the graded run alone, and undo is never denied.
     expect([/no undo/i.test(words), words.split('new targets').length - 1, goal.beat.indexOf('new targets') > goal.beat.indexOf('The graded rule:')]).toEqual([false, 1, true])
     expect(findBanned(words)).toEqual([])
+  })
+})
+
+/*
+ * W2b-T100: Trace attribution's copy (`packages/play/gap-hunt/copy.ts`) is a function of its level and of the form's word, which the page reads
+ * from `GAP_WORD` of src/copy/terms.ts, because a pure package may not import it. The game is not registered yet (W2-T20 adds it to `COPIES`
+ * above), so its entry is read here.
+ */
+describe('Trace attribution: every level has a title, a goal line and its pass rule, with the word of the form from the terms table', () => {
+  /** Each level on its practice seed, and on three dealt seeds. */
+  const levels = GAP_HUNT.levels.flatMap((entry) => [0, 1000, 1001, 1002].map((seed) => huntLevel(entry.id, seed)))
+
+  test("the title is the registry's and the copy table's, and the goal line has its three parts and an end, in the engine's words", () => {
+    for (const level of levels) {
+      const words = huntCopy(level, GAP_WORD)
+      const where = `gap-hunt/${level.id}/${level.seed}`
+      expect([where, words.title]).toEqual([where, GAP_HUNT.levels.find((entry) => entry.id === level.id)?.title])
+      expect([where, HUNT_TITLES[level.id]]).toEqual([where, words.title])
+      expectGoal(where, words.goal)
+      expect([where, findBanned([words.prompt, words.predict?.ask ?? '', words.passRule ?? '', words.practiceRule ?? ''].join(' '))]).toEqual([where, []])
+    }
+  })
+
+  test('a pass rule on a graded run and a practice rule on every other, and the goal line states the one it has', () => {
+    for (const level of levels) {
+      const words = huntCopy(level, GAP_WORD)
+      const where = `gap-hunt/${level.id}/${level.seed}`
+      expect([where, words.passRule !== undefined, words.practiceRule !== undefined]).toEqual([where, level.graded, !level.graded])
+      if (words.passRule !== undefined) expect([where, words.goal.beat]).toEqual([where, words.passRule])
+      else expect([where, words.goal.beat.includes('Passes in practice') || words.goal.beat.includes('Practice is not graded')]).toEqual([where, true])
+    }
+  })
+
+  test("each pass rule holds the bar the session computes: the steps a graded run holds and the share of the step's ns", () => {
+    for (const level of levels) {
+      const words = huntCopy(level, GAP_WORD)
+      const where = `gap-hunt/${level.id}/${level.seed}`
+      if (level.graded) expect([where, words.passRule?.includes(`on each of ${level.needed} new steps`)]).toEqual([where, true])
+      if (level.id === 'attribute') {
+        expect([where, (words.passRule ?? words.practiceRule ?? '').includes(`at least ${PASS_PERCENT}% of the step's ns`)]).toEqual([where, true])
+      }
+    }
+  })
+
+  test("the lesson block's bar is never printed beside the game's: no line names the other rule", () => {
+    for (const level of levels) {
+      const words = huntCopy(level, GAP_WORD)
+      expect([level.id, JSON.stringify(words).includes('90%')]).toEqual([level.id, false])
+    }
+  })
+
+  test("the form's word is the key's: the `attribute` goal line lists the four categories with it", () => {
+    const words = huntCopy(huntLevel('attribute', 1000), GAP_WORD)
+    expect(words.goal.aim).toBe(`Put every nanosecond of the step in one category: kernel, copy-only, ${GAP_WORD} or both idle.`)
+    expect(words.passRule).toBe("Passes when, on each of 3 new steps, at least 95% of the step's ns are in the right category and the cause is right.")
   })
 })
