@@ -8,7 +8,7 @@
  *   ... --failures <file>                                where the whole output of each failure goes (default: a new file in the
  *                                                        system's temporary folder, outside the repository)
  *
- * Each step is one `npx playwright test` with --retries=0 and two workers. The caller pins the cores (taskset) and sets CI's environment;
+ * Each step is one `npx playwright test` with --retries=0 and two workers, and the plan's features and plain smoke steps share one (`runs`). The caller pins the cores (taskset) and sets CI's environment;
  * ES_E2E_PORT and ES_CHROMIUM pass through as they are, and playwright.config.ts is not touched. What a test is, here, is its spec file and its
  * title (the describes and the test's own, joined by " > "), so a test of the same name in another project is the same test.
  *
@@ -199,8 +199,31 @@ function readKnown(): KnownRed {
 
 const escapeRegExp = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
-function command(step: Step, grep?: string): string[] {
-  const args = ['playwright', 'test', `--project=${step.project}`, '--workers=2', '--retries=0', '--reporter=json']
+/** A step as run: the plan's features and smoke steps at the same width share one Playwright run, so the site is built once for both. */
+export type RunStep = Step & { readonly projects: readonly Step['project'][] }
+
+/**
+ * The plan's steps as Playwright runs: the features step and the plain smoke step become one run of both projects (each spec runs in the
+ * project whose list holds it, so the tests are the same), and the nightly step stays apart, since its environment differs.
+ */
+export function runs(steps: readonly Step[]): RunStep[] {
+  const plain = steps.filter((step) => !step.nightly)
+  const out: RunStep[] = []
+  if (plain.length > 0) {
+    out.push({
+      project: plain[0].project,
+      projects: plain.map((step) => step.project),
+      nightly: false,
+      specs: [...new Set(plain.flatMap((step) => step.specs))].sort(),
+      why: [...new Set(plain.flatMap((step) => step.why))].sort(),
+    })
+  }
+  for (const step of steps.filter((candidate) => candidate.nightly)) out.push({ ...step, projects: [step.project] })
+  return out
+}
+
+function command(step: RunStep, grep?: string): string[] {
+  const args = ['playwright', 'test', ...step.projects.map((project) => `--project=${project}`), '--workers=2', '--retries=0', '--reporter=json']
   const filter = grep ?? step.grep
   if (filter !== undefined) args.push('-g', filter)
   // A route's tests exist only when the build serves it (a module that is not published has no document), so a nightly step whose
@@ -222,7 +245,7 @@ interface Outcome {
   readonly output: string
 }
 
-function execute(step: Step, args: readonly string[]): Outcome {
+function execute(step: RunStep, args: readonly string[]): Outcome {
   const dir = mkdtempSync(path.join(tmpdir(), 'es-gate-'))
   const out = path.join(dir, 'report.json')
   try {
@@ -245,7 +268,7 @@ function execute(step: Step, args: readonly string[]): Outcome {
 }
 
 export interface StepResult {
-  readonly step: Step
+  readonly step: RunStep
   readonly command: string
   readonly total: number
   readonly failed: readonly Failure[]
@@ -282,7 +305,7 @@ export function sortFailures(
   }
 }
 
-export function runStep(step: Step, known: KnownRed): StepResult {
+export function runStep(step: RunStep, known: KnownRed): StepResult {
   const args = command(step)
   const text = show(args, step.nightly)
   const first = execute(step, args)
@@ -479,7 +502,7 @@ function main(argv: readonly string[]): number {
   }
   const failuresFile = options.failures ?? path.join(tmpdir(), `es-gate-failures-${new Date().toISOString().replace(/[:.]/g, '-')}-${process.pid}.txt`)
   writeFileSync(failuresFile, '')
-  console.log(`gate: ${paths.length} changed path${paths.length === 1 ? '' : 's'}, ${made.steps.length} browser step${made.steps.length === 1 ? '' : 's'}`)
+  console.log(`gate: ${paths.length} changed path${paths.length === 1 ? '' : 's'}, ${runs(made.steps).length} browser run${runs(made.steps).length === 1 ? '' : 's'}`)
   for (const note of made.notes) console.log(`note: ${note}`)
   for (const file of made.unmapped) console.log(`unmapped (no row runs anything for it): ${file}`)
   let checksFailed = 0
@@ -523,9 +546,9 @@ function main(argv: readonly string[]): number {
     return 0
   }
   const results: StepResult[] = []
-  for (const step of made.steps) {
+  for (const step of runs(made.steps)) {
     const started = Date.now()
-    console.log(`\n== ${step.project}${step.nightly ? ' (nightly width)' : ''}: ${step.specs.join(', ')}  [${step.why.join('; ')}]`)
+    console.log(`\n== ${step.projects.join(' and ')}${step.nightly ? ' (nightly width)' : ''}: ${step.specs.join(', ')}  [${step.why.join('; ')}]`)
     const result = runStep(step, known)
     results.push(result)
     writeFailures(failuresFile, result.records)
@@ -545,7 +568,7 @@ function main(argv: readonly string[]): number {
   if (made.commands.length > 0) console.log(`  checks: ${checksFailed === 0 ? 'ok' : `${checksFailed} failed`}`)
   for (const result of results) {
     const state = result.crash !== undefined ? 'could not run' : result.refused.length > 0 ? `${result.refused.length} new failure${result.refused.length === 1 ? '' : 's'}` : 'ok'
-    console.log(`  ${result.step.project}${result.step.nightly ? ' nightly' : ''}: ${state}`)
+    console.log(`  ${result.step.projects.join(' and ')}${result.step.nightly ? ' nightly' : ''}: ${state}`)
   }
   if (verdict(results, checksFailed) !== 0) {
     console.log('gate: FAILED')

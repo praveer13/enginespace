@@ -20,6 +20,7 @@ import {
   PYTHONS,
   routesAdded,
   routesOf,
+  runs,
   sortFailures,
   supportImporters,
   uvEnv,
@@ -36,6 +37,7 @@ import {
   plan,
   PLANNED_GAMES,
   PROVE_SPECS,
+  REGISTRY,
   RELOCK_NOT_RUN,
   ROSTER_COMMAND,
   routeGrep,
@@ -456,6 +458,20 @@ describe('the rows of W2b-T70', () => {
     })
   }
 
+  test('src/games/registry.ts gives the kit row and the nightly walks of every game, and not their primary specs (narrowed by the gate\'s minutes)', () => {
+    const made = on(REGISTRY)
+    expect(step(made, 'features', false)?.specs).toEqual(['design-parts'])
+    expect(step(made, 'smoke', false)?.specs).toEqual(['screens'])
+    expect(nightly(made)).toMatchObject({ specs: ['walks'], grep: walkGrep(GAMES) })
+  })
+
+  test('the lesson page audits the first lesson of each module at the nightly width (narrowed by the gate\'s minutes)', () => {
+    const grep = new RegExp(nightly(on('src/pages/Lesson.tsx'))?.grep ?? '^$')
+    expect(grep.test('a11y.spec.ts at 320 px /m/tr0/l1-pytorch-in-rust-terms: axe finds')).toBe(true)
+    expect(grep.test('a11y.spec.ts at 320 px /m/tr0/l2-views-copies-and-hidden-syncs: axe finds')).toBe(false)
+    expect(grep.test('a11y.spec.ts at 320 px /m/tr0: axe finds')).toBe(false)
+  })
+
   test('a <game>-sizes spec is run by its game\'s row and not by the kit-run row', () => {
     const names = [...specs, 'pool-sizes']
     expect(step(plan(['src/games/pool/a.ts'], names), 'features', false)?.specs).toContain('pool-sizes')
@@ -513,7 +529,7 @@ describe('the rows of W2b-T70', () => {
 
   test('every file of src/pages/ is a page of the table or the kit-run row, and every spec a page names exists', () => {
     for (const file of readdirSync(path.join(root, 'src/pages')).map((name) => `src/pages/${name}`)) {
-      const named = PAGES.some((page) => page.paths.includes(file)) || KIT_RUN.includes(file)
+      const named = PAGES.some((page) => page.paths.includes(file)) || KIT_RUN.includes(file) || file === REGISTRY
       expect([file, named]).toEqual([file, true])
     }
     for (const page of PAGES) for (const name of page.specs) expect([page.paths[0], name, specs.includes(name)]).toEqual([page.paths[0], name, true])
@@ -619,10 +635,12 @@ describe('the rows of W2b-T70', () => {
       expect([file, ids(on(file))]).toEqual([file, FORGE_IDS])
   })
 
-  test('a support file gives the specs that import it, through other support files too; walks.ts is also the walkers row', () => {
+  test('a support file gives the features specs that import it, through other support files too, and leaves its smoke importers to the smoke run; walks.ts is also the walkers row', () => {
     expect(step(at(['e2e/support/pixels.ts']), 'features', false)?.specs).toEqual(['loop-scene', 'pool-scene', 'verifier-scene'])
-    expect(step(at(['e2e/support/pixels.ts']), 'smoke', false)?.specs).toEqual(['screenshots'])
+    expect(context.importers?.['e2e/support/pixels.ts']).toContain('screenshots')
+    expect(step(at(['e2e/support/pixels.ts']), 'smoke', false)).toBeUndefined()
     expect(context.importers?.['e2e/support/copy-scan.ts']).toContain('a11y')
+    expect(step(at(['e2e/support/screens.ts']), 'features', false)?.specs).toEqual(['lab-page', 'shape-shifter'])
     const walks = at(['e2e/support/walks.ts'])
     expect(nightly(walks)?.grep).toBe(walkGrep(GAMES))
     expect(step(walks, 'features', false)?.specs).toContain('shape-shifter')
@@ -644,6 +662,20 @@ describe('the rows of W2b-T70', () => {
       expect([command.id, command.argv.some((arg) => arg.includes('-levels.test'))]).toEqual([command.id, false])
       expect([command.id, Object.keys(command.env ?? {}).some((key) => key.startsWith('ES_PROPERTY'))]).toEqual([command.id, false])
     }
+  })
+})
+
+describe('the runs of a plan', () => {
+  test('the features step and the plain smoke step are one Playwright run of both projects, and the nightly step stays apart', () => {
+    const made = on('src/games/pool/a.ts', 'src/pages/Today.tsx')
+    const joined = runs(made.steps)
+    expect(joined.map((run) => [run.projects, run.nightly])).toEqual([
+      [['features', 'smoke'], false],
+      [['smoke'], true],
+    ])
+    expect(joined[0].specs).toEqual([...(step(made, 'features', false)?.specs ?? []), ...(step(made, 'smoke', false)?.specs ?? [])].sort())
+    expect(runs(on('src/front/a.tsx').steps)).toEqual([{ project: 'features', projects: ['features'], nightly: false, specs: ['front'], why: ['front'] }])
+    expect(runs([])).toEqual([])
   })
 })
 

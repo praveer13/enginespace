@@ -17,9 +17,11 @@
  *   sim       packages/sim/<model>/                   the game row of each registered game that SIM names for the model, and the specs
  *                                                     it names
  *   scene     src/scene/                              scene-kit and every *-scene spec
- *   kit run   KIT_RUN: the kit's Frame, first move, intro, run and record, src/pages/Game.tsx, src/games/registry.ts
+ *   kit run   KIT_RUN: the kit's Frame, first move, intro, run and record, src/pages/Game.tsx
  *                                                     the kit row below, every game's primary spec (e2e/<g>.spec.ts, not its sizes or
  *                                                     scene spec), and the nightly walks of every game
+ *   registry  src/games/registry.ts                   the kit row below and the nightly walks of every game, which open every game's page
+ *                                                     through the registry. Narrowed by the gate's minutes (D-077): not the primary specs
  *   kit       the rest of src/games/kit/, src/design/, src/index.css
  *                                                     one level of every game at 360 and 1280 px (SMOKE_LEVELS), design-parts, screens.
  *                                                     The task that made the change runs every level of every game itself and says so.
@@ -31,6 +33,7 @@
  *   labs      src/labs/                               lab-page, lab-kits
  *   page      PAGES: src/pages/<page>, src/settings/, src/evidence/, src/progress/, src/map/, src/unbuilt/
  *                                                     the page's own specs, and a11y and screens at the nightly width for its routes
+ *                                                     (the lesson page: the first lesson of each module, narrowed by D-077's minutes)
  *   changes   course.lock.json                        a11y at the nightly width for /changes (and the grader row below)
  *   routes    e2e/routes.ts, content/modules/**       a11y at the nightly width for the routes the branch adds to e2e/routes.ts, and
  *                                                     for the module and lesson pages of the files it changes under content/modules/
@@ -43,7 +46,9 @@
  *                                                     (TRACE_GAMES)
  *   front     src/front/                              front
  *   walkers   e2e/support/walks.ts, e2e/levels.ts, e2e/walks.spec.ts    the nightly walks of every game
- *   support   e2e/support/<file>                      every spec that imports it, directly or through another support file
+ *   support   e2e/support/<file>                      every features spec that imports it, directly or through another support file. The
+ *                                                     smoke specs among its importers run in the smoke project of every merge, and are not
+ *                                                     run twice (narrowed by D-077's minutes)
  *   spec      e2e/<name>.spec.ts                      that spec
  * No row runs a `*-levels.test.ts` file at the nightly seed count: that is a HEAVY run of the task that edits it.
  *
@@ -128,8 +133,9 @@ export const KIT_RUN: readonly string[] = [
   'src/games/kit/useRun.ts',
   'src/games/kit/record.ts',
   'src/pages/Game.tsx',
-  'src/games/registry.ts',
 ]
+/** The games' registry: a change to it is a game joining or leaving, which every game's walk meets on its own page. */
+export const REGISTRY = 'src/games/registry.ts'
 const WALKER_FILES = ['e2e/support/walks.ts', 'e2e/levels.ts', 'e2e/walks.spec.ts']
 const SHELL_FILES = ['src/App.tsx', 'src/main.tsx', 'src/routes.tsx', 'src/route-change.ts', 'src/route-preload.ts']
 const FORGE_SPECS = ['forge', 'forge-hybrid-kv', 'rejection-sampler', 'lab-kits']
@@ -167,7 +173,8 @@ export const TRACE_GAMES: readonly string[] = ['gap-hunt']
 /** A route's `-g` pattern, matched exactly. */
 const exact = (route: string) => route.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 const MODULE_ROUTE = '/m/[^/\\s]+'
-const LESSON_ROUTE = '/m/[^/\\s]+/[^/\\s]+'
+/** The first lesson of each module: the lesson page's routes at the nightly width, narrowed from every lesson by D-077's minutes. */
+const FIRST_LESSONS = '/m/[^/\\s]+/l1-[^/\\s]+'
 
 /**
  * The pages, each with its own specs and the routes it serves, as `-g` patterns over the routes of a11y and screens (a route stands in a
@@ -177,7 +184,7 @@ export const PAGES: readonly { readonly paths: readonly string[]; readonly specs
   { paths: ['src/pages/Front.tsx'], specs: ['front', 'first-visit'], routes: [exact('/')] },
   { paths: ['src/pages/Map.tsx'], specs: ['map'], routes: [exact('/map')] },
   { paths: ['src/pages/Module.tsx', 'src/pages/module.css'], specs: ['map'], routes: [MODULE_ROUTE] },
-  { paths: ['src/pages/Lesson.tsx'], specs: ['lesson-games', 'lesson-predict'], routes: [LESSON_ROUTE] },
+  { paths: ['src/pages/Lesson.tsx'], specs: ['lesson-games', 'lesson-predict'], routes: [FIRST_LESSONS] },
   { paths: ['src/pages/PlayIndex.tsx'], specs: [], routes: [exact('/play')] },
   { paths: ['src/pages/Lab.tsx'], specs: ['lab-page', 'lab-kits'], routes: ['/labs/[^\\s:,]+'] },
   { paths: ['src/pages/TraceRoom.tsx'], specs: ['trace-view'], routes: ['/trace-room(?:/[^\\s:,]+)?'] },
@@ -314,8 +321,8 @@ export function plan(changed: readonly string[], specs: readonly string[], conte
     want('kit', ['design-parts', 'screens', 'walks'])
     notes.push('A change to the kit or the design: the task runs every level of every game itself, at 360 and 1280 px, and reports it.')
   }
-  const kitRun = (row: string) => {
-    want(row, ['design-parts', 'screens', 'walks', ...GAMES.filter((game) => have.has(game))])
+  const kitRun = (row: string, primary = true) => {
+    want(row, ['design-parts', 'screens', 'walks', ...(primary ? GAMES.filter((game) => have.has(game)) : [])])
     walks(row, GAMES)
   }
 
@@ -355,6 +362,10 @@ export function plan(changed: readonly string[], specs: readonly string[], conte
     }
     if (KIT_RUN.includes(file)) {
       kitRun('kit run')
+      return true
+    }
+    if (file === REGISTRY) {
+      kitRun('registry', false)
       return true
     }
     if (file === ROSTER_FILE) {
@@ -430,7 +441,7 @@ export function plan(changed: readonly string[], specs: readonly string[], conte
       hit = true
     }
     if (under(file, 'e2e/support/') && !(file in UNGATED)) {
-      const users = context.importers?.[file] ?? []
+      const users = (context.importers?.[file] ?? []).filter((name) => !SMOKE_SPECS.includes(name))
       want(`support ${file.slice('e2e/support/'.length)}`, users)
       hit = true
     }
