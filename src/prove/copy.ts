@@ -18,7 +18,7 @@ export const PROVE_COPY = {
     'An attempt counts from the moment you press Start: leaving the run before its end, or reloading the page, counts as a miss.',
   ],
   reading: 'Reading your record of past attempts…',
-  counts: 'This attempt counts: a pass is recorded as proved.',
+  counts: 'This attempt counts, pass or miss. A pass is recorded as proved; a miss uses up the day.',
   waitPassed: (when: string) => `You have proved this level. The next attempt that counts opens ${when}; a run before then is recorded as practice.`,
   waitMissed: (when: string) =>
     `Your last attempt that counted did not pass. The next one that counts opens ${when}; a run before then is recorded as practice.`,

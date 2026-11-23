@@ -59,6 +59,16 @@ describe('activityRows', () => {
     expect(unnamed.what).toBe('Played a level')
   })
 
+  test('reads a run proved with the agent closed as proved, and a graded run played with it open as it was', () => {
+    const [proved, unseen, practice] = ['proved', 'unseen', 'practice'].map(
+      (provenance, n) => activityRows([at('play', `g${n}`, { ref: 'play:loop/close', ok: true, provenance })], { lessons: LESSONS, levelName: names })[0],
+    )
+    expect(proved.what).toBe('Played Step loop, close, agent closed')
+    expect(proved.result).toBe(ATTEMPT_WORDS.yes)
+    expect(unseen.what).toBe('Played Step loop, close')
+    expect(practice.what).toBe('Played Step loop, close')
+  })
+
   test('leaves out an acknowledgement, which carries no result', () => {
     expect(activityRows([copy(EXAMPLES.ack) as LedgerEvent], { lessons: LESSONS, levelName: names })).toEqual([])
   })

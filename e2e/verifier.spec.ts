@@ -405,7 +405,7 @@ async function submitAnyWeights(page: Page) {
 test.describe('Prove mode (ASSESSMENT §7.2)', () => {
   test('by keyboard: the attestation, a graded run on fresh numbers with the readouts hidden, a pass recorded as proved, and the window closed', async ({ page }) => {
     await openProve(page)
-    await expect(page.locator('[data-prove-stake]')).toHaveText('This attempt counts: a pass is recorded as proved.')
+    await expect(page.locator('[data-prove-stake]')).toHaveText('This attempt counts, pass or miss. A pass is recorded as proved; a miss uses up the day.')
     await startProve(page)
     await expect(game(page)).toHaveAttribute('data-mode', 'graded')
     await expect(game(page)).toHaveAttribute('data-level', 'exact')

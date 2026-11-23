@@ -86,7 +86,8 @@ export function stakeAt(stake: ProveStake, now: number): ProveStake {
 
 /**
  * When the next attempt opens, in the learner's words: "at 14:05 tomorrow", "at 09:30 today". The time zone and the locale are the
- * browser's unless a test gives them.
+ * browser's unless a test gives them. The clock is the 24-hour one that /receipts writes (src/receipts/when.ts), so a time reads the same
+ * on both pages.
  */
 export function opensWords(opensAt: number, now: number, options: { readonly timeZone?: string; readonly locale?: string } = {}): string {
   const day = new Intl.DateTimeFormat('en-CA', {
@@ -95,15 +96,16 @@ export function opensWords(opensAt: number, now: number, options: { readonly tim
     month: '2-digit',
     day: '2-digit',
   })
-  const time = new Intl.DateTimeFormat(options.locale, {
+  const time = new Intl.DateTimeFormat(options.locale ?? 'en-GB', {
     timeZone: options.timeZone,
     hour: '2-digit',
     minute: '2-digit',
+    hourCycle: 'h23',
   }).format(opensAt)
   const opens = day.format(opensAt)
   if (opens === day.format(now)) return `at ${time} today`
   if (opens === day.format(now + PROVE_WINDOW_MS)) return `at ${time} tomorrow`
-  const date = new Intl.DateTimeFormat(options.locale, {
+  const date = new Intl.DateTimeFormat(options.locale ?? 'en-GB', {
     timeZone: options.timeZone,
     day: 'numeric',
     month: 'long',

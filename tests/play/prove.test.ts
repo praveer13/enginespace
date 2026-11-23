@@ -125,6 +125,13 @@ describe('the window, with a set clock (ASSESSMENT §7.3)', () => {
     expect(opensWords(T0 + 24 * HOUR, T0, utc)).toBe('at 09:00 tomorrow')
     expect(opensWords(T0 + 72 * HOUR, T0, utc)).toBe('at 09:00 on 23 November')
   })
+
+  test('the time is read on the 24-hour clock of /receipts, with no locale given, and midnight is 00:00', () => {
+    const utc = { timeZone: 'UTC' }
+    expect(opensWords(T0 + 6 * HOUR, T0, utc)).toBe('at 15:00 today')
+    expect(opensWords(T0 + 15 * HOUR, T0, utc)).toBe('at 00:00 tomorrow')
+    for (const at of [3, 6, 15, 20, 24, 30, 72]) expect(opensWords(T0 + at * HOUR, T0, utc)).not.toMatch(/[AP]M|am|pm/i)
+  })
 })
 
 describe("a Prove run's event", () => {
@@ -172,6 +179,12 @@ describe('the panel', () => {
     expect(panel({ attested: true })).not.toMatch(/<button[^>]*disabled=""/)
   })
 
+  test('keeps Start disabled while the ledger is read, even once the box is ticked, and says a miss uses up the day', () => {
+    expect(panel({ stake: null, attested: true })).toMatch(/<button[^>]*disabled=""[^>]*>.*Start the Prove run/)
+    expect(panel({ stake: { counts: true, last: null, opensAt: null }, attested: true })).not.toMatch(/<button[^>]*disabled=""/)
+    expect(words(panel())).toContain('a miss uses up the day')
+  })
+
   test('says what an attempt now is worth, from the window: counts, or practice until it opens', () => {
     expect(panel({ stake: null })).toContain(PROVE_COPY.reading)
     const passed = panel({ stake: { counts: false, last: { at: T0, ok: true }, opensAt: T0 + 24 * HOUR }, when: 'at 09:00 tomorrow' })
@@ -206,7 +219,7 @@ describe('the frame in a Prove run', () => {
   const prove: ProveFrame = {
     level: 'one-group',
     hidden: h('p', { 'data-probe': 'hidden' }, PROVE_COPY.hidden),
-    foot: h('span', { 'data-probe': 'foot' }, PROVE_COPY.footCounts),
+    foot: () => h('span', { 'data-probe': 'foot' }, PROVE_COPY.footCounts),
     after: () => h('p', { 'data-probe': 'after' }),
   }
   const frame = (over: Record<string, unknown> = {}, value: ProveFrame | null = prove, ledger = true) =>

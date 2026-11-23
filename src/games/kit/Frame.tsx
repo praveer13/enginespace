@@ -656,7 +656,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
           )}
         </div>
         <div className="es-frame__mode">
-          {proving ? prove.foot : props.modeSwitch}
+          {proving ? prove.foot(outcome === null ? null : outcome.record) : props.modeSwitch}
           {!proving && ledger && !embedded && game.prove === level ? (
             <Link className="es-button" data-variant="plate" data-size="sm" to={`/play/${game.id}?level=${level}&mode=prove`} data-prove-entry="">
               Prove it with your agent closed

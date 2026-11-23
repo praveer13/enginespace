@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { drawInBand, levelOf } from '@es/play'
 import type { GameMode } from '@es/play'
 import { VERIFIER_COPY } from '@es/play/verifier/copy'
@@ -12,6 +12,7 @@ import { LevelMenu } from '@/design/components/LevelMenu'
 import { Frame } from '@/games/kit/Frame'
 import type { GameView } from '@/games/kit/ViewSwitch'
 import type { GameProps } from '@/games/registry'
+import { ProveContext } from '@/prove/context'
 import { CameraButtons } from '@/scene/CameraButtons'
 import { unavailableReason, useDeviceTier } from '@/scene/tiers'
 import { WorldCard } from './Card'
@@ -121,10 +122,12 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
   const [preset, setPreset] = useState<string>(DEFAULT_PRESET)
 
   const embedded = placement === 'embed'
+  // In a Prove run (src/prove) the way on is Leave Prove mode: a Next level would play a level that is not the Prove level, outside the attestation.
+  const proving = useContext(ProveContext) !== null
   const entry = levelOf(VERIFIER, attempt.level) ?? VERIFIER.levels[0]
   const levelId = entry.id as VerifierLevelId
   const at = VERIFIER.levels.findIndex((candidate) => candidate.id === entry.id)
-  const after = embedded ? null : (VERIFIER.levels[at + 1] ?? null)
+  const after = embedded || proving ? null : (VERIFIER.levels[at + 1] ?? null)
   const isGraded = attempt.mode === 'graded' && entry.graded
   const copy = VERIFIER_COPY[levelId]
   const kit = useCallback(() => verifierKit(levelId), [levelId])
