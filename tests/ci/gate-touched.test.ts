@@ -761,7 +761,7 @@ describe('the failures file', () => {
       const noisy = [
         `FAILED e2e/a.spec.ts > t`,
         `error: at ${root}/e2e/a.spec.ts:3:1 and ${homedir()}/.cache/ms-playwright/chromium/chrome`,
-        `stderr: user ${user} could not write /tmp/es-gate-x/report.json; ${user}:${user} owns ${homedir()}`,
+        `stderr: user ${user} could not write ${path.join(tmpdir(), 'es-gate-x', 'report.json')}; ${user}:${user} owns ${homedir()}`,
         ...Array.from({ length: 30 }, (_, i) => `stdout line ${i}`),
       ].join('\n')
       writeFailures(file, [noisy, ...failureRecords(RECORDED)])
