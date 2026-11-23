@@ -47,6 +47,7 @@ import type { VerifierAction } from '../packages/play/verifier/types'
 import { findBanned } from '../src/copy/banned'
 import { SLOT_MARKS } from '../src/design/code'
 import { clipped } from './support/site'
+import { seedOf as readSeed } from './support/seed'
 
 const root = new URL('..', import.meta.url).pathname
 
@@ -73,6 +74,7 @@ base.afterAll(async () => {
 const test = base
 
 const game = (page: Page) => page.locator('section[data-game="verifier"]')
+const seedOf = (page: Page) => readSeed(page, 'section[data-game="verifier"]')
 const live = (page: Page) => page.locator('[data-live="line"]')
 const outcome = (page: Page) => page.locator('[data-live="outcome"]')
 const verdict = (page: Page) => page.locator('[data-result] [data-result-heading]')
@@ -393,7 +395,6 @@ async function startProve(page: Page) {
   await expect.poll(() => page.evaluate(() => document.activeElement?.matches('section[data-game]') ?? false)).toBe(true)
 }
 
-const seedOf = async (page: Page) => Number(await game(page).getAttribute('data-seed'))
 
 /** Ends a Prove run on whatever a weight of one on token 0 makes of it, and waits for the note on what the attempt was worth. */
 async function submitAnyWeights(page: Page) {
