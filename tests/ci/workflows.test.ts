@@ -290,6 +290,17 @@ describe('ci.yml (§10.1)', () => {
     expect(config).toContain("{ name: 'features', testIgnore: [...SMOKE, LAB], use: chromium }")
   })
 
+  test('e2e-features installs the same pinned Bun as the other jobs, before it installs the dependencies, because e2e/front.spec.ts runs scripts/prepare-pages.ts under Bun', () => {
+    const steps = stepsOf('ci.yml', 'e2e-features')
+    const at = steps.findIndex((step) => step.uses?.startsWith('oven-sh/setup-bun@'))
+    expect(at).toBeGreaterThan(-1)
+    // The same action, sha and version as the fast gate's step: the pins test below holds the sha to ARCHITECTURE 10.3, and the fallback test the step after it.
+    expect(steps[at].uses).toBe(stepsOf('ci.yml', 'fast-gate').find((step) => step.uses?.startsWith('oven-sh/setup-bun@'))?.uses)
+    expect(String(steps[at].with?.['bun-version'])).toBe(tool('Bun') as string)
+    expect(steps[at + 1]?.if).toBe(BUN_FALLBACK)
+    expect(at).toBeLessThan(steps.findIndex((step) => step.run === 'npm ci'))
+  })
+
   test('e2e-features prints every test that passed only on its retry, and keeps the report whatever the result', () => {
     const steps = stepsOf('ci.yml', 'e2e-features')
     const printer = steps.find((step) => step.run?.includes("'flaky'"))
