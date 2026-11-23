@@ -174,15 +174,16 @@ const TOKEN_SLOT = '<token>'
 /**
  * The command that runs a challenge on the learner's machine (A§9.4), in two parts around the token. A lab with a page prints its own
  * command for each stage (src/labs/published.ts), which runs the grader through the kit's environment, so the ticket prints that same
- * command: a bare `enginespace` is on no PATH after the kit's `uv sync`. A lab with no page yet keeps the grader's bare command.
+ * command: a bare `enginespace` is on no PATH after the kit's `uv sync`. A lab with no page has no kit environment to run it in, so it prints no
+ * command: its parts say that the lab is not published, and `published` is false for a page that would draw them as something to run.
  */
-export function gradeCommandParts(stage: string): { readonly before: string; readonly after: string } {
+export function gradeCommandParts(stage: string): { readonly before: string; readonly after: string; readonly published: boolean } {
   for (const lab of Object.values(GRADED_LABS)) {
     const line = lab.stages.find((candidate) => candidate.id === stage)?.run.line
     const at = line?.indexOf(TOKEN_SLOT) ?? -1
-    if (line !== undefined && at >= 0) return { before: line.slice(0, at), after: line.slice(at + TOKEN_SLOT.length) }
+    if (line !== undefined && at >= 0) return { before: line.slice(0, at), after: line.slice(at + TOKEN_SLOT.length), published: true }
   }
-  return { before: `enginespace grade ${stage} --challenge `, after: '' }
+  return { before: 'This lab is not published yet, so there is no command to run.', after: '', published: false }
 }
 
 /** The whole command, with the token in it. The token is quoted by nothing: it holds no character a shell reads. */

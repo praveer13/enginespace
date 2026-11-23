@@ -16,19 +16,13 @@ import { markDefence, type DefendQuestion, type Marked } from '@es/sim/defend/tr
 import { readStoredReport, verdictOfStored } from '@es/verify'
 import type { PublishedGrader, SiteData } from '@es/verify'
 import { stakeAt, type ProveStake } from '@/prove/window'
-import { SITE_DATA } from '../credit'
-import { PUBLISHED_GRADERS } from '../graders'
+import { isSynthetic, SITE_DATA } from '../credit'
 import { latestReport } from '../records'
 import { defendRef } from './registry'
 
 export type Standing = { readonly kind: 'verified' } | { readonly kind: 'practice'; readonly why: 'synthetic' | 'unverified' }
 
-/** Whether the receipt says it is synthetic, or came from a grader build that writes only synthetic fixtures. */
-export function isSynthetic(receipt: Receipt, graders: readonly PublishedGrader[] = PUBLISHED_GRADERS): boolean {
-  const ext = receipt.ext as Record<string, unknown> | undefined
-  if (ext !== undefined && ext.synthetic === true) return true
-  return graders.some((build) => build.synthetic === true && build.version === receipt.grader.version && build.sourceSha256 === receipt.grader.sourceSha256)
-}
+export { isSynthetic }
 
 /** Whether a defence of this receipt can count, from its newest report. */
 export function standingOf(receipt: Receipt, reports: readonly VerificationReport[], options: { graders?: readonly PublishedGrader[]; site?: SiteData } = {}): Standing {

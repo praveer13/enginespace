@@ -219,6 +219,10 @@ describe('what an attempt is worth', () => {
     expect(afterLine({ kind: 'verified' }, { ...done, marked: { ...marked, ok: false } }, 'at 12:00 tomorrow')).toBe(DEFEND_COPY.missed('at 12:00 tomorrow'))
     expect(afterLine({ kind: 'verified' }, { ...done, counted: false }, null)).toBe(DEFEND_COPY.practiceOpen)
     expect(afterLine({ kind: 'practice', why: 'unverified' }, done, null)).toBe(DEFEND_COPY.practiceNothing)
+    // A synthetic receipt gives its own reason, never "not one this browser verified".
+    expect(afterLine({ kind: 'practice', why: 'synthetic' }, done, null)).toBe(DEFEND_COPY.practiceSynthetic)
+    expect(DEFEND_COPY.practiceSynthetic).toContain('synthetic')
+    expect(DEFEND_COPY.practiceSynthetic).not.toContain('not one this browser verified')
   })
 })
 

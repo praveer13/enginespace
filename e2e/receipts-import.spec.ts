@@ -802,6 +802,21 @@ test.describe('a reused token', () => {
   })
 })
 
+test.describe('a synthetic receipt', () => {
+  test('fails rule 5 in the browser, and the line says why: no site publishes the build that makes one', async ({ page }) => {
+    await visit(page)
+    const made = sampleBundle()
+    ;(made.receipt as { ext: unknown }).ext = { synthetic: true }
+    await chooseWithKeys(page, fileOf(made))
+    await expect(slip(page).getByRole('heading', { level: 3, name: 'Kept in your record' })).toBeVisible()
+    const grader = rules(page).locator('xpath=self::*[@data-rule="grader"]')
+    await expect(grader).toHaveAttribute('data-status', 'fail')
+    await expect(grader).toContainText('This receipt says it is synthetic')
+    await expect(grader).toContainText('no site publishes such a build')
+    await expect(slip(page).locator('.es-import__worth')).toHaveText('not counted')
+  })
+})
+
 /* ------------------------------------------------------------------------------------------------------------------ */
 /* 4. An unknown grader build gives gpu-unverified                                                                    */
 /* ------------------------------------------------------------------------------------------------------------------ */

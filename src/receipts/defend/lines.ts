@@ -27,7 +27,7 @@ export function stakeLine(standing: Standing, stake: ProveStake | null, when: st
 
 /** The line under a result: what the attempt was worth, and when the next one that counts opens. */
 export function afterLine(standing: Standing, done: Done, when: string | null): string {
-  if (standing.kind === 'practice') return DEFEND_COPY.practiceNothing
+  if (standing.kind === 'practice') return standing.why === 'synthetic' ? DEFEND_COPY.practiceSynthetic : DEFEND_COPY.practiceNothing
   const words = when ?? ''
   if (done.counted) return done.marked.ok ? DEFEND_COPY.proved(words) : DEFEND_COPY.missed(words)
   return when === null ? DEFEND_COPY.practiceOpen : DEFEND_COPY.practice(words)

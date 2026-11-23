@@ -387,9 +387,18 @@ describe('the ticket a challenge is printed on', () => {
   })
 
   test('prints the command, with the token in it, and a way to copy each', () => {
-    expect(text(html)).toContain(`enginespace grade tr8.replay.s2 --challenge ${event.data.token}`)
+    const page = ledger.challenge('2026-11-09T12:30:00.000Z', 'tr0.forward.s3', 6) as ChallengeEvent
+    const shown = text(render(createElement(ChallengeTicket, { event: page, durable: true, memoryOnly: false })))
+    expect(shown).toContain(`uv run --project envs/cpu enginespace grade tr0.forward.s3 --challenge ${page.data.token}`)
+    expect(shown).toContain('Copy the token')
+    expect(shown).toContain('Copy the command')
+  })
+
+  test('prints no command for a lab with no page: it says the lab is not published and offers nothing to copy but the token', () => {
+    expect(text(html)).toContain(`This lab is not published yet, so there is no command to run.`)
+    expect(text(html)).not.toContain('enginespace grade')
     expect(text(html)).toContain('Copy the token')
-    expect(text(html)).toContain('Copy the command')
+    expect(text(html)).not.toContain('Copy the command')
   })
 
   test('says when it was issued and when it stops being good, and points at the lab', () => {

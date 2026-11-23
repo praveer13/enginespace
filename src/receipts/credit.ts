@@ -11,8 +11,10 @@
  */
 import type { CreditedReceiptEvent, LedgerEvent, Provenance, ReceiptRecord } from '@es/ledger'
 import { readStoredReport, verdictOfStored } from '@es/verify'
-import type { SiteData } from '@es/verify'
+import type { PublishedGrader, SiteData } from '@es/verify'
+import type { Receipt } from '@es/schema/receipt'
 import { BANKS } from './declared'
+import { PUBLISHED_GRADERS } from './graders'
 import { latestReport, readReceipt } from './records'
 
 /** What the site knows that a stored result may depend on: its reference banks. */
@@ -29,11 +31,19 @@ export interface Credit {
 
 const NONE: Credit = { ok: false, score: 0, provenance: 'gpu-unverified' }
 
-/** The provenance a record's receipt earns now, from its newest report. */
+/** Whether the receipt says it is synthetic, or came from a grader build that writes only synthetic fixtures. */
+export function isSynthetic(receipt: Receipt, graders: readonly PublishedGrader[] = PUBLISHED_GRADERS): boolean {
+  const ext = receipt.ext as Record<string, unknown> | undefined
+  if (ext !== undefined && ext.synthetic === true) return true
+  return graders.some((build) => build.synthetic === true && build.version === receipt.grader.version && build.sourceSha256 === receipt.grader.sourceSha256)
+}
+
+/** The provenance a record's receipt earns now, from its newest report. A synthetic receipt, which a test made and no run did, earns none. */
 export function provenanceOf(record: ReceiptRecord | undefined, site: SiteData = SITE_DATA): Provenance {
   if (record === undefined) return 'gpu-unverified'
   const held = readReceipt(record)
   if (!held.ok) return 'gpu-unverified'
+  if (isSynthetic(held.receipt)) return 'gpu-unverified'
   const newest = latestReport(held.reports)
   const report = newest === undefined ? null : readStoredReport(newest.report)
   return report === null ? 'gpu-unverified' : verdictOfStored(held.receipt, report, site).provenance

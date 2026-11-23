@@ -51,6 +51,16 @@ describe('an unknown grader build', () => {
     expect(found.problems[0]).not.toMatch(/W\d+-T\d+/)
   })
 
+  test('says why a receipt that calls itself synthetic cannot pass here: no site publishes the build that makes one', () => {
+    const made = structuredClone(receipt)
+    made.grader.version = '0.0.0'
+    made.ext = { synthetic: true }
+    const found = checkGrader(made, [published])
+    expect(found.status).toBe('fail')
+    expect(found.problems[0]).toContain('says it is synthetic')
+    expect(found.problems[0]).toContain('no site publishes such a build')
+  })
+
   test('cuts a version string from the file before it quotes it', () => {
     const forged = structuredClone(receipt)
     forged.grader.version = `9${'9'.repeat(63)}`

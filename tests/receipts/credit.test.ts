@@ -24,9 +24,15 @@ const STAGE = 'tr8.replay.s2'
 const BANK: ArgmaxBank = { positions: [3, 9, 27], ids: [101, 202, 303] }
 const argmax = (positions: number[], ids: number[]) => ({ schema: ARGMAX_FORMAT, positions, ids })
 
+/** The honest replay as a run of a learner's would be, which does not call itself synthetic: a synthetic receipt earns no credit, whatever its checks say. */
+const asRun = (fixture: Fixture): Fixture =>
+  edited(fixture, (bundle) => {
+    delete bundle.receipt.ext
+  })
+
 /** The honest replay, carrying the argmax ids that a stage with a bank would hold it to. */
 function withArgmax(data: object): Fixture {
-  return edited(replayFixture(), (bundle) => {
+  return edited(asRun(replayFixture()), (bundle) => {
     bundle.receipt.artifacts.push({ id: 'argmax', kind: 'outputs', format: ARGMAX_FORMAT, sha256: sha256('x'), bytes: 1, inBundle: true })
     bundle.artifacts.argmax = { encoding: 'json', data }
   })
@@ -112,7 +118,7 @@ describe('a receipt brought back before the site had a bank', () => {
   })
 
   test('has nothing to re-read when the receipt carried no ids: the stored result stands', async () => {
-    const fixture = replayFixture()
+    const fixture = asRun(replayFixture())
     const outcome = await verifyBundle(fileOf(fixture.bundle), fixture.context)
     if (outcome.kind !== 'checked') throw new Error('refused')
     const record = receiptRecord(outcome, '2026-11-09T12:00:00.000Z')
@@ -123,9 +129,28 @@ describe('a receipt brought back before the site had a bank', () => {
   })
 })
 
+describe('a synthetic receipt', () => {
+  test('earns no credit: a receipt that says it is synthetic is gpu-unverified though every rule passed, and the same receipt without the word is credited', async () => {
+    const fixture = replayFixture()
+    expect(fixture.bundle.receipt.ext).toEqual({ synthetic: true })
+    const tab = await ledgerFor(fixture)
+    await importOnce(tab, fixture)
+    const snapshot = tab.engine.getSnapshot()
+    const [record] = snapshot.receipts
+    expect(provenanceOf(record, {})).toBe('gpu-unverified')
+    expect(creditOf(record, {})).toEqual({ ok: false, score: 0, provenance: 'gpu-unverified' })
+    expect(creditReceipts(snapshot.events, snapshot.receipts, {}).find((entry) => entry.kind === 'receipt')).toMatchObject({ ok: false, score: 0, provenance: 'gpu-unverified' })
+
+    const real = asRun(replayFixture())
+    const outcome = await verifyBundle(fileOf(real.bundle), real.context)
+    if (outcome.kind !== 'checked') throw new Error('refused')
+    expect(creditOf(receiptRecord(outcome, '2026-11-09T12:00:00.000Z'), {})).toEqual({ ok: true, score: 1, provenance: 'gpu-verified' })
+  })
+})
+
 describe('the verdict is computed on read and stored nowhere', () => {
   test('a written receipt event holds none of ok, score, provenance or checks, and a record that is gone credits nothing', async () => {
-    const fixture = replayFixture()
+    const fixture = asRun(replayFixture())
     const tab = await ledgerFor(fixture)
     await importOnce(tab, fixture)
     const snapshot = tab.engine.getSnapshot()
