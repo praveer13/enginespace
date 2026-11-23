@@ -217,11 +217,14 @@ export function scrollToShow(box: { top: number; bottom: number }, above: number
 
 /**
  * On a phone's first run, each part the intro walk names is brought whole into view over the pinned dock. `parts` are the level's part
- * ids, in the walk's order. Returns the undo.
+ * ids, in the walk's order. In a lesson (`embedded`) the game stands far down the page and the page is the learner's: nothing scrolls until
+ * the learner has pressed, typed or focused inside the frame, and then the part the walk names at that moment is shown. Returns the undo.
  */
-export function showNamedParts(frame: HTMLElement, parts: readonly string[]): () => void {
+export function showNamedParts(frame: HTMLElement, parts: readonly string[], embedded = false): () => void {
   let shown: string | null = null
+  let acted = !embedded
   const look = () => {
+    if (!acted) return
     const walk = frame.querySelector('[data-intro-walk]')?.getAttribute('data-intro-walk') ?? null
     if (walk === shown) return
     shown = walk
@@ -235,10 +238,25 @@ export function showNamedParts(frame: HTMLElement, parts: readonly string[]): ()
     const by = scrollToShow(region.getBoundingClientRect(), above, below)
     if (by !== 0) window.scrollBy({ top: by, behavior: 'instant' })
   }
+  const act = () => {
+    if (acted) return
+    acted = true
+    look()
+  }
   const watch = new MutationObserver(look)
   watch.observe(frame, { subtree: true, attributes: true, attributeFilter: ['data-intro-walk'], childList: true })
+  if (embedded) {
+    frame.addEventListener('pointerdown', act, true)
+    frame.addEventListener('keydown', act, true)
+    frame.addEventListener('focusin', act)
+  }
   look()
-  return () => watch.disconnect()
+  return () => {
+    watch.disconnect()
+    frame.removeEventListener('pointerdown', act, true)
+    frame.removeEventListener('keydown', act, true)
+    frame.removeEventListener('focusin', act)
+  }
 }
 
 /**

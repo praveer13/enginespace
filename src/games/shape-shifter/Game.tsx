@@ -167,9 +167,9 @@ function ShiftLevel({ levelId, levelTitle, seed, mode, embedded, rev, onFinish, 
     const frame = root?.querySelector<HTMLElement>('section[data-game]') ?? null
     if (root === null || frame === null) return
     const seat = seatDrawing(frame)
-    const undo = [guardPresses(root), seat.undo, keepDock(frame, seat.again), showNamedParts(frame, partRows(levelId).map((part) => part.id)), showGoalAtResult(frame)]
+    const undo = [guardPresses(root), seat.undo, keepDock(frame, seat.again), showNamedParts(frame, partRows(levelId).map((part) => part.id), embedded), showGoalAtResult(frame)]
     return () => undo.forEach((step) => step())
-  }, [levelId])
+  }, [levelId, embedded])
   return (
     <div ref={wrap} className="contents">
       <Frame

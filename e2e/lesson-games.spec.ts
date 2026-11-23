@@ -611,3 +611,99 @@ test.describe('below 80rem wide or 44rem tall there is no dock', () => {
     })
   }
 })
+
+/*
+ * Tensor views inside a lesson (W2b-T73): the lesson is the learner's page, so the game does not scroll it before the learner has acted in
+ * the game's frame (DC-F), lesson 4's steppers stand whole in their box from 1280 to 1920 px, and nothing outside a box scrolls sideways.
+ */
+const TENSOR_LESSONS = ['/m/tr0/l1-pytorch-in-rust-terms', '/m/tr0/l4-reading-triton'] as const
+/** The built game chunks (assets/Game-<hash>.js), which a slow connection delivers late: the intro of a game comes up after them. */
+const GAME_CHUNK = /\/assets\/Game-[^/]*\.js(?:\?.*)?$/
+
+test.describe('Tensor views in a lesson do not scroll the page on their own (DC-F)', () => {
+  for (const viewport of [
+    { width: 360, height: 800 },
+    { width: 390, height: 844 },
+  ]) {
+    for (const route of TENSOR_LESSONS) {
+      test(`${route} at ${viewport.width} x ${viewport.height}: scrollY stays 0 for 5 s with no input, under CDP throttling 4x and the game's chunk held 800 ms`, async ({ page, context }) => {
+        test.setTimeout(120_000)
+        await page.setViewportSize(viewport)
+        await withSettings(context, { view3d: false })
+        await context.route(GAME_CHUNK, async (request) => {
+          await new Promise((resolve) => setTimeout(resolve, 800))
+          await request.continue()
+        })
+        const cdp = await context.newCDPSession(page)
+        await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 })
+        await open(page, route)
+        const seen = await page.evaluate(
+          () =>
+            new Promise<number[]>((resolve) => {
+              const ys: number[] = []
+              const timer = window.setInterval(() => ys.push(window.scrollY), 100)
+              window.setTimeout(() => {
+                window.clearInterval(timer)
+                resolve(ys)
+              }, 5000)
+            }),
+        )
+        expect(Math.max(...seen), `scrollY over 5 s: ${seen.filter((y) => y !== 0).slice(0, 5).join(', ')}`).toBe(0)
+      })
+    }
+  }
+
+  test('after the learner presses inside the frame, the part the walk names is brought into view as before (a phone)', async ({ page, context }) => {
+    test.setTimeout(120_000)
+    await page.setViewportSize({ width: 360, height: 800 })
+    await withSettings(context, { view3d: false })
+    await open(page, TENSOR_LESSONS[0])
+    const game = embedOf(page, { game: 'shape-shifter', level: 'views', mode: 'practice' })
+    await expect(game).toBeVisible({ timeout: 60_000 })
+    await game.scrollIntoViewIfNeeded()
+    const before = await page.evaluate(() => window.scrollY)
+    const next = game.locator('[data-intro-next]')
+    await expect(next).toBeVisible()
+    // The walk's steps each name a part; the first is named at once and the page may stay where the learner put it, the later ones
+    // come into view over the dock as the learner steps.
+    for (let step = 0; step < 3 && (await next.count()) > 0 && (await next.isVisible()); step++) await next.click()
+    const after = await page.evaluate(() => window.scrollY)
+    expect(after, `the learner pressed Next in the frame, and the part it names came into view: the page was at ${before}`).not.toBe(before)
+  })
+})
+
+test.describe('Tensor views in lesson 4: the steppers stand whole in their box (the dimension-1 "one more" included)', () => {
+  for (const width of [1280, 1440, 1920]) {
+    test(`at ${width} px every stepper button is inside the steppers' scrollport and the box scrolls nowhere sideways`, async ({ page, context }) => {
+      test.setTimeout(120_000)
+      await page.setViewportSize({ width, height: 900 })
+      await withSettings(context, { view3d: false })
+      await open(page, TENSOR_LESSONS[1])
+      const game = await startBlock(page, { game: 'shape-shifter', level: 'grid', mode: 'practice' })
+      const steppers = game.locator('.es-shift-dock__steppers')
+      await expect(steppers).toBeVisible()
+      const read = () =>
+        steppers.evaluate((box) => {
+          const port = box.getBoundingClientRect()
+          return {
+            sideways: box.scrollWidth - box.clientWidth,
+            outside: [...box.querySelectorAll('button')]
+              .map((button) => ({ name: button.getAttribute('aria-label'), rect: button.getBoundingClientRect() }))
+              .filter(({ rect }) => rect.left < port.left - 0.5 || rect.right > port.right + 0.5)
+              .map(({ name, rect }) => `${name}: ${Math.round(rect.left)} to ${Math.round(rect.right)} in ${Math.round(port.left)} to ${Math.round(port.right)}`),
+            count: box.querySelectorAll('button').length,
+          }
+        })
+      let seen = await read()
+      expect(seen.count, 'a less and a more for each of BLOCK and the grid along two dimensions').toBe(8)
+      expect(seen, 'buttons outside the scrollport').toMatchObject({ sideways: expect.any(Number), outside: [] })
+      expect(seen.sideways, 'the box scrolls sideways by').toBeLessThanOrEqual(0)
+      // Pressing the dimension-1 "one more" does what it says, with the mouse, at its centre.
+      const more = game.getByRole('button', { name: 'BLOCK along dimension 1: one more' })
+      await more.click()
+      await expect(game.locator('.es-shift-dock__stepper').nth(1)).toContainText('2')
+      seen = await read()
+      expect(seen.outside).toEqual([])
+    })
+  }
+})

@@ -594,3 +594,29 @@ test.describe('the keys and the checks', () => {
     await expect(game(page).locator('[data-moment="masked"]')).toBeVisible()
   })
 })
+
+test.describe('a 1-D target is one row', () => {
+  for (const width of [1440, 1280, 390, 320]) {
+    test(`at ${width} px \`views\`' target of 24 elements stands on one row, scrolls inside its box when it must, and the page does not scroll sideways`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 })
+      await openLevel(page, 'views')
+      // A phone keeps the target's numbers behind its toggle.
+      const toggle = page.locator('[data-shift-target-toggle]')
+      if (await toggle.isVisible()) await toggle.click()
+      const cells = page.locator('[data-shift-target-elements] [data-goal-element]')
+      await expect(cells).toHaveCount(24)
+      const seen = await cells.evaluateAll((all) => {
+        const tops = new Set(all.map((cell) => Math.round(cell.getBoundingClientRect().top)))
+        const box = all[0]?.closest<HTMLElement>('[data-one-row]')
+        return { rows: tops.size, grouped: box !== null && box !== undefined, own: box === null || box === undefined ? 0 : box.scrollWidth - box.clientWidth, page: document.documentElement.scrollWidth - document.documentElement.clientWidth }
+      })
+      expect(seen.grouped, 'the one row has a box of its own').toBe(true)
+      expect(seen.rows, 'the elements stand on this many lines').toBe(1)
+      expect(seen.page, 'the page scrolls sideways by').toBeLessThanOrEqual(0)
+      // 24 boxes of 24 px (578 px) do not fit the target's box (280 px at a desk's dock, 272 to 342 px on a phone): the row scrolls inside it.
+      expect(seen.own, 'the row scrolls inside its box by').toBeGreaterThan(0)
+      await cells.last().evaluate((cell) => cell.scrollIntoView({ block: 'nearest', inline: 'end' }))
+      expect(await page.evaluate(() => window.scrollX)).toBe(0)
+    })
+  }
+})

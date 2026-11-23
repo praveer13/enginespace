@@ -146,7 +146,7 @@ function TargetElements({ shape, elements, open }: { shape: readonly number[]; e
       {groups.map((group) => (
         <div key={group.slice ?? 'all'} className="es-shift__goal-group">
           {group.slice === null ? null : <span className="es-shift__goal-tag">[{group.slice}]</span>}
-          <span className="es-shift__goal-rows">
+          <span className="es-shift__goal-rows" data-one-row={shape.length === 1 || undefined}>
             {group.rows.map((row, r) => (
               <span key={r} className="es-shift__goal-row">
                 {row.map((element, c) => (
