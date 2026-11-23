@@ -269,6 +269,14 @@
   line-height: 1.4;
 }
 
+/* In 3D the legend and its note hold the room of what the run has not yet earned (the accepted and residual entries, the cut sentence, the dot
+   sentence), so the scene's box is the same on the commit and the first draw. Invisible text holds its line and leaves the reading order. */
+.es-vf__held,
+.es-vf__legend[data-held] .es-legend__entry:nth-child(3),
+.es-vf__legend[data-held] .es-legend__entry:nth-child(4) {
+  visibility: hidden;
+}
+
 .es-vf__dotkey {
   display: inline-block;
   box-sizing: border-box;
@@ -440,6 +448,22 @@
   font-family: var(--es-font-mono);
   font-size: var(--es-size-caption);
   white-space: nowrap;
+}
+
+/* The six labels sit in columns a sixth of the dock wide: on a phone the name is drawn smaller so that "token 0" and "token 1" do not touch,
+   and where a column is under 3rem it breaks after "token" instead of running into the next. */
+@media (max-width: 30rem) {
+  .es-vf-recipe .es-vf-stepper__label {
+    font-size: var(--es-size-micro);
+  }
+}
+
+@media (max-width: 24rem) {
+  .es-vf-recipe .es-vf-stepper__label {
+    white-space: normal;
+    text-align: center;
+    line-height: 1.2;
+  }
 }
 
 .es-vf-draws {

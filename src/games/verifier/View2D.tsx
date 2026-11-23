@@ -223,26 +223,28 @@ export function VerifierLegend({ run, scene = false }: { run: VerifierRun; scene
   const entries = [
     { slot: SLOT_OF.draft, word: <PartName id="draft">draft q</PartName> },
     { slot: SLOT_OF.target, word: <PartName id="target">target p</PartName> },
-    ...(decomposed
+    ...(decomposed || scene
       ? [
           { slot: SLOT_OF.accepted, word: <PartName id="accepted">accepted min(p, q)</PartName> },
           { slot: SLOT_OF.residual, word: scene ? <><PartName id="residual">residual (p − q)⁺</PartName>: grooved, its top pale</> : <PartName id="residual">residual (p − q)⁺</PartName> },
         ]
       : []),
-    // In 3D the output's mark is named in the row from the start, so the legend keeps its height and the scene's box never changes under a draw.
+    // In 3D every entry is in the row from the start (the accepted and residual entries, until the commit, are held invisible by the CSS), so
+    // the legend keeps its height and the scene's box never changes under the commit or a draw. The diagram holds its room by min-height.
     ...(outs || scene ? [{ slot: SLOT_OF.output, word: scene ? <><PartName id="output">output of the sampler</PartName>: the black collar on a target bar, dashed up to it where it stands over p</> : <PartName id="output">output of the sampler</PartName> }] : []),
   ]
   return (
-    <div className="es-vf__legend" data-vf-legend="">
+    <div className="es-vf__legend" data-vf-legend="" data-held={scene && !decomposed ? '' : undefined}>
       <Legend entries={entries} label="Legend: what the bars are" />
       <p className="es-vf__note">
-        <span data-vf-tokens="">Each token</span> has two bars out of 64: the draft&apos;s q, then the target&apos;s p{decomposed ? ', cut into what the rule makes of them' : ''}.
-        {dots ? (
-          <>
+        <span data-vf-tokens="">Each token</span> has two bars out of 64: the draft&apos;s q, then the target&apos;s p
+        {decomposed ? ', cut into what the rule makes of them' : scene ? <span className="es-vf__held">, cut into what the rule makes of them</span> : ''}.
+        {dots || scene ? (
+          <span className={dots ? undefined : 'es-vf__held'}>
             {' '}
             A drawn round is a dot on a q bar: <span className="es-vf__dotkey" data-kept="" aria-hidden="true" /> accepted below the accepted part,{' '}
             <span className="es-vf__dotkey" aria-hidden="true" /> rejected above it.
-          </>
+          </span>
         ) : null}
         {scene ? ' The 3D view stands the same tokens in rows, one row for each draft position, the first in front, and the scale at the right reads their heights.' : ''}
       </p>
