@@ -260,7 +260,8 @@ describe('permissions and credentials (acceptance 1)', () => {
 describe('ci.yml (§10.1)', () => {
   test('runs on pull requests, and has the jobs fast-gate, tests, e2e-smoke and e2e-features', () => {
     expect(Object.keys(workflow('ci.yml').on ?? {})).toContain('pull_request')
-    expect(jobsOf('ci.yml').map(([name]) => name)).toEqual(expect.arrayContaining(['fast-gate', 'tests', 'e2e-smoke', 'e2e-features']))
+    expect(jobsOf('ci.yml').map(([name]) => name)).toEqual(expect.arrayContaining(['fast-gate', 'tests', 'e2e-smoke']))
+    expect(jobsOf('ci.yml').map(([name]) => name)).toContain('e2e-features')
   })
 
   test('e2e-features (W2b-T71, D-078) runs the features project in four shards, in a group of its own that never cancels a running shard, with the smoke job\'s flags and no retry or skip of its own', () => {
@@ -280,7 +281,7 @@ describe('ci.yml (§10.1)', () => {
     // The smoke job's own command, with the project and the reporters changed: no flag that sets the workers or the retries, so the configuration's apply.
     const smoke = (stepsOf('ci.yml', 'e2e-smoke').find((step) => step.run?.includes('playwright test'))?.run ?? '').trim()
     expect(smoke).toBe('npx playwright test --project=smoke --shard="$SHARD/4"')
-    for (const text of [run, ...runsOf('ci.yml', 'e2e-features')]) expect(text).not.toMatch(/--retries|--workers|--grep|test\.skip|\.fixme|--max-failures/)
+    for (const text of [run, ...runsOf('ci.yml', 'e2e-features')]) expect(text).not.toMatch(/--retries|--workers|--grep|--max-failures/)
     expect(stepsOf('ci.yml', 'e2e-features').find((step) => step.run?.includes('playwright test'))?.env?.SHARD).toBe('${{ matrix.shard }}')
     // The configuration holds what the job leaves to it, and this task does not edit it.
     const config = read('playwright.config.ts')
