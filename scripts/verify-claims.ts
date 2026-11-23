@@ -7,7 +7,9 @@
  *   - two claims share an id;
  *   - a date lies in the future (a day's slack covers time zones);
  *   - a derived claim does not recompute from the inputs it declares, or declares one it does not read;
- *   - a claim's `pin` names a key that `course.lock.json` does not have, once that file exists (W1-T01).
+ *   - a claim's `pin` names a key that `course.lock.json` does not have, once that file exists (W1-T01);
+ *   - a claim cites the MLC book other than `mlc-book.gemm-launch-api`, and that one cites the book's repository and not its site. The book names no
+ *     licence that the course has found, so it is cited and never quoted: one figure is held, as its authors', and no other claim may be added (D-069).
  * It never fails on age. A claim past its TTL is listed as a warning with the day it went stale.
  *
  * A formula is arithmetic over its inputs' ids and numbers: + - * / and parentheses, and ceil, floor, round, min, max and abs.
@@ -180,6 +182,15 @@ const DAY = 86_400_000
 const dayNumber = (date: string): number => Date.parse(`${date}T00:00:00Z`) / DAY
 const dateOf = (day: number): string => new Date(day * DAY).toISOString().slice(0, 10)
 
+/** The one claim that may cite the MLC book "Modern GPU Programming For MLSys". */
+export const BOOK_CLAIM = 'mlc-book.gemm-launch-api'
+
+const BOOK_REPOSITORY = /^https:\/\/github\.com\/mlc-ai\/modern-gpu-programming-for-mlsys\/blob\/[0-9a-f]{40}\/[^#]+(?:#L\d+(?:-L\d+)?)?$/
+const BOOK_ADDRESS = /^https:\/\/(?:mlc\.ai\/modern-gpu-programming-for-mlsys\b|github\.com\/mlc-ai\/modern-gpu-programming-for-mlsys\b)/
+
+/** Whether a claim cites the book: by its id, by its pin, or by an address of its site or its repository. */
+export const citesBook = (claim: ClaimRecord['claim']): boolean => claim.id.startsWith('mlc-book.') || claim.pin === 'mlc-book' || BOOK_ADDRESS.test(claim.source?.url ?? '')
+
 /** The checks that need every claim at once: dates, derived values, pins, and age. `today` is `YYYY-MM-DD`. */
 export function claimProblems(records: readonly ClaimRecord[], lockKeys: ReadonlySet<string> | null, today: string): Diagnostic[] {
   const out: Diagnostic[] = []
@@ -192,6 +203,11 @@ export function claimProblems(records: readonly ClaimRecord[], lockKeys: Readonl
     const dates = [['verifiedAt', claim.verifiedAt], ...(claim.source === undefined ? [] : [['source.accessed', claim.source.accessed]])] as const
     for (const [name, date] of dates) {
       if (dayNumber(date) > latest) error('future-date', record, `${name} is ${date}, which is after today (${today})`)
+    }
+
+    if (citesBook(claim)) {
+      if (claim.id !== BOOK_CLAIM) error('book-cited', record, `cites the MLC book, which only ${BOOK_CLAIM} may do: the book names no licence, so nothing is quoted from it`)
+      else if (!BOOK_REPOSITORY.test(claim.source?.url ?? '')) error('book-source', record, "cites the book's site and not a file of its repository at a commit")
     }
 
     if (claim.pin !== undefined && lockKeys !== null && !lockKeys.has(claim.pin)) {

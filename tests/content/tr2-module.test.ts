@@ -478,12 +478,12 @@ describe(`the claims of ${CLAIMS_FILE}`, () => {
     new RegExp(`^https://github\\.com/vllm-project/vllm/blob/v${entry('vllm').version}/[^#]+#L\\d+(?:-L\\d+)?$`),
     new RegExp(`^https://github\\.com/sgl-project/sglang/blob/v${entry('sglang').version}/[^#]+#L\\d+(?:-L\\d+)?$`),
     new RegExp(`^https://github\\.com/sgl-project/mini-sglang/blob/${entry('mini-sglang').commit}/[^#]+#L\\d+(?:-L\\d+)?$`),
+    // The book "Modern GPU Programming For MLSys": one figure of its measuring appendix, read as the repository's file at the commit that the lock pins.
+    new RegExp(`^https://github\\.com/mlc-ai/modern-gpu-programming-for-mlsys/blob/${entry('mlc-book').commit}/appendix/benchmarking_gpu_kernels\\.md#L\\d+$`),
   ]
   const OTHERS: readonly RegExp[] = [
     /^https:\/\/github\.com\/NVIDIA\/TensorRT-LLM\/blob\/b96ba434e8a05e2ab52d2082bd8d70b1d844739b\/[^#]+#L\d+(?:-L\d+)?$/,
     /^https:\/\/github\.com\/praveer13\/kernelspace\/blob\/d478f91[0-9a-f]{33}\/[^#]+#L\d+(?:-L\d+)?$/,
-    // The book "Modern GPU Programming For MLSys", read as a page: its measuring appendix, for one figure that its authors report.
-    /^https:\/\/mlc\.ai\/modern-gpu-programming-for-mlsys\/appendix\/benchmarking_gpu_kernels\.html$/,
   ]
   /** The two posts, which are read as pages and not at a line. */
   const POSTS: readonly RegExp[] = [/^https:\/\/vllm\.ai\/blog\/2026-03-24-mrv2$/, /^https:\/\/lmsys\.org\/blog\/2026-08-17-advanced-cuda-graph\/$/]
@@ -843,7 +843,7 @@ describe('lesson 5: CUDA graphs', () => {
     mentions('tr2.l5', 'the section', 'in the appendix on measuring a kernel, under “Locate the Most Expensive Kernel in the Timeline”, read on 2026-11-18.')
     mentions('tr2.l5', 'the learner settles it', 'your own capture in TR3 is what settles the figure for your machine')
     const book = result.claims.find((record) => record.claim.id === 'mlc-book.gemm-launch-api')?.claim
-    expect([book?.value, book?.tag, book?.source?.accessed]).toEqual([50.717, 'unverified', '2026-11-18'])
+    expect([book?.value, book?.tag, book?.source?.accessed]).toEqual([50.717, 'unverified', '2026-11-23'])
     // The figure comes after the guess, which asks for the model's own launch cost.
     const text = lessonOf('tr2.l5').text
     expect(text.indexOf('{{claim:mlc-book.gemm-launch-api}}')).toBeGreaterThan(text.indexOf('id: tr2.l5.p1'))

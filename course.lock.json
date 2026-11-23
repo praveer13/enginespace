@@ -85,6 +85,16 @@
       "notes": "The tag v59.1, the newest tag on 2026-11-04 [measured]. The tag is annotated, and this is the commit it points to. The hosted UI at ui.perfetto.dev reported its stable channel as v59.1-79997ada9 on that day, a different commit from the tag's, so a learner who opens a trace in the hosted UI may see a build that is not this commit [measured]."
     },
     {
+      "key": "mlc-book",
+      "kind": "git",
+      "name": "Modern GPU Programming For MLSys (MLC)",
+      "commit": "3a24144defa6da03d4ab8a1dfcf513b18007d15f",
+      "url": "https://github.com/mlc-ai/modern-gpu-programming-for-mlsys",
+      "checkedAt": "2026-11-23",
+      "ttlDays": 90,
+      "notes": "A reading target, cited and never quoted: the course holds one figure of its measuring appendix, as its authors' and [unverified] (D-069), in content/claims/tr2.yaml. One request on 2026-11-23 resolved the newest commit on the repository's main branch, from the repository's commit feed, which was last updated on 2026-11-02 [measured 2026-11-23]; appendix/benchmarking_gpu_kernels.md was read at that commit. The repository names no licence that the course has found, so nothing is copied from it. verify:claims refuses any claim of the book but mlc-book.gemm-launch-api."
+    },
+    {
       "key": "torch",
       "kind": "pypi",
       "name": "torch",
