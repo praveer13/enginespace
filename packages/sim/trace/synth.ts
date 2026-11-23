@@ -158,13 +158,24 @@ interface StepFrames {
   sync: Frame | null
 }
 
+/** What `traceFromRun` may be asked besides the jitter. */
+export interface TraceOptions {
+  /**
+   * Draw a second `gpu-stream` track, "GPU stream 1", that carries the two copies of each forward while stream 0 carries its
+   * kernels. Each stream then has empty stretches that the other covers, and GPU-busy is the union over the streams, so the run's
+   * forwards are still exactly what the GPU is busy with. Off (the default) draws nothing of it: the bytes are those of a trace
+   * made without the option. The second stream draws nothing from the seed.
+   */
+  readonly secondStream?: boolean
+}
+
 /**
  * Writes `run` out as a synthetic `trace@1` (§5.7), with seeded jitter. The same run, seed and jitter give the same bytes in every
  * runtime. `run` is a `StepLoopRun` as `runStepLoop` returns it, cut by a horizon or not; the trace has the lanes' ns on three
  * tracks (the main thread's frames, its CUDA API calls, and GPU stream 0), and marks at the end of each forward, plus one where the
  * first begins. It is marked synthetic and carries no engine, version, GPU, date or hash.
  */
-export function traceFromRun(run: StepLoopRun, seed: Seed, jitter: JitterSpec = DEFAULT_JITTER): EsTrace {
+export function traceFromRun(run: StepLoopRun, seed: Seed, jitter: JitterSpec = DEFAULT_JITTER, options: TraceOptions = {}): EsTrace {
   assertSeed(seed)
   checkJitter(jitter)
   const cpuLane = run.lanes['cpu-main']
@@ -176,6 +187,7 @@ export function traceFromRun(run: StepLoopRun, seed: Seed, jitter: JitterSpec = 
   const cpuTrack = out.track('cpu-thread', 'engine core main thread')
   const apiTrack = out.track('cuda-api', 'CUDA API')
   const gpuTrack = out.track('gpu-stream', 'GPU stream 0')
+  const copyTrack = options.secondStream === true ? out.track('gpu-stream', 'GPU stream 1') : gpuTrack
 
   // The main thread's frames. Where two frames touch, the boundary between them moves by up to cpuNoiseNs, and by less if a frame
   // would shrink to nothing. The first start and last end of every run of touching frames stay where the run has them, so the
@@ -245,7 +257,7 @@ export function traceFromRun(run: StepLoopRun, seed: Seed, jitter: JitterSpec = 
 
     let cursor = fs
     const place = (part: number, name: string, cat: string, c: number, call: number, flow: 'launch' | 'copy'): number => {
-      const span = out.span(gpuTrack, cursor, part, name, cat, c)
+      const span = out.span(cat === CAT_COPY ? copyTrack : gpuTrack, cursor, part, name, cat, c)
       out.flow(call, span, flow)
       cursor += part
       return span
