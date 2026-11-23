@@ -59,7 +59,14 @@ export function Component() {
     <>
       {/* The one h1 of the page is the game's title, from the first paint: the loading line, the game's own heading and the tab say the same name. */}
       <h1 className="sr-only">{game.entry.title}</h1>
-      <Suspense fallback={<p role="status">Loading {game.entry.title}…</p>}>
+      {/* A screen high, so the footer waits below the fold and is not pushed out of the window when the game arrives. */}
+      <Suspense
+        fallback={
+          <p role="status" style={{ minHeight: '100vh' }}>
+            Loading {game.entry.title}…
+          </p>
+        }
+      >
         {proving ? <ProveSession key={prove} entry={game.entry} level={prove} Game={Loaded} record={recorder.record} /> : <Loaded level={level} onFinish={recorder.record} />}
       </Suspense>
       {recorder.problem === null ? null : <NotRecorded detail={recorder.problem} />}
