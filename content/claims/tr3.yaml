@@ -156,39 +156,39 @@
   pin: vllm
 
 - id: vllm.profiling.trace-name
-  value: 'rank0.<id>.pt.trace.json.gz'
-  text: 'Each worker names its trace after its rank, for example rank0.<id>.pt.trace.json.gz, and writes a summary table beside it.'
+  value: 'named after its rank'
+  text: 'Each worker names its trace after its rank, as rank0, then an id, then .pt.trace.json.gz, and writes a summary table beside it.'
   tag: measured
   source:
     url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/docs/contributing/profiling.md#L34-L36
     title: 'vLLM 4ba787ec (v0.33.0), docs/contributing/profiling.md'
-    quote: 'named after its rank, for example `rank0.<id>.pt.trace.json.gz` and `rank0.profiler_out.txt`.'
+    quote: 'named after its rank, for example'
     accessed: 2026-11-23
   verifiedAt: 2026-11-23
   ttlDays: 90
   pin: vllm
 
 - id: vllm.profiling.frontend-trace-name
-  value: '<hostname>_<pid>.async_llm'
+  value: 'hostname and process id'
   text: 'The trace of the AsyncLLM frontend is named after the host''s name and the process id, not after a rank, so a learner who shares it shares the host''s name.'
   tag: measured
   source:
     url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/docs/contributing/profiling.md#L38-L39
     title: 'vLLM 4ba787ec (v0.33.0), docs/contributing/profiling.md'
-    quote: 'The AsyncLLM CPU trace uses `<hostname>_<pid>.async_llm` instead of the rank name.'
+    quote: 'The AsyncLLM CPU trace uses'
     accessed: 2026-11-23
   verifiedAt: 2026-11-23
   ttlDays: 90
   pin: vllm
 
 - id: vllm.profiling.prefix-name
-  value: '<profile_prefix>_'
+  value: 'a prefix on the file names'
   text: 'A profile_prefix given to a session is put in front of the trace and summary file names, so two sessions do not overwrite each other.'
   tag: measured
   source:
     url: https://github.com/vllm-project/vllm/blob/4ba787ec9959e566d3b587a796dff07673324da5/docs/contributing/profiling.md#L39-L41
     title: 'vLLM 4ba787ec (v0.33.0), docs/contributing/profiling.md'
-    quote: 'When a session sets `profile_prefix`, it is prepended as `<profile_prefix>_`'
+    quote: 'When a session sets `profile_prefix`, it is prepended as'
     accessed: 2026-11-23
   verifiedAt: 2026-11-23
   ttlDays: 90
@@ -315,7 +315,7 @@
   pin: vllm
 
 - id: vllm.profiling.step-annotation
-  value: 'execute_context_<n>(<tokens>)_generation_<m>(<tokens>)'
+  value: 'execute_context_ then _generation_'
   text: 'Unless detailed annotations are on, a profiled worker step is wrapped in a range named execute_context_, the number of context requests and their tokens in brackets, then _generation_ and the same two numbers for generation requests.'
   tag: measured
   source:
@@ -328,7 +328,7 @@
   pin: vllm
 
 - id: vllm.profiling.step-annotation-detailed
-  value: 'execute_<tokens>_context_<n>(sq..sk..sqsq..sqsk..)'
+  value: 'execute_ then _context_ then _generation_'
   text: 'With detailed annotations on, the range is named execute_, the scheduled tokens, then _context_ and the context requests with four sums (sq, sk, sqsq, sqsk) in brackets, then _generation_ with the same for generation.'
   tag: measured
   source:
@@ -881,7 +881,7 @@
   source:
     url: https://github.com/sgl-project/sglang/blob/297e54fd105e974cdf401e5b4d20253a22c16f90/docs/docs/developer_guide/benchmark_and_profiling.mdx#L337-L338
     title: 'SGLang 297e54fd (v0.5.23), docs/docs/developer_guide/benchmark_and_profiling.mdx'
-    quote: 'Individual rank trace files: `&#123;profile_id&#125;-TP-&#123;tp&#125;-DP-&#123;dp&#125;-PP-&#123;pp&#125;-EP-&#123;ep&#125;.trace.json.gz`'
+    quote: 'Individual rank trace files:'
     accessed: 2026-11-23
   verifiedAt: 2026-11-23
   ttlDays: 90
@@ -966,7 +966,7 @@
   pin: torch
 
 - id: torch.profiler.step-range
-  value: 'ProfilerStep#<n>'
+  value: 'ProfilerStep#'
   text: 'Each profiler step is recorded as a range named ProfilerStep# followed by the step number.'
   tag: measured
   source:
@@ -992,7 +992,7 @@
   pin: torch
 
 - id: torch.profiler.trace-file-name
-  value: '<worker>.<ns>.pt.trace.json(.gz)'
+  value: 'pt.trace.json, and .gz when gzip is on'
   text: 'The tensorboard trace handler names a file after the worker, the time in nanoseconds and .pt.trace.json, with .gz added when gzip is on.'
   tag: measured
   source:
