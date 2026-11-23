@@ -128,7 +128,7 @@ describe('the keys', () => {
     for (const seed of SEEDS) {
       const item = gridCover.make(seed, level, 'which-program')
       const { shape, block, grid } = read(item)
-      const at = codes(item).find((c) => /^\(\d/.test(c))?.slice(1, -1).split(',').map(Number) ?? []
+      const at = (codes(item).find((c) => /^\(?\d/.test(c)) ?? '').replace(/[()]/g, '').split(',').map(Number)
       expect(at).toHaveLength(shape.length)
       const ran = launch(shape, block, grid ?? defaultGrid(shape, block))
       const cover = ran.covers.get(at.join(',')) ?? []
@@ -238,6 +238,20 @@ describe('the draws', () => {
     for (const level of LEVELS) {
       const report = measureBlind(gridCover, level, bandedSeeds(gridCover, level, 1000))
       expect(report.over).toEqual([])
+    }
+  })
+})
+
+describe('a place in one dimension is a number, not a 1-tuple', () => {
+  test('no printed code part of a 1-D launch is written as a parenthesized single number', () => {
+    for (const seed of SEEDS) {
+      for (const level of LEVELS) {
+        for (const variant of offeredAt(gridCover, level)) {
+          const item = gridCover.make(seed, level, variant.id)
+          const parts = [...item.stem, ...gridCover.solution(item).flatMap((step) => step.text), ...item.givens.flatMap((given) => [given.value])]
+          for (const part of parts) if (part.t === 'code') expect(part.code).not.toMatch(/^\(\d+\)$/)
+        }
+      }
     }
   })
 })

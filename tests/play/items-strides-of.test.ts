@@ -193,3 +193,22 @@ describe('the draws', () => {
     }
   })
 })
+
+describe('the hint of a wrong dimension speaks of the calls the question has', () => {
+  test('an expand question without a transpose or a permute never mentions them', () => {
+    let seen = 0
+    for (const seed of SEEDS) {
+      const item = stridesOf.make(seed, 1, 'expand')
+      if (linesOf(item).some((line) => /transpose|permute/.test(line))) continue
+      for (let value = 0; value < 200; value += 1) {
+        const graded = stridesOf.grade(item, { kind: 'numeric', value })
+        const text = plain(graded.diagnosis?.message ?? [])
+        if (text.includes('not of the one asked for')) {
+          expect(text).not.toMatch(/transpose|permute/)
+          seen += 1
+        }
+      }
+    }
+    expect(seen).toBeGreaterThan(0)
+  })
+})

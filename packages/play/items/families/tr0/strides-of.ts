@@ -214,7 +214,16 @@ const DIAGNOSES: readonly DiagnosisRule[] = [
     if (run === null) return null
     const strides = run.views[run.views.length - 1].strides
     const other = strides.findIndex((s, at) => at !== scene.dim && s === value)
-    return other >= 0 ? { id: `${FAMILY}.other-dimension`, message: rich('That is the stride of dimension ', num(other, { tag: 'derived' }), ', not of the one asked for. A transpose or a permute moves the strides together with the sizes.') } : null
+    if (other < 0) return null
+    // The reminder names the calls this question has: a transpose and a permute reorder the strides, an expand gives a stride of zero, a slice scales one.
+    const reorders = scene.ops.some((o) => o.op === 'transpose' || o.op === 'permute')
+    const expands = scene.ops.some((o) => o.op === 'expand')
+    const reminder = reorders
+      ? 'A transpose or a permute moves the strides together with the sizes.'
+      : expands
+        ? 'An expand gives only the dimension that grew a stride of zero, and the other dimensions keep the strides they had.'
+        : 'Each dimension has a stride of its own: read the one the question names.'
+    return { id: `${FAMILY}.other-dimension`, message: rich('That is the stride of dimension ', num(other, { tag: 'derived' }), ', not of the one asked for. ', reminder) }
   },
   (item, value) => {
     const scene = sceneOfItem(item)
