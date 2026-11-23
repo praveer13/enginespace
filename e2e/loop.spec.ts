@@ -387,11 +387,15 @@ test.describe('action, state and result share one screen', () => {
           return r.width > 0 && r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight + 1 && r.right <= innerWidth + 1
         })
       expect(await page.evaluate(() => scrollY)).toBe(0)
-      expect(await inView('[data-lane-now] .es-marker__word')).toBe(true)
-      expect(await inView('.es-lanes__chips button')).toBe(true)
-      expect(await inView('[data-loop-readout]')).toBe(true)
+      // The diagram is drawn at a default width for one frame, then at the box's measured width, with now scrolled into view: the check is
+      // of the settled picture, which is there once the page has measured its box.
+      await expect.poll(() => inView('[data-lane-now] .es-marker__word'), { timeout: BOOT }).toBe(true)
+      await expect.poll(() => inView('.es-lanes__chips button'), { timeout: BOOT }).toBe(true)
+      await expect.poll(() => inView('[data-loop-readout]'), { timeout: BOOT }).toBe(true)
       // A level of many steps: the track keeps now in its box as the run goes on.
       await open(page, 'first-4-par')
+      // The game's frame is in the page before its diagram and its tickets are: the run starts when the first ticket is there to press.
+      await expect(enabledTickets(page).first()).toBeVisible({ timeout: BOOT })
       for (let turn = 0; turn < 10; turn++) {
         while ((await enabledTickets(page).count()) > 0) await enabledTickets(page).first().click()
         if ((await bell(page).count()) > 0) await bell(page).click()
