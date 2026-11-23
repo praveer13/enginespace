@@ -164,7 +164,6 @@
   }
 
   .es-frame[data-placement='page'] .es-intro[data-intro='parts'] {
-    min-height: var(--es-intro-parts-height);
     margin-bottom: 0;
     padding-bottom: 0;
     border-bottom: 0;

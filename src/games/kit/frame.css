@@ -543,37 +543,8 @@
  * that does not answer leaves the controls.
  */
 @media (max-width: 63.999rem) {
-  .es-frame[data-placement='page'][data-phase='play'][data-intro='parts'][data-intro-wait] .es-frame__dock-main > :not(.es-intro, .es-intro-room) {
+  .es-frame[data-placement='page'][data-phase='play'][data-intro='parts'][data-intro-wait] .es-frame__dock-main > :not(.es-intro) {
     display: none;
-  }
-}
-
-/*
- * The room the strip takes on a phone, held from the first draw and given up when the strip stands in it (the strip keeps the same height,
- * intro.css), so the readout under it, and the drawing on a short screen, are not moved by the strip's arrival.
- */
-.es-frame {
-  --es-intro-parts-height: 8rem;
-}
-
-.es-intro-room {
-  display: none;
-}
-
-@media (max-width: 63.999rem) {
-  .es-frame[data-placement='page'][data-phase='play'][data-intro='parts'] .es-intro-room:not(:has(~ .es-intro)) {
-    display: block;
-    min-height: var(--es-intro-parts-height);
-  }
-}
-
-/*
- * A short screen, narrow or landscape: while the first run is read, the dock stands over the drawing, so its Next and the readout are in the
- * first screen where the page does not scroll to them. The drawing follows under it; the strip's callouts name its parts as before.
- */
-@media (max-width: 63.999rem) and (max-height: 699px) {
-  .es-frame[data-placement='page'][data-phase='play'][data-intro] > .es-frame__body > .es-frame__dock {
-    order: -1;
   }
 }
 

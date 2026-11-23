@@ -417,49 +417,6 @@ test.describe('action, state and result share one screen', () => {
 })
 
 /*
- * The first screen of a first visit, where the intro's strip is a chunk that comes after the game is drawn (DC-A, DC-B): the readout does not
- * move when the strip arrives, and the strip's own Next, the current control, is in the screen at the sizes that were cut.
- */
-test.describe('the first run\'s strip', () => {
-  for (const [width, height] of [
-    [390, 844],
-    [360, 640],
-    [320, 640],
-    [844, 390],
-    [640, 400],
-  ] as const) {
-    test(`at ${width} x ${height}: the readout stays where it was drawn when the strip arrives, and Next is in the screen`, async ({ page }) => {
-      test.setTimeout(120_000)
-      await page.setViewportSize({ width, height })
-      // A busy machine: the strip's chunk comes well after the game's first draw.
-      const cdp = await page.context().newCDPSession(page)
-      await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 })
-      await open(page, 'first-1-fill')
-      await page.evaluate(() => {
-        const tops: number[] = []
-        ;(window as unknown as { __readoutTops: number[] }).__readoutTops = tops
-        const sample = () => {
-          const readout = document.querySelector('[data-loop-readout]')
-          if (readout !== null) tops.push(Math.round(readout.getBoundingClientRect().top))
-          requestAnimationFrame(sample)
-        }
-        sample()
-      })
-      await expect(page.locator('.es-intro [data-intro-next]')).toBeVisible({ timeout: BOOT })
-      await page.waitForTimeout(400)
-      const tops = await page.evaluate(() => (window as unknown as { __readoutTops: number[] }).__readoutTops)
-      expect(tops.length).toBeGreaterThan(0)
-      expect([...new Set(tops)], 'the readout\'s top at every frame').toHaveLength(1)
-      const next = await page.locator('.es-intro [data-intro-next]').evaluate((element) => {
-        const r = element.getBoundingClientRect()
-        return r.top >= 0 && r.bottom <= innerHeight + 1 && r.left >= 0 && r.right <= innerWidth + 1
-      })
-      expect(next, 'Next in the screen').toBe(true)
-    })
-  }
-})
-
-/*
  * R-T14: the four demo levels read in the engine's words (REDESIGN §2.7). The copy guard over what the page shows, at the start, while a
  * level is played to its end, and at its debrief: its text, its labels and the lines its live regions say.
  */
