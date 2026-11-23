@@ -490,7 +490,7 @@ describe('the rows of W2b-T70', () => {
 
   test('src/prove/ and packages/ledger/ give settings, ledger-conformance, every prove-* spec and the specs that hold a Prove describe', () => {
     for (const file of ['src/prove/window.ts', 'packages/ledger/codec.ts']) {
-      expect(step(on(file), 'features', false)?.specs).toEqual(['ledger-conformance', 'settings', ...PROVE_SPECS].sort())
+      expect(step(on(file), 'features', false)?.specs).toEqual(['ledger-conformance', 'prove-mode', 'settings', ...PROVE_SPECS].sort())
       expect(step(plan([file], [...specs, 'prove-mode']), 'features', false)?.specs).toContain('prove-mode')
     }
   })
