@@ -10,9 +10,10 @@ import type { LedgerEvent } from '@es/ledger'
 import { weightOf } from '@es/ledger/provenance'
 import type { MapLesson } from '@es/schema/compiled'
 import { ATTEMPT_WORDS } from '@/progress/words'
-import { indexLessons, lessonName, ownersOf } from '@/progress/next'
-import type { LevelNamer } from '@/progress/next'
-import { stageOf } from '@/receipts/labs'
+import { indexLessons, lessonName, placeEvents } from '@/progress/next'
+import type { Bookmark, LevelNamer } from '@/progress/next'
+import { LAB_TITLES } from '@/forge/titles'
+import { labForStage, stageOf } from '@/receipts/labs'
 
 export interface ActivityRow {
   readonly id: string
@@ -44,8 +45,48 @@ export function resultOf(event: LedgerEvent): string {
   return weight === 1 ? ATTEMPT_WORDS.yes : weight > 0 ? ATTEMPT_WORDS.practice : ATTEMPT_WORDS.no
 }
 
-/** What a stage of a GPU lab is called, in the stage's own words: "the instrumented fork", or "a GPU lab stage" when this build does not list it. */
-const stageWords = (stage: string): string => stageOf(stage)?.name ?? 'a GPU lab stage'
+/** A lab by its title in the engine's words, as its page heads it: "Build a hybrid KV cache manager". A lab this build has no title for is "a lab". */
+const labWords = (lab: string): string => (Object.hasOwn(LAB_TITLES, lab) ? `“${LAB_TITLES[lab]}”` : 'a lab')
+
+/** A stage of a lab with the lab's name: "“Build the Qwen3-0.6B forward pass on a CPU”, stage 3, with a KV cache". A stage this build does not list is "a stage of a lab". */
+function stageWords(stage: string): string {
+  const known = stageOf(stage)
+  const lab = labForStage(stage)
+  if (known === undefined || lab === undefined) return 'a stage of a lab'
+  return `${labWords(lab.id)}, stage ${known.n}, ${known.name}`
+}
+
+/** How a guess came out against the truth, in the learner's words: "exact" when it was the answer itself, "close" when it was right within the bar, "off" otherwise. */
+export const GUESS_WORDS = { exact: 'exact', close: 'close', off: 'off' } as const
+
+const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b)
+
+/** A prediction's reading: the value against the truth the reveal showed. A choice that is right, and a number or an interval that is the truth itself, is exact. */
+function guessResult(event: Extract<LedgerEvent, { kind: 'predict' }>): string {
+  if (!event.ok) return GUESS_WORDS.off
+  const { value, truth } = event.data
+  if (typeof value === 'string') return GUESS_WORDS.exact
+  if (typeof value === 'number') return value === truth ? GUESS_WORDS.exact : GUESS_WORDS.close
+  const point = typeof truth === 'object' ? truth.lo : truth
+  return value.lo === value.hi && same(value.lo, point) ? GUESS_WORDS.exact : GUESS_WORDS.close
+}
+
+/** The whole-number guesses a run's own log holds: its `commit` actions, before the first move of a target. Nothing else of the log is read here. */
+export function runGuesses(actions: string): number[] {
+  try {
+    const parsed: unknown = JSON.parse(actions)
+    if (!Array.isArray(parsed)) return []
+    return parsed.flatMap((action: unknown) => {
+      const a = action as { t?: unknown; prediction?: unknown } | null
+      return a !== null && typeof a === 'object' && a.t === 'commit' && typeof a.prediction === 'number' && Number.isFinite(a.prediction) ? [a.prediction] : []
+    })
+  } catch {
+    return []
+  }
+}
+
+/** "1", "1 and 3", "1, 3 and 2". */
+const listed = (values: readonly number[]): string => (values.length < 2 ? values.join('') : `${values.slice(0, -1).join(', ')} and ${values.at(-1)}`)
 
 /** How a game's run reads in the log: "practice" until the level is graded. A graded level is one the compiled map lists as graded. */
 export interface RowContext {
@@ -54,6 +95,8 @@ export interface RowContext {
   levelName: LevelNamer
   /** What a question asks about, from its family and variant: "The gap with async scheduling off". Left out, a row says only that a question was answered. */
   itemName?: ItemNamer
+  /** The place last in view, which settles a question that two lessons ask (`placeEvents`). Left out, a question goes by the events around it. */
+  bookmark?: Bookmark | null
 }
 
 /** A question's subject for the learner: the words of its family's variant. Undefined for a family or variant this build does not list. */
@@ -65,14 +108,16 @@ const refParts = (ref: string): string[] => ref.slice(ref.indexOf(':') + 1).spli
 export function activityRows(events: readonly LedgerEvent[], context: RowContext): ActivityRow[] {
   const index = indexLessons(context.lessons)
   const graded = new Set(context.lessons.flatMap((lesson) => lesson.test.graded))
+  const placed = placeEvents(events, index, context.bookmark ?? null)
   const rows: ActivityRow[] = []
   for (const event of events) {
-    const owner = ownersOf(event, index)[0]
+    // A question is filed under the lesson it was answered in, which is not always the first lesson that asks its family.
+    const owner = placed.get(event)?.[0]
     const where = owner === undefined ? undefined : lessonName(owner, context.lessons)
     const base = { id: event.id, day: event.day, ...(where === undefined ? {} : { where }) }
     switch (event.kind) {
       case 'predict':
-        rows.push({ ...base, what: 'Committed a guess before a run', result: event.ok ? 'close' : 'off' })
+        rows.push({ ...base, what: 'Committed a guess before a run', result: guessResult(event) })
         break
       case 'item': {
         const parts = refParts(event.ref)
@@ -85,14 +130,17 @@ export function activityRows(events: readonly LedgerEvent[], context: RowContext
         const named = context.levelName(parts[0] ?? '', parts[1] ?? '')
         // A run proved with the agent closed (src/prove) says so: it reads differently from a graded run played with the agent open.
         const closed = event.provenance === 'proved' ? ', agent closed' : ''
-        rows.push({ ...base, what: `Played ${named ?? 'a level'}${closed}`, result: resultOf(event), kind: graded.has(event.ref) ? 'graded' : 'practice' })
+        // A run at part weight was played as practice, even on a level that is graded: the row says what the run counted for.
+        const guesses = runGuesses(event.data.actions)
+        const guessed = guesses.length === 0 ? '' : `, guessing ${listed(guesses)} before the moves`
+        rows.push({ ...base, what: `Played ${named ?? 'a level'}${guessed}${closed}`, result: resultOf(event), kind: graded.has(event.ref) && event.provenance !== 'practice' ? 'graded' : 'practice' })
         break
       }
       case 'lab-check':
-        rows.push({ ...base, what: 'Checked a lab in this browser', result: resultOf(event) })
+        rows.push({ ...base, what: `Checked ${labWords(refParts(event.ref)[0] ?? '')} in this browser`, result: resultOf(event) })
         break
       case 'prove':
-        rows.push({ ...base, what: 'Predicted a lab’s reply with the agent closed', result: resultOf(event) })
+        rows.push({ ...base, what: `Predicted the reply of ${labWords(refParts(event.ref)[0] ?? '')} with the agent closed`, result: resultOf(event) })
         break
       case 'trace-mark':
         rows.push({ ...base, what: 'Marked spans on a trace', result: resultOf(event) })
@@ -101,7 +149,7 @@ export function activityRows(events: readonly LedgerEvent[], context: RowContext
         rows.push({ ...base, what: `Got a challenge for ${stageWords(refParts(event.ref)[0] ?? '')}`, result: 'issued' })
         break
       case 'receipt':
-        rows.push({ ...base, what: `Brought back a GPU lab result for ${stageWords(refParts(event.ref)[0] ?? '')}`, result: resultOf(event) === ATTEMPT_WORDS.no ? 'not counted' : resultOf(event) })
+        rows.push({ ...base, what: `Brought back a lab result for ${stageWords(refParts(event.ref)[0] ?? '')}`, result: resultOf(event) === ATTEMPT_WORDS.no ? 'not counted' : resultOf(event) })
         break
       case 'review':
         rows.push({ ...base, what: 'Reviewed a skill', result: resultOf(event) })

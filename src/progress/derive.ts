@@ -52,8 +52,10 @@ export interface Tally {
 export interface LoopProgress {
   /** Predict: predictions made. They earn no credit (ASSESSMENT §4.7). */
   readonly predicted: number
-  /** Play: game runs, items and trace marks. */
+  /** Play: game runs and trace marks. A Test answer is a question and not a run: it is `ask`'s. */
   readonly play: Tally
+  /** Ask: the questions answered, in a Test, in Read or in Today. */
+  readonly ask: Tally
   /** Build: lab checks and receipts. */
   readonly build: Tally
   /** Prove: whether any result passed with the agent closed (provenance `proved`). */
@@ -117,12 +119,13 @@ const earns = (event: GradedEvent): boolean => event.kind !== 'predict' && event
 interface MutableLoop {
   predicted: number
   play: MutableTally
+  ask: MutableTally
   build: MutableTally
   proved: boolean
   keep: MutableTally
   events: number
 }
-const emptyLoop = (): MutableLoop => ({ predicted: 0, play: emptyTally(), build: emptyTally(), proved: false, keep: emptyTally(), events: 0 })
+const emptyLoop = (): MutableLoop => ({ predicted: 0, play: emptyTally(), ask: emptyTally(), build: emptyTally(), proved: false, keep: emptyTally(), events: 0 })
 
 function loopOf(loop: MutableLoop, event: GradedEvent): void {
   loop.events += 1
@@ -131,9 +134,11 @@ function loopOf(loop: MutableLoop, event: GradedEvent): void {
       loop.predicted += 1
       break
     case 'play':
-    case 'item':
     case 'trace-mark':
       tallyOf(loop.play, event)
+      break
+    case 'item':
+      tallyOf(loop.ask, event)
       break
     case 'lab-check':
     case 'receipt':
@@ -238,7 +243,7 @@ export function deriveProgress(
       module: module.id,
       kcs: own,
       counts: countsOf(own.map((kc) => kc.state)),
-      loop: { predicted: loop.predicted, play: loop.play, build: loop.build, proved: loop.proved, keep: loop.keep },
+      loop: { predicted: loop.predicted, play: loop.play, ask: loop.ask, build: loop.build, proved: loop.proved, keep: loop.keep },
       events: loop.events,
     })
   }
