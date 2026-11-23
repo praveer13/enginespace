@@ -1,7 +1,7 @@
-# The knowledge-component graph (ARCHITECTURE §4.5): the KCs of TR0, TR1, TR2, TR5a, TR6 and TR8, and the edges between them.
+# The knowledge-component graph (ARCHITECTURE §4.5): the KCs of TR0, TR1, TR2, TR3, TR5a, TR6 and TR8, and the edges between them.
 # W1-T03 wrote it from the "Knowledge components" table of each curriculum file (curriculum/TR<n>-*.md §1), and `verify:kc`
 # (scripts/verify-kc.ts) checks it. TR0's nine came with its design (W2b-T26, 2026-11-20), before its lessons, each with a `planned`
-# task. The other modules' KCs arrive with their own tasks: TR3 (W2-T24), TR4 (W2-T27), TR5b (W2-T33), TR7 (W2-T37) and the
+# task, and TR3's eight came with its design (W2b-T96, 2026-11-22) the same way. The other modules' KCs arrive with their own tasks: TR4 (W2-T27), TR5b (W2-T33), TR7 (W2-T37) and the
 # capstone (W3-T04).
 #
 # A KC is one entry of the list:
@@ -172,6 +172,58 @@
 - id: tr2.graph-memory
   description: You can say why graph capture takes memory before the KV cache is sized, and correct a KV-capacity estimate for it.
   requires: [ks:t5.kv-capacity, tr2.graph-replay]
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# TR3 · Profile a real engine
+# Each KC's first graded reference is planned (curriculum/TR3-profile-a-real-engine.md, "Before you write", item 4): the item families
+# of W2b-T105 and W2b-T106, and Trace attribution's graded levels `gap` and `attribute` (W2-T20). No KC is earned by the lab alone, so
+# none waits on W2-T23. While the family tasks have no heading in docs/TRACKER.md, a KC a family earns names the module's content task,
+# W2-T24, as this file's rule for a task with no named builder says; each task removes its own lines.
+# ---------------------------------------------------------------------------------------------------------------------------------
+- id: tr3.trace-anatomy
+  description: You can read a profiler trace's tracks and spans, and tie a launch call on the CPU to the kernel it started on a GPU stream by its correlation id.
+  requires: [ks:t0.flame-graphs]
+  threshold: true
+  planned: W2-T24 # item family tr3.launch-and-kernel (W2b-T105)
+
+- id: tr3.capture-window
+  description: You can choose the steps a capture holds with an engine's profiler window settings, so that warm-up stays out and the trace stays small.
+  requires: [tr3.trace-anatomy]
+  planned: W2-T24 # item family tr3.capture-window (W2b-T105)
+
+- id: tr3.graph-traces
+  description: You can say what a trace shows of a replayed CUDA graph at the launch level and at the node level, and which ranges and frames vanish inside it.
+  requires: [tr3.trace-anatomy, tr2.graph-replay]
+  planned: W2-T24 # item family tr3.inside-a-graph (W2b-T105)
+
+- id: tr3.partition
+  description: You can put every nanosecond of a step window in one category, kernel, copy-only, CPU gap or both idle, so that the parts add up to the step's time exactly.
+  requires: [tr3.trace-anatomy, tr2.bubble]
+  # A gap's category (CPU gap or both idle) against its cause (the call that delayed the next launch): one says what the GPU waited
+  # for, the other which call made it wait.
+  confusable: [tr3.gap-cause]
+  planned: W2-T24 # item family tr3.which-category (W2b-T105), then Trace attribution's graded `attribute` (W2-T20)
+
+- id: tr3.gap-cause
+  description: You can name the cause of a gap between kernels from the launch queue, either the CPU work that delayed the next launch or the blocking call that drained the queue.
+  requires: [tr3.partition, tr0.hidden-syncs]
+  confusable: [tr3.partition]
+  planned: W2-T20 # Trace attribution's graded `gap`, then item family tr3.gap-cause (W2b-T106)
+
+- id: tr3.step-floor
+  description: You can work out the least time a decode step can take from the bytes it must read and the GPU's memory bandwidth.
+  requires: [ks:t4.decode-bandwidth, ks:t4.ridge-point]
+  planned: W2-T24 # item family tr3.floor (W2b-T106)
+
+- id: tr3.flat-curve
+  description: You can tell from a latency that stays flat as the prompt grows that a step is bound by launch overhead and not by compute.
+  requires: [tr3.step-floor]
+  planned: W2-T24 # item family tr3.flat-curve (W2b-T106)
+
+- id: tr3.provider-preflight
+  description: You can check a rented GPU host before a capture, its driver, whether its profiler may sample the CPU, and which GPU it really is.
+  requires: []
+  planned: W2-T24 # item family tr3.provider-preflight (W2b-T106); the lab's stage s1 records it and credits nothing
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # TR5a · Hybrid KV groups, and adapter pages in one pool

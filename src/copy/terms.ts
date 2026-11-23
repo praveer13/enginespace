@@ -32,6 +32,14 @@ const engine = (term: string, definition: string, more: Partial<Pick<Term, 'engi
 const paper = (term: string, definition: string): Term => ({ term, definition, source: 'paper' })
 const coined = (term: string, definition: string, more: Partial<Pick<Term, 'engine' | 'sglang'>> = {}): Term => ({ term, definition, source: 'course', coined: true, ...more })
 
+/**
+ * The word for a stretch in which the GPU idles while the engine's main thread is busy, in TR3's one written form, the `attribute` goal
+ * line of Trace attribution and every TR3 item stem, which read it from here (curriculum/TR3-profile-a-real-engine.md, "Before you
+ * write", item 2). It is the category of the trace model and the viewer, so it is what the learner measures. TR2 calls the same stretch
+ * the bubble, and keeps that word. The build takes "CPU gap" as the default, and the owner may overturn it: this line, then a regenerate.
+ */
+export const GAP_WORD = 'CPU gap'
+
 /** The engine's terms that the games, the lessons and the items use, grouped by the instrument that draws them first. */
 export const TERMS: readonly Term[] = [
   // The step loop
@@ -120,6 +128,7 @@ export const TERMS: readonly Term[] = [
   engine('view', "A tensor that reads another's buffer through a new shape."),
   engine('copy', 'A new buffer, with every element moved into it.'),
   engine('trace', "A profiler's timed record of every kernel, copy and CPU call."),
+  coined(GAP_WORD, 'A bubble as a trace shows it: GPU idle, main thread busy.'),
   engine('CPU tier', 'KV pages offloaded from the GPU into CPU memory.'),
   engine('disk tier', 'KV pages offloaded further, onto local disk or storage.'),
   engine('page in transit', 'A KV page being copied between tiers, not yet readable.'),

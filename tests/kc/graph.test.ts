@@ -30,8 +30,13 @@ const moduleOf = (kc: Kc) => kc.id.slice(0, kc.id.indexOf('.'))
 /**
  * A module whose KCs entered the graph with its design, before its first lesson, with the tasks its `planned` lines may name: TR0's
  * design task (W2b-T26) planned each of its nine on an item family (W2b-T29), the game's graded levels (W2-T14) or the lab (W2-T16).
+ * TR3's (W2b-T96) planned its eight on the item families (W2b-T105, W2b-T106) or Trace attribution's graded levels (W2-T20); a family
+ * whose task has no heading in the tracker yet names the module's content task (W2-T24). None waits on the lab (W2-T23).
  */
-const DESIGNED: ReadonlyMap<string, readonly string[]> = new Map([['tr0', ['W2b-T29', 'W2-T14', 'W2-T16']]])
+const DESIGNED: ReadonlyMap<string, readonly string[]> = new Map([
+  ['tr0', ['W2b-T29', 'W2-T14', 'W2-T16']],
+  ['tr3', ['W2b-T105', 'W2b-T106', 'W2-T20', 'W2-T24']],
+])
 
 /** The modules with KCs in the graph: those that have lessons, and those designed ahead of them, each with the curriculum file that proposes its KCs (tests/content/module-counts.ts). */
 const MODULES: readonly (readonly [string, string])[] = MODULE_ROWS.filter((row) => row.lessons > 0 || DESIGNED.has(row.id)).map((row) => [row.id, row.curriculum])
@@ -80,7 +85,7 @@ describe('1. the graph is a DAG', () => {
 })
 
 describe('2. every KC has a description, and a reference or a planned task', () => {
-  test('holds the KCs of the modules with lessons (TR1, TR2, TR5a, TR6 and TR8) and of TR0, designed ahead of its lessons, and no others', () => {
+  test('holds the KCs of the modules with lessons (TR1, TR2, TR5a, TR6 and TR8) and of TR0 and TR3, designed ahead of their lessons, and no others', () => {
     expect([...new Set(graph.map(moduleOf))]).toEqual(MODULES.map(([module]) => module))
   })
 

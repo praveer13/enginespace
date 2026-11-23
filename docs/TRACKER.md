@@ -1176,7 +1176,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   14. DC-H, with the HEAVY run by the coordinator
 - **Browser tests:** features: gap-hunt, gap-hunt-sizes, trace-view, keep-list, lesson-games, prove-mode; smoke: walks, a11y, screens, network, reduced-motion; nightly width: walks (gap-hunt), all four levels at 360 and 1280 px, and the first-run tests at 1440x900 and 390x844
 - **Owner default:** N1, N2, N11, Q-5, O-5 (`pinned` waits)
-- **Before you write (2026-11-18):** one case needs a second GPU stream from the trace generator, so that an empty stretch on one stream is not read as an idle GPU, and the `attribute` level's goal line waits for the owner's word on "bubble" against "CPU gap". See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", (a) and (e).
+- **Before you write (2026-11-18, rewritten 2026-11-22):** one case needs a second GPU stream from the trace generator, so that an empty stretch on one stream is not read as an idle GPU. For the word of the `attribute` level's goal line, the build takes "CPU gap" as the default; the owner may overturn it (N2), and the word is read from `GAP_WORD` in `src/copy/terms.ts`, so an answer is a one-line change. See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", items 1 to 12 and point (a).
 
 #### [ ] W2-T21 · Owner: capture 6-10 reference traces · M · owner · deps: W2-T04, W2-T19
 - **Goal:** Per O-5:
@@ -1219,7 +1219,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   4. The export names each Test as a Test (W2b-T77's test passes on `public/md/tr3`)
 - **Browser tests:** features: lesson-games, lesson-predict, trace-view, map, titles, items, front; smoke: first-visit, a11y, screens; nightly width: a11y at 320 px on the module page and each touched lesson; nightly width: walks (gap-hunt) for the lesson's levels
 - **Owner default:** Q-5; the lab waits for wave 3 (wave 3 holds the lab)
-- **Before you write (2026-11-18):** four rules for reading a GPU timeline, each at its lesson, the place of rule 11's form, three pointers and four questions for the owner. See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", (a) to (f).
+- **Before you write (2026-11-18, rewritten 2026-11-22):** the lessons' openers, first acts, own KCs, Tests and minutes, the module page's prerequisite line, the step floor from the `qwen3.*` claims, the promises of TR2's and TR0's lessons, the form and its word, and the defaults taken for the four questions of 2026-11-18. See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", items 2, 3 and 13 to 19 and points (a) to (f).
 
 ### TR4: backends as a consumer
 
