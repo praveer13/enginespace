@@ -76,24 +76,32 @@ export function ChallengeTicket({ event, durable, memoryOnly }: { event: Challen
         </p>
       </div>
       <div className="es-chit__block">
-        <p className="es-chit__label">{TICKET.run}</p>
-        <p className="es-chit__command">
-          <code ref={commandRef}>
+        <p className="es-chit__label">{parts.published ? TICKET.run : TICKET.runNone}</p>
+        {parts.published ? (
+          <p className="es-chit__command">
+            <code ref={commandRef}>
+              {parts.before}
+              <TokenText token={token} />
+              {parts.after}
+            </code>
+          </p>
+        ) : (
+          <p className="es-chit__command" data-unpublished>
             {parts.before}
-            <TokenText token={token} />
-            {parts.after}
-          </code>
-        </p>
+          </p>
+        )}
         <div className="es-chit__actions">
-          <Button
-            variant="plate"
-            size="sm"
-            onClick={() => {
-              void copy(command, TICKET.copiedCommand, () => selectContents(commandRef.current))
-            }}
-          >
-            {TICKET.copyCommand}
-          </Button>
+          {parts.published ? (
+            <Button
+              variant="plate"
+              size="sm"
+              onClick={() => {
+                void copy(command, TICKET.copiedCommand, () => selectContents(commandRef.current))
+              }}
+            >
+              {TICKET.copyCommand}
+            </Button>
+          ) : null}
           {lab === undefined ? null : <TextLink to={`/labs/${lab.id}`}>{TICKET.labPage}</TextLink>}
         </div>
       </div>

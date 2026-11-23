@@ -31,6 +31,7 @@ export const ISSUE = {
 export const TICKET = {
   tokenLabel: 'The token',
   run: "Run it on your machine, with the grader from the lab's kit:",
+  runNone: 'Nothing to run yet:',
   copyToken: 'Copy the token',
   copyCommand: 'Copy the command',
   labPage: "The lab's page",

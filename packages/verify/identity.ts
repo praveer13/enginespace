@@ -30,7 +30,7 @@ const short = (sha: string): string => `${sha.slice(0, 12)}...`
 
 const outcome = (status: 'pass' | 'fail', summary: string, problems: readonly string[] = []): RuleResult => ({ rule: 5, id: 'grader', status, summary, problems })
 
-export function checkGrader(receipt: Receipt, published: readonly PublishedGrader[]): RuleResult {
+function check(receipt: Receipt, published: readonly PublishedGrader[]): RuleResult {
   const { name, version, sourceSha256 } = receipt.grader
   const build = `${name} ${cut(version, 40)}`
   if (published.length === 0) {
@@ -49,4 +49,14 @@ export function checkGrader(receipt: Receipt, published: readonly PublishedGrade
     ])
   }
   return outcome('pass', `${build} is a build this site published, with the source hash it published (${short(sourceSha256)}).`)
+}
+
+const SYNTHETIC_WHY =
+  "This receipt says it is synthetic: the course's tests made it, from a grader build that writes only made-up fixtures, and no site publishes such a build. It cannot pass this check here, and it earns no credit; a run of your own with the grader from the lab's kit can."
+
+/** The rule, and for a receipt that says it is synthetic, the reason it cannot pass first among its problems. */
+export function checkGrader(receipt: Receipt, published: readonly PublishedGrader[]): RuleResult {
+  const found = check(receipt, published)
+  if (found.status === 'pass' || (receipt.ext as Record<string, unknown> | undefined)?.synthetic !== true) return found
+  return { ...found, problems: [SYNTHETIC_WHY, ...found.problems] }
 }
