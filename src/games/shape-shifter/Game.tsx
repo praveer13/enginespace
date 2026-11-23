@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { drawInBand, levelOf } from '@es/play'
 import { copyOf, fewestPracticeGoal } from '@es/play/shape-shifter/copy'
 import { SHAPE_SHIFTER } from '@es/play/shape-shifter/entry'
@@ -9,6 +9,7 @@ import { Button } from '@/design/components/Button'
 import { LevelMenu } from '@/design/components/LevelMenu'
 import { Frame } from '@/games/kit/Frame'
 import type { GameProps } from '@/games/registry'
+import { ProveContext } from '@/prove/context'
 import { WorldCard } from './Card'
 import { Words } from './CodeWords'
 import { Controls } from './Controls'
@@ -60,9 +61,11 @@ export default function Game({ level, mode: asked = 'practice', placement = 'pag
     setDrawn(drawFor(known(level), asked))
   }
   const embedded = placement === 'embed'
+  // In a Prove run (src/prove) the way on is Leave Prove mode: a Next level would play a level that is not the Prove level, outside the attestation.
+  const proving = useContext(ProveContext) !== null
   const entry = levelOf(SHAPE_SHIFTER, levelId) ?? SHAPE_SHIFTER.levels[0]
   const at = SHAPE_SHIFTER.levels.findIndex((candidate) => candidate.id === entry.id)
-  const after = embedded ? null : (SHAPE_SHIFTER.levels[at + 1] ?? null)
+  const after = embedded || proving ? null : (SHAPE_SHIFTER.levels[at + 1] ?? null)
   const graded = mode === 'graded' && entry.graded
   const seed = graded ? (drawn !== null && drawn.level === entry.id ? drawn.seed : entry.practiceSeed) : entry.practiceSeed
 

@@ -95,6 +95,13 @@ export default function ProveSession({ entry, level, Game, record }: ProveSessio
   const back = `/play/${entry.id}?level=${level}`
   const when = stake?.opensAt === null || stake?.opensAt === undefined ? null : opensWords(stake.opensAt, now)
 
+  /** What the run that ended was worth, and when the next attempt that counts opens. */
+  const resultLine = (done: Played): string => {
+    const words = when ?? ''
+    if (done.counted) return done.ok ? PROVE_COPY.proved(words) : PROVE_COPY.missed(words)
+    return when === null ? PROVE_COPY.practiceOpen : PROVE_COPY.practice(words)
+  }
+
   const frame: ProveFrame = {
     level,
     hidden: (
@@ -102,9 +109,17 @@ export default function ProveSession({ entry, level, Game, record }: ProveSessio
         {PROVE_COPY.hidden}
       </p>
     ),
-    foot: (
+    // The foot strip says what the run on is worth while it is on; at its result it speaks of the run that ended and of the next one, in the
+    // result's own words, and never of the run that ended as if it were the next.
+    foot: (run: RunRecord | null) => (
       <span className="es-prove__foot" data-prove-foot="">
-        <span>{stake === null || stake.counts || when === null ? PROVE_COPY.footCounts : PROVE_COPY.footPractice(when)}</span>
+        <span>
+          {run !== null && played !== null && played.record === run
+            ? resultLine(played)
+            : stake === null || stake.counts || when === null
+              ? PROVE_COPY.footCounts
+              : PROVE_COPY.footPractice(when)}
+        </span>
         <Link className="es-link" to={back}>
           {PROVE_COPY.leave}
         </Link>
@@ -112,17 +127,9 @@ export default function ProveSession({ entry, level, Game, record }: ProveSessio
     ),
     after: (run: RunRecord) => {
       if (played === null || played.record !== run) return null
-      const words = when ?? ''
-      const line = played.counted
-        ? played.ok
-          ? PROVE_COPY.proved(words)
-          : PROVE_COPY.missed(words)
-        : when === null
-          ? PROVE_COPY.practiceOpen
-          : PROVE_COPY.practice(words)
       return (
         <p className="es-prove__after" role="status" data-prove-after={played.counted ? (played.ok ? 'proved' : 'missed') : 'practice'}>
-          {line}
+          {resultLine(played)}
         </p>
       )
     },
@@ -168,9 +175,11 @@ export default function ProveSession({ entry, level, Game, record }: ProveSessio
       attested={attested}
       onAttest={setAttested}
       onStart={() => {
+        // Start waits for the ledger: an attempt begun before the record of past ones is read would count on a guess.
+        if (stake === null) return
         const at = clock()
         // The attempt is written as it starts, when it counts: one left before its end is then a miss, not a fresh draw.
-        const counts = stakeAt(stake ?? OPEN, at).counts
+        const counts = stakeAt(stake, at).counts
         if (counts) {
           mine.add(at)
           void evidence.setWorking(openKey(ref), { at: new Date(at).toISOString() })
@@ -242,7 +251,7 @@ export function ProvePanel({ entry, levelTitle, stake, when, attested, onAttest,
           <label htmlFor={boxId}>{PROVE_COPY.attest}</label>
         </div>
         <div className="es-prove__actions">
-          <PrimaryButton disabled={!attested} onClick={onStart}>
+          <PrimaryButton disabled={!attested || stake === null} onClick={onStart}>
             {PROVE_COPY.start}
           </PrimaryButton>
           <Link className="es-prove__back" to={back}>
