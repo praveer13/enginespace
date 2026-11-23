@@ -133,7 +133,10 @@ export function activityRows(events: readonly LedgerEvent[], context: RowContext
         // A run at part weight was played as practice, even on a level that is graded: the row says what the run counted for.
         const guesses = runGuesses(event.data.actions)
         const guessed = guesses.length === 0 ? '' : `, guessing ${listed(guesses)} before the moves`
-        rows.push({ ...base, what: `Played ${named ?? 'a level'}${guessed}${closed}`, result: resultOf(event), kind: graded.has(event.ref) && event.provenance !== 'practice' ? 'graded' : 'practice' })
+        // A run left before its end (`data.left`) is a miss the learner can see: it is in the export, and it is not a run they finished.
+        const verb = event.data.left === undefined ? 'Played' : 'Left'
+        const tail = event.data.left === undefined ? closed : `${closed}, before its end`
+        rows.push({ ...base, what: `${verb} ${named ?? 'a level'}${guessed}${tail}`, result: resultOf(event), kind: graded.has(event.ref) && event.provenance !== 'practice' ? 'graded' : 'practice' })
         break
       }
       case 'lab-check':

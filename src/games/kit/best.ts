@@ -1,5 +1,6 @@
 import type { LedgerEvent } from '@es/ledger'
 import { useEvidence } from '@/evidence/useEvidence'
+import { ranToEnd } from '@/evidence/ran'
 
 /*
  * The learner's own record of a game, read from the ledger's `play` events (REDESIGN §2.6, "A reason to run again"): the best score on a
@@ -24,7 +25,8 @@ export function bestOf(events: readonly LedgerEvent[], game: string, level: stri
   let score = 0
   let runs = 0
   for (const event of events) {
-    if (event.kind !== 'play' || event.ref !== ref) continue
+    // A run left before its end (src/evidence/ran.ts) is not a run the learner finished.
+    if (!ranToEnd(event) || event.ref !== ref) continue
     runs += 1
     if (typeof event.score === 'number' && Number.isFinite(event.score)) score = Math.max(score, event.score)
   }
@@ -35,7 +37,7 @@ export function bestOf(events: readonly LedgerEvent[], game: string, level: stri
 export function playedLevels(events: readonly LedgerEvent[], game: string): ReadonlySet<string> {
   const prefix = `play:${game}/`
   const levels = new Set<string>()
-  for (const event of events) if (event.kind === 'play' && event.ref.startsWith(prefix)) levels.add(event.ref.slice(prefix.length))
+  for (const event of events) if (ranToEnd(event) && event.ref.startsWith(prefix)) levels.add(event.ref.slice(prefix.length))
   return levels
 }
 

@@ -448,6 +448,19 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
   const prove = useContext(ProveContext)
   const proving = prove !== null && mode === 'graded' && prove.level === level
   const modeWord = proving ? 'Prove run' : mode === 'practice' ? 'practice' : 'graded'
+
+  // A graded run left after a move and before its end is written as a run left (left.ts, fetched only here); a Prove run writes its own.
+  const turns = useRef(0)
+  useEffect(() => {
+    turns.current = run.turns
+  })
+  const watching = ledger && mode === 'graded' && !proving
+  useEffect(() => {
+    if (!watching) return
+    const watch = import('./left').then((left) => left.guardLeft(() => turns.current > 0 && !ended.current, { game: game.id, level, seed, rev }))
+    return () => void watch.then((stop) => stop())
+  }, [watching, game.id, level, seed, rev])
+
   const goal = props.goal(api)
   const [goalOpen, setGoalOpen] = useState(false)
   // The Keyboard list's button: in the title strip on a wide screen, and inside How to play on a phone (REDESIGN §3.5).
