@@ -220,32 +220,29 @@ export function VerifierLegend({ run, scene = false }: { run: VerifierRun; scene
       </div>
     )
   }
+  // Every entry and sentence is in the legend from the start, and what the run has not yet earned (the accepted and residual entries, the
+  // output, the cut sentence, the dot sentence) is held invisible by the CSS until it is: the legend keeps its height in 2D and in 3D, so
+  // nothing under it (the dock and its draws on a phone) and nothing over it (the drawing at a desk) moves on the commit, a draw or the result.
   const entries = [
     { slot: SLOT_OF.draft, word: <PartName id="draft">draft q</PartName> },
     { slot: SLOT_OF.target, word: <PartName id="target">target p</PartName> },
-    ...(decomposed || scene
-      ? [
-          { slot: SLOT_OF.accepted, word: <PartName id="accepted">accepted min(p, q)</PartName> },
-          { slot: SLOT_OF.residual, word: scene ? <><PartName id="residual">residual (p − q)⁺</PartName>: grooved, its top pale</> : <PartName id="residual">residual (p − q)⁺</PartName> },
-        ]
-      : []),
-    // In 3D every entry is in the row from the start (the accepted and residual entries, until the commit, are held invisible by the CSS), so
-    // the legend keeps its height and the scene's box never changes under the commit or a draw. The diagram holds its room by min-height.
-    ...(outs || scene ? [{ slot: SLOT_OF.output, word: scene ? <><PartName id="output">output of the sampler</PartName>: the black collar on a target bar, dashed up to it where it stands over p</> : <PartName id="output">output of the sampler</PartName> }] : []),
+    { slot: SLOT_OF.accepted, word: <PartName id="accepted">accepted min(p, q)</PartName> },
+    { slot: SLOT_OF.residual, word: scene ? <><PartName id="residual">residual (p − q)⁺</PartName>: grooved, its top pale</> : <PartName id="residual">residual (p − q)⁺</PartName> },
+    { slot: SLOT_OF.output, word: scene ? <><PartName id="output">output of the sampler</PartName>: the black collar on a target bar, dashed up to it where it stands over p</> : <PartName id="output">output of the sampler</PartName> },
   ]
   return (
-    <div className="es-vf__legend" data-vf-legend="" data-held={scene && !decomposed ? '' : undefined}>
+    <div className="es-vf__legend" data-vf-legend="" data-held={decomposed ? undefined : ''} data-held-out={outs || scene ? undefined : ''}>
       <Legend entries={entries} label="Legend: what the bars are" />
       <p className="es-vf__note">
-        <span data-vf-tokens="">Each token</span> has two bars out of 64: the draft&apos;s q, then the target&apos;s p
-        {decomposed ? ', cut into what the rule makes of them' : scene ? <span className="es-vf__held">, cut into what the rule makes of them</span> : ''}.
-        {dots || scene ? (
-          <span className={dots ? undefined : 'es-vf__held'}>
-            {' '}
-            A drawn round is a dot on a q bar: <span className="es-vf__dotkey" data-kept="" aria-hidden="true" /> accepted below the accepted part,{' '}
-            <span className="es-vf__dotkey" aria-hidden="true" /> rejected above it.
-          </span>
-        ) : null}
+        {/* The full stop stands after the words shown: after p while the cut clause is held, after the clause once it shows. */}
+        <span data-vf-tokens="">Each token</span> has two bars out of 64: the draft&apos;s q, then the target&apos;s p{decomposed ? '' : '.'}
+        <span className={decomposed ? undefined : 'es-vf__held'}>, cut into what the rule makes of them</span>
+        {decomposed ? '.' : ''}
+        <span className={dots ? undefined : 'es-vf__held'}>
+          {' '}
+          A drawn round is a dot on a q bar: <span className="es-vf__dotkey" data-kept="" aria-hidden="true" /> accepted below the accepted part,{' '}
+          <span className="es-vf__dotkey" aria-hidden="true" /> rejected above it.
+        </span>
         {scene ? ' The 3D view stands the same tokens in rows, one row for each draft position, the first in front, and the scale at the right reads their heights.' : ''}
       </p>
     </div>

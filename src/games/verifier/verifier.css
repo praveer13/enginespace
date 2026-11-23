@@ -66,6 +66,21 @@
   font-weight: 400;
 }
 
+/* The figures of a count (α = 38 of 64 = 19/32) are in the numeric face, whose glyphs stand taller than the label's: they add nothing to the
+   line's height, so the label keeps its height when the count's words become figures at the commit. */
+.es-vf__count .font-numeric {
+  line-height: 0;
+}
+
+/* On the narrowest phones the count stands under the label's name on a line of its own, before and after the commit, so the label's height
+   is the same whether the count is "α, the accepted share: to find" or its figures. */
+@media (max-width: 22.499rem) {
+  .es-vf__label {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
 /* On a phone, while the first run names the parts, the count stands back from the label to leave room for the intro's numbered disc; at a
    desk the disc stands in the diagram's gutter (frame.css). */
 @media (max-width: 63.999rem) {
@@ -271,11 +286,18 @@
   line-height: 1.4;
 }
 
-/* In 3D the legend and its note hold the room of what the run has not yet earned (the accepted and residual entries, the cut sentence, the dot
-   sentence), so the scene's box is the same on the commit and the first draw. Invisible text holds its line and leaves the reading order. */
+/* The legend and its note hold the room of what the run has not yet earned (the accepted and residual entries, the output, the cut sentence,
+   the dot sentence), in 2D as in 3D, so the drawing, the scene and the dock keep their boxes on the commit, the first draw and the result.
+   Invisible text holds its line and leaves the reading order. */
 .es-vf__held,
 .es-vf__legend[data-held] .es-legend__entry:nth-child(3),
-.es-vf__legend[data-held] .es-legend__entry:nth-child(4) {
+.es-vf__legend[data-held] .es-legend__entry:nth-child(4),
+.es-vf__legend[data-held-out] .es-legend__entry:nth-child(5) {
+  visibility: hidden;
+}
+
+/* The goal line's words for the end, with their check, hold their room until the answer is in (Game.tsx). */
+.es-goal__met:has(> .es-vf__met[data-vf-met='held']) {
   visibility: hidden;
 }
 
@@ -713,6 +735,17 @@
 @media (max-width: 63.999rem) {
   .es-vf-strip__value {
     font-size: var(--es-size-base);
+  }
+}
+
+/* On the narrowest phones five numbers do not fit one line ("0 (exact)" and "distance from p" ran past the card at 320 px): the strip
+   stands in two rows of three, at every state of the run, so its height does not change when a number grows. */
+@media (max-width: 22.499rem) {
+  .es-vf-strip__list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    justify-content: stretch;
+    /* Each row keeps the band over its numbers that a delta stands in, as the first row has in the list's padding. */
+    gap: 1.125rem var(--es-space-2);
   }
 }
 
