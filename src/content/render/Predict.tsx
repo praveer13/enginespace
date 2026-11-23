@@ -143,7 +143,7 @@ function Written({ block, committed, extra }: { block: PredictBlock; committed: 
         <dt>you wrote</dt>
         <dd>
           <data className="es-guess__yours" value={typeof value === 'object' ? `${value.lo} ${value.hi}` : String(value)}>
-            {wroteText(block, value)}
+            <Tagged text={wroteText(block, value)} />
           </data>
         </dd>
       </div>
@@ -166,7 +166,7 @@ function LockedIn({ block, committed, then, headingRef }: { block: PredictBlock;
       <p className="es-guess__locked" tabIndex={-1} ref={headingRef}>
         <Icon name="lock" />
         <span>
-          Locked in: {wroteText(block, committed.value)}
+          Locked in: <Tagged text={wroteText(block, committed.value)} />
           {sure}. It does not change now.
         </span>
       </p>
@@ -213,7 +213,9 @@ function HeldTicket({ block, held }: { block: PredictBlock; held: Held }) {
       {answer.kind === 'choice' ? (
         <ol className="es-guess__options">
           {answer.options.map((option) => (
-            <li key={option.id}>{option.text}</li>
+            <li key={option.id}>
+              <Tagged text={option.text} />
+            </li>
           ))}
         </ol>
       ) : null}
@@ -260,7 +262,9 @@ function SlipFields({ block, slip, problem, onSlip, onSubmit }: SlipFieldsProps)
               onChange={() => onSlip({ ...slip, pick: option.id })}
               onClick={() => slip.pick !== option.id && onSlip({ ...slip, pick: option.id })}
             />
-            <span>{option.text}</span>
+            <span>
+              <Tagged text={option.text} />
+            </span>
           </label>
         ))}
         {problem === null ? null : (
@@ -354,12 +358,14 @@ function Working({ revealed }: { revealed: Revealed }) {
       </p>
       <ol>
         {revealed.working.map((line) => (
-          <li key={line}>{line}</li>
+          <li key={line}>
+            <Tagged text={line} />
+          </li>
         ))}
       </ol>
       {revealed.sources.map((source) => (
         <p key={source.text} className="es-guess__source" data-claim={source.claim}>
-          Source: {source.text}
+          Source: <Tagged text={source.text} />
         </p>
       ))}
     </div>
@@ -371,15 +377,6 @@ interface RevealViewProps {
   committed: Commitment
   revealed: Revealed
   headingRef: Ref<HTMLParagraphElement>
-}
-
-/** A stage's label, with its code in backticks set in the code face: "sampled ids to the host (`.tolist()`)". */
-function RichName({ text }: { text: string }) {
-  return (
-    <>
-      {text.split('`').map((piece, at) => (at % 2 === 1 ? <code key={at}>{piece}</code> : piece))}
-    </>
-  )
 }
 
 /** What the reveal shows: the verdict, what was written beside the answer, and the run or the working it came from. */
@@ -400,7 +397,7 @@ function RevealView({ block, committed, revealed, headingRef }: RevealViewProps)
           <div>
             <dt>{run === null ? 'the answer' : 'the model'}</dt>
             <dd data-truth="">
-              {truth}
+              {answer.kind === 'choice' ? <Tagged text={truth} /> : truth}
               {answer.kind === 'choice' ? null : <span className="sr-only">, {revealed.tag === 'measured' ? 'measured' : 'derived'}</span>}
             </dd>
           </div>
@@ -412,7 +409,9 @@ function RevealView({ block, committed, revealed, headingRef }: RevealViewProps)
         <Working revealed={revealed} />
       ) : (
         <>
-          <p className="es-guess__reads">{revealed.reads}</p>
+          <p className="es-guess__reads">
+            <Tagged text={revealed.reads} />
+          </p>
           {revealed.counted === undefined || (revealed.counted.length === 0 && typeof revealed.truth !== 'number') ? null : (
             <p className="es-guess__counted" data-counted="">
               {revealed.counted.length === 0 ? (
@@ -423,7 +422,7 @@ function RevealView({ block, committed, revealed, headingRef }: RevealViewProps)
                   {revealed.counted.map((name, at) => (
                     <span key={name}>
                       {at > 0 ? '; ' : ''}
-                      <RichName text={name} />
+                      <Tagged text={name} />
                     </span>
                   ))}
                   .

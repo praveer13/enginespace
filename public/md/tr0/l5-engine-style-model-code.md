@@ -84,9 +84,9 @@ This is one seam of one engine. The course has not measured what the Rust tree s
 
 Three questions on new code: two ask which line of a snippet waits for the GPU, the second lesson's syncs, which engine code like this is full of, and one asks which program covers an element of a launch like the temperature kernel's.
 
-> **Practice.** Items from the generator family `tr0.find-the-sync`, level `1`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr0.find-the-sync`, level `1`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
-> **Practice.** Items from the generator family `tr0.grid-cover`, level `1`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr0.grid-cover`, level `1`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## Claims cited
 

@@ -95,7 +95,7 @@ The best draft here is four tokens, and a fifth costs more than it brings: it ad
 
 This lesson tests two skills: reading what one speculative step computes and emits, and which graph serves it (`tr6.verify-shape`), and working out the tokens a round emits and where a longer draft stops paying (`tr6.acceptance-length`). The question set is three items on fresh seeds, drawn from the positions a step computes, the tokens it emits and the graph that serves it. The graded `chain` and `gamma` levels of the Rejection sampler earn `tr6.acceptance-length` on the game's own page, with the other graded levels.
 
-> **Practice.** Items from the generator family `tr6.verify-shape`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr6.verify-shape`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## Claims cited
 
