@@ -21,6 +21,7 @@ import { momentAt, type Named } from './moments'
 import { nextTouch, publishRun, retireRun, useRunPlace, type LiveRun } from './RunContext'
 import { useGameInput } from './useGameInput'
 import { useRun, type RunCore, type RunOutcome } from './useRun'
+import { exposeSeed, writesSeed } from './seed-hook'
 import { usePhone } from './usePhone'
 import { ViewSwitch, type GameView } from './ViewSwitch'
 import './frame.css'
@@ -102,6 +103,8 @@ export interface FrameProps<Level, State, Action extends GameAction, View, Score
   level: string
   levelTitle: string
   seed: Seed
+  /** False leaves `data-seed` out of the page in graded and Prove runs; a test build reads the seed through `window.__esSeed`. The built games keep it. */
+  seedInPage?: boolean
   mode: GameMode
   /** The content revision, which the run record carries (A§4.2). */
   rev?: string
@@ -204,6 +207,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
   // not come, or a ledger that does not answer, must not leave a phone's dock empty, so after a moment the controls show as they would without the strip.
   const [stripLate, setStripLate] = useState(false)
   const stripAwaited = intro !== null
+  useEffect(() => (props.seedInPage === false ? exposeSeed(() => seed) : undefined), [props.seedInPage, seed])
   useEffect(() => {
     if (!stripAwaited) return
     const timer = window.setTimeout(() => setStripLate(true), 1500)
@@ -491,7 +495,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
       aria-labelledby={headingId}
       data-game={game.id}
       data-level={level}
-      data-seed={seed}
+      data-seed={writesSeed(props.seedInPage, mode) ? seed : undefined}
       data-mode={mode}
       data-view={view}
       data-phase={outcome === null ? 'play' : 'result'}
