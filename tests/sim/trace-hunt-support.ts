@@ -19,8 +19,6 @@ export function huntGolden(seed: number, level: string): Record<string, unknown>
   const ref = referenceSplit(c)
   const result = checkHunt(c, ref.marks, ref.largestGap?.cause ?? null)
   return {
-    seed,
-    level,
     traces: traces.map((t) => createHash('sha256').update(encodeTrace(t)).digest('hex')),
     traceIndex: traces.indexOf(c.trace),
     step: c.step,

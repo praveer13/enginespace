@@ -350,11 +350,11 @@ describe('the bestiary', () => {
 })
 
 describe('goldens', () => {
-  const golden = JSON.parse(readFileSync(path.join(root, 'tests/fixtures/sim/trace-hunt.json'), 'utf8')) as { vectors: Record<string, unknown>[] }
+  const golden = JSON.parse(readFileSync(path.join(root, 'tests/fixtures/sim/trace-hunt.json'), 'utf8')) as { vectors: { name: string; input: { seed: number; level: string }; output: unknown }[] }
 
   test('the cases of the golden file are what the model draws, byte for byte', () => {
     expect(golden.vectors.length).toBeGreaterThanOrEqual(24)
-    for (const v of golden.vectors) expect(huntGolden(v.seed as number, v.level as string), `${v.level} ${v.seed}`).toEqual(v)
+    for (const v of golden.vectors) expect(huntGolden(v.input.seed, v.input.level), v.name).toEqual(v.output as Record<string, unknown>)
   })
 
   test('no existing golden of the trace model moved: the generator draws its own streams', () => {
