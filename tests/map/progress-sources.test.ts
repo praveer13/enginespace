@@ -80,7 +80,7 @@ describe('an item moves the KCs of its variant', () => {
   test('a variant that this build does not have moves no KC, and the item still counts for its module', () => {
     const state = progressOf([item('tr2.bubble-width', 'a-variant-that-was-removed')])
     expect(moved([item('tr2.bubble-width', 'a-variant-that-was-removed')])).toEqual([])
-    expect(state.modules.get('tr2')?.loop.play).toEqual({ tried: 1, credited: 1, partial: 0 })
+    expect(state.modules.get('tr2')?.loop.ask).toEqual({ tried: 1, credited: 1, partial: 0 })
     expect(state.events).toBe(1)
   })
 })

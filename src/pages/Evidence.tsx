@@ -10,6 +10,7 @@ import { activityRows, attemptCounts, skillCounts } from '@/evidence/rows'
 import { StorageTape } from '@/evidence/StorageTape'
 import { useEvidence } from '@/evidence/useEvidence'
 import { itemName, levelName, useProgress } from '@/progress/useProgress'
+import { readPlace } from '@/settings/bookmark'
 import './panels.css'
 
 /*
@@ -28,7 +29,7 @@ export function Component() {
   const mapValue = map.status === 'ready' ? map.value : null
   const { progress, next, last } = useProgress(mapValue)
   const counts = useMemo(() => countEvents(evidence.events, homeModule), [evidence.events])
-  const rows = useMemo(() => (mapValue === null ? null : activityRows(evidence.events, { lessons: mapValue.lessons, levelName, itemName })), [evidence.events, mapValue])
+  const rows = useMemo(() => (mapValue === null ? null : activityRows(evidence.events, { lessons: mapValue.lessons, levelName, itemName, bookmark: readPlace() })), [evidence.events, mapValue])
   const skills = useMemo(() => (progress === null ? null : skillCounts(progress.counts)), [progress])
   const attempts = useMemo(() => attemptCounts(evidence.events), [evidence.events])
   const calibration = useMemo(() => calibrationRows(evidence.events), [evidence.events])
