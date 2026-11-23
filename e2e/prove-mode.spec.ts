@@ -245,9 +245,12 @@ for (const c of CASES) {
     })
 
     test('a second tab says an attempt is open in another tab, and writes it as left once the playing tab has been silent for a lapse', async ({ context, page }) => {
+      // Both tabs run with the processor throttled four times, as a busy machine would: the second tab must still tell the truth.
+      await (await context.newCDPSession(page)).send('Emulation.setCPUThrottlingRate', { rate: 4 })
       await openProve(page, c)
       await start(page)
       const other = await context.newPage()
+      await (await context.newCDPSession(other)).send('Emulation.setCPUThrottlingRate', { rate: 4 })
       await other.clock.install()
       await met(other, c.game)
       await open(other, `/play/${c.game}?level=${c.level}&mode=prove`)
