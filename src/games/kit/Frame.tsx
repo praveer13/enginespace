@@ -449,30 +449,18 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
   const proving = prove !== null && mode === 'graded' && prove.level === level
   const modeWord = proving ? 'Prove run' : mode === 'practice' ? 'practice' : 'graded'
 
-  // A graded run that is left after a move and before its end (Back, a restart, a reload, the page closed) is written as a run left: a miss
-  // that the export shows, with no window on it (record.ts, `recordLeft`). A Prove run writes its own (src/prove), so it is skipped here.
-  // `record.ts` is fetched only then, so the front page, which has no ledger, never loads it.
-  const leaving = useRef({ turns: run.turns, finished: outcome !== null, began: '', sent: false })
+  // A graded run left after a move and before its end is written as a run left (left.ts, fetched only here); a Prove run writes its own.
+  const turns = useRef(0)
   useEffect(() => {
-    leaving.current.turns = run.turns
-    leaving.current.finished = outcome !== null
+    turns.current = run.turns
   })
+  const watching = ledger && mode === 'graded' && !proving
   useEffect(() => {
-    if (!ledger || mode !== 'graded' || proving) return
-    const state = leaving.current
-    state.began = new Date().toISOString()
-    state.sent = false
-    const leave = () => {
-      if (state.sent || state.finished || state.turns === 0) return
-      state.sent = true
-      void import('./record').then(({ recordLeft }) => recordLeft({ game: game.id, level, mode, began: state.began, seed, ...(rev === undefined ? {} : { rev }) }))
-    }
-    window.addEventListener('pagehide', leave)
-    return () => {
-      window.removeEventListener('pagehide', leave)
-      leave()
-    }
-  }, [ledger, mode, proving, game.id, level, seed, rev])
+    if (!watching) return
+    const watch = import('./left').then((left) => left.guardLeft(() => turns.current > 0 && !ended.current, { game: game.id, level, seed, rev }))
+    return () => void watch.then((stop) => stop())
+  }, [watching, game.id, level, seed, rev])
+
   const goal = props.goal(api)
   const [goalOpen, setGoalOpen] = useState(false)
   // The Keyboard list's button: in the title strip on a wide screen, and inside How to play on a phone (REDESIGN §3.5).
