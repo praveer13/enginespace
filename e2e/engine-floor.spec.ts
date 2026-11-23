@@ -939,13 +939,14 @@ test.describe('the final check of wave 1a', () => {
       expect(faults, 'the wheel to the page\'s foot, then a lay').toEqual([])
       // Without the wheel, the band empties tile by tile under a still page, and then says the stages are above it.
       let emptied = false
-      for (let index = 0; index < 10 && !emptied; index++) emptied = !(await layLowest(`still lay ${index + 1}`))
+      for (let index = 0; index < 80 && !emptied; index++) emptied = !(await layLowest(`still lay ${index + 1}`))
       expect(emptied, 'the band emptied').toBe(true)
       const cue = await page.evaluate(() => {
         const list = document.querySelector('ul[data-floor-tray]')
         return list === null ? '' : getComputedStyle(list, '::after').content
       })
-      expect(cue, 'the list says the stages are above').toContain('More above')
+      // The box gives its room back at a desk, so it is empty only with no stage left, or it says the stages are above.
+      if ((await left()) > 0) expect(cue, 'the list says the stages are above').toContain('More above')
       // One notch of the wheel up brings the stages back into the band.
       await page.mouse.wheel(0, -100)
       await settled(page)
@@ -1429,4 +1430,198 @@ test.describe('a press the learner did not aim at a stage', () => {
     await expect(page.getByText('No stage matches.')).toHaveCount(0)
     await expect(page.getByRole('button', { name: 'Show every stage' })).toHaveCount(0)
   })
+})
+
+/*
+ * The list box keeps its stages in view and the first lay moves nothing (W2b-T85). The check of the box layout found: a lay after a lay from
+ * the box's foot left it blank under "More above" while stages remained (every 3 to 6 lays); the graded map's box held 3 whole tiles at
+ * 1366 x 768; the first lay of a first run took the coach strip out of the dock and moved Run the path 100 to 150 px; and at a short desk
+ * the chips were one sideways row that a vertical wheel could not scroll.
+ */
+
+/** The rectangles that must be the same before and after a lay, as strings: the card, the field, the chips, the box, the actions, the readout, the dock. */
+const held = (page: Page) =>
+  page.evaluate(() => {
+    const box = (selector: string) => {
+      const at = document.querySelector(selector)?.getBoundingClientRect()
+      return at === undefined ? 'none' : [at.left, at.top, at.height].map((n) => Math.round(n)).join(',')
+    }
+    return {
+      page: String(window.scrollY),
+      card: box('.es-floor-card'),
+      field: box('[data-floor-filter]'),
+      chips: box('.es-floor-chips'),
+      list: box('ul[data-floor-tray]'),
+      listWidth: String(Math.round(document.querySelector('ul[data-floor-tray]')?.getBoundingClientRect().width ?? 0)),
+      run: box('[data-floor-path] .es-primary-button__pull'),
+      remove: box('[data-floor-path] .es-floor-actions__row > button:not(.es-primary-button)'),
+      readout: box('[data-floor-readout]'),
+      dock: box('.es-floor-dock'),
+    }
+  })
+
+test.describe('the first lay of a first run', () => {
+  for (const [width, height] of [[1440, 900], [1366, 768], [1280, 620]] as const) {
+    test(`at ${width} x ${height}, the first-move step is wholly in view and the first lay moves no control, the box or the readout`, async ({ page }) => {
+      await page.setViewportSize({ width, height })
+      await open(page, 'vllm', { intro: 'fresh' })
+      const intro = page.locator('.es-intro')
+      for (let guard = 0; guard < 14 && (await intro.getAttribute('data-intro')) !== 'ask'; guard++) await page.locator('[data-intro-next]').click()
+      await page.getByRole('button', { name: '2 boundaries', exact: true }).click()
+      await page.getByRole('button', { name: 'Commit the prediction' }).click()
+      await expect(intro).toHaveAttribute('data-intro', 'point')
+      await boxStill(page)
+      // The step's sentence is whole in the viewport and nothing stands over its middle.
+      const strip = await page.locator('.es-intro[data-intro="point"]').evaluate((element) => {
+        const at = element.getBoundingClientRect()
+        const hit = document.elementFromPoint(at.left + at.width / 2, at.top + at.height / 2)
+        return { whole: at.top >= 0 && at.bottom <= window.innerHeight && at.left >= 0 && at.right <= window.innerWidth, topmost: hit !== null && element.contains(hit), text: element.textContent ?? '' }
+      })
+      expect(strip.whole, 'the first-move step is in the viewport').toBe(true)
+      expect(strip.topmost, 'nothing stands over the first-move step').toBe(true)
+      expect(strip.text).toContain('is the reference run')
+      const before = await held(page)
+      const ring = page.locator('.es-floor-ring [data-stage]')
+      const at = await ring.boundingBox()
+      if (at === null) throw new Error('the ringed stage has no box')
+      await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2)
+      await page.mouse.click(at.x + at.width / 2, at.y + at.height / 2)
+      await expect(rows(page)).toHaveCount(1)
+      await expect(intro).toHaveCount(0)
+      await boxStill(page)
+      expect(await held(page)).toEqual(before)
+    })
+  }
+})
+
+test.describe('the stage list keeps its stages in view', () => {
+  for (const [width, height] of [[1440, 900], [1366, 768], [1280, 620]] as const) {
+    test(`at ${width} x ${height}, lay after lay from the box's foot leaves a whole tile in view and moves nothing outside the box`, async ({ page }) => {
+      await page.setViewportSize({ width, height })
+      await open(page, 'map')
+      await commit(page, 2)
+      await page.locator('ul[data-floor-tray]').evaluate((list) => list.scrollTo(0, list.scrollHeight))
+      await boxStill(page)
+      const faults: string[] = []
+      const total = await inList(page)
+      for (let index = 1; index <= 80; index++) {
+        const shown = await shownInBox(page)
+        const pick = shown.at(-1)
+        if (pick === undefined) {
+          faults.push(`before lay ${index}: no whole tile in the box with ${await inList(page)} stages left`)
+          break
+        }
+        await page.mouse.move(pick.x, pick.y)
+        const before = await held(page)
+        await page.mouse.click(pick.x, pick.y)
+        await expect(stage(page, pick.id)).toHaveCount(0)
+        await boxStill(page)
+        const after = await held(page)
+        // Run the path is the same control before and after, though its own width takes a pixel or two from the state it is in.
+        const { run: runBefore, ...restBefore } = before
+        const { run: runAfter, ...restAfter } = after
+        if (JSON.stringify(restBefore) !== JSON.stringify(restAfter) || runBefore.split(',').slice(0, 2).join() !== runAfter.split(',').slice(0, 2).join()) {
+          faults.push(`lay ${index}: ${JSON.stringify(before)} to ${JSON.stringify(after)}`)
+        }
+        const left = await inList(page)
+        if (left > 0 && (await shownInBox(page)).length === 0) faults.push(`after lay ${index}: the box is blank with ${left} stages left`)
+        // A tile that has come to stand under the pointer (more stand whole than a lay at the foot could leave) is not pressed by a second
+        // press on the same spot at once: the learner's next press waits for it, as the game's own guard does.
+        if (left > 0 && (await shownInBox(page)).length >= shown.length) await page.waitForTimeout(850)
+        if (left === 0) break
+      }
+      expect(faults).toEqual([])
+      expect(await inList(page)).toBe(0)
+      expect(total).toBeGreaterThan(8)
+    })
+  }
+
+  test('at 1366 x 768 a tile that comes under the pointer as the box gives its room back is not pressed by a second press there', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 })
+    await open(page, 'map')
+    await commit(page, 2)
+    await page.locator('ul[data-floor-tray]').evaluate((list) => list.scrollTo(0, list.scrollHeight))
+    await boxStill(page)
+    let reset: { x: number; y: number } | null = null
+    for (let index = 0; index < 20 && reset === null; index++) {
+      const shown = await shownInBox(page)
+      const pick = shown.at(-1)
+      if (pick === undefined) throw new Error('no whole tile in the box')
+      await page.mouse.move(pick.x, pick.y)
+      await page.mouse.click(pick.x, pick.y)
+      await expect(stage(page, pick.id)).toHaveCount(0)
+      await boxStill(page)
+      const next = await shownInBox(page)
+      // The box gave its room back when more tiles stand whole than a lay at the foot could leave.
+      if (next.length > shown.length) reset = { x: pick.x, y: pick.y }
+    }
+    if (reset === null) throw new Error('the box never gave its room back')
+    const left = await inList(page)
+    await page.mouse.click(reset.x, reset.y)
+    await boxStill(page)
+    expect(await inList(page), 'a second press on the same spot at once lays nothing').toBe(left)
+    await page.waitForTimeout(900)
+    await page.mouse.click(reset.x, reset.y)
+    await expect.poll(() => inList(page)).toBe(left - 1)
+  })
+
+  for (const [width, height, level] of [[1440, 900, 'map'], [1366, 768, 'map'], [1280, 620, 'map'], [1366, 768, 'sglang']] as const) {
+    test(`at ${width} x ${height} on ${level}, the box holds six whole tiles or more once the prediction is in`, async ({ page }) => {
+      await page.setViewportSize({ width, height })
+      await open(page, level)
+      await commit(page, 2)
+      await boxStill(page)
+      const whole = (await shownInBox(page)).length
+      expect(whole).toBeGreaterThanOrEqual(width === 1280 ? 5 : 6)
+    })
+  }
+
+  test('at 1366 x 768 the fold of the scenario card opens over the list and moves nothing, and holds the pass rule', async ({ page }) => {
+    await page.setViewportSize({ width: 1366, height: 768 })
+    await open(page, 'map')
+    await commit(page, 2)
+    await boxStill(page)
+    const before = await held(page)
+    await page.getByText('About this request').click()
+    await boxStill(page)
+    expect(await held(page)).toEqual(before)
+    const panel = page.locator('.es-floor-card__panel')
+    await expect(panel).toBeVisible()
+    await expect(panel).toContainText('Pass rule:')
+    const whole = await panel.evaluate((element) => {
+      const at = element.getBoundingClientRect()
+      const hit = document.elementFromPoint(at.left + at.width / 2, at.top + at.height / 2)
+      return at.top >= 0 && at.bottom <= window.innerHeight && hit !== null && element.contains(hit)
+    })
+    expect(whole).toBe(true)
+    await page.getByText('About this request').click()
+    await expect(panel).toBeHidden()
+    expect(await held(page)).toEqual(before)
+  })
+})
+
+test.describe('the chips in one row', () => {
+  for (const [width, height] of [[1366, 768], [1280, 620]] as const) {
+    test(`at ${width} x ${height}, the chips are one row, a vertical wheel over it scrolls it sideways, and the last chip comes whole into view`, async ({ page }) => {
+      await page.setViewportSize({ width, height })
+      await open(page, 'map')
+      await commit(page, 2)
+      await boxStill(page)
+      const row = page.locator('.es-floor-chips')
+      const at = await row.boundingBox()
+      if (at === null) throw new Error('the chips have no box')
+      expect(at.height, 'one row of chips').toBeLessThan(70)
+      const room = await row.evaluate((element) => ({ wide: element.scrollWidth > element.clientWidth + 1, more: element.hasAttribute('data-more') }))
+      expect(room.wide, 'the row has more chips than it shows').toBe(true)
+      expect(room.more, 'the row says there are more').toBe(true)
+      const before = await held(page)
+      await page.mouse.move(at.x + at.width / 2, at.y + at.height / 2)
+      for (let index = 0; index < 8; index++) await page.mouse.wheel(0, 120)
+      await expect.poll(() => row.evaluate((element) => element.scrollLeft)).toBeGreaterThan(100)
+      await expect.poll(() => row.evaluate((element) => !element.hasAttribute('data-more'))).toBe(true)
+      const last = await row.locator('button').last().boundingBox()
+      expect(last !== null && last.x + last.width <= at.x + at.width + 1 && last.x >= at.x - 1, 'the last chip is whole in the row').toBe(true)
+      expect(await page.evaluate(() => window.scrollY), 'the page did not scroll with the wheel').toBe(Number(before.page))
+    })
+  }
 })

@@ -641,6 +641,7 @@
 }
 
 .es-floor-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -675,8 +676,33 @@
   gap: 0 var(--es-space-3);
 }
 
-.es-floor-card__note[open] {
-  flex-basis: 100%;
+/* The fold opens over the stage list, on a sheet of its own, and not into the dock: opening it moves nothing under the pointer. */
+.es-floor-card__panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+  max-height: min(22rem, calc(100svh - 14rem));
+  margin-top: var(--es-space-1);
+  padding: var(--es-space-3);
+  overflow: auto;
+  border: 1px solid var(--es-paper-ink);
+  border-radius: var(--es-radius-paper);
+  background: var(--es-paper);
+  box-shadow: var(--es-shadow-lift);
+}
+
+.es-floor-card__panel p {
+  font-size: var(--es-size-note);
+  line-height: 1.5;
+}
+
+.es-floor-card__read {
+  color: var(--es-text-2);
 }
 
 .es-floor-card__note summary {
@@ -923,12 +949,18 @@
   opacity: 0.8;
 }
 
-/* On a desk too short for three rows of chips and a list worth reading, the chips are one row that scrolls sideways, the dock's parts sit
-   closer, and the line that says the map allows one run is left to the pass rule over it, which says the same. */
-@media (min-width: 64rem) and (max-height: 759px) {
+/* On a desk too short for three rows of chips and a list worth reading (a laptop's 768 px is one), the chips are one row that scrolls
+   sideways, a wheel turned over it included (useFloorControls.ts), and a fade at its right edge says that more chips are there; the dock's
+   parts sit closer, and the line that says the map allows one run is left to the pass rule, which says the same. */
+@media (min-width: 64rem) and (max-height: 799px) {
   .es-floor-chips {
     flex-wrap: nowrap;
     overflow: auto hidden;
+    overscroll-behavior-x: contain;
+  }
+
+  .es-floor-chips[data-more] {
+    mask-image: linear-gradient(to right, var(--es-paper-ink) calc(100% - 2rem), transparent);
   }
 
   .es-floor-dock {
@@ -1255,6 +1287,8 @@
 @media (min-width: 64rem) {
   .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__body {
     height: clamp(26rem, 100svh - 1rem, 60rem);
+    /* The toolbar under the body stands a clear rem past the screen's foot, not a sliver of it under the edge. */
+    margin-bottom: var(--es-space-4);
     scroll-margin-block: var(--es-space-2);
   }
 
@@ -1301,6 +1335,71 @@
     z-index: 3;
     margin: 0;
     box-shadow: var(--es-shadow-lift);
+  }
+}
+
+/* Where the dock stands beside the drawing (the game's page at a desk, a lesson's Run in a wide column), the first run's last step (the ring
+   on the first move) stands over the drawing's foot, above its legend, as on a phone, and not in the dock: it goes with the first lay, and
+   so nothing in the dock moves when it does. */
+@media (min-width: 64rem) {
+  .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] {
+    position: absolute;
+    right: calc(100% + var(--es-space-3));
+    bottom: 3.5rem;
+    z-index: 3;
+    flex-flow: column nowrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: min(22rem, 40vw);
+    margin: 0;
+    padding: var(--es-space-3);
+    border: 1px solid var(--es-paper-ink);
+    border-radius: var(--es-radius-paper);
+    background: var(--es-paper);
+    box-shadow: var(--es-shadow-lift);
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] .es-intro__lead {
+    display: block;
+    order: 1;
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] .es-intro__actions {
+    position: static;
+    order: 2;
+    margin: 0;
+    padding: 0;
+  }
+
+  @container es-frame (min-width: 56rem) {
+    .es-frame[data-placement='embed'][data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] {
+      position: absolute;
+      right: calc(100% + var(--es-space-3));
+      bottom: 3.5rem;
+      z-index: 3;
+      flex-flow: column nowrap;
+      align-items: flex-start;
+      justify-content: flex-start;
+      width: min(22rem, 40cqw);
+      margin: 0;
+      padding: var(--es-space-3);
+      border: 1px solid var(--es-paper-ink);
+      border-radius: var(--es-radius-paper);
+      background: var(--es-paper);
+      box-shadow: var(--es-shadow-lift);
+    }
+
+    .es-frame[data-placement='embed'][data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] .es-intro__lead {
+      display: block;
+      order: 1;
+    }
+
+    .es-frame[data-placement='embed'][data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] .es-intro__actions {
+      position: static;
+      order: 2;
+      margin: 0;
+      padding: 0;
+    }
   }
 }
 
