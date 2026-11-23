@@ -21,6 +21,10 @@ import { paddingWaste } from './families/tr2/padding-waste'
 import { preemptVictim } from './families/tr2/preempt-victim'
 import { runnerFallback } from './families/tr2/runner-fallback'
 import { stepOrder } from './families/tr2/step-order'
+import { captureWindow } from './families/tr3/capture-window'
+import { insideAGraph } from './families/tr3/inside-a-graph'
+import { launchAndKernel } from './families/tr3/launch-and-kernel'
+import { whichCategory } from './families/tr3/which-category'
 import { blocksHeld } from './families/tr5a/blocks-held'
 import { hitLength } from './families/tr5a/hit-length'
 import { pagesForAdapter } from './families/tr5a/pages-for-adapter'
@@ -55,6 +59,10 @@ export const FAMILIES: readonly Gen[] = [
   preemptVictim,
   runnerFallback,
   stepOrder,
+  captureWindow,
+  insideAGraph,
+  launchAndKernel,
+  whichCategory,
   blocksHeld,
   hitLength,
   pagesForAdapter,
