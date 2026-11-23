@@ -103,6 +103,14 @@ describe('your best, from the ledger', () => {
     expect(bestOf(events, 'pool', 'two-kinds')).toBeNull()
     expect([...playedLevels(events, 'pool')].sort()).toEqual(['evict', 'one-group'])
   })
+
+  test('a run left before its end is not a run: it is no best, no count, and no level played', () => {
+    const left = { ...play('play:pool/two-kinds', 0), data: { actions: '[]', actionsSha256: '', left: '2026-11-20T09:00:00.000Z' } } as unknown as LedgerEvent
+    const events = [play('play:pool/one-group', 0.8), { ...left, ref: 'play:pool/one-group' } as LedgerEvent, left]
+    expect(bestOf(events, 'pool', 'one-group')).toEqual({ score: 0.8, runs: 1 })
+    expect(bestOf(events, 'pool', 'two-kinds')).toBeNull()
+    expect([...playedLevels(events, 'pool')]).toEqual(['one-group'])
+  })
 })
 
 describe('the result', () => {

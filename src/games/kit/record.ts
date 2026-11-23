@@ -1,4 +1,4 @@
-import type { Draft } from '@es/ledger'
+import type { Draft, IsoInstant } from '@es/ledger'
 import type { GameMode, RunResult } from '@es/play'
 // The log's text is packages/play/replay.ts's `encodeActions`, which is canonical JSON, and the ref is its `playRef`
 // (tests/play/record.test.ts holds the two to them). Both are written from their parts here, by path: importing replay.ts would split it
@@ -74,6 +74,50 @@ export type Recorded = { readonly ok: true } | { readonly ok: false; readonly de
 export async function recordPlay(result: RunResult, mode: GameMode, prove?: ProveStamp): Promise<Recorded> {
   try {
     const [draft, { appendEvidence }] = await Promise.all([playDraft(result, mode, sha256Text, prove), import('@/evidence/useEvidence')])
+    const written = await appendEvidence(draft)
+    return written.ok ? { ok: true } : { ok: false, detail: written.detail }
+  } catch (error) {
+    return { ok: false, detail: error instanceof Error ? error.message : String(error) }
+  }
+}
+
+/**
+ * A run that was left before its end (W2b-T78): a reload, the page closed, a restart, Leave Prove mode, or a second tab that found a Prove
+ * attempt's open record lapsed. It is a `play` event of the level with `data.left` set to the instant the run began, a score of 0 and a
+ * miss, so that the export shows the attempt. Its log is `[]`: a run that did not end is not replayed, and the Evidence page reads it as
+ * left (src/evidence/rows.ts). A graded run outside Prove mode is stamped `unseen`, as it would have been, and no window applies to it;
+ * a Prove attempt that counted is stamped `proved`, as a miss is, and opens the 24 hours as a miss does (src/prove/window.ts).
+ */
+export interface LeftRun {
+  readonly game: string
+  readonly level: string
+  readonly mode: GameMode
+  /** When the run began, as `toISOString` writes it. */
+  readonly began: IsoInstant
+  readonly seed?: number
+  readonly rev?: string
+  readonly prove?: ProveStamp
+}
+
+/** The event that records a run left before its end. */
+export async function leftDraft(run: LeftRun, hash: Hasher = sha256Text): Promise<Draft<'play'>> {
+  const actions = canonicalJson([])
+  return {
+    kind: 'play',
+    ref: `play:${run.game}/${run.level}`,
+    score: 0,
+    ok: false,
+    provenance: provenanceOf(run.mode, run.prove),
+    ...(run.seed === undefined ? {} : { seed: run.seed }),
+    ...(run.rev === undefined ? {} : { rev: run.rev }),
+    data: { actions, actionsSha256: await hash(actions), left: run.began },
+  }
+}
+
+/** Writes a run that was left. It never throws. */
+export async function recordLeft(run: LeftRun): Promise<Recorded> {
+  try {
+    const [draft, { appendEvidence }] = await Promise.all([leftDraft(run), import('@/evidence/useEvidence')])
     const written = await appendEvidence(draft)
     return written.ok ? { ok: true } : { ok: false, detail: written.detail }
   } catch (error) {
