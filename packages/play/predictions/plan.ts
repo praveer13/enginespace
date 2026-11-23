@@ -1,12 +1,12 @@
 /**
- * How each lesson prediction is revealed (W1b-T02, then R-T09; ARCHITECTURE §4.3, §7.2; ASSESSMENT §4.7; D-067): the lessons' 39 `predict`
+ * How each lesson prediction is revealed (W1b-T02, then R-T09; ARCHITECTURE §4.3, §7.2; ASSESSMENT §4.7; D-067): the lessons' 46 `predict`
  * blocks, each with the way its answer is shown. Every one has one.
  *
- *   - After its run (`reveal: after-game`): 18 predictions. The row names the game block whose run the pure model reads the answer from,
+ *   - After its run (`reveal: after-game`): 21 predictions. The row names the game block whose run the pure model reads the answer from,
  *     the first block of that game and level that follows the prediction in its lesson. The reading is `./truth` (a lazy part, because it
  *     brings the games' worlds), and tests/play/predictions.test.ts holds it to the lesson's own figure, which tests/content/tr*-demos.ts
  *     computes from the numbers of the prompt alone. The two agree only if the prompt's world is the run's.
- *   - At commit (`reveal: at-commit`): 21 predictions. The question carries numbers of its own, round and made up, that no level of its
+ *   - At commit (`reveal: at-commit`): 25 predictions. The question carries numbers of its own, round and made up, that no level of its
  *     game has, or it asks for a fact about an engine's source, configuration or tool, or its lesson has no game. The answer is computed
  *     from the question's own numbers by the course's pure model, or read from the claim the question is about, and no run is read. It is
  *     shown at once with its working (D-067). The answer is `./commit-<module>`, a lazy part like the readings.
@@ -40,8 +40,20 @@ export type Plan = Answered | AtCommit | Held
 const answered = (game: string, level: string): Answered => ({ game, level })
 const atCommit: AtCommit = { commit: true }
 
-/** The 39 predictions of the lessons, by id. */
+/** The 46 predictions of the lessons, by id. */
 export const PLAN: Readonly<Record<string, Plan>> = {
+  // TR0, Tensor views: the elements the copy of the `views` run moves, and a slice's stride worked from the question's own shape; the
+  // addresses between a head's neighbouring tokens on `three-d`, the lines of a short program that wait for the GPU, and the rows of a query
+  // projection from the model's configuration; the lanes the reference's launch on `grid` masks, and a 1-D launch's masked lanes worked from the question's own numbers.
+  'tr0.l1.p1': answered('shape-shifter', 'views'),
+  'tr0.l1.p2': atCommit,
+  'tr0.l2.p1': answered('shape-shifter', 'three-d'),
+  'tr0.l2.p2': atCommit,
+  'tr0.l3.p1': atCommit,
+  'tr0.l4.p1': answered('shape-shifter', 'grid'),
+  'tr0.l4.p2': atCommit,
+  'tr0.l5.p1': atCommit,
+
   // TR1, Request path: the lifecycle model's path for the engine the level lays, and the same request with one lever moved.
   'tr1.l1.p1': answered('engine-floor', 'nano'),
   'tr1.l1.p2': answered('engine-floor', 'nano'),

@@ -85,9 +85,18 @@ export interface StoredReport {
   readonly ran: number
   readonly sizes?: Sizes
   readonly rules: readonly RuleResult[]
+  /**
+   * What the receipt gave for a re-check that depends on the site and not on the receipt alone: its argmax ids, at the positions it gave (rechecks.ts `keptArgmax`).
+   * A bank that the site gains after the receipt was brought back is compared with these when the report is read (reread.ts), so that the receipt is credited
+   * without being brought back again. A report from before this field holds none, and its stored result of the check stands.
+   */
+  readonly argmax?: { readonly positions: readonly number[]; readonly ids: readonly number[] }
 }
 
 export const REPORT_VERSION = 1
+
+/** How many argmax positions a stored report keeps [estimated]. */
+export const ARGMAX_KEPT_ROWS = 4096
 
 const RULE_IDS: ReadonlySet<string> = new Set(RULES.map((entry) => entry.id))
 const STATUSES: ReadonlySet<string> = new Set<RuleStatus>(['pass', 'fail', 'skipped'])
@@ -140,13 +149,28 @@ export function readStoredReport(value: unknown): StoredReport | null {
     if (read === null) return null
     rules.push(read)
   }
+  const argmax = readArgmaxKept(value.argmax)
+  if (argmax === null) return null
+  const held = argmax === undefined ? {} : { argmax }
   const { sizes } = value
-  if (sizes === undefined) return { v: REPORT_VERSION, ran: value.ran, rules }
+  if (sizes === undefined) return { v: REPORT_VERSION, ran: value.ran, rules, ...held }
   if (!isObject(sizes) || !isCount(sizes.compressedBytes) || !isCount(sizes.decompressedBytes)) return null
-  return { v: REPORT_VERSION, ran: value.ran, sizes: { compressedBytes: sizes.compressedBytes, decompressedBytes: sizes.decompressedBytes }, rules }
+  return { v: REPORT_VERSION, ran: value.ran, sizes: { compressedBytes: sizes.compressedBytes, decompressedBytes: sizes.decompressedBytes }, rules, ...held }
+}
+
+const isInt = (value: unknown): value is number => typeof value === 'number' && Number.isSafeInteger(value)
+
+/** The argmax ids a report keeps: undefined when it keeps none, null when what it holds is not two columns of integers of one length. */
+function readArgmaxKept(value: unknown): StoredReport['argmax'] | null | undefined {
+  if (value === undefined) return undefined
+  if (!isObject(value) || !Array.isArray(value.positions) || !Array.isArray(value.ids)) return null
+  const { positions, ids } = value
+  if (positions.length !== ids.length || positions.length > ARGMAX_KEPT_ROWS) return null
+  if (!positions.every(isInt) || !ids.every(isInt)) return null
+  return { positions: [...(positions as number[])], ids: [...(ids as number[])] }
 }
 
 /** The report of a check, as the ledger stores it. */
-export function storedReport(rules: readonly RuleResult[], sizes?: Sizes): StoredReport {
-  return { v: REPORT_VERSION, ran: RULES_RUN, ...(sizes === undefined ? {} : { sizes }), rules }
+export function storedReport(rules: readonly RuleResult[], sizes?: Sizes, argmax?: StoredReport['argmax']): StoredReport {
+  return { v: REPORT_VERSION, ran: RULES_RUN, ...(sizes === undefined ? {} : { sizes }), rules, ...(argmax === undefined ? {} : { argmax }) }
 }

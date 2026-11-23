@@ -7,7 +7,7 @@ import { afterEach, describe, expect, test } from 'bun:test'
 import { createElement } from 'react'
 import { renderToString } from 'react-dom/server'
 import { createStaticHandler, createStaticRouter, StaticRouterProvider } from 'react-router'
-import { MemoryStore, seededIds } from '@es/ledger'
+import { MemoryStore, SCHEMA_VERSION, seededIds } from '@es/ledger'
 import { EvidenceNotice } from '@/evidence/EvidenceNotice'
 import { READ_ONLY_NOTES } from '@/evidence/guard'
 import { getReadOnlyNotice, setReadOnlyNotice, subscribeReadOnlyNotice } from '@/evidence/notice'
@@ -105,7 +105,7 @@ describe('the shell', () => {
 
 describe('the hook publishes it', () => {
   test('a read-only ledger sets the notice, and closing the engine clears it', async () => {
-    const store = new MemoryStore({ meta: { deviceId: 'dev-new', createdAt: '2026-10-01T00:00:00.000Z', schemaVersion: 2 } })
+    const store = new MemoryStore({ meta: { deviceId: 'dev-new', createdAt: '2026-10-01T00:00:00.000Z', schemaVersion: SCHEMA_VERSION + 1 } })
     configureEvidence({ store, clock: fixedClock(), newId: seededIds(9), tabId: 'tab-hook', channelFactory: null, storageManager: null })
     let view: ReturnType<typeof useEvidence> | undefined
     function Probe() {

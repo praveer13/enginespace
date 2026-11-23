@@ -22,6 +22,7 @@ export const WALKED = {
   'engine-floor': ['nano', 'nano-tp', 'mini', 'inside', 'vllm', 'sglang', 'abort', 'map'],
   pool: ['one-group', 'two-kinds', 'evict', 'same-size', 'state', 'adapters', 'manager'],
   'broken-bench': ['due', 'warm', 'sure', 'court'],
+  'shape-shifter': ['views', 'stride-zero', 'three-d', 'fewest', 'grid'],
 } as const
 
 /**
@@ -34,4 +35,5 @@ export const SMOKE_LEVELS: { readonly [Game in keyof typeof WALKED]: (typeof WAL
   'engine-floor': 'nano',
   pool: 'one-group',
   'broken-bench': 'due',
+  'shape-shifter': 'views',
 }

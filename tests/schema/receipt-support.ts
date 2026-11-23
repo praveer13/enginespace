@@ -100,7 +100,7 @@ export function sampleReceipt(): Receipt {
       { id: 'runner', kind: 'environment', pass: true, detail: 'MRV2 ran' },
       { id: 'engine-integrity', kind: 'property', pass: true, tolerance: 0, detail: '' },
     ],
-    performance: { kind: 'trace', claimed: { steps: 2, gpuBusyNs: 100_000 } },
+    performance: { kind: 'trace', claimed: { trace: { steps: 2, gpuBusyNs: 100_000 } } },
     provenance: { assisted: 'none', agent: false, guard: 'on' },
     notes: 'A synthetic receipt made by tests/schema/receipt-support.ts. No machine ran it.',
     ext: { example: true },

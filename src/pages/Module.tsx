@@ -7,7 +7,7 @@ import { TextLink } from '@/design/components/TextLink'
 import { useClaims, useDocumentTitle, useIndex } from '@/content/load'
 import { useLessonRows, useModule } from '@/content/load-lessons'
 import { useMap } from '@/content/load-map'
-import { citedClaimIds, decimals, pendingLab, renderEnv, titled, todayIso } from '@/content/render/model'
+import { citedClaimIds, decimals, labName, pendingLab, renderEnv, titled, todayIso } from '@/content/render/model'
 import { MODULE } from '@/map/copy'
 import { Outcomes, Rows, type LabRef } from '@/map/ModuleProgress'
 import { needsLine, referenceParts, saysHours, twoSentences } from '@/map/moduleWords'
@@ -142,7 +142,10 @@ function WayOn({ id, way, ready, lessons }: { id: string; way: ModuleWay | undef
   const target = lessons[at]
   const step = way?.step ?? null
   if (step !== null && (step.module === id || target === undefined)) {
-    const sentence = step.module === id ? (way?.last === null || way?.last === undefined ? undefined : `${way.last} Next: ${step.reason}.`) : `Every lesson of ${moduleCode(id)} is done. Next: ${step.reason}.`
+    // "Done" is said only of a module that has lessons and every one of them done. A module with none has nothing to finish:
+    // the page already says it is not published and has no lessons, so the line names only the way on.
+    const elsewhere = lessons.length === 0 ? `Next: ${step.reason}.` : `Every lesson of ${moduleCode(id)} is done. Next: ${step.reason}.`
+    const sentence = step.module === id ? (way?.last === null || way?.last === undefined ? undefined : `${way.last} Next: ${step.reason}.`) : elsewhere
     return (
       <>
         {sentence === undefined ? null : <p className="es-module__last">{sentence}</p>}
@@ -178,6 +181,13 @@ function HoursPart({ hours, byLane }: { hours: number | undefined; byLane: { B?:
   )
 }
 
+/** A lab as the module page names it: the title the forge gives it, else the title its module's file gives it. Never the lab's id. */
+function labTitle(lab: string, module: CompiledModule | null): string {
+  const known = labName(lab)
+  if (!known.startsWith('Lab ')) return known
+  return module?.artifacts.find((artifact) => artifact.id === lab)?.title ?? 'The lab'
+}
+
 export function ModuleView({ id, module, entry, lessons: rows, claims, today, kcs, progress, ready = false, way }: ModuleViewProps) {
   const env = useMemo(() => renderEnv(module?.blocks ?? [], claims, today), [module, claims, today])
   const title = module?.title ?? entry?.title ?? id
@@ -192,6 +202,7 @@ export function ModuleView({ id, module, entry, lessons: rows, claims, today, kc
     id: lab,
     lane: module?.blocks.flatMap((block) => (block.type === 'lab' && block.id === lab ? [block.lane] : []))[0] ?? 'B',
     waiting: pendingLab(lab) !== null,
+    title: labTitle(lab, module),
   }))
   const states = useMemo(() => new Map<string, KcState>((progress?.kcs ?? []).map((kc) => [kc.id, kc.state])), [progress])
   const passed = useMemo(() => outcomesPassed(module?.outcome_kcs ?? [], module?.outcomes.length ?? 0, states, ready && kcs !== undefined), [module, states, ready, kcs])

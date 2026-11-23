@@ -30,6 +30,11 @@ import { FLOOR_COPY } from '@es/play/engine-floor/copy'
 import { LOOP_COPY } from '@es/play/loop/copy'
 import { FULL_COPY, MASK_CHOICES, MODE_CHOICES } from '@es/play/loop/full/copy'
 import { POOL_COPY } from '@es/play/pool/copy'
+import { copyOf as shiftCopy, momentLine as shiftMoment, SHIFT_PARTS } from '@es/play/shape-shifter/copy'
+import { buildLevel as shiftLevel } from '@es/play/shape-shifter/levels'
+import { shiftSession } from '@es/play/shape-shifter/session'
+import type { ShiftAction } from '@es/play/shape-shifter/types'
+import type { ShiftOp } from '@es/sim/tensor'
 import { isHeld, NO_BLOCK, PLAN, UNLISTED } from '@es/play/predictions/plan'
 import { COMMITS as TR1_COMMITS } from '@es/play/predictions/commit-tr1'
 import { COMMITS as TR2_COMMITS } from '@es/play/predictions/commit-tr2'
@@ -160,6 +165,7 @@ function copyStrings(value: unknown): string[] {
 function copyTexts(): Text[] {
   const tables = { loop: { ...LOOP_COPY, ...FULL_COPY, MODE_CHOICES, MASK_CHOICES }, pool: POOL_COPY, verifier: VERIFIER_COPY, 'engine-floor': FLOOR_COPY, 'broken-bench': BENCH_COPY }
   const out: Text[] = Object.entries(tables).map(([game, table]) => ({ area: 'copy', where: `${game}/copy.ts`, text: copyStrings(table).join('\n') }))
+  out.push({ area: 'copy', where: 'shape-shifter/copy.ts', text: shiftWords().join('\n') })
   for (const entry of ROSTER) out.push({ area: 'copy', where: `roster ${entry.id}`, text: [entry.title, entry.subtitle, entry.role].join('\n') })
   for (const game of GAMES.games) {
     const words = [game.title, game.subtitle, ...game.levels.map((level) => level.title), ...game.keys.map((key) => key.description)]
@@ -174,6 +180,45 @@ function copyTexts(): Text[] {
   ]
   out.push({ area: 'copy', where: 'src/copy/terms.ts', text: terms.join('\n') })
   return out
+}
+
+/** Tensor views' words (not in the registry yet): each level's copy on three seeds, the parts, every moment's line and the debrief's sentences. */
+function shiftWords(): string[] {
+  const ids = ['views', 'stride-zero', 'three-d', 'fewest', 'grid'] as const
+  const levels = ids.flatMap((id) => [0, 1000, 1001].map((seed) => shiftLevel(id, seed)))
+  const words = levels.flatMap((level) => {
+    const copy = shiftCopy(level)
+    return [copy.title, ...Object.values(copy.goal), copy.prompt, copy.predict.ask, copy.predict.unit, copy.passRule ?? '', copy.practiceRule ?? '']
+  })
+  const parts = SHIFT_PARTS.flatMap((part) => [part.name, part.sentence])
+  const grid = shiftLevel('grid', 0)
+  const moments = [
+    shiftMoment({ id: 'view-free', task: 0, turn: 0, op: 'transpose', before: [6, 1], after: [1, 6] }, shiftLevel('views', 30)),
+    shiftMoment({ id: 'view-refused', task: 0, turn: 0, shape: [24] }, shiftLevel('views', 30)),
+    shiftMoment({ id: 'view-refused', task: 0, turn: 0, shape: [24] }, shiftLevel('fewest', 1000)),
+    shiftMoment({ id: 'copy', task: 0, turn: 0, op: 'contiguous', n: 24 }, shiftLevel('views', 30)),
+    shiftMoment({ id: 'stride-zero', task: 0, turn: 0, rows: 4, m: 6 }, shiftLevel('stride-zero', 10)),
+    shiftMoment({ id: 'wrong-order', task: 0, turn: 0, k: 8, n: 32 }, shiftLevel('three-d', 26)),
+    shiftMoment({ id: 'masked', task: 0, turn: 0, index: [0, 0], lanes: 64, masked: 16 }, grid),
+    shiftMoment({ id: 'uncovered', task: 0, turn: 0, n: 48, dim: 1, size: 20, block: 4, g: 5 }, grid),
+    shiftMoment({ id: 'not-pow2', task: 0, turn: 0, x: 12 }, grid),
+    shiftMoment({ id: 'too-many', task: 0, turn: 0, cap: 6, n: 240 }, grid),
+  ]
+  const debriefs = levels.map((level) => shiftSession.debrief(shiftSession.init(level), shiftSession.ghost(level)).sentence)
+  // The sentences a run that went wrong is told: each lever of `grid`, a launch refused, a copy the reference never makes, a refused view.
+  const launch = (...actions: ShiftAction[]) => actions.reduce(shiftSession.reduce, shiftSession.init(grid))
+  const mistakes = [
+    launch({ t: 'block', dim: 0, value: 16 }, { t: 'block', dim: 1, value: 32 }, { t: 'launch' }),
+    launch({ t: 'block', dim: 0, value: 16 }, { t: 'block', dim: 1, value: 4 }, { t: 'grid', dim: 1, value: 4 }, { t: 'launch' }),
+    launch({ t: 'block', dim: 0, value: 16 }, { t: 'block', dim: 1, value: 4 }, { t: 'grid', dim: 1, value: 6 }, { t: 'launch' }),
+    launch({ t: 'block', dim: 0, value: 12 }, { t: 'launch' }),
+    launch({ t: 'launch' }),
+  ].map((run) => shiftSession.debrief(run, shiftSession.ghost(grid)).sentence)
+  const three = shiftLevel('three-d', 26)
+  const move = (...ops: ShiftOp[]) => ops.reduce((s, o) => shiftSession.reduce(s, { t: 'op', op: o }), shiftSession.init(three))
+  const wasteful = move({ op: 'reshape', shape: [4, 2, 4] }, { op: 'permute', order: [0, 2, 1] }, { op: 'contiguous' }, { op: 'permute', order: [0, 2, 1] }, { op: 'permute', order: [1, 0, 2] }, { op: 'contiguous' })
+  mistakes.push(shiftSession.debrief(wasteful, shiftSession.ghost(three)).sentence, shiftSession.debrief(move({ op: 'reshape', shape: [2, 4, 4] }), shiftSession.ghost(three)).sentence)
+  return [...words, ...parts, ...moments, ...debriefs, ...mistakes]
 }
 
 /** The text of rich text: its words, without its numbers or its code. */

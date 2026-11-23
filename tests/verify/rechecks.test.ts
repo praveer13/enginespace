@@ -216,3 +216,48 @@ describe('an artifact of rule 7 that cannot be read', () => {
     }
   })
 })
+
+describe('an artifact that the receipt labels as something else (rule 7 reads the data\'s own schema tag)', () => {
+  const relabel = (fixture: Fixture, id: string): Fixture => ({
+    ...edited(fixture, (bundle) => {
+      const entry = bundle.receipt.artifacts.find((artifact) => artifact.id === id)
+      if (entry === undefined) throw new Error('no entry')
+      entry.kind = 'log'
+      entry.format = 'json'
+    }),
+    context: fixture.context,
+  })
+  const cases: [string, string, 'outputs' | 'counts', string, object, Fixture['context']['banks']][] = [
+    ['identity-tally', 'identity', 'outputs', IDENTITY_FORMAT, identity([-1, -1], [-1, -1]), {}],
+    ['acceptance-counts', 'acceptance', 'counts', ACCEPTANCE_FORMAT, { schema: ACCEPTANCE_FORMAT, rounds: { proposed: [4], accepted: [4], bonus: [1], emitted: [5] } }, {}],
+    ['argmax-bank', 'argmax', 'outputs', ARGMAX_FORMAT, { schema: ARGMAX_FORMAT, positions: [3], ids: [101] }, { 'tr8.replay.s2': { positions: [3], ids: [101] } }],
+  ]
+  for (const [check, id, kind, format, data, banks] of cases) {
+    test(`${check} passes the artifact under its own label and fails the same artifact relabelled, with the label and the tag printed`, async () => {
+      const honest = withArtifact(id, kind, format, data, banks)
+      expect(checkOf(await run(honest), check)?.status).toBe('pass')
+      const outcome = await run(relabel(honest, id))
+      expect(checkOf(outcome, check)?.status).toBe('fail')
+      expect(checkOf(outcome, check)?.bound).toBe(`The artifact "${id}": the receipt lists it as kind "log", format "json", and its own data says ${format}.`)
+    })
+  }
+})
+
+describe('claims-backed', () => {
+  const counts = { schema: ACCEPTANCE_FORMAT, rounds: { proposed: [4], accepted: [4], bonus: [1], emitted: [5] } }
+  const claiming = (key: string): Fixture => {
+    const fixture = withArtifact('acceptance', 'counts', ACCEPTANCE_FORMAT, counts)
+    return { ...edited(fixture, (bundle) => { if (bundle.receipt.performance !== undefined) bundle.receipt.performance.claimed[key] = { ratePermille: 1000 } }), context: fixture.context }
+  }
+
+  test('says nothing when every claimed key is an artifact of the receipt', async () => {
+    const outcome = await run(claiming('acceptance'))
+    expect(checkOf(outcome, 'claims-backed')).toBeUndefined()
+  })
+
+  test('fails a key that names no artifact, and prints the key', async () => {
+    const outcome = await run(claiming('nothing-here'))
+    expect(checkOf(outcome, 'claims-backed')?.status).toBe('fail')
+    expect(checkOf(outcome, 'claims-backed')?.bound).toBe('1 claim ("nothing-here") names no artifact of the receipt, so nothing was recomputed from it: a claim with nothing behind it.')
+  })
+})

@@ -16,7 +16,7 @@
  * shellcheck on the PATH, checks those over .github/workflows. It is not a dependency, so run it by hand when a workflow changes.
  */
 import { describe, expect, test } from 'bun:test'
-import { readdirSync } from 'node:fs'
+import { existsSync, readdirSync } from 'node:fs'
 import path from 'node:path'
 import { load } from 'js-yaml'
 import { GATE_NAMES, GATES } from '../../scripts/verify'
@@ -473,7 +473,7 @@ describe('labs.yml (§10.1)', () => {
     })
   }
 
-  test('runs for a change to what the lab gates read, and by hand: the labs, the schemas and the receipt rules (W0-T04), what verify:labs imports and compares (W1b-T13), the grader\'s fixtures (W2-T02, W2-T05), what the receipt fixtures step reads (W2-T08), and the course lock that the pin checks of the grader read (W2-T04)', () => {
+  test('runs for a change to what the lab gates read, and by hand: the labs, the schemas and the receipt rules (W0-T04), what verify:labs imports and compares (W1b-T13), the grader\'s fixtures (W2-T02, W2-T05), what the receipt fixtures step reads (W2-T08), and the course lock that the pin checks of the grader read (W2-T04), and the tensor vectors and their script that the cpu job compares (W2-T13)', () => {
     expect(labsPaths).toEqual([
       'labs/**',
       'course.lock.json',
@@ -489,6 +489,8 @@ describe('labs.yml (§10.1)', () => {
       'tests/fixtures/grader/**',
       'tests/fixtures/references/**',
       'tests/fixtures/receipts/**',
+      'tests/fixtures/tensor/**',
+      'scripts/tensor-torch-vectors.py',
       'tests/verify/**',
       'tests/schema/receipt-support.ts',
       'src/receipts/atlas.ts',
@@ -496,6 +498,107 @@ describe('labs.yml (§10.1)', () => {
       '.github/workflows/labs.yml',
     ])
     expect('workflow_dispatch' in labsOn).toBe(true)
+  })
+
+  test('has the cpu job (W2-T13): switched on by detect when the CPU environment, its fixture and the script exist and a change touched them, and it syncs from the lock and compares the vectors without writing the fixture', () => {
+    const jobs = Object.fromEntries(jobsOf('labs.yml'))
+    expect([jobs.cpu.needs, jobs.cpu.if]).toEqual(['detect', "needs.detect.outputs.cpu == 'true'"])
+    const detect = jobs.detect.steps?.find((step) => step.id === 'labs')?.run ?? ''
+    // The change is read from the first parent of the merge commit, and the paths are the ones the task names, the TR0 lab's included.
+    expect(detect).toContain('git diff --quiet HEAD^1 HEAD -- labs/envs/cpu tests/fixtures/tensor scripts/tensor-torch-vectors.py')
+    expect(detect).toContain("'labs/grader/src/enginespace_grader/labs/tr0*'")
+    expect(detect).toContain('echo "cpu=$cpu" >> "$GITHUB_OUTPUT"')
+    expect(jobs.detect as unknown as { outputs?: Record<string, string> }).toMatchObject({ outputs: { cpu: '${{ steps.labs.outputs.cpu }}' } })
+    const steps = jobs.cpu.steps ?? []
+    const uses = steps.map((step) => step.uses?.split('@')[0]).filter((name) => name !== undefined)
+    expect(uses).toEqual(['actions/checkout', 'actions/setup-python'])
+    expect(steps.find((step) => step.uses?.startsWith('actions/setup-python@'))?.with?.['python-version']).toBe('3.12')
+    expect(runsOf('labs.yml', 'cpu')).toEqual([
+      'python3 -m venv "$RUNNER_TEMP/cpu-venv"\n"$RUNNER_TEMP/cpu-venv/bin/python" -m pip install --no-input --no-deps --require-hashes --extra-index-url https://download.pytorch.org/whl/cpu -r labs/envs/cpu/requirements.txt',
+      '"$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/tensor-torch-vectors.py --out "$RUNNER_TEMP/torch-vectors.json" --compare tests/fixtures/tensor/torch-vectors.json',
+      '"$RUNNER_TEMP/cpu-venv/bin/python" -m unittest discover -v -s labs/grader/tests/cpu -p "test_*.py"',
+      '"$RUNNER_TEMP/cpu-venv/bin/python" -I -m unittest discover -v -s scripts/triton-interp -p "test_*.py"\n"$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/triton-interp/course_kernel.py',
+      '"$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/triton-interp/run.py --json "$RUNNER_TEMP/triton-interp.json"',
+    ])
+    expect(typeof jobs.cpu['timeout-minutes']).toBe('number')
+    // The fixture is never written by CI: the job's only --out is in RUNNER_TEMP.
+    expect(runsOf('labs.yml', 'cpu').join('\n')).not.toMatch(/--out (?!"\$RUNNER_TEMP)/)
+    expect(runsOf('labs.yml', 'cpu').join('\n')).not.toMatch(/\buv\b/)
+  })
+
+  test('the cpu job also runs the TR0 lab\'s tests in the CPU environment, with CI set so that a missing torch fails them (W2b-T48)', () => {
+    const jobs = Object.fromEntries(jobsOf('labs.yml'))
+    const step = (jobs.cpu.steps ?? []).find((candidate) => candidate.name === 'The TR0 lab, on a small random-weight model')
+    expect(step?.run).toBe('"$RUNNER_TEMP/cpu-venv/bin/python" -m unittest discover -v -s labs/grader/tests/cpu -p "test_*.py"')
+    expect((step as unknown as { env?: Record<string, string> }).env).toEqual({ CI: 'true', PYTHONPATH: 'labs/grader/src' })
+    // It runs in the environment that the lock exports, with no network and no second installer, and it fetches no model.
+    expect(step?.run).not.toMatch(/\buv\b|pip|curl|wget|fetch|huggingface/)
+    const detect = jobs.detect.steps?.find((candidate) => candidate.id === 'labs')?.run ?? ''
+    for (const pathspec of ["'labs/grader/tests/cpu'", "'labs/grader/src/enginespace_grader/checks'", "'labs/grader/tests/test_tr0*'"]) expect(detect).toContain(pathspec)
+    // The tests of that folder are found by this discovery only: the grader job's `python -m unittest` from the root never walks into a folder that is no package.
+    expect(existsSync(path.join(root, 'labs/grader/tests/cpu/__init__.py'))).toBe(false)
+  })
+
+  test('the cpu job runs Triton 3.8.0\'s interpreter: its script\'s tests and the course\'s kernel with CI set, then the pinned vLLM kernels, which end green whatever they find (W2b-T49)', () => {
+    const jobs = Object.fromEntries(jobsOf('labs.yml'))
+    const steps = jobs.cpu.steps ?? []
+    const own = steps.find((candidate) => candidate.name === 'The interpreter script, on stand-in kernels, and the course\'s own kernel')
+    expect((own as unknown as { env?: Record<string, string> }).env).toEqual({ CI: 'true' })
+    const vllm = steps.find((candidate) => candidate.name === 'Which of vLLM\'s pinned kernels run under the interpreter')
+    expect(vllm?.run).toBe('"$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/triton-interp/run.py --json "$RUNNER_TEMP/triton-interp.json"')
+    // A kernel that does not run is a finding and not a red job: the step is not told to require them all, and nothing continues past an error of its own.
+    expect(vllm?.run).not.toMatch(/--require-all-ran/)
+    expect((vllm as unknown as Record<string, unknown>)['continue-on-error']).toBeUndefined()
+    // Only the pinned commit is read, with no token: the step has no env of its own and the script names the commit of course.lock.json.
+    expect((vllm as unknown as Record<string, unknown>).env).toBeUndefined()
+    expect(read('scripts/triton-interp/run.py')).toContain('4ba787ec9959e566d3b587a796dff07673324da5')
+    expect(JSON.stringify(JSON.parse(read('course.lock.json')))).toContain('4ba787ec9959e566d3b587a796dff07673324da5')
+    expect(jobs.detect.steps?.find((candidate) => candidate.id === 'labs')?.run ?? '').toContain('scripts/triton-interp')
+    // The environment carries the wheel, on Linux only, at the pin vLLM v0.33.0 ships.
+    expect(read('labs/envs/cpu/pyproject.toml')).toContain('"triton==3.8.0; sys_platform == \'linux\'"')
+    expect(read('labs/envs/cpu/requirements.txt')).toContain("triton==3.8.0 ; sys_platform == 'linux'")
+  })
+
+  test('the weights job (W2-T16) runs on a dispatch and on nothing else: it fetches the pinned weights, hashes each file against the manifest, and prints the worst difference of the reference and the mutants', () => {
+    const jobs = Object.fromEntries(jobsOf('labs.yml'))
+    const weights = jobs.weights as unknown as { if?: string; needs?: unknown; env?: Record<string, string>; steps?: { name?: string; run?: string; env?: Record<string, string> }[] }
+    // Only a dispatch starts it (a pull request must never download a model), and it waits for no other job: detect's outputs say nothing about it.
+    expect(weights.if).toBe("github.event_name == 'workflow_dispatch'")
+    expect(weights.needs).toBeUndefined()
+    expect(weights.env).toEqual({ ENGINESPACE_CACHE: '${{ github.workspace }}/.enginespace-cache', PYTHONPATH: 'labs/grader/src' })
+    const steps = weights.steps ?? []
+    const byName = (name: string) => steps.find((step) => step.name === name)
+    // The same environment as the cpu job, from the lock's hashed export.
+    expect(byName("Install the CPU environment from its lock's export")?.run?.trim()).toBe(
+      'python3 -m venv "$RUNNER_TEMP/cpu-venv"\n"$RUNNER_TEMP/cpu-venv/bin/python" -m pip install --no-input --no-deps --require-hashes --extra-index-url https://download.pytorch.org/whl/cpu -r labs/envs/cpu/requirements.txt',
+    )
+    // `enginespace fetch tr0.forward` is the only command that reaches the network, and it is the grader's own, which keeps a file only when it hashes to the manifest's.
+    expect(byName('Fetch the pinned weights')?.run).toBe('"$RUNNER_TEMP/cpu-venv/bin/python" -m enginespace_grader fetch tr0.forward')
+    const hash = byName('Hash each file against the references manifest')?.run ?? ''
+    expect(hash).toContain('labs/references/manifest.json')
+    expect(hash).toContain('"tr0.forward" not in entry["labs"]')
+    expect(hash).toContain('sys.exit(1 if bad else 0)')
+    const measure = byName('The reference and the mutants, on the pinned weights')
+    expect(measure?.env).toEqual({ CI: 'true' })
+    expect(measure?.run).toContain('labs/grader/tests/cpu/weights_margin.py')
+    // It reads no token and sends nothing: no secrets, no vars, no curl or wget of its own, and no step that writes to the repository.
+    const text = JSON.stringify(weights)
+    expect(text).not.toMatch(/secrets\.|HF_TOKEN|GITHUB_TOKEN|curl|wget|git push|upload-artifact/)
+    expect(Object.keys(jobs)).toContain('weights')
+    // The cache is keyed by the manifest, so a changed pin is a new download.
+    const cache = steps.find((step) => (step as { uses?: string }).uses?.startsWith('actions/cache@')) as unknown as { with?: Record<string, string> } | undefined
+    expect(cache?.with?.key).toBe("tr0-weights-${{ hashFiles('labs/references/manifest.json') }}")
+    // Its script is not a test of the cpu job's discovery, and it is in the folder that detect watches.
+    expect(existsSync(path.join(root, 'labs/grader/tests/cpu/weights_margin.py'))).toBe(true)
+    expect(jobs.detect.steps?.find((candidate) => candidate.id === 'labs')?.run ?? '').toContain("'labs/gpu/tr0-forward'")
+  })
+
+  test('the vectors script has no header that says it is run by hand and never by CI (W2-T13)', () => {
+    const script = read('scripts/tensor-torch-vectors.py')
+    expect(script).not.toContain('by hand')
+    expect(script).not.toContain('never by CI')
+    expect(script).toContain('labs/envs/cpu')
+    expect(read('tests/fixtures/tensor/torch-vectors.json')).not.toContain('run by hand')
   })
 
   test('names every file that verify:labs imports, and every folder that it reads, so that a new dependency of the gate adds its path here (W1b-T13)', () => {
@@ -625,6 +728,14 @@ describe('reserved steps', () => {
     'W2-T08',
     // W2's grader track, whose checks the tree meets in files (W2b-T01 set their markers to it), and W2b-T01 itself.
     'W2-T01', 'W2-T03', 'W2-T05', 'W2-T06', 'W2-T09', 'W2-T10', 'W2-T28', 'W2-T43', 'W2b-T01',
+    // Wave 1 of the second plan, in wave-2m1a and wave-2m1b: the tasks of W2 that the two halves built, and every W2b task that merged, which
+    // the exit review of wave 1b (W2b-T39) marked `[=]`. W2-T16 waits for the owner's weights job and stays `[~]`;
+    // W2-T44 stays `[ ]`, because tests/content/predict.test.ts holds its heading open.
+    'W2-T14', 'W2-T18', 'W2-T42', 'W2b-T02', 'W2b-T43', 'W2b-T03', 'W2b-T04', 'W2b-T05', 'W2b-T06', 'W2b-T07', 'W2b-T40', 'W2b-T09',
+    'W2b-T10', 'W2b-T11', 'W2b-T12', 'W2b-T13', 'W2b-T14', 'W2b-T15', 'W2b-T45', 'W2b-T16', 'W2b-T41', 'W2b-T17', 'W2b-T18', 'W2b-T19', 'W2b-T20',
+    'W2b-T22', 'W2b-T21', 'W2b-T44', 'W2b-T23', 'W2b-T24', 'W2b-T25', 'W2b-T47', 'W2b-T30', 'W2b-T48', 'W2b-T49', 'W2b-T31', 'W2b-T50', 'W2b-T37',
+    'W2b-T42', 'W2b-T26', 'W2b-T27', 'W2b-T46', 'W2b-T28', 'W2b-T29', 'W2b-T32', 'W2b-T51', 'W2b-T52', 'W2b-T33', 'W2b-T34', 'W2b-T35', 'W2b-T36',
+    'W2b-T53',
   ]
 
   /** A reserved step is one whose whole command is the echo. A step that echoes it only where a file is missing (the content compile, prepare-pages, the labs) switches on by file, and is not reserved. */

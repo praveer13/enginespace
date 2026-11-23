@@ -39,6 +39,7 @@ import { findBanned } from '../src/copy/banned'
 import { clipped } from './support/site'
 import { walkOf } from './support/front'
 import { benchLevelWalk } from './support/walks'
+import { controlNamed } from './support/tab-target'
 
 const root = new URL('..', import.meta.url).pathname
 
@@ -106,6 +107,8 @@ async function reopen(page: Page, level: string) {
 
 /** Presses Tab until the focused control is named like `name`, and fails after `limit` presses. */
 async function tabTo(page: Page, name: RegExp, limit = 60) {
+  // The control is waited for before the first key: a walk that starts before it is in the page goes past where it will be.
+  await controlNamed(page, name)
   const seen: string[] = []
   for (let i = 0; i < limit; i++) {
     await page.keyboard.press('Tab')

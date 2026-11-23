@@ -29,6 +29,8 @@ export const VERIFIER: GameEntry = {
     { id: 'mutants', title: 'Five broken accept rules', graded: false, practiceSeed: 0 },
     { id: 'gamma', title: 'Choose γ', graded: true, practiceSeed: 0 },
   ],
+  // The module's Prove-it (ASSESSMENT §7.2): the exact rule, the built game with the most room for a route of the learner's own.
+  prove: 'exact',
   card: 'spec',
   claims: [
     'spec.paper.accept-or-resample',

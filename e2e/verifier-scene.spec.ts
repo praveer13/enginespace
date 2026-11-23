@@ -270,9 +270,18 @@ test.describe('reduced motion (A§6.9): a batch cuts to its end', () => {
     await page.getByLabel('Tokens per round').fill('2.4')
     await page.keyboard.press('Enter')
     await settle(page)
+    // The first draw also lays the page out again: the note under the view takes a line more, the scene's box is that much shorter, and
+    // the scene fits its labels and its camera to the new box. Those are redraws of a resize, each on demand, and on busy cores they fall
+    // in frames of their own: four or five in 133 of 200 runs on four cores beside three busy loops, two in 57 of 60 runs without them
+    // [measured 2026-11-22 at 325d044b]. The draw counted is the next one, in a box that stays where it is; the checks after it, that no
+    // animation frame is asked for and that the governor never sampled one, cover both draws.
+    await draw(page)
+    await settle(page)
+    const place = await stage(page).boundingBox()
     const before = (await probe(page))?.frames ?? 0
     await draw(page)
     await settle(page)
+    expect(await stage(page).boundingBox(), "the scene's box after the draw").toEqual(place)
     const frames = ((await probe(page))?.frames ?? 0) - before
     expect(frames).toBeLessThanOrEqual(3)
     const after = await page.evaluate(() => window.__raf ?? 0)

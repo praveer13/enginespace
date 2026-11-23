@@ -13,6 +13,7 @@ import { Debrief } from '@/games/kit/Debrief'
 import { Frame, RESULT_LINE } from '@/games/kit/Frame'
 import { verdictOf } from '@/games/kit/verdict'
 import { ViewSwitch } from '@/games/kit/ViewSwitch'
+import { ProveContext } from '@/prove/context'
 
 const render = (element: ReactElement) => renderToStaticMarkup(h(StaticRouter, { location: '/play/pool' }, element))
 
@@ -81,6 +82,47 @@ describe('the frame, apart from any game', () => {
     expect(markup).toContain('>Restart level</button>')
     expect(markup).toContain('>New numbers</button>')
     expect(frame({ mode: 'graded' })).not.toContain('>Undo</button>')
+  })
+
+  test('a Prove run offers neither Restart level nor New numbers before its end: its one seed stays, and a target that failed stays failed', () => {
+    const proving = (level: string) =>
+      renderToStaticMarkup(
+        h(
+          StaticRouter,
+          { location: '/play/pool?mode=prove' },
+          h(
+            ProveContext.Provider,
+            { value: { level, hidden: h('p', null, 'hidden'), foot: h('span', { 'data-probe': 'prove-foot' }), after: () => null } },
+            h(Frame, {
+              game: POOL,
+              role: 'You are the KV allocator.',
+              session: poolSession,
+              level: 'one-group',
+              levelTitle: 'One KV group',
+              seed: 2,
+              mode: 'graded',
+              goal: () => ({ aim: 'The aim.', control: 'What you control.', target: 'The number to beat.', ends: 'Ends when it ends.' }),
+              diagram: () => h('div', null, 'the diagram'),
+              legend: () => h('ul'),
+              dock: () => h('div', null, 'the decision'),
+              readout: () => h('div', null, 'the readout'),
+              result: () => h('div'),
+              mirror: (run: { mirrorId: string }) => h('table', { id: run.mirrorId }),
+              parts: [{ id: 'pool', name: 'KV page pool', sentence: 'Every page.' }],
+              howTo: h('p', null, 'How to play it.'),
+              titleBlock: { model: 'Model of a thing', clock: 'Clock: steps' },
+            } as never),
+          ),
+        ),
+      )
+    const prove = proving('one-group')
+    expect(prove).toContain('data-probe="prove-foot"')
+    expect(prove).not.toContain('>Restart level</button>')
+    expect(prove).not.toContain('>New numbers</button>')
+    // A graded run of another level is not the Prove run, and keeps both.
+    const other = proving('two-groups')
+    expect(other).toContain('>Restart level</button>')
+    expect(other).toContain('>New numbers</button>')
   })
 
   test('inside a lesson the title is a level down and there is no breadcrumb', () => {

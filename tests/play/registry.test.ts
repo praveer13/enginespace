@@ -201,6 +201,12 @@ describe('resolveGame and loadGame', () => {
       expect([game.id, values]).toEqual([game.id, [`@es/play/${game.id}/entry`]])
     }
   })
+
+  test("each game loads through its own record.ts alone: the registry imports no Game.tsx, and a record.ts loads its own game's component", () => {
+    // The chunk of src/games/registry.ts is in every game's route, so it names one file per game (tests/build.test.ts holds the build).
+    expect(read('src/games/registry.ts')).not.toMatch(/import\('\.\/[^']+\/Game'\)/)
+    for (const game of GAMES.games) expect([game.id, [...read(`src/games/${game.id}/record.ts`).matchAll(/import\('([^']+)'\)/g)].map((match) => match[1])]).toEqual([game.id, ['./Game']])
+  })
 })
 
 describe('verify:games over the record loaders', () => {

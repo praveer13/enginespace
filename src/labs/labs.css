@@ -1,0 +1,580 @@
+/*
+ * A graded lab's page (GradedLabView.tsx): what the lab builds and needs, then eight numbered steps, and on a wide screen the list of stages
+ * beside them. It is a sibling of a forge lab's page (src/forge/forge.css): the same dark squares for the step numbers and the same paper for
+ * a line of shell, so the two kinds of lab read as one procedure. Every colour, face, size, space, radius and shadow is a token role
+ * (src/design/tokens.css), and the design system is not edited. Nothing here is amber: the page has no move that acts now, only lines to copy.
+ */
+
+/* ---------------------------------------------------------------------------------------------- the page, and its head */
+
+.es-glab {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-12);
+}
+
+.es-glab__head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-3);
+  justify-items: start;
+  padding-top: var(--es-space-4);
+}
+
+.es-glab__crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-1) var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+}
+
+.es-glab__crumbs li + li::before {
+  content: '/';
+  content: '/' / '';
+  margin-inline-end: var(--es-space-2);
+  color: var(--es-text-3);
+}
+
+.es-glab__crumbs [aria-current='page'] {
+  color: var(--es-text-1);
+  font-weight: 700;
+}
+
+.es-glab__title {
+  margin: 0;
+  font-size: var(--es-size-page);
+  line-height: 0.95;
+  overflow-wrap: anywhere;
+  text-wrap: balance;
+}
+
+.es-glab__lead {
+  max-width: 62ch;
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-control);
+  line-height: 1.55;
+}
+
+/* What the lab needs: a short table of terms over a hairline, read before the first step. */
+.es-glab-needs {
+  display: grid;
+  gap: var(--es-space-2);
+  width: 100%;
+  max-width: 50rem;
+  margin-top: var(--es-space-4);
+  padding-top: var(--es-space-4);
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+.es-glab-needs__title {
+  margin: 0;
+  font-size: var(--es-size-title);
+}
+
+.es-glab-needs__list {
+  display: grid;
+  gap: var(--es-space-2);
+  margin: 0;
+}
+
+.es-glab-needs__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0 var(--es-space-6);
+}
+
+.es-glab-needs__row dt {
+  font-family: var(--es-font-label);
+  font-weight: var(--es-font-label-weight);
+}
+
+.es-glab-needs__row dd {
+  margin: 0;
+  max-width: 62ch;
+}
+
+@media (min-width: 40rem) {
+  .es-glab-needs__row {
+    grid-template-columns: 7rem minmax(0, 1fr);
+  }
+}
+
+/* ---------------------------------------------------------------------------------------------- the steps, and the stages beside them */
+
+.es-glab__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-12);
+  align-items: start;
+}
+
+.es-glab-steps {
+  display: grid;
+  gap: var(--es-space-12);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: glab-step;
+}
+
+.es-glab-step {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  column-gap: var(--es-space-4);
+  row-gap: var(--es-space-3);
+  min-width: 0;
+  counter-increment: glab-step;
+}
+
+/* The number: the list's own, a dark square read at a glance and never taken for text. */
+.es-glab-step::before {
+  content: counter(glab-step);
+  grid-column: 1;
+  grid-row: 1;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  background-color: var(--es-surface-3);
+  color: var(--es-paper);
+  font-family: var(--es-font-numeric);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.es-glab-step__title {
+  grid-column: 2;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  min-height: 2rem;
+  margin: 0;
+}
+
+.es-glab-step__body {
+  grid-column: 2;
+  display: grid;
+  gap: var(--es-space-4);
+  min-width: 0;
+  max-width: 46rem;
+}
+
+/* On a phone the body takes the whole width under its number and heading, so a line of shell has room to stay whole. */
+@media (max-width: 40rem) {
+  .es-glab-step__body {
+    grid-column: 1 / -1;
+  }
+}
+
+.es-glab-step__body > p {
+  margin: 0;
+  max-width: 66ch;
+}
+
+.es-glab-step__lead {
+  color: var(--es-text-2);
+}
+
+/* A path or an identifier in a sentence breaks where it must, at a phone's width. */
+.es-glab code {
+  overflow-wrap: anywhere;
+}
+
+.es-glab-hint {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+}
+
+/* The stages, beside the steps from a laptop's width and held in view as they scroll. On a narrower screen each stage's state is in the
+   step that runs it, so the list is not printed twice. Under 600 px of height nothing is held (the Short Viewport Rule). */
+.es-glab-stages {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .es-glab__layout {
+    grid-template-columns: minmax(0, 46rem) minmax(0, 18rem);
+    column-gap: var(--es-space-12);
+  }
+
+  .es-glab-steps {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  .es-glab-stages {
+    grid-column: 2;
+    grid-row: 1;
+    display: grid;
+    gap: var(--es-space-3);
+    padding: var(--es-space-4);
+    background-color: var(--es-paper);
+    color: var(--es-paper-ink);
+    box-shadow: var(--es-shadow-paper);
+  }
+}
+
+@media (min-width: 64rem) and (min-height: 37.5rem) {
+  .es-glab-stages {
+    position: sticky;
+    top: var(--es-space-6);
+  }
+}
+
+.es-glab-stages__title {
+  margin: 0;
+  font-size: var(--es-size-title);
+}
+
+.es-glab-stages__list {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-glab-stages__item {
+  display: grid;
+  gap: var(--es-space-1);
+  padding: var(--es-space-3) 0;
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+.es-glab-stages__item .es-link {
+  font-size: var(--es-size-print);
+}
+
+/* ---------------------------------------------------------------------------------------------- a stage */
+
+.es-glab-stage {
+  display: grid;
+  gap: var(--es-space-3);
+  min-width: 0;
+  padding-top: var(--es-space-4);
+  border-top: 1px solid var(--es-paper-rule);
+}
+
+.es-glab-stage > p {
+  margin: 0;
+  max-width: 66ch;
+}
+
+.es-glab-stage__name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-2);
+  margin: 0;
+  font-size: var(--es-size-title);
+}
+
+p.es-glab-stage__name {
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-base);
+  font-weight: var(--es-font-label-weight);
+}
+
+/* The stage's number, as its id writes it: `s2`. */
+.es-glab-stage__n {
+  padding: 0 var(--es-space-1);
+  border-radius: var(--es-radius-trim);
+  background-color: var(--es-surface-2);
+  color: var(--es-text-1);
+  font-family: var(--es-font-readout);
+  font-size: var(--es-size-print);
+  font-weight: var(--es-font-readout-weight);
+}
+
+.es-glab-stage__optional {
+  padding: 0 var(--es-space-1);
+  border: 1px dashed var(--es-edge);
+  border-radius: var(--es-radius-trim);
+  color: var(--es-text-2);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-caption);
+  font-weight: var(--es-font-label-weight);
+}
+
+.es-glab-stage__asks {
+  font-family: var(--es-font-label);
+  font-weight: var(--es-font-label-weight);
+}
+
+/* Where a stage stands for the course: a drawn mark and its line, never a colour alone. */
+.es-glab-state {
+  display: grid;
+  grid-template-columns: 1.25rem minmax(0, 1fr);
+  align-items: start;
+  gap: var(--es-space-2);
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+}
+
+.es-glab-state__mark {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: 0.15em;
+  color: var(--es-text-1);
+}
+
+.es-glab-state[data-state='verified'] {
+  color: var(--es-text-1);
+}
+
+/* ---------------------------------------------------------------------------------------------- a line of shell */
+
+.es-glab-cmd {
+  display: grid;
+  gap: var(--es-space-2);
+  min-width: 0;
+}
+
+/* The line on its own paper, the copy button at its right; on a phone the button drops under the line. */
+.es-glab-cmd__paper {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--es-space-2);
+  align-items: start;
+  padding: var(--es-space-3);
+  border: 1px dotted var(--es-paper-rule);
+  background-color: color-mix(in srgb, var(--es-paper-rule) 24%, var(--es-paper));
+  color: var(--es-paper-ink);
+}
+
+@media (min-width: 40rem) {
+  .es-glab-cmd__paper {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+}
+
+.es-glab-cmd__line {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--es-space-2);
+  margin: 0;
+  font-family: var(--es-font-mono);
+  font-size: var(--es-font-mono-size);
+  line-height: var(--es-font-mono-leading);
+  white-space: pre-wrap;
+}
+
+/* The shell's prompt, drawn and never copied: the line itself is the code beside it. */
+.es-glab-cmd__line::before {
+  content: '$';
+  content: '$' / '';
+  color: var(--es-text-3);
+}
+
+.es-glab-cmd__line code {
+  overflow-wrap: anywhere;
+}
+
+.es-glab-cmd__copy {
+  justify-self: start;
+}
+
+.es-glab-cmd__said {
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+}
+
+.es-glab-cmd__said:empty {
+  display: none;
+}
+
+.es-glab-cmd__unverified {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2);
+  margin: 0;
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+}
+
+/* What the terminal shows when it worked: set under the line, behind a hairline, as the screen's answer to it. */
+.es-glab-cmd__then {
+  display: grid;
+  gap: var(--es-space-1);
+  padding-inline-start: var(--es-space-3);
+  border-inline-start: 1px solid var(--es-edge);
+}
+
+.es-glab-cmd__then > p {
+  margin: 0;
+  max-width: 62ch;
+}
+
+.es-glab-cmd__then-head {
+  color: var(--es-text-2);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-note);
+  font-weight: var(--es-font-label-weight);
+}
+
+/* ---------------------------------------------------------------------------------------------- the kit */
+
+.es-glab-files {
+  display: grid;
+  gap: var(--es-space-4);
+}
+
+.es-glab-file {
+  display: grid;
+  gap: var(--es-space-2);
+  min-width: 0;
+  padding: var(--es-space-4);
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+  box-shadow: var(--es-shadow-paper);
+}
+
+.es-glab-file > p {
+  margin: 0;
+}
+
+.es-glab-file__kind {
+  font-family: var(--es-font-label);
+  font-weight: var(--es-font-label-weight);
+}
+
+.es-glab-file__link {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-3);
+}
+
+.es-glab-file__link .es-link {
+  font-family: var(--es-font-mono);
+  font-size: var(--es-font-mono-size);
+  overflow-wrap: anywhere;
+}
+
+.es-glab-file__is {
+  color: var(--es-text-2);
+  max-width: 62ch;
+}
+
+.es-glab-hash {
+  display: grid;
+  justify-items: start;
+  gap: var(--es-space-1);
+}
+
+.es-glab-hash__name {
+  color: var(--es-text-2);
+  font-family: var(--es-font-label);
+  font-size: var(--es-size-note);
+  font-weight: var(--es-font-label-weight);
+}
+
+.es-glab-hash__digits {
+  max-width: 34ch;
+  font-size: var(--es-font-mono-size);
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+
+.es-glab-file__check {
+  display: grid;
+  gap: var(--es-space-3);
+}
+
+.es-glab-file__check > summary {
+  min-height: 2.75rem;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.es-glab-file__check > p {
+  margin: 0;
+  max-width: 62ch;
+}
+
+/* ---------------------------------------------------------------------------------------------- the other steps */
+
+.es-glab-links {
+  display: grid;
+  gap: var(--es-space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-glab-links li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--es-space-1) var(--es-space-2);
+}
+
+.es-glab-edit code {
+  display: inline-block;
+  padding: var(--es-space-1) var(--es-space-2);
+  border: 1px solid var(--es-edge);
+  background-color: var(--es-paper);
+  color: var(--es-paper-ink);
+  font-size: var(--es-font-mono-size);
+}
+
+.es-glab-checks {
+  display: grid;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.es-glab-check {
+  display: grid;
+  gap: var(--es-space-1);
+  padding: var(--es-space-3) 0;
+  border-bottom: 2px dotted var(--es-paper-rule);
+}
+
+.es-glab-check:last-child {
+  border-bottom: 0;
+}
+
+.es-glab-check > p {
+  margin: 0;
+  max-width: 66ch;
+}
+
+.es-glab-check__label {
+  font-weight: 700;
+}
+
+.es-glab-check__id {
+  font-weight: 400;
+}
+
+.es-glab-check__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--es-space-1) var(--es-space-2);
+  color: var(--es-text-2);
+  font-size: var(--es-size-print);
+}
+
+.es-glab-check__catches-word {
+  font-family: var(--es-font-label);
+  font-weight: var(--es-font-label-weight);
+}
+
+/* The second ink: a part of the procedure that is not published yet. */
+.es-glab-pending {
+  color: var(--es-paper-ink-2);
+  font-weight: 700;
+}

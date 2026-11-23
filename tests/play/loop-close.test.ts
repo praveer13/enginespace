@@ -337,22 +337,34 @@ describe('the blind-strategy bound (ASSESSMENT §4.1)', () => {
   const MODES = ['NONE', 'FULL_DECODE_ONLY', 'PIECEWISE', 'FULL', 'FULL_AND_PIECEWISE'] as const
   const SIZES: readonly (readonly number[])[] = [[], [6], [8], [12], [16], [6, 64], [8, 64], [8, 128], [12, 96], [12, 128], [16, 64], [16, 96], [16, 128], [16, 192], [16, 256], [12, 160], [8, 320], [6, 384], [12, 192], [16, 32, 128]]
 
-  test('no habit passes more than 15% of the seeds a draw serves: the best constant configuration in a library of ninety', () => {
-    const passes = new Map<string, number>()
-    for (const seed of BANDED) {
-      const stage = stageOf(seed)
-      for (const graphMode of MODES) {
-        for (const sizes of SIZES) {
-          if (graphMode === 'NONE' && sizes.length > 0) continue
+  // The habits are the pairs of a mode and a list of sizes, and a night is built for each pair on each served seed. At 10,000 seeds one test
+  // over all of them took 70 s of its 120 s on four pinned cores, and outran it on a runner [measured 2026-11-20]; so each mode is a test of
+  // its own, with the 120 s the one test had. The bound is on the best habit, so the best of the modes' bests is the best of the library:
+  // each test holds its mode's best to 15%, and the last test holds that the modes' habits are the library, each once.
+  const habitsOf = (graphMode: (typeof MODES)[number]): (readonly number[])[] => SIZES.filter((sizes) => !(graphMode === 'NONE' && sizes.length > 0))
+  const keyOf = (graphMode: string, sizes: readonly number[]): string => `${graphMode}[${sizes.join(',')}]`
+
+  for (const graphMode of MODES) {
+    test(`no habit of mode ${graphMode} passes more than 15% of the seeds a draw serves`, () => {
+      const passes = new Map<string, number>()
+      for (const seed of BANDED) {
+        const stage = stageOf(seed)
+        for (const sizes of habitsOf(graphMode)) {
           const levers: Levers = { async: true, inputIds: 'device', runner: 'mrv2', maskOverlap: true, graphMode, captureSizes: sizes.filter((size) => size <= stage.budget) }
           const night = nightOf(stage, levers)
-          if (night !== null && nightMeetsBar(stage, night)) passes.set(`${graphMode}[${sizes.join(',')}]`, (passes.get(`${graphMode}[${sizes.join(',')}]`) ?? 0) + 1)
+          if (night !== null && nightMeetsBar(stage, night)) passes.set(keyOf(graphMode, sizes), (passes.get(keyOf(graphMode, sizes)) ?? 0) + 1)
         }
       }
-    }
-    const best = [...passes].sort((a, b) => b[1] - a[1])[0]
-    console.log(`the best habit of ninety passes ${best[0]} on ${pct(best[1], BANDED.length)} of ${BANDED.length} served seeds`)
-    expect(best[1] / BANDED.length).toBeLessThanOrEqual(0.15)
+      const best = [...passes].sort((a, b) => b[1] - a[1])[0] ?? ['none', 0]
+      console.log(`the best habit of mode ${graphMode} passes ${best[0]} on ${pct(best[1], BANDED.length)} of ${BANDED.length} served seeds`)
+      expect(best[1] / BANDED.length).toBeLessThanOrEqual(0.15)
+    })
+  }
+
+  test('the modes\' habits are the library of habits: each pair of a mode and a list of sizes once, and the naive none among them', () => {
+    const keys = MODES.flatMap((graphMode) => habitsOf(graphMode).map((sizes) => keyOf(graphMode, sizes)))
+    expect(new Set(keys).size).toBe(keys.length)
+    expect(keys.length).toBe(1 + (MODES.length - 1) * SIZES.length)
   })
 
   test('the naive configuration, the engine\'s defaults and a hand-written call pass none', () => {

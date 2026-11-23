@@ -38,8 +38,11 @@ const manifest = JSON.parse(readFileSync(path.join(root, 'public/labs/manifest.j
 const sha256 = (data: Uint8Array) => createHash('sha256').update(data).digest('hex')
 const hasSha256sum = spawnSync('sh', ['-c', 'command -v sha256sum']).status === 0
 
-/** The page that links each kind of file. The GPU kit and the grader wheel have none until the first lab page that uses them is built. */
-const pageOf = (file: ManifestFile): string | null => (file.kind === 'forge-lab' ? `/labs/${file.lab}` : null)
+/**
+ * The page that links each kind of file: a forge lab's crate from its lab's page, and the GPU kit and the grader wheel from the first graded lab's page that uses them, TR0's
+ * forward pass (W2-T16), which links both.
+ */
+const pageOf = (file: ManifestFile): string | null => (file.kind === 'forge-lab' ? `/labs/${file.lab}` : '/labs/tr0.forward')
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa', 'best-practice']
 
@@ -99,14 +102,19 @@ test.describe('every file in the manifest is linked from its lab page', () => {
       await expect(link).toHaveCount(1)
       await expect(link).toHaveAttribute('href', `/labs/${file.name}`)
 
-      // Beside the link, the size and the SHA-256 of the manifest.
-      await expect(page.locator('.es-forge-crate data.es-readout__value')).toHaveAttribute('value', String(file.bytes))
-      await expect(page.locator('.es-forge-crate__digits')).toHaveText(file.sha256)
+      // Beside the link, the size and the SHA-256 of the manifest. A forge lab's page has one crate; the graded lab's page links two files, each in a block of its own.
+      const graded = file.kind !== 'forge-lab'
+      const block = graded ? page.locator(`[data-kit-file="${file.name}"]`) : page.locator('main')
+      await expect(graded ? block.locator('data.es-readout__value') : page.locator('.es-forge-crate data.es-readout__value')).toHaveAttribute('value', String(file.bytes))
+      await expect(graded ? block.locator('[data-kit-sha256]') : page.locator('.es-forge-crate__digits')).toHaveText(file.sha256)
 
       // The bytes behind the link, fetched.
       const response = await page.request.get(`/labs/${file.name}`)
       expect(response.status()).toBe(200)
-      expect(response.headers()['content-type']).toMatch(/zip/)
+      // A zip says so. A wheel is a zip that no static server names: the preview server sends no type for `.whl` and a host sends a generic one, so for it the type only has to be no page (the SPA's fallback), and the bytes below are what prove the file.
+      const type = response.headers()['content-type'] ?? ''
+      if (file.kind === 'grader-wheel') expect(type).not.toMatch(/html/)
+      else expect(type).toMatch(/zip/)
       const body = await response.body()
       expect(body.length).toBe(file.bytes)
       expect(sha256(body)).toBe(file.sha256)
@@ -125,8 +133,8 @@ test.describe('every file in the manifest is linked from its lab page', () => {
         expect(sha256(bytes)).toBe(file.sha256)
 
         // The line on the page, run where the zip was saved, says OK.
-        await page.getByText('Check the download', { exact: true }).click()
-        const line = await page.locator('[data-check-line]').innerText()
+        await block.getByText('Check the download', { exact: true }).click()
+        const line = await (graded ? block.locator('[data-command-line]') : page.locator('[data-check-line]')).innerText()
         expect(line).toBe(`echo '${file.sha256}  ${file.name}' | sha256sum -c`)
         if (hasSha256sum) {
           const run = spawnSync('sh', ['-c', line], { cwd: dir, encoding: 'utf8' })

@@ -34,7 +34,7 @@ export interface RosterEntry {
 }
 
 export const ROSTER: readonly RosterEntry[] = Object.freeze([
-  { id: 'shape-shifter', title: 'Tensor views', subtitle: 'A view relabels the buffer. A copy moves every element.', role: 'You lay out a tensor.', modules: ['tr0'], has3d: true, wave: 2 },
+  { id: 'shape-shifter', title: 'Tensor views', subtitle: 'A view relabels the buffer. A copy moves every element.', role: 'You plan the reshape.', modules: ['tr0'], has3d: false, wave: 2 },
   { id: 'engine-floor', title: 'Request path', subtitle: 'Every queue, IPC hop, copy and sync between the API server and the GPU.', role: 'You trace one request.', modules: ['tr1'], has3d: false, wave: 1 },
   { id: 'loop', title: 'Step loop', subtitle: 'Keep every slot live, and never make the GPU wait for the CPU.', role: 'You are the scheduler.', modules: ['tr2', 'tr6'], has3d: true, wave: 0 },
   { id: 'gap-hunt', title: 'Trace attribution', subtitle: 'Every nanosecond of a step belongs to a kernel, a copy, a CPU gap or idle.', role: 'You account for a step.', modules: ['tr3', 'capstone'], has3d: false, wave: 2 },

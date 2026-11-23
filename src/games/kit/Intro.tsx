@@ -70,6 +70,11 @@ export interface IntroCoachProps {
   moveKind?: string
   /** Inside a lesson. The list is shown whole on a wide screen and walked one part at a time on a phone, as on the game's page. */
   embedded: boolean
+  /**
+   * The intro is over, and the strip waits blank in its place, so that the control in hand does not move: `typed`, until focus moves on from
+   * the field; `held`, until the hand leaves the dock.
+   */
+  ended?: 'typed' | 'held'
   /** On a phone, the part the list shows. */
   partAt: number
   onPartAt(at: number): void
@@ -88,7 +93,7 @@ const TITLES: Readonly<Record<IntroStep, string>> = {
 }
 
 /** The coach strip. Focus follows its Next onto the step it opens, and leaves the strip alone otherwise. */
-export function IntroCoach({ title, step, parts, replay, look, ask, askLead, skip, moveWords, moveKind, partAt, onPartAt, onNext, onEnd, onAct }: IntroCoachProps) {
+export function IntroCoach({ title, step, parts, replay, look, ask, askLead, skip, moveWords, moveKind, ended, partAt, onPartAt, onNext, onEnd, onAct }: IntroCoachProps) {
   const wide = useWideFrame()
   const headingId = useId()
   const root = useRef<HTMLElement>(null)
@@ -111,6 +116,42 @@ export function IntroCoach({ title, step, parts, replay, look, ask, askLead, ski
     }
     root.current?.querySelector<HTMLElement>('[data-intro-focus]')?.focus({ preventScroll: true })
   }, [step, partAt])
+
+  // The strip held blank after the intro's end goes when focus leaves the field in hand. A phone's dock is pinned to the foot and shrinks from the
+  // top, so there it goes at once (after the typing event, whose end it would otherwise be taken for again).
+  //
+  // A strip held after a move (a game whose first move is pressed again, Frame.tsx) goes when the hand leaves the dock, on a phone too: a
+  // mouse that leaves it, a press outside it, or focus that moves outside it. Until then the controls under it stay where they were pressed.
+  // A key pressed takes it out too: a key goes to the control in focus wherever that stands, so a keyboard keeps no blank room.
+  useLayoutEffect(() => {
+    if (ended === undefined) return
+    const dock = root.current?.closest('[data-dock]')
+    if (ended === 'held' && dock !== null && dock !== undefined) {
+      const outside = (event: Event) => {
+        if (!(event.target instanceof Node) || !dock.contains(event.target)) onEnd()
+      }
+      // A finger lifted leaves the dock too: only a mouse or a pen that moves out of it has left.
+      const left = (event: Event) => {
+        if (!('pointerType' in event) || event.pointerType !== 'touch') onEnd()
+      }
+      document.addEventListener('pointerdown', outside, true)
+      document.addEventListener('focusin', outside)
+      document.addEventListener('keydown', onEnd, true)
+      dock.addEventListener('pointerleave', left)
+      return () => {
+        document.removeEventListener('pointerdown', outside, true)
+        document.removeEventListener('focusin', outside)
+        document.removeEventListener('keydown', onEnd, true)
+        dock.removeEventListener('pointerleave', left)
+      }
+    }
+    if (!wide || dock === null || dock === undefined) {
+      const timer = window.setTimeout(onEnd)
+      return () => window.clearTimeout(timer)
+    }
+    dock.addEventListener('focusout', onEnd)
+    return () => dock.removeEventListener('focusout', onEnd)
+  })
 
   const next = () => {
     pressed.current = walking ? 'walk' : 'step'
@@ -217,7 +258,7 @@ export function IntroCoach({ title, step, parts, replay, look, ask, askLead, ski
   }
 
   return (
-    <section ref={root} className="es-intro" aria-labelledby={headingId} data-intro={step} data-intro-walk={step === 'parts' && !wide ? partAt : undefined}>
+    <section ref={root} className="es-intro" aria-labelledby={headingId} data-intro={step} data-ended={ended === undefined ? undefined : ''} inert={ended !== undefined} data-intro-walk={step === 'parts' && !wide ? partAt : undefined}>
       <h3 id={headingId} className="es-intro__title" tabIndex={-1} data-intro-focus="">
         {TITLES[step]}
       </h3>

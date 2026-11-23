@@ -65,8 +65,13 @@ class Pyproject(unittest.TestCase):
                 elif requirement == "nano-vllm":
                     self.assertIn("rev", project(name)["tool"]["uv"]["sources"]["nano-vllm"], name)
                 else:
-                    self.assertRegex(requirement, r"^[A-Za-z0-9._-]+==[0-9A-Za-z.+]+$", f"{name}: {requirement}")
+                    self.assertRegex(requirement, r"^[A-Za-z0-9._-]+==[0-9A-Za-z.+]+(; sys_platform == 'linux')?$", f"{name}: {requirement}")
                 self.assertNotRegex(requirement, r"[\^~<>]", f"{name}: {requirement}")
+
+    def test_the_only_marker_on_a_pin_is_linux_and_it_is_on_triton_in_the_cpu_environment(self) -> None:
+        # Triton publishes Linux wheels only (W2b-T49), so the one pin with a marker is the cpu environment's triton.
+        marked = [(name, requirement) for name in NAMES for requirement in project(name)["project"]["dependencies"] if ";" in requirement]
+        self.assertEqual(marked, [("cpu", "triton==3.8.0; sys_platform == 'linux'")])
 
     def test_the_engines_are_the_versions_and_commit_of_the_course_lock(self) -> None:
         lock = course()

@@ -40,6 +40,11 @@
   line-height: 1.55;
 }
 
+/* A short lead that wraps on a phone is set in even lines, so its last line is never a stub. */
+.es-page__lead[data-balance] {
+  text-wrap: balance;
+}
+
 /* The panels, and the printer's tape. The tape follows the panels in the page, and stands beside them on a wide screen. */
 .es-page__columns {
   display: grid;
@@ -632,17 +637,27 @@
   white-space: nowrap;
 }
 
-/* Below 40rem the Kind column gives way to the line under each name. */
-.es-pins__kindcol {
+/* Below 40rem the Kind column gives way to the line under each name, and the Last read column to the line under each pin. */
+.es-pins__kindcol,
+.es-pins__readcol {
   display: none;
 }
 
+.es-pins__readline {
+  display: block;
+  color: var(--es-text-2);
+  font-size: var(--es-size-caption);
+  white-space: nowrap;
+}
+
 @media (min-width: 40rem) {
-  .es-pins__kindcol {
+  .es-pins__kindcol,
+  .es-pins__readcol {
     display: table-cell;
   }
 
-  .es-pins__kind {
+  .es-pins__kind,
+  .es-pins__readline {
     display: none;
   }
 }

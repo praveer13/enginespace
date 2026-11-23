@@ -1,0 +1,43 @@
+# The lab's own description: what the grader and the course site read to know what this lab is (ARCHITECTURE section 9.1). Nothing here is a learner's
+# to edit. tests/labs/kit.test.ts holds this file to the lab list (src/receipts/labs.ts), to the checks of each stage (packages/verify/stages.ts) and to
+# the references manifest (labs/references/manifest.json).
+
+id = "tr0.forward"
+title = "Build the Qwen3-0.6B forward pass on a CPU"
+lane = "L"
+
+# The locked environment that runs this lab: labs/envs/cpu. No GPU is used or read.
+env = "cpu"
+
+# The file the learner edits, from the kit's root, and the folder `enginespace grade` is run from.
+edit = "gpu/tr0-forward/starter/forward.py"
+run_from = "."
+
+# The files `enginespace fetch tr0.forward` downloads are every entry of references/manifest.json that lists this lab. None is in the kit.
+inputs = "references/manifest.json"
+
+# How long a stage may run on the learner's machine before the grader stops it, in seconds [estimated].
+[budget]
+stage_seconds = 3600
+
+# The environment variables a receipt may record for this lab. None: a CPU lab has no engine variables.
+[env_allowlist]
+names = []
+
+[[stage]]
+id = "tr0.forward.s1"
+name = "one layer"
+optional = true
+checks = ["layer0-hidden"]
+
+[[stage]]
+id = "tr0.forward.s2"
+name = "the full forward pass"
+optional = false
+checks = ["logits-fp32", "import-guard", "argmax-bank"]
+
+[[stage]]
+id = "tr0.forward.s3"
+name = "with a KV cache"
+optional = false
+checks = ["cache-logits", "cache-lengths"]

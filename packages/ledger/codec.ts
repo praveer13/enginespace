@@ -443,7 +443,10 @@ const receiptSchema = z
   .strictObject({
     ...envelope,
     kind: z.literal('receipt'),
-    ...graded,
+    // Schema 1 wrote these three, and a ledger of it still holds them: they are accepted as written and nothing reads them (types.ts, `ReceiptEvent`).
+    score: graded.score.optional(),
+    ok: graded.ok.optional(),
+    provenance: graded.provenance.optional(),
     data: z.strictObject({
       receiptSha256: sha256,
       challenge: z.string().max(LIMITS.lineChars),
@@ -459,7 +462,8 @@ const receiptSchema = z
           }),
         )
         .min(1)
-        .max(LIMITS.checks),
+        .max(LIMITS.checks)
+        .optional(),
       graderVersion: line,
       environment: line,
     }),

@@ -94,3 +94,59 @@ export const bundleSchema = z
 
 export type Bundle = z.infer<typeof bundleSchema>
 export type BundleArtifact = z.infer<typeof bundleArtifactSchema>
+
+/* ------------------------------------------------------------------------------------------------------------------------------------ */
+/* The five points of TR0's forward pass (W2b-T48)                                                                                       */
+/* ------------------------------------------------------------------------------------------------------------------------------------ */
+
+/** The `format` of the artifact that stages 2 and 3 of `tr0.forward` carry: what the learner's own forward pass made at five named points. */
+export const TR0_POINTS_SCHEMA_TAG = 'enginespace/tr0-points@1'
+
+/** The five points, in the order the artifact lists them. `labs/grader/src/enginespace_grader/labs/tr0_forward.py` hooks the module of each, and a test holds the two lists together. */
+export const TR0_POINT_NAMES = ['embedding', 'attention', 'mlp', 'final-norm', 'logits'] as const
+
+/** The element types a recorded tensor can have: the names `str(tensor.dtype)` gives without the `torch.` prefix. */
+export const TR0_POINT_DTYPES = ['float32', 'float16', 'bfloat16', 'float64', 'int64', 'int32', 'int8', 'uint8', 'bool'] as const
+
+const pointDimension = z.int().min(0).max(1_000_000_000)
+const pointStride = z.int().min(0).max(Number.MAX_SAFE_INTEGER)
+
+/**
+ * One point: the shape, the strides (in elements, as `tensor.stride()` counts them) and the dtype of the tensor that the learner's module returned the first time it ran, or
+ * `found: false` when the learner's model has no module at that place, and so nothing could be recorded. A tensor has at most eight dimensions here [estimated].
+ */
+export const tr0PointSchema = z.discriminatedUnion('found', [
+  z.strictObject({
+    name: z.enum(TR0_POINT_NAMES),
+    found: z.literal(true),
+    shape: z.array(pointDimension).max(8),
+    strides: z.array(pointStride).max(8),
+    dtype: z.enum(TR0_POINT_DTYPES),
+  }),
+  z.strictObject({ name: z.enum(TR0_POINT_NAMES), found: z.literal(false) }),
+])
+
+export const tr0PointsSchema = z
+  .strictObject({
+    schema: z.literal(TR0_POINTS_SCHEMA_TAG),
+    /** The stage that recorded them. */
+    stage: z.enum(['tr0.forward.s2', 'tr0.forward.s3']),
+    /** Which call of the learner's forward pass the tensors come from: the whole prompt (stage 2), or the last decode step with the cache (stage 3). */
+    call: z.enum(['prompt', 'decode-step']),
+    points: z.array(tr0PointSchema).length(TR0_POINT_NAMES.length),
+  })
+  .superRefine((artifact, ctx) => {
+    artifact.points.forEach((point, at) => {
+      if (point.name !== TR0_POINT_NAMES[at]) ctx.addIssue({ code: 'custom', message: `point ${at} must be "${TR0_POINT_NAMES[at]}", in the order of the five points`, path: ['points', at, 'name'] })
+      if (point.found && point.shape.length !== point.strides.length) ctx.addIssue({ code: 'custom', message: 'a tensor has one stride for each dimension', path: ['points', at, 'strides'] })
+    })
+    const expected = artifact.stage === 'tr0.forward.s2' ? 'prompt' : 'decode-step'
+    if (artifact.call !== expected) ctx.addIssue({ code: 'custom', message: `${artifact.stage} records the ${expected}`, path: ['call'] })
+  })
+  .meta({
+    title: TR0_POINTS_SCHEMA_TAG,
+    description:
+      'The shape, strides and dtype of five tensors of a learner\'s forward pass, recorded by forward hooks (ASSESSMENT §7.2). Checked by the site and not expressible in JSON Schema: the five points come in the order embedding, attention, mlp, final-norm, logits; a tensor has one stride for each dimension; stage 2 records the call over the whole prompt and stage 3 the last decode step.',
+  })
+
+export type Tr0Points = z.infer<typeof tr0PointsSchema>

@@ -10,6 +10,10 @@ name: Labs
 #           tests/fixtures/grader to be what the grader writes now, and judges the manifests of tests/fixtures/references as the zod schema
 #           does (it downloads from a server on 127.0.0.1 and reaches nothing else); the installed command's own checks; verify:schema and
 #           verify:vectors; and the receipt fixtures (the fixtures pass and the forgeries fail).
+#   cpu     W2-T13: the CPU environment (labs/envs/cpu, torch 2.14.0+cpu) is installed from the hashed export of its lock, and
+#           scripts/tensor-torch-vectors.py run in it must give the cases of tests/fixtures/tensor/torch-vectors.json, which the tensor model
+#           is replayed against. It runs only when a change touches labs/envs/cpu, tests/fixtures/tensor, the script, scripts/triton-interp or the TR0 lab's files (its grader module, its tests and its kit folder, labs/gpu/tr0-forward)
+#           (detect says which), and it needs no GPU.
 #
 # A job switches on when its lab lands (labs/forge/Cargo.toml from W1-T10, labs/grader/pyproject.toml from W2-T02), and this
 # file does not change for that. Until then the detect job prints "pending: <task>" for the lab that is missing, and the job
@@ -42,6 +46,8 @@ on:
       - 'tests/fixtures/grader/**'
       - 'tests/fixtures/references/**'
       - 'tests/fixtures/receipts/**'
+      - 'tests/fixtures/tensor/**'
+      - 'scripts/tensor-torch-vectors.py'
       - 'tests/verify/**'
       - 'tests/schema/receipt-support.ts'
       - 'src/receipts/atlas.ts'
@@ -67,10 +73,13 @@ jobs:
     outputs:
       forge: ${{ steps.labs.outputs.forge }}
       grader: ${{ steps.labs.outputs.grader }}
+      cpu: ${{ steps.labs.outputs.cpu }}
     steps:
+      # Two commits deep, so that a pull request's merge commit has its first parent (the base) to diff against.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          fetch-depth: 2
 
       - name: Look for the labs
         id: labs
@@ -87,6 +96,19 @@ jobs:
             echo 'grader=false' >> "$GITHUB_OUTPUT"
             echo 'pending: W2-T02'
           fi
+          # W2-T13: the cpu job runs when its inputs exist and a change touched one of them. With no first parent to diff against (a first
+          # commit, or a checkout without history), it runs.
+          cpu=false
+          if [ -f labs/envs/cpu/uv.lock ] && [ -f scripts/tensor-torch-vectors.py ] && [ -f tests/fixtures/tensor/torch-vectors.json ]; then
+            if git rev-parse --verify --quiet HEAD^1 >/dev/null && git diff --quiet HEAD^1 HEAD -- labs/envs/cpu tests/fixtures/tensor scripts/tensor-torch-vectors.py 'labs/grader/src/enginespace_grader/labs/tr0*' 'labs/grader/src/enginespace_grader/checks' 'labs/grader/src/enginespace_grader/schemas' 'labs/grader/tests/cpu' 'labs/grader/tests/test_tr0*' 'labs/grader/tests/synthetic/tr0-forward' scripts/triton-interp 'labs/gpu/tr0-forward'; then
+              echo 'cpu: no change under the CPU environment, the vectors, the script, the TR0 lab or the interpreter scripts'
+            else
+              cpu=true
+            fi
+          else
+            echo 'cpu: the CPU environment, its fixture or the script is missing, so the cpu job is skipped'
+          fi
+          echo "cpu=$cpu" >> "$GITHUB_OUTPUT"
 
   forge:
     needs: detect
@@ -227,3 +249,135 @@ jobs:
       # which the same tests then forge from. The tests run under Bun, as the unit suite does.
       - name: Receipt fixtures and forgeries
         run: bun test tests/verify/bestiary.test.ts tests/verify/fixtures.test.ts
+
+  cpu:
+    needs: detect
+    if: needs.detect.outputs.cpu == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up the pinned Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+
+      # The environment is the hashed export of its lock, labs/envs/cpu/requirements.txt, which the grader's job checks against uv.lock (relock.sh
+      # --check) before this job runs, and it installs with pip --require-hashes, so every file is the one the lock names. The CPU torch wheel comes
+      # from PyTorch's CPU index. The grader is not in the export (it is a path, and the script does not import it), so --no-deps keeps the set exact.
+      - name: Install the CPU environment from its lock's export
+        run: |
+          python3 -m venv "$RUNNER_TEMP/cpu-venv"
+          "$RUNNER_TEMP/cpu-venv/bin/python" -m pip install --no-input --no-deps --require-hashes --extra-index-url https://download.pytorch.org/whl/cpu -r labs/envs/cpu/requirements.txt
+      # The vectors are regenerated in that environment and compared with the committed fixture: a different case, or another torch build, fails
+      # the job. The job writes to RUNNER_TEMP and never the fixture; the Python patch version is the runner's and is not compared.
+      - name: The vectors are what the CPU environment's torch gives
+        run: |
+          "$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/tensor-torch-vectors.py --out "$RUNNER_TEMP/torch-vectors.json" --compare tests/fixtures/tensor/torch-vectors.json
+
+      # W2b-T48: the TR0 lab's own tests (labs/grader/tests/cpu/), in the CPU environment of the lock. The reference solution passes stages 1 to 3 on a small
+      # random-weight Qwen3 that the tests build from the pinned transformers (no weights are downloaded), a wrong RMSNorm epsilon fails stage 2, a cache that
+      # miscounts fails its length check, and the cache holds as many positions as the prefix at every step. The grader is not installed in this environment
+      # (it is a path dependency, and the export leaves it out), so its source folder is on the path; its one dependency, jsonschema, is in the export.
+      # CI is true here on purpose: a test of this folder that finds no torch fails and never passes by being left out. The tests print the worst difference
+      # of each run, which is the only measurement they make, and none of it says anything about the margin of Qwen3-0.6B (the weights job measures that).
+      - name: The TR0 lab, on a small random-weight model
+        env:
+          CI: 'true'
+          PYTHONPATH: labs/grader/src
+        run: '"$RUNNER_TEMP/cpu-venv/bin/python" -m unittest discover -v -s labs/grader/tests/cpu -p "test_*.py"'
+
+      # W2b-T49 (D-072): Triton 3.8.0 is in the CPU environment, for TR0 lesson 4. Its interpreter (TRITON_INTERPRET=1) runs a kernel's programs one after
+      # another in Python, on the CPU, which is how a learner steps one on a laptop. The first step is the tests of scripts/triton-interp/run.py on stand-in
+      # kernels of its own served from 127.0.0.1 (CI is true so that a missing triton fails them), and the second is the course's own kernel, which asserts its
+      # outputs and prints what its last program held. Neither reads vLLM.
+      - name: The interpreter script, on stand-in kernels, and the course's own kernel
+        env:
+          CI: 'true'
+        run: |
+          "$RUNNER_TEMP/cpu-venv/bin/python" -I -m unittest discover -v -s scripts/triton-interp -p "test_*.py"
+          "$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/triton-interp/course_kernel.py
+      # The third step is the one that asks the question. It reads the five candidate files of TR0 at vLLM's pinned commit (raw.githubusercontent.com over
+      # https, a generic User-Agent, no token), keeps their jit functions, and launches each kernel that has an input recipe under the interpreter. The log
+      # names every kernel as ran, failed (with the error's class) or not-attempted; the step ends green whichever way they fall, because a kernel that does not
+      # run is a finding for lesson 4 (content/claims/tr0.yaml) and not a fault of the job. Nothing it reads is kept.
+      - name: Which of vLLM's pinned kernels run under the interpreter
+        run: '"$RUNNER_TEMP/cpu-venv/bin/python" -I scripts/triton-interp/run.py --json "$RUNNER_TEMP/triton-interp.json"'
+
+  # W2-T16: the weights job. It is started by hand (workflow_dispatch) and by nothing else, because it downloads the pinned Qwen3-0.6B (about 1.5 GB) from the model
+  # hub, which no pull request should do, and the owner decides when to run it. It is the only run of the TR0 lab on the pinned weights, so the lab's first check (the
+  # reference passes on the pinned model) closes with its first green run, and until then the model files' hashes in labs/references/manifest.json are [unverified].
+  # What it does, in order: install the CPU environment from its lock's export (as the cpu job); fetch the pinned files with `enginespace fetch tr0.forward` into a cache
+  # (the grader hashes each download against the manifest and keeps nothing that differs); hash each file again against labs/references/manifest.json, in a step of its own, so
+  # that the log shows every name, size and hash; run the reference solution and the wrong-epsilon mutants through the grader's own stages on the pinned weights; and print
+  # the worst logit difference of each, which goes to the owner and changes no bound. No token is read or sent, and the job writes nothing back.
+  weights:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      ENGINESPACE_CACHE: ${{ github.workspace }}/.enginespace-cache
+      PYTHONPATH: labs/grader/src
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up the pinned Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+
+      - name: Install the CPU environment from its lock's export
+        run: |
+          python3 -m venv "$RUNNER_TEMP/cpu-venv"
+          "$RUNNER_TEMP/cpu-venv/bin/python" -m pip install --no-input --no-deps --require-hashes --extra-index-url https://download.pytorch.org/whl/cpu -r labs/envs/cpu/requirements.txt
+
+      # The cache is keyed by the manifest: a changed pin is a new download, and a file in the cache is hashed again by the grader each time it is used.
+      - name: Restore the weights from an earlier run
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.ENGINESPACE_CACHE }}
+          key: tr0-weights-${{ hashFiles('labs/references/manifest.json') }}
+
+      - name: Fetch the pinned weights
+        run: '"$RUNNER_TEMP/cpu-venv/bin/python" -m enginespace_grader fetch tr0.forward'
+
+      - name: Hash each file against the references manifest
+        run: |
+          "$RUNNER_TEMP/cpu-venv/bin/python" -I - <<'PY'
+          import hashlib, json, os, sys
+          manifest = json.load(open("labs/references/manifest.json", encoding="utf-8"))
+          cache = os.environ["ENGINESPACE_CACHE"]
+          bad = 0
+          for entry in manifest["entries"]:
+              if "tr0.forward" not in entry["labs"]:
+                  continue
+              path = os.path.join(cache, entry["path"])
+              if not os.path.isfile(path):
+                  print(f"MISSING    {entry['path']}  (the fetch step should have put it in the cache)")
+                  bad += 1
+                  continue
+              digest, size = hashlib.sha256(), 0
+              with open(path, "rb") as handle:
+                  for block in iter(lambda: handle.read(1 << 20), b""):
+                      digest.update(block)
+                      size += len(block)
+              same = digest.hexdigest() == entry["sha256"] and size == entry["bytes"]
+              bad += 0 if same else 1
+              print(f"{'ok' if same else 'DIFFERENT'}  {entry['path']}  {size} bytes  sha256 {digest.hexdigest()}  manifest {entry['bytes']} bytes sha256 {entry['sha256']}")
+          sys.exit(1 if bad else 0)
+          PY
+
+      # The reference and the two wrong-epsilon solutions, stage by stage, on the pinned weights. Each line is the worst absolute difference of one check against its bound.
+      # CI is true so that a missing torch fails the step and never passes it by being left out.
+      - name: The reference and the mutants, on the pinned weights
+        env:
+          CI: 'true'
+        run: |
+          "$RUNNER_TEMP/cpu-venv/bin/python" labs/grader/tests/cpu/weights_margin.py | tee "$RUNNER_TEMP/weights-margin.txt"
+          { echo '### TR0 on the pinned Qwen3-0.6B: the worst difference of each check'; echo; echo '```'; cat "$RUNNER_TEMP/weights-margin.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+

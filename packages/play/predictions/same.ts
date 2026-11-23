@@ -32,6 +32,30 @@ const BOUNDARIES_ASK = 'How many process boundaries does a sampled token cross o
 
 export const SAME: readonly SamePair[] = [
   {
+    lesson: 'tr0.l1.p1',
+    game: 'shape-shifter',
+    level: 'views',
+    quantity: 'the elements that the one copy of the reference moves into a new buffer',
+    lessonPrompt: "The level's tensor has shape (4, 6), and the reference reads it column by column, as one row, with one copy. How many elements will that copy move?",
+    levelPrompt: 'The reference makes 1 copy here. How many elements will that copy move?',
+  },
+  {
+    lesson: 'tr0.l2.p1',
+    game: 'shape-shifter',
+    level: 'three-d',
+    quantity: 'the addresses between two neighbouring tokens of one head, after the permute that brings the heads first',
+    lessonPrompt: "The level's projection output has shape (4, 8), and the reference splits it into heads and then brings the head dimension first. After that permute, how far apart in the buffer are two neighbouring tokens of one head?",
+    levelPrompt: 'After the permute, how far apart in the buffer are two neighbouring tokens of one head?',
+  },
+  {
+    lesson: 'tr0.l4.p1',
+    game: 'shape-shifter',
+    level: 'grid',
+    quantity: "the lanes that the reference's launch leaves masked on the level's tensor",
+    lessonPrompt: "The level's tensor has shape (12, 20), and the reference covers each of its elements exactly once with at most six programs. How many lanes will it leave masked?",
+    levelPrompt: 'How many lanes will the reference leave masked?',
+  },
+  {
     lesson: 'tr1.l1.p1',
     game: 'engine-floor',
     level: 'nano',

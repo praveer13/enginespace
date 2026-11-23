@@ -26,6 +26,14 @@ const SHORT = [
   { width: 320, height: 256 },
 ]
 
+/** TR0 end to end (W2b-T33): its module page, each of its lessons, the Tensor views game and the forward pass lab. */
+const TR0_ROUTES = [...LESSONS.filter((lesson) => lesson.module === 'tr0').map((lesson) => lesson.route), '/m/tr0', '/play/shape-shifter', '/labs/tr0.forward']
+
+test("TR0's routes are among the routes checked above, all five lessons included", () => {
+  expect(LESSONS.filter((lesson) => lesson.module === 'tr0'), 'the TR0 lessons of the compiled map').toHaveLength(5)
+  expect(ROUTES, 'TR0 routes in the list of checked routes').toEqual(expect.arrayContaining(TR0_ROUTES))
+})
+
 test.describe('every route holds the checks of REDESIGN 5.2', () => {
   for (const route of ROUTES) {
     test(`${route}`, async ({ page, context }) => {
@@ -215,5 +223,64 @@ test.describe('the Step loop on a phone', () => {
         await expect(game, `${level} at ${width}`).toHaveAttribute('data-view', '2d')
       }
     }
+  })
+})
+
+/*
+ * A control that is off looks off: the outline of every button, dashed, with a label that is lighter and still readable, and the
+ * not-allowed cursor. A quiet button ("Undo" with nothing to undo) had no outline, and read as a plain word.
+ */
+test.describe('a disabled control reads as a control that is off', () => {
+  for (const route of ['/', '/play/loop', '/play/verifier?level=greedy-ngram']) {
+    test(`${route}`, async ({ page, context }) => {
+      await withSettings(context, { view3d: false })
+      await page.setViewportSize({ width: 1280, height: 800 })
+      await open(page, route)
+      await quiet(page)
+      const off = await page.evaluate(() =>
+        [...document.querySelectorAll<HTMLButtonElement>('button:disabled')]
+          .filter((button) => button.getBoundingClientRect().width > 0)
+          .map((button) => {
+            const style = getComputedStyle(button)
+            return { name: (button.textContent ?? '').trim(), style: style.borderTopStyle, edge: style.borderTopColor, cursor: style.cursor }
+          }),
+      )
+      expect(off.length).toBeGreaterThan(0)
+      for (const control of off) {
+        expect(control.style, control.name).toBe('dashed')
+        expect(control.edge, control.name).not.toBe('rgba(0, 0, 0, 0)')
+        expect(control.cursor, control.name).toBe('not-allowed')
+      }
+    })
+  }
+})
+
+/** The /changes lede at 320 px ends on a line of three words or more (balanced, not left with a stub). */
+test.describe('the /changes lede', () => {
+  test('does not end on a one-word line at 320 px', async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 })
+    await open(page, '/changes')
+    const lines = await page.locator('.es-page__lead').evaluate((lead) => {
+      const text = lead.firstChild as Text
+      const range = document.createRange()
+      const rows: string[] = []
+      let row = ''
+      let at: number | null = null
+      for (let i = 0; i < text.length; i++) {
+        range.setStart(text, i)
+        range.setEnd(text, i + 1)
+        const top = Math.round(range.getBoundingClientRect().top)
+        if (at !== null && top !== at) {
+          rows.push(row)
+          row = ''
+        }
+        at = top
+        row += text.data[i]
+      }
+      rows.push(row)
+      return rows.map((line) => line.trim())
+    })
+    expect(lines.length).toBeGreaterThan(1)
+    expect(lines.at(-1)?.split(/\s+/).length ?? 0).toBeGreaterThanOrEqual(3)
   })
 })

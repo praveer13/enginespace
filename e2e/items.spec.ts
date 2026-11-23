@@ -370,6 +370,9 @@ test.describe('a ticket', () => {
 
 /** Presses Tab until `target` has focus: proof that a keyboard reaches it, in a bounded number of keys. */
 async function tabTo(page: Page, target: Locator): Promise<void> {
+  // A walk that starts before the control is in the page passes it by: the block mounts after the lesson's text does, and on a slow core
+  // the first presses would leave it behind. The control is waited for, and then the keys are counted.
+  await target.waitFor({ state: 'attached' })
   for (let presses = 0; presses < 40; presses += 1) {
     await page.keyboard.press('Tab')
     if (await target.evaluate((element) => element === document.activeElement)) return
@@ -386,6 +389,7 @@ test.describe('the keyboard', () => {
     // away at 360 px [measured 2026-11-08 at b5fb81a with this task's tree], where the sample lesson's was within 40; from the heading it is
     // one. The page's own keyboard walk is W1-T36's.
     await page.locator('#exit-check').waitFor()
+    await stub(page, 'Start questions').waitFor({ state: 'attached' })
     await page.evaluate(() => {
       const heading = document.getElementById('exit-check')
       if (heading === null) throw new Error('the lesson has no "Exit check" heading')

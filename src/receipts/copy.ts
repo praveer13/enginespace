@@ -61,6 +61,8 @@ export const RECEIPTS = {
   notFound: 'This browser holds no result with that hash',
   notFoundNote: 'A result is kept on the device that imported it, so its address opens there and nowhere else.',
   loadingDetail: 'Loading the result',
+  defend: 'Defend your receipt',
+  defendLoading: 'Loading the questions about your run.',
 } as const
 
 /** Bringing a receipt back (src/receipts/ImportPanel.tsx): the slip that takes the grader's file, and what it says of each outcome. */

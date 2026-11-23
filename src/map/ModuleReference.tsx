@@ -3,9 +3,10 @@ import type { Claim, CompiledCard } from '@es/schema'
 import { TextLink } from '@/design/components/TextLink'
 import { useClaims } from '@/content/load'
 import { useCard } from '@/content/load-lessons'
-import { cardClaimIds, decimals, kernelspaceLabel, kernelspaceUrl, staleSince, type RenderEnv } from '@/content/render/model'
+import { cardClaimIds, decimals, kernelspaceLabel, kernelspaceTitle, kernelspaceUrl, staleSince, type RenderEnv } from '@/content/render/model'
+import { moduleCode } from '@/progress/words'
 import { Prose } from '@/content/render/Prose'
-import type { Part } from './moduleWords'
+import { leavesOut, type Part } from './moduleWords'
 
 /*
  * The Reference at the foot of a module page (REDESIGN section 3.3): closed disclosures that hold what the module says about the engines,
@@ -26,7 +27,7 @@ const tagWord = (claim: Claim): string => (claim.synthetic === true ? 'synthetic
 
 /** The environment the Reference's prose is drawn with: a claim is its value and its tag word. */
 function referenceEnv(env: RenderEnv): RenderEnv {
-  const plain: RenderEnv = { ...env }
+  const plain: RenderEnv = { ...env, ksTitles: true }
   plain.claim = (id) => {
     const claim = plain.claims?.get(id)
     if (claim === undefined) return <code data-claim={id}>{id}</code>
@@ -58,9 +59,8 @@ function ModelPart({ id, env }: { id: string; env: RenderEnv }) {
   const needsClaims = loaded !== null && env.claims === null && cardClaimIds(loaded).size > 0
   const claims = useClaims(needsClaims)
   const own = referenceEnv(claims.status === 'ready' ? { ...env, claims: claims.value } : env)
-  const name = loaded === null ? 'the model' : loaded.title.replace(/^The /, 'the ')
   return (
-    <Disclosure id={`model-${id}`} title={`What ${name} leaves out`}>
+    <Disclosure id={`model-${id}`} title={leavesOut(loaded?.title)}>
       {card.status === 'error' ? (
         <p>The card would not load. Reload the page.</p>
       ) : loaded === null ? (
@@ -142,25 +142,37 @@ export function Reference({ parts, env, hours, builds, cited }: ReferenceProps) 
   )
 }
 
+/** The engines a module is read at, by name. A pin the table does not hold reads as its id. */
+const PIN_NAMES: Readonly<Record<string, string>> = { vllm: 'vLLM', sglang: 'SGLang', 'nano-vllm': 'nano-vllm', 'mini-sglang': 'Mini-SGLang', 'inside-vllm': 'the post “Inside vLLM”' }
+
+const joined = (items: readonly string[]): string => (items.length < 2 ? (items[0] ?? '') : `${items.slice(0, -1).join(', ')} and ${items[items.length - 1]}`)
+
+/** One prerequisite: a kernelspace lesson by its title, linked; another module of this course by its code, linked. */
+function Prereq({ reference }: { reference: string }) {
+  if (!reference.startsWith('ks:')) return <TextLink to={`/m/${reference}`}>{moduleCode(reference)}</TextLink>
+  const url = kernelspaceUrl(reference)
+  const title = kernelspaceTitle(reference)
+  const label = title === null ? kernelspaceLabel(reference) : `“${title}”`
+  return url === null ? <>{label}</> : <TextLink href={url}>{label}</TextLink>
+}
+
 function BuildsOn({ prereqs, pins }: { prereqs: readonly string[]; pins: readonly string[] }) {
+  const named = pins.map((pin) => (Object.hasOwn(PIN_NAMES, pin) ? PIN_NAMES[pin] : pin))
   return (
     <p>
       {prereqs.length === 0 ? null : (
         <>
           Advised first:{' '}
-          {prereqs.map((ref, at) => {
-            const url = ref.startsWith('ks:') ? kernelspaceUrl(ref) : null
-            return (
-              <Fragment key={ref}>
-                {at === 0 ? '' : ', '}
-                {ref.startsWith('ks:') ? url === null ? kernelspaceLabel(ref) : <TextLink href={url}>{kernelspaceLabel(ref)}</TextLink> : <TextLink to={`/m/${ref}`}>{ref}</TextLink>}
-              </Fragment>
-            )
-          })}
+          {prereqs.map((ref, at) => (
+            <Fragment key={ref}>
+              {at === 0 ? '' : at === prereqs.length - 1 ? ' and ' : ', '}
+              <Prereq reference={ref} />
+            </Fragment>
+          ))}
           .
         </>
       )}
-      {pins.length === 0 ? null : <> Read at the pins {pins.join(' and ')}.</>}
+      {pins.length === 0 ? null : <> Read at fixed versions of {joined(named)}.</>}
     </p>
   )
 }

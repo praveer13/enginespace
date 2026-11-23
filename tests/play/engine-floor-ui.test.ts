@@ -36,7 +36,7 @@ import { floorKit, floorStep, partRows } from '@/games/engine-floor/kit'
 import { Mirror } from '@/games/engine-floor/Mirror'
 import { handoffWords, permalink, plain, readoutOf, splitCode } from '@/games/engine-floor/text'
 import type { FloorOutcome } from '@/games/engine-floor/types'
-import { bandEmpty, heldHeight, matches, platformsOf, roomInSight } from '@/games/engine-floor/useFloorControls'
+import { aboveWords, matches, onSameSpot, platformsOf, roomInSight } from '@/games/engine-floor/useFloorControls'
 import { FloorLegend, StageFacts, Swimlane } from '@/games/engine-floor/View2D'
 import { fakeRun, laidTo, levelOf, ranTo, truthOf, walk } from './engine-floor-support'
 
@@ -169,20 +169,7 @@ describe('the stage list', () => {
     expect(markup).toContain('Remove last')
   })
 
-  test('a lay keeps the list\'s height where the page would else be pulled up: the room it held, cut to the screen\'s foot, until the list fills it', () => {
-    // A list of 600 px from 300 px down a screen of 900 px loses a row of 48 px at the page's foot: it keeps all 600 px.
-    expect(heldHeight(600, 300, 852, 900)).toBe(600)
-    // Scrolled up by 30 px, the 30 px of the room below the screen's foot go: nobody sees them go, and the page cannot be pulled up.
-    expect(heldHeight(600, 330, 882, 900)).toBe(570)
-    // Scrolled up by a row or more, the list ends under the screen's foot by itself, and the room is given back whole.
-    expect(heldHeight(600, 348, 900, 900)).toBeNull()
-    // A list that ends below the screen's foot keeps nothing: the page has room under it.
-    expect(heldHeight(600, 100, 1000, 900)).toBeNull()
-    // Remove last puts the row back, and the list fills the room again by itself.
-    expect(heldHeight(600, 300, 900, 900)).toBeNull()
-  })
-
-  test('a phone\'s list box keeps a lay\'s room at its end while it is in sight, and gives back what its scroll takes out of sight', () => {
+  test('the list\'s box keeps a lay\'s room at its end while it is in sight, and gives back what its scroll takes out of sight', () => {
     // A box 132 px tall at its foot (scrollTop 1274 of 1406) keeps the 44 px of a row laid there: all of it is in sight.
     expect(roomInSight(44, 1274, 132, 1406)).toBe(44)
     // Scrolled up by 30 px, 30 px of the room have gone under the box's foot: 14 px are kept.
@@ -192,13 +179,48 @@ describe('the stage list', () => {
     expect(roomInSight(132, 1100, 132, 1406)).toBeNull()
   })
 
-  test('the band under the pinned filters says the stages are above once no tile of the list starts in it', () => {
-    // The last tile starts 20 px under the bar's foot at 149 px: it is whole in the band.
-    expect(bandEmpty(169, 149)).toBe(false)
-    expect(bandEmpty(149, 149)).toBe(false)
-    // It starts under the bar: what shows of it is an edge, and the band holds no whole tile.
-    expect(bandEmpty(120, 149)).toBe(true)
-    expect(bandEmpty(null, 149)).toBe(true)
+  test('a press on the spot where Commit was pressed is that press, until the pointer has left the spot', () => {
+    const commit = { x: 1046, y: 594 }
+    expect(onSameSpot({ x: 1046, y: 594 }, commit)).toBe(true)
+    // A hand's tremble between the two clicks of a double click.
+    expect(onSameSpot({ x: 1052, y: 600 }, commit)).toBe(true)
+    // A press a tile's width away was aimed.
+    expect(onSameSpot({ x: 1046, y: 640 }, commit)).toBe(false)
+    // Once the pointer has left the spot, the spot is gone.
+    expect(onSameSpot({ x: 1046, y: 594 }, null)).toBe(false)
+  })
+
+  test('with every stage laid, the empty list says so and has no filter to clear', () => {
+    const level = vllm
+    const state = walk(level, { t: 'commit', prediction: truthOf(level.scenario) }, ...level.tray.map((stage): FloorAction => ({ t: 'lay', stage })))
+    const markup = dock(state)
+    expect(markup).toContain('Every stage is laid. Run the path, or Remove last.')
+    expect(markup).not.toContain('No stage matches')
+    expect(markup).not.toContain('Show every stage')
+  })
+
+  test('the room a box keeps says how many stages lie wholly above its top edge', () => {
+    // Tiles of 44 px; the box's top edge at 400 px. Two end above it, one is cut by it, two are under it.
+    expect(aboveWords([300, 356, 380, 420, 468], 400, 44)).toBe('2 stages')
+    expect(aboveWords([356, 400], 400, 44)).toBe('1 stage')
+    expect(aboveWords([400, 448], 400, 44)).toBe('0 stages')
+  })
+
+  test('the dock says the prediction once it is in, in the scenario card beside the level\'s note', () => {
+    const markup = dock(laidTo(vllm, 0))
+    expect(markup).toMatch(/class="es-floor-card__foot".*?data-floor-prompt="".*?data-prediction="">Your prediction: <span class="font-numeric">\d<\/span> process/)
+    expect(count(markup, /data-prediction=""/g)).toBe(1)
+  })
+
+  test('the stage list stands in order: the field and the chips, the box of tiles, then why a run stopped, then the path\'s actions', () => {
+    const markup = dock(laidTo(vllm, 0))
+    const at = (needle: string) => markup.indexOf(needle)
+    expect(at('data-floor-filter=""')).toBeLessThan(at('class="es-floor-chips"'))
+    expect(at('class="es-floor-chips"')).toBeLessThan(at('class="es-floor-list"'))
+    expect(at('class="es-floor-list"')).toBeLessThan(at('data-floor-path=""'))
+    const halted = dock(stopped)
+    expect(halted.indexOf('class="es-floor-list"')).toBeLessThan(halted.indexOf('data-floor-stop=""'))
+    expect(halted.indexOf('data-floor-stop=""')).toBeLessThan(halted.indexOf('data-floor-path=""'))
   })
 })
 

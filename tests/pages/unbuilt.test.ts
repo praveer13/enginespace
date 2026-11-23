@@ -26,6 +26,7 @@ import type { Page, Written } from '../../scripts/pages/plan'
 import { loadSources } from '../../scripts/pages/sources'
 import { LAB_TASKS, labName } from '../../src/content/render/model'
 import { FORGE_LAB_IDS } from '../../src/forge/ids'
+import { GRADED_LABS } from '../../src/labs/published'
 import { LAB_HOLDS, LAB_STUBS, UNBUILT, unbuiltCopy } from '../../src/unbuilt/copy'
 import { routes } from '../../src/routes'
 import { START_POINTER } from '../../src/settings/store'
@@ -128,10 +129,10 @@ describe('the tasks that build the pages', () => {
 
 describe('the labs that W2 and W3 build', () => {
   test("are the labs of the course that have no host: the compiler's list less the forge labs that a host grades", () => {
-    expect(Object.keys(LAB_STUBS).sort()).toEqual(LAB_IDS.filter((id) => !FORGE_LAB_IDS.includes(id)).sort())
-    // The labs that have a task are the labs that have no host: the built ones (W1b-T02) name no task.
+    expect(Object.keys(LAB_STUBS).sort()).toEqual(LAB_IDS.filter((id) => !FORGE_LAB_IDS.includes(id) && !Object.hasOwn(GRADED_LABS, id)).sort())
+    // The labs that have a task are the labs that have no page: the built ones (W1b-T02) name no task.
     expect(Object.keys(LAB_STUBS).sort()).toEqual(Object.keys(LAB_TASKS).sort())
-    expect(Object.keys(LAB_STUBS)).toHaveLength(10)
+    expect(Object.keys(LAB_STUBS)).toHaveLength(9)
   })
 
   test("each is the course's own: the module that lists it, its lane and the line the learner hands in are the compiled map's", () => {

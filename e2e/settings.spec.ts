@@ -33,7 +33,7 @@ import { gunzipSync } from 'node:zlib'
 import { test as base, expect } from '@playwright/test'
 import type { Download, Page } from '@playwright/test'
 import { build } from 'vite'
-import { buildExport, serializeExport } from '../packages/ledger'
+import { buildExport, SCHEMA_VERSION, serializeExport } from '../packages/ledger'
 import type { LedgerEvent } from '../packages/ledger'
 import type { SceneHook } from '../src/scene/test-hook'
 import { copy as clone, EXAMPLES } from '../tests/ledger/support'
@@ -1043,16 +1043,16 @@ test.describe('a tab that has gone read-only (A§7.4)', () => {
   test('saves no setting and applies none, and says so at the control', async ({ page }) => {
     await open(page, '/settings')
     await expect(plate(page, 'Reduced motion', 'Follow my system')).toHaveAttribute('aria-pressed', 'true')
-    // A newer build of the site owns this browser's data: its schema version is ahead of this build's.
+    // A newer build of the site owns this browser's data: its schema version is ahead of this build's, whatever this build's is.
     await page.evaluate(
-      () =>
+      (newer) =>
         new Promise<void>((resolve, reject) => {
           const request = indexedDB.open('enginespace')
           request.onerror = () => reject(request.error)
           request.onsuccess = () => {
             const db = request.result
             const tx = db.transaction('meta', 'readwrite')
-            tx.objectStore('meta').put({ key: 'schemaVersion', value: 2 })
+            tx.objectStore('meta').put({ key: 'schemaVersion', value: newer })
             tx.oncomplete = () => {
               db.close()
               resolve()
@@ -1060,6 +1060,7 @@ test.describe('a tab that has gone read-only (A§7.4)', () => {
             tx.onerror = () => reject(tx.error)
           }
         }),
+      SCHEMA_VERSION + 1,
     )
     await reload(page)
     await expect(page.getByRole('alert').filter({ hasText: 'Reload to update' })).toBeVisible({ timeout: BOOT })

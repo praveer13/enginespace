@@ -407,7 +407,7 @@ describe('what the lessons teach', () => {
 
 describe('the GPU part is announced and never faked', () => {
   test('the module page names the lab that tests TR2 on a GPU, which is TR3\'s, and says that it arrives with the grader', () => {
-    expect(moduleText).toContain('Its predictions about a real engine are tested in TR3\'s lab, `tr3.profile`')
+    expect(moduleText).toContain('Its predictions about a real engine are tested in a lab of TR3')
     expect(moduleText).toContain('That lab arrives with the grader.')
     expect(moduleText).not.toMatch(/D-0\d\d|W2/)
     expect(moduleText).toContain('TR2 has no GPU stage.')

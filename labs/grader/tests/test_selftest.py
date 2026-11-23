@@ -13,8 +13,11 @@ import unittest
 from pathlib import Path
 from unittest import mock
 
-from enginespace_grader import cli, rng, selftest
+from enginespace_grader import cli, fingerprint, rng, selftest
 from enginespace_grader.errors import GraderError
+
+from .fake_nvml import FORBIDDEN, FakeNvml
+from .fakes import RTX_4090_TORCH, fake_torch, probes
 
 
 def run(*argv: str) -> tuple[int, str, str]:
@@ -62,12 +65,71 @@ class Builtin(unittest.TestCase):
         self.assertEqual(selftest.SelfTestLab.problems(), [])
         self.assertEqual(selftest.SelfTestLab.id, "tr0.selftest")
 
-    def test_the_gpu_smoke_is_not_built_and_says_so_instead_of_passing(self) -> None:
-        status, out, err = run("--gpu")
+
+class GpuSmoke(unittest.TestCase):
+    """`selftest --gpu` on invented machines (fakes.py, fake_nvml.py): no GPU is asked."""
+
+    def machine(self, **options: object) -> mock._patch:  # type: ignore[type-arg]
+        return mock.patch.object(fingerprint, "default_probes", return_value=probes(**options))  # type: ignore[arg-type]
+
+    def test_with_no_cuda_it_exits_non_zero_and_says_why_in_one_line(self) -> None:
+        with self.machine():
+            status, out, err = run("--gpu")
         self.assertEqual((status, out), (3, ""))
-        self.assertIn("GPU smoke is not built yet", err)
-        with self.assertRaises(GraderError):
+        self.assertEqual(err.count("\n"), 1, err)
+        self.assertIn("selftest --gpu found no CUDA GPU on this machine", err)
+        self.assertIn("nvidia-smi is not available", err)
+        with self.machine(), self.assertRaises(GraderError):
             selftest.main(["--gpu"])
+
+    def test_a_machine_with_nvml_and_torch_passes_and_says_that_no_lab_ran(self) -> None:
+        nvml = FakeNvml()
+        with self.machine(nvml=nvml, torch=fake_torch(devices=[RTX_4090_TORCH])), mock.patch.object(selftest, "_cuda_matmul", lambda torch: 0):
+            status, out, err = run("--gpu", "--no-suite")
+        self.assertEqual((status, err), (0, ""))
+        self.assertIn("  ok    1 GPU seen: NVIDIA GeForce RTX 4090 (24 GiB, capability 8.9)", out)
+        self.assertIn("  ok    driver 580.82.07, which supports CUDA 13.0", out)
+        self.assertIn("  ok    torch 2.14.0+cu130 built for CUDA 13.0 sees 1 device", out)
+        self.assertIn("equals the CPU's in every entry", out)
+        self.assertIn("this ran no lab", out)
+        self.assertIn("selftest passed", out)
+        self.assertEqual(out.count("  ok    "), 4 + 5)
+        self.assertFalse(set(nvml.calls) & set(FORBIDDEN), "the smoke asks NVML for no UUID, serial number or bus address")
+        for personal in ("GPU-5a1c9e30", "1320423009876", "00000000:01:00.0"):
+            self.assertNotIn(personal, out)
+
+    def test_a_torch_without_cuda_fails_the_torch_check_and_the_product(self) -> None:
+        with self.machine(nvml=FakeNvml(), torch=fake_torch(cuda=None)):
+            status, out, _ = run("--gpu", "--no-suite")
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL  torch: AssertionError: torch 2.14.0+cu130 is a build without CUDA", out)
+        self.assertIn("selftest FAILED", out)
+        self.assertIn("FAIL  product: AssertionError: torch has no CUDA device to run the product on", out)
+
+    def test_torch_that_does_not_see_the_gpu_fails_with_the_likely_causes(self) -> None:
+        with self.machine(nvml=FakeNvml(), torch=fake_torch(devices=[], available=False)):
+            status, out, _ = run("--gpu", "--no-suite")
+        self.assertEqual(status, 1)
+        self.assertIn("does not see the GPU: a driver older than the build's CUDA needs, or a container started without the GPU", out)
+
+    def test_a_product_that_differs_from_the_cpus_fails(self) -> None:
+        with self.machine(nvml=FakeNvml(), torch=fake_torch(devices=[RTX_4090_TORCH])), mock.patch.object(selftest, "_cuda_matmul", lambda torch: 3):
+            status, out, _ = run("--gpu", "--no-suite")
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL  product: AssertionError: a 64 by 64 fp32 product on the GPU differs from the CPU's in 3 entries", out)
+
+    def test_a_driver_that_names_no_cuda_version_fails_the_driver_check(self) -> None:
+        with self.machine(nvml=FakeNvml(cuda_version=None), torch=fake_torch(devices=[RTX_4090_TORCH])), mock.patch.object(selftest, "_cuda_matmul", lambda torch: 0):
+            status, out, _ = run("--gpu", "--no-suite")
+        self.assertEqual(status, 1)
+        self.assertIn("FAIL  driver: AssertionError: driver 580.82.07 did not report the CUDA version it supports", out)
+
+    def test_without_the_flag_the_gpu_is_not_asked_about(self) -> None:
+        with self.machine():
+            status, out, _ = run("--no-suite")
+        self.assertEqual(status, 0)
+        self.assertNotIn("GPU", out)
+        self.assertNotIn("this ran no lab", out)
 
 
 class Suite(unittest.TestCase):

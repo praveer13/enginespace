@@ -1,4 +1,3 @@
-import { labName } from '@/content/render/model'
 import type { ReactNode } from 'react'
 import { GAMES } from '@es/play'
 import { rosterEntry } from '@es/play/roster'
@@ -69,6 +68,8 @@ export interface LabRef {
   lane: string
   /** True when the lab has no page yet. */
   waiting: boolean
+  /** What the learner reads it as: the lab's title, never its id. */
+  title: string
 }
 
 export interface RowsProps {
@@ -95,7 +96,7 @@ export function Rows({ games, labs, progress, ready }: RowsProps) {
   const counts = ready ? progress?.counts : undefined
   const build = labs.filter((lab) => lab.lane !== 'F')
   const prove = labs.filter((lab) => lab.lane === 'F')
-  const lab = (ref: LabRef): ReactNode => (ref.waiting ? <span key={ref.id}>{labName(ref.id)}: {MODULE.waiting}</span> : <TextLink key={ref.id} to={`/labs/${ref.id}`}>{labName(ref.id)}</TextLink>)
+  const lab = (ref: LabRef): ReactNode => (ref.waiting ? <span key={ref.id}>{ref.title}: {MODULE.waiting}</span> : <TextLink key={ref.id} to={`/labs/${ref.id}`}>{ref.title}</TextLink>)
   return (
     <dl className="es-module__rows" aria-label="What else is in this module">
       {games.length === 0 ? null : (
@@ -123,7 +124,7 @@ export function Rows({ games, labs, progress, ready }: RowsProps) {
       {prove.length === 0 ? null : (
         <Row name={MODULE.rows.prove}>
           {prove.map(lab)}
-          {loop === undefined ? null : <span>{loop.proved ? MODULE.proved : MODULE.notYet}</span>}
+          {loop === undefined || prove.every((ref) => ref.waiting) ? null : <span>{loop.proved ? MODULE.proved : MODULE.notYet}</span>}
         </Row>
       )}
       <Row name={MODULE.rows.keep}>

@@ -30,6 +30,7 @@ interface ManifestEntry {
   isEntry?: boolean
   isDynamicEntry?: boolean
   imports?: string[]
+  dynamicImports?: string[]
 }
 
 interface Build {
@@ -185,12 +186,18 @@ describe('the app build', () => {
     // A part's source in a game's popover (src/games/kit/PartSource.tsx, R-T11) is a part of a game, as above.
     // or a game's record (src/games/<id>/record.ts, W2b-T40), which the game's page loads by itself, so that a game's page carries no other
     // game's record.
+    // or Prove mode's panel and run (src/prove/ProveSession.tsx, W2b-T42), which a game's page loads only with `?mode=prove`, because it brings
+    // the ledger's reading of the Prove window.
+    // or a graded lab's page (src/labs/GradedLabPage.tsx, W2b-T30), which the Lab page loads on demand for a lab of lane L or F that has one, as it
+    // loads a forge lab's, so that the forge labs and the stubs never carry it.
+    // or "Defend your receipt" (src/receipts/defend/Defend.tsx, W2b-T50), which a receipt's page loads only for a receipt of a stage that can be
+    // defended, because it brings the reading of the bundle and the question sets.
     // The compiled content is lazy too, but it is not a page: the next test holds it to account.
     const named = Object.entries(app.manifest)
       .filter(([key, chunk]) => chunk.isDynamicEntry && chunk.src !== undefined && !key.startsWith(CONTENT))
       .map(([key]) => key)
     const onDemand =
-      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/games\/[^/]+\/record\.ts|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/items\/Attempt\.tsx|src\/map\/dueCount\.ts|src\/content\/render\/(?:GameEmbed\.tsx|reveal\.ts|Predict\.tsx|LessonLedger\.tsx|levels\.ts|Dock\.tsx|ShowOnMachine\.tsx|TraceTape\.tsx)|src\/items\/ItemBlock\.tsx|packages\/play\/predictions\/(?:commit-)?tr[0-8][ab]?\.ts|src\/trace\/TraceView\.tsx|src\/route-change\.ts|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
+      /^(packages\/play\/[^/]+\/game\.ts|packages\/play\/items\/families\/(?:tr[0-8][ab]?|capstone)\/[a-z0-9-]+\.ts|src\/games\/[^/]+\/[A-Za-z0-9]+\.tsx|src\/games\/[^/]+\/record\.ts|src\/scene\/[\w/-]+\.tsx?|src\/forge\/ForgeLabPage\.tsx|src\/labs\/GradedLabPage\.tsx|src\/items\/Attempt\.tsx|src\/map\/dueCount\.ts|src\/content\/render\/(?:GameEmbed\.tsx|reveal\.ts|Predict\.tsx|LessonLedger\.tsx|levels\.ts|Dock\.tsx|ShowOnMachine\.tsx|TraceTape\.tsx)|src\/items\/ItemBlock\.tsx|packages\/play\/predictions\/(?:commit-)?tr[0-8][ab]?\.ts|src\/trace\/TraceView\.tsx|src\/route-change\.ts|src\/prove\/ProveSession\.tsx|src\/receipts\/defend\/Defend\.tsx|node_modules\/three\/examples\/jsm\/[\w/-]+\.js)$/
     expect(named.filter((key) => !pages.includes(key) && !onDemand.test(key))).toEqual([])
   })
 
@@ -214,6 +221,48 @@ describe('the app build', () => {
       const record = Object.entries(app.manifest).find(([, chunk]) => chunk.src === `src/games/${id}/record.ts`)
       expect([id, record?.[1].isDynamicEntry]).toEqual([id, true])
       expect([id, records(sourcesOf(staticClosure(app, record?.[0] ?? 'none')))]).toEqual([id, [`packages/play/${id}/entry.ts`]])
+    }
+  })
+
+  /** The games of the tree: each `src/games/<id>/` that has a Game.tsx. */
+  const gameIds = () =>
+    readdirSync(path.join(root, 'src/games'), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && existsSync(path.join(root, 'src/games', entry.name, 'Game.tsx')))
+      .map((entry) => entry.name)
+  /** The manifest key of the chunk whose entry module is `source` (a repository path). */
+  const keyOf = (source: string) => Object.entries(app.manifest).find(([key, chunk]) => key === source || chunk.src === source)?.[0]
+  /** The modules inside some chunks, as repository paths: a source map names each from the chunk's folder. */
+  const modulesOf = (keys: Iterable<string>) =>
+    [...keys].flatMap((key) => (app.sources.get(app.manifest[key].file) ?? []).map((source) => path.relative(root, path.resolve(app.outDir, 'assets', source))))
+
+  test("carries in each game's route none of what only other pages use: not the content renderer's model, not another game's record (W2b-T64)", () => {
+    // src/content/render/model.ts (with the kernelspace titles it holds) is the lesson, module, map and lab pages' module: the game's page
+    // titles its tab itself. A game's route reaches packages/play/<id>/entry.ts of its own game alone: loop's entry.ts builds its list of
+    // levels with no side effect, so the kit's imports of the packages/play barrel do not keep it in the other games' routes.
+    const page = keyOf('src/pages/Game.tsx')
+    expect(page).toBeDefined()
+    const games = gameIds()
+    expect(games.length).toBeGreaterThanOrEqual(5)
+    for (const id of games) {
+      const game = keyOf(`src/games/${id}/Game.tsx`)
+      expect([id, game === undefined]).toEqual([id, false])
+      const modules = modulesOf(new Set([...staticClosure(app, page ?? 'none'), ...staticClosure(app, game ?? 'none')]))
+      expect(modules).toContain(`src/games/${id}/Game.tsx`)
+      expect([id, modules.filter((module) => /^src\/content\/render\/(?:model|ksTitles)\.ts$/.test(module))]).toEqual([id, []])
+      expect([id, modules.filter((module) => /^packages\/play\/[^/]+\/entry\.ts$/.test(module))]).toEqual([id, [`packages/play/${id}/entry.ts`]])
+    }
+  })
+
+  test('names one chunk per game in the chunk of the component registry, which every game\'s route carries: the game\'s record.ts, which loads its component (W2b-T64)', () => {
+    // A game that registers adds one file to the registry's chunk, and the list of what its component needs goes in its own record's chunk.
+    const registry = Object.keys(app.manifest).filter((key) => modulesOf([key]).includes('src/games/registry.ts'))
+    expect(registry).toHaveLength(1)
+    const games = gameIds()
+    const records = games.map((id) => keyOf(`src/games/${id}/record.ts`))
+    expect([...(app.manifest[registry[0]].dynamicImports ?? [])].sort()).toEqual(records.map((key) => key ?? 'no record chunk').sort())
+    for (const id of games) {
+      const record = keyOf(`src/games/${id}/record.ts`) ?? 'none'
+      expect([id, app.manifest[record]?.dynamicImports ?? []]).toEqual([id, [keyOf(`src/games/${id}/Game.tsx`)]])
     }
   })
 

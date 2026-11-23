@@ -26,5 +26,5 @@ export function Component() {
   if (index.status === 'loading' || map.status === 'loading') {
     return <PageNotice kind="loading" title={MAP.notice.loadingTitle} ticket="course" what={MAP.notice.loadingWhat} />
   }
-  return <CourseMapView modules={index.value.modules} totalHours={index.value.totalHours} map={map.value} progress={progress} ready={ready} step={next} last={last} states={lessons} due={due} />
+  return <CourseMapView modules={index.value.modules} map={map.value} progress={progress} ready={ready} step={next} last={last} states={lessons} due={due} />
 }

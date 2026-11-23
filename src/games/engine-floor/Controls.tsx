@@ -17,14 +17,19 @@ import { Code } from './Code'
 import { HandoffGlyph } from './HandoffGlyph'
 import { handoffWords, plain, readoutOf } from './text'
 import type { FloorRun } from './types'
-import { useFloorControls, type FloorControls } from './useFloorControls'
+import { useFloorControls, type FloorControls, type Point } from './useFloorControls'
 import './floor.css'
 
 /*
- * Request path's dock (REDESIGN §3.5, §3.6), top to bottom: the scenario card (the engine, the pin and what the request asks), the
- * prediction while it is open, why a run stopped once one has, then the stage list (filter chips, one for each process, a field that
- * filters by typed text, and a scrolling list of 44 px tiles, each laid by a press) and the path's two actions: Remove last, and Run the
- * path, the amber control once there is a stage to run. The readout strip is under the dock (ReadoutStrip, below).
+ * Request path's dock (REDESIGN §3.5, §3.6), top to bottom: the scenario card (the engine, the pin, what the request asks and, once it is
+ * in, the prediction), the prediction while it is open, then the stage list (a field that filters by typed text, filter chips, one for
+ * each process, and a box of 44 px tiles that scrolls on its own, each laid by a press), why a run stopped once one has, and the path's two
+ * actions: Run the path, the amber control once there is a stage to run, and Remove last. The readout strip is under the dock
+ * (ReadoutStrip, below).
+ *
+ * Where the dock stands beside the drawing, or pinned to a phone's foot, it holds still while the run is played (floor.css): nothing above
+ * the list changes height while stages are laid or filtered, the list's box absorbs what room is left, and the actions stand at the dock's
+ * foot. So a lay, a filter or a typed letter changes what is inside the list's box and nothing else.
  *
  * Every action is HTML, so a pointer, a keyboard and a screen reader reach the same things. The tiles are one tab stop and the arrows walk
  * them (roving tabindex); the field's Down arrow enters the list. Backspace takes the last stage off and R runs the path (Game.tsx).
@@ -45,7 +50,10 @@ function scenarioWords(view: FloorView): string[] {
   ]
 }
 
-/** The scenario card: the engine at its pin, and what this request asks. Once the prediction is in, the level's note opens under it. */
+/**
+ * The scenario card: the engine at its pin, and what this request asks. Once the prediction is in, the level's note opens under it, with
+ * the prediction beside it in one quiet line.
+ */
 function ScenarioCard({ view }: { view: FloorView }) {
   const pin = view.pin
   return (
@@ -68,30 +76,36 @@ function ScenarioCard({ view }: { view: FloorView }) {
       </p>
       <p className="es-floor-card__asks">{scenarioWords(view).join(' · ')}</p>
       {view.prediction === null ? null : (
-        <details className="es-floor-card__note" data-floor-prompt="">
-          <summary>How this engine is built</summary>
-          <p>
-            <Code>{view.prompt}</Code>
+        <div className="es-floor-card__foot">
+          <details className="es-floor-card__note" data-floor-prompt="">
+            <summary>How this engine is built</summary>
+            <p>
+              <Code>{view.prompt}</Code>
+            </p>
+          </details>
+          <p className="es-floor-said" data-prediction="">
+            Your prediction: <span className="font-numeric">{view.prediction}</span> process {view.prediction === 1 ? 'boundary' : 'boundaries'}.
           </p>
-        </details>
+        </div>
       )}
     </section>
   )
 }
 
-/** The prediction: the session's first ask, required, with the line that says why it cannot be skipped. Once in, one quiet line. */
+/** The prediction: the session's first ask, required, with the line that says why it cannot be skipped. Once in, the card says it. */
 function Prediction({ controls, shown }: { controls: FloorControls; shown: boolean }) {
   const { view, choices, pick, setPick, commit } = controls
   const question = useId()
   // In a lesson whose guess asks this question, the lesson's words stand in, and how sure the learner is goes with it.
   const lesson = useContext(LessonGuessContext)
-  if (view.prediction !== null) {
-    return (
-      <p className="es-floor-said" data-prediction="">
-        Your prediction: <span className="font-numeric">{view.prediction}</span> process {view.prediction === 1 ? 'boundary' : 'boundaries'}.
-      </p>
-    )
-  }
+  // At a desk the question, its six numbers and Commit come into view together in the dock, which may have to scroll to hold them under the
+  // first run's coach strip and the scenario card (on a phone the pinned dock is read from the question down).
+  const section = useRef<HTMLElement>(null)
+  const open = view.prediction === null && shown
+  useEffect(() => {
+    if (open && window.matchMedia('(min-width: 64rem)').matches) section.current?.scrollIntoView({ block: 'nearest' })
+  }, [open])
+  if (view.prediction !== null) return null
   if (!shown) {
     return (
       <p className="es-floor-said" data-prediction="" data-waiting="">
@@ -100,7 +114,7 @@ function Prediction({ controls, shown }: { controls: FloorControls; shown: boole
     )
   }
   return (
-    <section className="es-floor-predict" aria-labelledby={question} data-prediction="">
+    <section ref={section} className="es-floor-predict" aria-labelledby={question} data-prediction="">
       {lesson?.label === undefined ? null : <p className="es-floor-predict__label">{lesson.label}</p>}
       <h3 id={question} className="es-floor-predict__ask">
         {lesson?.ask ?? FLOOR_QUESTION}
@@ -115,7 +129,7 @@ function Prediction({ controls, shown }: { controls: FloorControls; shown: boole
       </div>
       {lesson?.sure}
       <div className="es-floor-predict__commit">
-        <PrimaryButton disabled={pick === null} onClick={commit}>
+        <PrimaryButton disabled={pick === null} onClick={(event) => commit(event)}>
           Commit the prediction
         </PrimaryButton>
       </div>
@@ -132,8 +146,8 @@ function StopNote({ controls }: { controls: FloorControls }) {
   const stop = view.stop
   const note = useRef<HTMLElement>(null)
   const head = useRef<HTMLParagraphElement>(null)
-  // A run that stopped brings its reason into view in the dock, where the list may have scrolled it away. A note taller than the room
-  // (a phone's pinned dock) is read from its head, so the head comes into view last: the rest is a scroll down.
+  // A run that stopped brings its reason into view in the dock, which may have to scroll to hold it under the list. A note taller than the
+  // room (a phone's pinned dock) is read from its head, so the head comes into view last: the rest is a scroll down.
   const at = stop?.at ?? null
   const runs = view.runs
   useEffect(() => {
@@ -175,8 +189,11 @@ function StopNote({ controls }: { controls: FloorControls }) {
   )
 }
 
-/** A tile of the stage list: its mark and mechanism, its name as code, and where it runs. A press lays it. */
-function Tile({ tile, onLay, tabIndex }: { tile: TileView; onLay: (byPointer: boolean) => void; tabIndex: number }) {
+/**
+ * A tile of the stage list: its mark and mechanism, its name as code, and where it runs. A press lays it. The second click of a double click
+ * lays nothing: the first laid the tile it landed on, so the second lands on the tile that took its place, which nobody aimed at.
+ */
+function Tile({ tile, onLay, tabIndex }: { tile: TileView; onLay: (at: Point | null) => void; tabIndex: number }) {
   return (
     <button
       type="button"
@@ -184,7 +201,10 @@ function Tile({ tile, onLay, tabIndex }: { tile: TileView; onLay: (byPointer: bo
       tabIndex={tabIndex}
       data-stage={tile.id}
       aria-label={`Lay ${handoffWords(tile.mechanism)}: ${plain(tile.label)}. From ${placeName(tile.from)} to ${placeName(tile.to)}.`}
-      onClick={(event) => onLay(event.detail > 0)}
+      onClick={(event) => {
+        if (event.detail > 1) return
+        onLay(event.detail > 0 ? { x: event.clientX, y: event.clientY } : null)
+      }}
     >
       <span className="es-floor-tile__line">
         <HandoffGlyph mechanism={tile.mechanism} className="es-floor-tile__glyph" />
@@ -230,7 +250,9 @@ export function StageList({ controls, ring }: { controls: FloorControls; ring: s
   }
   return (
     <section aria-labelledby={headId} className="es-floor-stages" data-floor-stages="" data-count={view.tray.length}>
-      <div className="es-floor-stages__top">
+      {/* The heading, the count, the field and the chips: at a desk the heading, the count and the field share the first line and the chips
+          have a room of their own that a chip going does not change; on a phone the field and the chips are one row that scrolls sideways. */}
+      <div className="es-floor-filters">
         <h3 id={headId} className="es-floor-stages__head">
           Stages
         </h3>
@@ -244,8 +266,6 @@ export function StageList({ controls, ring }: { controls: FloorControls; ring: s
           )}{' '}
           shown
         </span>
-      </div>
-      <div className="es-floor-filters">
         <label htmlFor={fieldId} className="sr-only">
           Filter the stages by words
         </label>
@@ -270,9 +290,20 @@ export function StageList({ controls, ring }: { controls: FloorControls; ring: s
             All
           </button>
           {platforms.map((platform) => (
-            <button key={platform.key} type="button" className="es-floor-chip" aria-pressed={filter === platform.key} onClick={() => setFilter(filter === platform.key ? null : platform.key)}>
+            <button
+              key={platform.key}
+              type="button"
+              className="es-floor-chip"
+              aria-pressed={filter === platform.key}
+              disabled={platform.count === 0}
+              onClick={() => setFilter(filter === platform.key ? null : platform.key)}
+            >
               {platform.key}
-              {platform.here ? <span className="es-floor-chip__here"> · here</span> : null}
+              {platform.here ? (
+                <span className="es-floor-chip__here">
+                  <span className="es-floor-chip__dot"> · </span>here
+                </span>
+              ) : null}
               <span className="es-floor-chip__count font-numeric" aria-hidden="true">
                 {platform.count}
               </span>
@@ -280,34 +311,42 @@ export function StageList({ controls, ring }: { controls: FloorControls; ring: s
           ))}
         </div>
       </div>
-      {tiles.length === 0 ? (
-        <p className="es-floor-stages__none" role="status">
-          No stage matches.{' '}
-          <button
-            type="button"
-            className="es-floor-link"
-            onClick={() => {
-              setQuery('')
-              setFilter(null)
-            }}
-          >
-            Show every stage
-          </button>
-        </p>
-      ) : null}
-      <ul ref={tray} onKeyDown={onTrayKey} data-native-keys="arrows" className="es-floor-tiles" data-floor-tray="" aria-label="Stages you can lay">
-        {tiles.map((tile, index) => (
-          <li key={tile.id} className="es-floor-tiles__item">
-            {ring === tile.id ? (
-              <Marker kind="ring" word="first move" className="es-floor-ring">
-                <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={(byPointer) => lay(tile.id, index, byPointer)} />
-              </Marker>
-            ) : (
-              <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={(byPointer) => lay(tile.id, index, byPointer)} />
-            )}
-          </li>
-        ))}
-      </ul>
+      {/* The list's box: when the filters leave no tile, or every stage is laid, the line that says so stands in the empty box, so nothing
+          under it moves. */}
+      <div className="es-floor-list">
+        {view.tray.length === 0 ? (
+          <p className="es-floor-stages__none" role="status">
+            Every stage is laid. {view.canUnlay ? 'Run the path, or Remove last.' : 'Run the path.'}
+          </p>
+        ) : tiles.length === 0 ? (
+          <p className="es-floor-stages__none" role="status">
+            No stage matches.{' '}
+            <button
+              type="button"
+              className="es-floor-link"
+              onClick={() => {
+                setQuery('')
+                setFilter(null)
+              }}
+            >
+              Show every stage
+            </button>
+          </p>
+        ) : null}
+        <ul ref={tray} onKeyDown={onTrayKey} data-native-keys="arrows" className="es-floor-tiles" data-floor-tray="" aria-label="Stages you can lay">
+          {tiles.map((tile, index) => (
+            <li key={tile.id} className="es-floor-tiles__item">
+              {ring === tile.id ? (
+                <Marker kind="ring" word="first move" className="es-floor-ring">
+                  <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={(at) => lay(tile.id, index, at)} />
+                </Marker>
+              ) : (
+                <Tile tile={tile} tabIndex={index === tabStop ? 0 : -1} onLay={(at) => lay(tile.id, index, at)} />
+              )}
+            </li>
+          ))}
+        </ul>
+      </div>
     </section>
   )
 }
@@ -355,8 +394,8 @@ export function Controls({ run, ring = null }: { run: FloorRun; ring?: string | 
       <ScenarioCard view={view} />
       <GradedNote view={view} mode={run.mode} />
       <Prediction controls={controls} shown={run.intro.askShown} />
-      <StopNote controls={controls} />
       <StageList controls={controls} ring={ring} />
+      <StopNote controls={controls} />
       <PathActions controls={controls} />
     </div>
   )

@@ -15,10 +15,10 @@ export const HERO = {
   live: 'The panel on the right is live. It takes about a minute.',
   /** The same, at a phone's width, where the panel is under it. */
   short: 'A course on vLLM and SGLang internals, for kernelspace graduates. Try the first mechanism here.',
-  /** The quiet line under it: the module range and the hours by lane, read from the course index. */
-  range: 'TR0 to the capstone',
-  hours: 'hours',
+  /** The quiet line under it: the hours of the modules that are published, by lane, and the hours the course plans, read from the course index. */
+  hours: 'hours published',
   estimated: 'estimated',
+  planned: 'hours planned to the capstone',
   /** What the course takes as read from kernelspace's serving track (T5, lessons 3 to 6), after the lede at a desk. */
   assumes: 'It takes as read what that track taught: prefill and decode, the KV cache, PagedAttention and prefix caching.',
   /** The way past the demo: a text link to Course, which says where it goes. */
@@ -145,7 +145,10 @@ export const PATH = {
   estimated: 'estimated',
   startHere: 'Start here',
   unpublished: 'Not published yet',
+  /** The foot of the table: the published modules' hours, and, while a module is unpublished, the hours the course plans. Once all are published, one row says In all. */
   total: 'In all',
+  published: 'Published',
+  planned: 'Planned in all',
   /** The three lanes of work (ARCHITECTURE §8.1). */
   lanes: { B: 'browser', L: 'laptop', F: 'GPU' },
   unavailable: 'The path did not load. The Course page has every module.',

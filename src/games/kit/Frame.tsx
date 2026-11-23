@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react'
+import { lazy, Suspense, useContext, useEffect, useId, useLayoutEffect, useMemo, useRef, useState, type ComponentType, type ReactNode } from 'react'
 import { Link } from 'react-router'
 import { drawInBand, keymapOf } from '@es/play'
 import type { GameAction, GameFace, GameMode, KeyBinding, RunResult, Session } from '@es/play'
@@ -10,6 +10,7 @@ import { Popover } from '@/design/components/Popover'
 import { TitleBlock, type TitleBlockProps } from '@/design/components/TitleBlock'
 import { shellLimits } from '@/settings/rules'
 import { useSettings } from '@/settings/useSettings'
+import { ProveContext } from '@/prove/context'
 import { askShown, introAct, introPlan, MAX_CALLOUTS, introAfter, introOpens, introParts, introRing, keepShown, partsInOrder, readShown } from './first-move'
 import type { GameKit, IntroState, IntroStep, KitPart } from './first-move'
 import { focusIsLost } from './focus'
@@ -37,6 +38,10 @@ import './frame.css'
  *      clock, and "What this model leaves out".
  *   6. State as a table: a disclosure under the diagram that holds the DOM mirror, in the DOM whether it is open or not (D-018).
  *
+ * Prove mode (ASSESSMENT §7.2, src/prove): where the game's page provides a Prove run and this is a graded run of its level, the readout
+ * slot holds the Prove run's line until the result and then, over the readout, what the attempt was worth; the level is named in words,
+ * and the foot strip holds the Prove run's mode. On the game's Prove level elsewhere on its page, the foot strip offers the way into it.
+ *
  * The frame owns the run, through `useRun`, as the shell it replaced did: it
  * starts the session on a level and a seed, applies every action through the pure reducer and keeps the action log, so a replay of the
  * log is the grade. The game gives it its parts as slots that receive the run and draw `view(state)`.
@@ -63,8 +68,12 @@ export type FrameRun<Action extends GameAction, View, Score, Ask> = RunCore<Acti
   restart(seed?: Seed): void
   /** Whether the page has a ledger: a game's page and a lesson do, the front page does not (D-038). */
   readonly ledger: boolean
-  /** The first run, as the game's own controls follow it: whether the first ask may show yet, and the control the amber ring is on. */
-  readonly intro: { readonly askShown: boolean; readonly ring: Action | null }
+  /**
+   * The first run, as the game's own controls follow it: whether the first ask may show yet, and the control the amber ring is on. In a
+   * game whose kit holds the strip (`holdsStrip`), the ring is off once the first move is made, and `spent` names the control it was on
+   * while the strip is held blank: a control drawn in the ring's room keeps that room, so nothing moves under the hand.
+   */
+  readonly intro: { readonly askShown: boolean; readonly ring: Action | null; readonly spent?: Action | null }
   /** The learner skipped the session's optional first ask, which dispatches nothing (the frame keeps it, so the intro hears it). */
   readonly guessSkipped: boolean
   skipGuess(): void
@@ -200,7 +209,11 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     const timer = window.setTimeout(() => setStripLate(true), 1500)
     return () => window.clearTimeout(timer)
   }, [stripAwaited])
-  const endIntro = () => {
+  // A real move ends the intro. If it is a digit typed into a field (the event in hand is an input event), the strip stays in its place, drawn
+  // blank, until focus moves on (and not at all on a phone, Intro.tsx): taking it out would carry the field away from under the hand. In a
+  // game whose kit holds the strip, any real move holds it so, until the hand leaves the dock (Intro.tsx): the controls under it, pressed
+  // again, stay where they were pressed.
+  const endIntro = (moved = false) => {
     if (intro === null) return
     if (!intro.checking)
       keepShown(
@@ -208,7 +221,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
         intro.parts.map((part) => part.id),
       )
     setShown(readShown(game.id))
-    setIntro(null)
+    setIntro(window.event?.type === 'input' ? { ...intro, ended: 'typed' } : moved && kit?.holdsStrip === true && !intro.checking ? { ...intro, ended: 'held' } : null)
   }
   /**
    * A dispatched action tells the intro what the learner did: the ask's own answer moves it on, and any real move ends it, also one made
@@ -217,9 +230,9 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
    */
   const tellIntro = (signal: { moved: boolean; askOpen: boolean }) => {
     if (intro?.checking && signal.moved) endIntro()
-    if (intro === null || intro.checking) return
+    if (intro === null || intro.checking || intro.ended === 'held') return
     const after = introAfter(intro.steps, intro.at, signal)
-    if (after === null) endIntro()
+    if (after === null) endIntro(signal.moved)
     else if (after !== intro.at) setIntro({ ...intro, at: after })
   }
   const dispatch = (action: A) => {
@@ -279,7 +292,8 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     ledger,
     intro: {
       askShown: askShown(step),
-      ring: kit === undefined ? null : introRing(step, kit),
+      ring: kit === undefined || intro?.ended === 'held' ? null : introRing(step, kit),
+      spent: kit === undefined || intro?.ended !== 'held' ? null : introRing(step, kit),
     },
     guessSkipped: skipped,
     skipGuess: () => {
@@ -431,7 +445,9 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
   }, [dockPhase, outcome])
 
   const Heading = embedded ? 'h3' : 'h2'
-  const modeWord = mode === 'practice' ? 'practice' : 'graded'
+  const prove = useContext(ProveContext)
+  const proving = prove !== null && mode === 'graded' && prove.level === level
+  const modeWord = proving ? 'Prove run' : mode === 'practice' ? 'practice' : 'graded'
   const goal = props.goal(api)
   const [goalOpen, setGoalOpen] = useState(false)
   // The Keyboard list's button: in the title strip on a wide screen, and inside How to play on a phone (REDESIGN §3.5).
@@ -492,7 +508,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
           <p className="es-frame__role">{props.role}</p>
         </div>
         <div className="es-frame__menu">
-          {(typeof props.menu === 'function' ? props.menu(api) : props.menu) ?? (
+          {(proving ? null : typeof props.menu === 'function' ? props.menu(api) : props.menu) ?? (
             <p className="es-frame__level" data-level-words="">
               {levelTitle} · {modeWord}
             </p>
@@ -583,6 +599,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
                         moveWords={kit.firstMoveWords}
                         moveKind={kit.firstMoveKind}
                         embedded={embedded}
+                        ended={intro.ended}
                         partAt={intro.partAt}
                         onPartAt={(partAt) => setIntro({ ...intro, partAt })}
                         onNext={() => {
@@ -590,7 +607,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
                           if (after === null) endIntro()
                           else setIntro({ ...intro, at: after })
                         }}
-                        onEnd={endIntro}
+                        onEnd={() => endIntro()}
                         onAct={() => introAct(intro.steps[intro.at], kit, dispatch)}
                       />
                     )}
@@ -610,8 +627,10 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
               </>
             )}
           </div>
-          <div className="es-frame__readout" data-readout="">
-            {props.readout(api)}
+          <div className="es-frame__readout" data-readout="" data-readout-hidden={proving && outcome === null ? '' : undefined}>
+            {/* At the result of a Prove run, what the attempt was worth stands over the readout, at the dock's foot, where it is in view. */}
+            {proving && outcome !== null ? prove.after(outcome.record) : null}
+            {proving && outcome === null ? prove.hidden : props.readout(api)}
           </div>
         </div>
       </div>
@@ -623,15 +642,27 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
               Undo
             </Button>
           ) : null}
-          {/* A graded run never replays its own seed: a restart draws a fresh one, as starting it did (ASSESSMENT §4.1). */}
-          <Button size="sm" variant="quiet" onClick={() => (mode === 'graded' ? newNumbers() : onRestart())}>
-            Restart level
-          </Button>
-          <Button size="sm" variant="quiet" onClick={newNumbers}>
-            New numbers
-          </Button>
+          {/* A graded run never replays its own seed: a restart draws a fresh one, as starting it did (ASSESSMENT §4.1). A Prove run has one
+              seed until its end, so neither is offered while it is on: a target that failed stays failed. */}
+          {proving && outcome === null ? null : (
+            <>
+              <Button size="sm" variant="quiet" onClick={() => (mode === 'graded' ? newNumbers() : onRestart())}>
+                Restart level
+              </Button>
+              <Button size="sm" variant="quiet" onClick={newNumbers}>
+                New numbers
+              </Button>
+            </>
+          )}
         </div>
-        <div className="es-frame__mode">{props.modeSwitch}</div>
+        <div className="es-frame__mode">
+          {proving ? prove.foot : props.modeSwitch}
+          {!proving && ledger && !embedded && game.prove === level ? (
+            <Link className="es-button" data-variant="plate" data-size="sm" to={`/play/${game.id}?level=${level}&mode=prove`} data-prove-entry="">
+              Prove it with your agent closed
+            </Link>
+          ) : null}
+        </div>
       </div>
 
       <TitleBlock className="es-frame__titleblock" {...props.titleBlock} />

@@ -47,9 +47,23 @@ describe('the reference publisher and its consumer', () => {
     expect(removals).toBeGreaterThan(1000)
   }, 60_000)
 
-  test(`the judge passes the reference on ${SEEDS.length} seeds`, () => {
-    for (const seed of SEEDS) expect([seed, tiersJudge(spec, tiersOps(seed, spec, 150), tiersReference(spec))]).toEqual([seed, null])
-  }, 60_000)
+  // The judge replays 150 operations of two models a seed, about 3.6 ms a seed [measured 2026-11-20 on four pinned cores], and a runner's
+  // cores are slower: at 10,000 seeds one test outran its 60 s on a runner. The seeds are cut into JUDGE_PARTS runs of consecutive seeds,
+  // each a test with the 60 s the one test had, and the last test holds that the runs are exactly SEEDS, each once.
+  const JUDGE_PARTS = 4
+  const partSize = Math.ceil(SEEDS.length / JUDGE_PARTS)
+  const parts = Array.from({ length: JUDGE_PARTS }, (_, part) => SEEDS.slice(part * partSize, (part + 1) * partSize))
+  for (const mine of parts) {
+    test(`the judge passes the reference on seeds ${mine[0]} to ${mine[mine.length - 1]} of ${SEEDS.length}`, () => {
+      for (const seed of mine) {
+        expect([seed, tiersJudge(spec, tiersOps(seed, spec, 150), tiersReference(spec))]).toEqual([seed, null])
+      }
+    }, 60_000)
+  }
+
+  test(`the judge's runs cover the ${SEEDS.length} seeds, each once`, () => {
+    expect(parts.flat()).toEqual(SEEDS)
+  })
 
   test('the streams are deterministic', () => {
     expect(tiersOps(7, spec, 60)).toEqual(tiersOps(7, spec, 60))

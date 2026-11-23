@@ -4,7 +4,7 @@
     enginespace fetch <lab>                              download the files that a lab pins, and keep only those that hash to the pin
     enginespace grade <lab>.<stage> --challenge <token>  grade a stage on a challenge from the site, and write its bundle
     enginespace receipt verify <file>                    the browser's first three rules, run locally
-    enginespace selftest [--gpu]                         the grader's own tests
+    enginespace selftest [--gpu]                         the grader's own tests; --gpu adds the GPU smoke
     enginespace trace export <input> --format <fmt>      normalise a torch-profiler or nsys capture into trace@1
     enginespace version                                  the grader's name, version and source hash
 
@@ -151,7 +151,7 @@ COMMANDS: dict[str, tuple[Callable[[Sequence[str]], int], str]] = {
     "grade": (_grade, "grade a stage on a challenge token from the site, and write its bundle: grade <lab>.<stage> --challenge <token>"),
     "receipt": (_receipt, "receipt verify <file>: the browser's first three rules, run locally"),
     "trace": (_trace, "trace export <input> --format torch|nsys-sqlite: normalise a profiler capture into trace@1"),
-    "selftest": (_selftest, "run the grader's own checks, and its tests where they are installed (--gpu adds the GPU smoke, not built yet)"),
+    "selftest": (_selftest, "run the grader's own checks, and its tests where they are installed (--gpu adds the GPU smoke, and fails with no CUDA GPU)"),
     "version": (_version, "print the grader's name, version and source hash"),
 }
 

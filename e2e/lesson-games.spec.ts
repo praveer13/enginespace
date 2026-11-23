@@ -19,7 +19,6 @@
  *   npx playwright test e2e/lesson-games.spec.ts
  */
 import AxeBuilder from '@axe-core/playwright'
-import type { Locator } from '@playwright/test'
 import { GAMES, drawInBand, levelOf } from '../packages/play'
 import { POOL_PARTS } from '../packages/play/pool/copy'
 import { benchSession } from '../packages/play/broken-bench/session'
@@ -28,7 +27,7 @@ import { TOTAL_GAME_BLOCKS, TOTAL_LESSONS } from '../tests/content/module-counts
 import { walkOf } from './support/front'
 import { embedOf, lessonGames, openerOfRoute, playEvents, startBlock, ticketOf, type LessonGame, type StoredPlay } from './support/lessons'
 import { expect, open, quiet, test, withSettings } from './support/site'
-import { benchLevelWalk, WALKS, type Walk } from './support/walks'
+import { benchLevelWalk, tabToLocator, WALKS } from './support/walks'
 
 declare global {
   interface Window {
@@ -47,19 +46,10 @@ function titleOf(block: LessonGame): string {
   return level.title
 }
 
-/** Presses Tab until `target` has focus: the walk reads every stop on the way. */
-async function tabToLocator(walk: Walk, target: Locator, limit: number): Promise<void> {
-  for (let presses = 0; presses < limit; presses++) {
-    if (await target.evaluate((element) => element === document.activeElement).catch(() => false)) return
-    await walk.press('Tab')
-  }
-  throw new Error(`Tab never reached ${String(target)} in ${limit} presses; it went through ${walk.trail.map((stop) => stop.name).join(' > ')}`)
-}
-
 test.describe('the blocks', () => {
-  test('are the game blocks that the course holds (42 today), in all its lessons but one', () => {
+  test('are the game blocks that the course holds (48 today), in all its lessons but three', () => {
     expect(BLOCKS.length).toBe(TOTAL_GAME_BLOCKS)
-    expect(lessonsOf(BLOCKS).length).toBe(TOTAL_LESSONS - 1)
+    expect(lessonsOf(BLOCKS).length).toBe(TOTAL_LESSONS - 3)
   })
 })
 
@@ -95,6 +85,7 @@ const WALKED: readonly LessonGame[] = [
   { route: '/m/tr1/l1-five-mechanisms', game: 'engine-floor', level: 'nano', mode: 'practice' },
   { route: '/m/tr5a/l1-why-one-model-needs-several-kv-caches', game: 'pool', level: 'one-group', mode: 'practice' },
   { route: '/m/tr8/l1-due-time-not-send-time', game: 'broken-bench', level: 'due', mode: 'practice' },
+  { route: '/m/tr0/l1-pytorch-in-rust-terms', game: 'shape-shifter', level: 'views', mode: 'practice' },
 ]
 
 for (const width of PR_WIDTHS) {
@@ -292,7 +283,9 @@ test.describe('the lesson template, at 1440 x 900', () => {
     // The rail: a nav with an ordered list, the current entry marked as the step.
     const rail = page.getByRole('navigation', { name: 'This lesson' })
     await expect(rail.locator('[aria-current="step"]')).toHaveCount(1)
-    await expect(rail).toContainText('Test · 3 questions')
+    // The entry is one word, with its count under it, so that it never wraps and moves the entries below.
+    await expect(rail.locator('.es-srail__title', { hasText: /^3\s*Test$/ })).toHaveCount(1)
+    await expect(rail.locator('.es-srail__state', { hasText: '3 questions' })).toHaveCount(1)
 
     const walk = walkOf(page)
     const inGame = () => page.evaluate(() => document.activeElement?.closest('[data-game]') != null)
@@ -402,6 +395,40 @@ test.describe('the lesson template on a phone', () => {
       expect(hidden).toEqual([])
     })
   })
+
+  for (const [width, height] of [
+    [320, 700],
+    [360, 640],
+    [390, 844],
+  ] as const) {
+    test.describe(`at ${width} x ${height}`, () => {
+      test.use({ viewport: { width, height } })
+
+      test('the Next part bar is drawn, whole and over the strip, from the top of the page to its foot', async ({ page, context }) => {
+        test.setTimeout(120_000)
+        await withSettings(context, { view3d: false })
+        await open(page, REFERENCE)
+        await page.evaluate(() => document.getElementById('what-the-next-token-reads')?.scrollIntoView({ block: 'start' }))
+        const foot = page.locator('.es-lesson__foot')
+        await expect(foot).toBeVisible()
+        const total = await page.evaluate(() => document.documentElement.scrollHeight)
+        const lost: string[] = []
+        for (let y = 0; y < total - height; y += 20) {
+          await page.evaluate((to) => scrollTo(0, to), y)
+          const state = await page.evaluate(() => {
+            const bar = document.querySelector('.es-lesson__foot')
+            if (bar === null) return 'absent'
+            const box = bar.getBoundingClientRect()
+            const hidden = getComputedStyle(bar).visibility !== 'visible'
+            const at = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
+            return hidden || box.bottom > innerHeight + 1 || at === null || !bar.contains(at) ? 'covered' : 'drawn'
+          })
+          if (state === 'covered') lost.push(`${y}`)
+        }
+        expect(lost).toEqual([])
+      })
+    })
+  }
 
   test.describe('under 600 px of height', () => {
     test.use({ viewport: { width: 390, height: 500 } })

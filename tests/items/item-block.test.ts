@@ -27,7 +27,7 @@ describe('the ticket that waits', () => {
   test('says what is coming, how many, and at what level, and draws no seed: entropy is read when the stub is pulled', () => {
     expect(html).toContain('data-block="item"')
     expect(html).toContain('data-phase="idle"')
-    expect(html).toContain('3 questions on fresh numbers, drawn when you start.')
+    expect(html).toContain('The numbers are drawn when you start. Answer, say how sure you are, and read why. Nothing is timed.')
     expect(html).toContain('<span class="es-sheet-line__qty">3x</span>')
     expect(html).toContain('Bubble width')
     expect(html).toContain('on your own')
@@ -47,8 +47,11 @@ describe('the ticket that waits', () => {
     expect(html).toContain('class="es-sheet es-c-block"')
   })
 
-  test('says one question, in the singular', () => {
-    expect(render(h(ItemBlock, { block: block('tr2.bubble-width', 2, 1), scope: 'tr2.l0' }))).toContain('1 question on fresh numbers')
+  test('counts one question as 1x, and says neither the count nor the pass rule in its own sentence', () => {
+    const one = render(h(ItemBlock, { block: block('tr2.bubble-width', 2, 1), scope: 'tr2.l0' }))
+    expect(one).toContain('<span class="es-sheet-line__qty">1x</span>')
+    expect(one).not.toContain('1 question')
+    expect(one).not.toContain('passed when')
   })
 })
 

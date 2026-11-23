@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { readStoredReport, verdictOf } from '@es/verify'
+import { readStoredReport, verdictOfStored } from '@es/verify'
 import { Button } from '@/design/components/Button'
 import { Readout } from '@/design/components/Readout'
 import { Label } from '@/design/components/Label'
@@ -7,6 +7,7 @@ import { TextLink } from '@/design/components/TextLink'
 import type { HeldChallenge } from './challenge'
 import { selectContents, useCopy } from './clipboard'
 import { CHALLENGES, RECEIPTS, VERDICT_WORDS } from './copy'
+import { SITE_DATA } from './credit'
 import { stageOf } from './labs'
 import { detailAddress, gpuLine, latestReport, shortHash, summarizeChecks } from './records'
 import type { HeldReceipt } from './records'
@@ -142,7 +143,7 @@ function ReceiptLine({ held }: { held: HeldReceipt }) {
   const named = stageOf(receipt.stage)
   // What the latest check made of it, in a word: a receipt that was never checked here is `unchecked`, and one whose report this build cannot read has no word.
   const read = report === undefined ? null : readStoredReport(report.report)
-  const worth = report === undefined ? VERDICT_WORDS.unchecked : read === null ? undefined : VERDICT_WORDS[verdictOf(receipt, read.rules, read.ran).provenance]
+  const worth = report === undefined ? VERDICT_WORDS.unchecked : read === null ? undefined : VERDICT_WORDS[verdictOfStored(receipt, read, SITE_DATA).provenance]
   return (
     <li className="es-held__item" data-state="receipt" data-stage={receipt.stage}>
       <div className="es-held__what">

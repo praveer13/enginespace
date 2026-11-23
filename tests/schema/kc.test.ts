@@ -103,7 +103,8 @@ describe('a KC', () => {
     ['a planned task from a wave that does not exist', ['planned'], 'W4-T01', ['planned: invalid_format']],
     ['a planned task with one digit', ['planned'], 'W1-T1', ['planned: invalid_format']],
     ['a planned task that is a promise', ['planned'], 'soon', ['planned: invalid_format']],
-    ['a planned task of a carry-over wave that does not exist', ['planned'], 'W2b-T01', ['planned: invalid_format']],
+    // W2b, the second build of W2, became a wave of TRACKER.md on 2026-11-19, so the carry-over wave that does not exist is now W3b.
+    ['a planned task of a carry-over wave that does not exist', ['planned'], 'W3b-T01', ['planned: invalid_format']],
     ['a planned task of W1 with another letter', ['planned'], 'W1c-T01', ['planned: invalid_format']],
     ['a planned task of W1b in capitals', ['planned'], 'W1B-T01', ['planned: invalid_format']],
   ]
@@ -117,6 +118,10 @@ describe('a KC', () => {
 
   test('takes a planned task of W1b, W1’s carry-over, whose ids TRACKER.md has (W1b-report §10)', () => {
     for (const planned of ['W1b-T01', 'W1b-T08', 'W1b-T16']) expect(problems(kcSchema, { ...tensorMetadata, planned })).toEqual([])
+  })
+
+  test('takes a planned task of W2b, the second build of W2, whose ids TRACKER.md has (TR0\'s KCs, W2b-T26)', () => {
+    for (const planned of ['W2b-T29', 'W2b-T01', 'W2b-T63']) expect(problems(kcSchema, { ...tensorMetadata, planned })).toEqual([])
   })
 
   test('takes the capstone’s KCs, which begin cap.', () => {

@@ -135,7 +135,7 @@ describe("a lab check moves the KCs of the lab's checks", () => {
 describe('the map and the module pages show it', () => {
   const events = [item('tr2.bubble-width', 'async-off'), labCheck('hybrid-kv')]
   const map = (ledger: readonly LedgerEvent[]) =>
-    render(h(CourseMapView, { modules: INDEX.modules, totalHours: INDEX.totalHours, map: MAP, progress: progressOf(ledger), ready: true }), '/map')
+    render(h(CourseMapView, { modules: INDEX.modules, map: MAP, progress: progressOf(ledger), ready: true }), '/map')
   const rowOf = (html: string, module: string) => {
     const start = html.indexOf(`<li class="es-course__row" data-module="${module}"`)
     return html.slice(start, html.indexOf('</li>', html.indexOf('es-course__standing', start)))

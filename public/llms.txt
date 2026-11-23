@@ -14,7 +14,12 @@
 
 ### PyTorch for the Rust-first, and reading Triton (`tr0`)
 
-- Planned: not written yet.
+- [Overview](md/tr0/index.md): what the module teaches, and its lessons
+- [PyTorch in Rust terms: storage, shape, strides, dtype, device](md/tr0/l1-pytorch-in-rust-terms.md): lesson `tr0.l1`, about 45 minutes [estimated]
+- [Views, copies, and the syncs you cannot see](md/tr0/l2-views-copies-and-hidden-syncs.md): lesson `tr0.l2`, about 50 minutes [estimated]
+- [nn.Module as a struct: Qwen3's forward in the pinned transformers](md/tr0/l3-nn-module-as-a-struct.md): lesson `tr0.l3`, about 20 minutes [estimated]
+- [Reading Triton: grids, programs, BLOCK and masks](md/tr0/l4-reading-triton.md): lesson `tr0.l4`, about 50 minutes [estimated]
+- [Engine-style model code: Mini-SGLang's Qwen3, and vLLM's MRV2 Triton files](md/tr0/l5-engine-style-model-code.md): lesson `tr0.l5`, about 20 minutes [estimated]
 
 ### Read the engines (`tr1`)
 

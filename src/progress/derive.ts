@@ -20,7 +20,7 @@
  */
 import { weightOf } from '@es/ledger/provenance'
 import { GRADED_KINDS } from '@es/ledger/types'
-import type { LedgerEvent } from '@es/ledger/types'
+import type { CreditedReceiptEvent, LedgerEvent } from '@es/ledger/types'
 import type { CourseMap } from '@es/schema/compiled'
 import { moduleOfKc, moduleOfRef, parseRef } from '@es/schema/refs'
 import { kcsOfRef } from './kcmap'
@@ -91,9 +91,10 @@ export interface Progress {
   readonly events: number
 }
 
-type GradedEvent = Exclude<LedgerEvent, { kind: 'challenge' | 'ack' }>
+/** A graded event: a challenge and an acknowledgement are not, and a receipt is once its worth has been worked out from its record (src/receipts/credit.ts). */
+type GradedEvent = Exclude<LedgerEvent, { kind: 'challenge' | 'ack' | 'receipt' }> | CreditedReceiptEvent
 const GRADED = new Set<string>(GRADED_KINDS)
-const isGraded = (event: LedgerEvent): event is GradedEvent => GRADED.has(event.kind)
+const isGraded = (event: LedgerEvent): event is GradedEvent => GRADED.has(event.kind) && (event.kind !== 'receipt' || ('ok' in event && 'provenance' in event))
 
 interface MutableTally {
   tried: number

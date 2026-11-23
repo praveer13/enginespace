@@ -1,7 +1,8 @@
-# The knowledge-component graph (ARCHITECTURE §4.5): the KCs of TR1, TR2, TR5a, TR6 and TR8, and the edges between them.
+# The knowledge-component graph (ARCHITECTURE §4.5): the KCs of TR0, TR1, TR2, TR5a, TR6 and TR8, and the edges between them.
 # W1-T03 wrote it from the "Knowledge components" table of each curriculum file (curriculum/TR<n>-*.md §1), and `verify:kc`
-# (scripts/verify-kc.ts) checks it. The other modules' KCs arrive with their own tasks: TR0 (W2-T18), TR3 (W2-T24), TR4 (W2-T27),
-# TR5b (W2-T33), TR7 (W2-T37) and the capstone (W3-T04).
+# (scripts/verify-kc.ts) checks it. TR0's nine came with its design (W2b-T26, 2026-11-20), before its lessons, each with a `planned`
+# task. The other modules' KCs arrive with their own tasks: TR3 (W2-T24), TR4 (W2-T27), TR5b (W2-T33), TR7 (W2-T37) and the
+# capstone (W3-T04).
 #
 # A KC is one entry of the list:
 #   id           <module>.<words>, such as tr2.async-overlap. The module is a module of course.yaml. Ids are stable: the ledger names
@@ -27,6 +28,52 @@
 #
 # The edges are the curriculum's, edge for edge, and tests/kc/graph.test.ts holds the two to each other. TR2's step-calls leans on
 # TR1's vllm-lifecycle only as advice: TR2 can be taken without TR1.
+
+# ---------------------------------------------------------------------------------------------------------------------------------
+# TR0 · PyTorch for the Rust-first, and reading Triton
+# Each KC's first graded reference is planned (curriculum/TR0-pytorch-for-rust.md, "Before you write", item 14): W2b-T29's four item
+# families, then W2-T14's graded levels of Tensor views, and the stages of the tr0.forward lab. Each task removes its own lines; the lab's
+# are gone, and packages/verify/stage-kcs.ts names the stages that earn tr0.module-as-struct, tr0.decoder-forward and tr0.kv-cache-contract.
+# ---------------------------------------------------------------------------------------------------------------------------------
+- id: tr0.tensor-metadata
+  description: You can read a tensor as a buffer plus a shape, strides and an offset, and give the address of an element and the strides after a slice, a transpose, a permute or an expand.
+  requires: [ks:t0.stride-traversal, ks:t0.data-layout]
+  threshold: true
+
+- id: tr0.view-vs-copy
+  description: You can say which operations make a view and which copy, where view fails and reshape copies instead, and how many elements a copy moves.
+  requires: [tr0.tensor-metadata]
+  # expand is a view, and a tensor it made must still be copied before it is written.
+  confusable: [tr0.broadcast-stride-zero]
+
+- id: tr0.broadcast-stride-zero
+  description: You can explain broadcasting and expand as a zero stride, and say why a tensor that reads one element in several places is copied before it is written.
+  requires: [tr0.view-vs-copy]
+  confusable: [tr0.view-vs-copy]
+
+- id: tr0.hidden-syncs
+  description: You can find the calls in PyTorch code that wait for the GPU, such as reading a GPU tensor's value into Python, and say where each one sits in a loop.
+  requires: [tr0.tensor-metadata]
+
+- id: tr0.module-as-struct
+  description: You can read an nn.Module as a struct, with its parameters as fields and its forward as a method, and map a checkpoint's tensor names onto the code that uses them.
+  requires: []
+
+- id: tr0.decoder-forward
+  description: You can follow a decoder's forward pass in PyTorch, from the embedding through each layer's norms, attention with rotary embeddings and gated MLP to the final projection, and give each tensor's shape.
+  requires: [ks:t5.forward-pass-costs, ks:t5.gqa-kv-heads, tr0.module-as-struct]
+
+- id: tr0.kv-cache-contract
+  description: You can add a KV cache to a forward pass so that each decode step's logits equal a full recompute of the same prefix.
+  requires: [ks:t5.why-kv-cache, tr0.decoder-forward]
+
+- id: tr0.triton-program-model
+  description: You can read a Triton kernel's launch, its grid of programs, program_id, a BLOCK that is a compile-time constant, and the offsets each program computes from strides.
+  requires: [ks:t4.compute-grid, tr0.tensor-metadata]
+
+- id: tr0.triton-masks
+  description: You can say which lanes of a Triton program are masked at a tensor's edge, and count the masked lanes of a grid.
+  requires: [tr0.triton-program-model]
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # TR1 · Read the engines

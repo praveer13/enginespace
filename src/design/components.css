@@ -900,7 +900,7 @@
   }
 
   /* Quiet: the label alone; it underlines under the hand. */
-  .es-button[data-variant='quiet'] {
+  .es-button[data-variant='quiet']:not(:disabled) {
     border-color: transparent;
     background-color: transparent;
   }

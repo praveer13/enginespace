@@ -521,7 +521,7 @@ test.describe('R-T48: the short viewport', () => {
  * at a phone's width (stage 4's checks left that state unaudited: the sheet over the frame's "goal more" control).
  */
 test.describe('R-T48: a game with its Parts popover open', () => {
-  for (const route of ['/play/pool', '/play/loop', '/play/engine-floor', '/play/verifier', '/play/broken-bench']) {
+  for (const route of ['/play/pool', '/play/loop', '/play/engine-floor', '/play/verifier', '/play/broken-bench', '/play/shape-shifter']) {
     for (const width of [320, 360, 1280]) {
       test(`${route} at ${width} px: axe finds no serious or critical violation, and Escape closes the sheet`, async ({ page, context }) => {
         await withSettings(context, { view3d: false })

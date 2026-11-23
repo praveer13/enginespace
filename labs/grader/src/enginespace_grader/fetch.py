@@ -273,10 +273,28 @@ def shown(path: Path | str) -> str:
     """A path as a message prints it: under the home folder it starts with `~`, so that a line the learner pastes into a question or a log does not carry their user name."""
     where = Path(path)
     try:
-        inside = where.relative_to(Path.home())
-    except (ValueError, RuntimeError):  # not under the home folder, or no home folder to be under
+        home = Path.home()
+    except RuntimeError:  # no home folder to be under
         return str(where)
-    return "~" if str(inside) == "." else f"~/{inside}"
+    # The home folder may be a link (a home on another disk), and a path may come in either spelling: the link's or the place it points to.
+    homes = [home]
+    try:
+        homes.append(home.resolve())
+    except (OSError, RuntimeError):
+        pass
+    spellings = [where]
+    try:
+        spellings.append(where.resolve())
+    except (OSError, RuntimeError):
+        pass
+    for root in homes:
+        for spelling in spellings:
+            try:
+                inside = spelling.relative_to(root)
+            except ValueError:  # not under this home folder
+                continue
+            return "~" if str(inside) == "." else f"~/{inside}"
+    return str(where)
 
 
 def default_cache(environ: Mapping[str, str] | None = None) -> Path:
