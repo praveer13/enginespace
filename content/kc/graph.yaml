@@ -184,17 +184,14 @@
   description: You can read a profiler trace's tracks and spans, and tie a launch call on the CPU to the kernel it started on a GPU stream by its correlation id.
   requires: [ks:t0.flame-graphs]
   threshold: true
-  planned: W2b-T105 # item family tr3.launch-and-kernel
 
 - id: tr3.capture-window
   description: You can choose the steps a capture holds with an engine's profiler window settings, so that warm-up stays out and the trace stays small.
   requires: [tr3.trace-anatomy]
-  planned: W2b-T105 # item family tr3.capture-window
 
 - id: tr3.graph-traces
   description: You can say what a trace shows of a replayed CUDA graph at the launch level and at the node level, and which ranges and frames vanish inside it.
   requires: [tr3.trace-anatomy, tr2.graph-replay]
-  planned: W2b-T105 # item family tr3.inside-a-graph
 
 - id: tr3.partition
   description: You can put every nanosecond of a step window in one category, kernel, copy-only, CPU gap or both idle, so that the parts add up to the step's time exactly.
@@ -202,7 +199,6 @@
   # A gap's category (CPU gap or both idle) against its cause (the call that delayed the next launch): one says what the GPU waited
   # for, the other which call made it wait.
   confusable: [tr3.gap-cause]
-  planned: W2b-T105 # item family tr3.which-category, then Trace attribution's graded `attribute` (W2-T20)
 
 - id: tr3.gap-cause
   description: You can name the cause of a gap between kernels from the launch queue, either the CPU work that delayed the next launch or the blocking call that drained the queue.
