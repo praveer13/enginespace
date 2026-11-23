@@ -26,9 +26,9 @@ export const SYNC_RULES: readonly SyncRule[] = [
   {
     id: 'item',
     waits: true,
-    line: (src, dest) => `${dest} = ${src}.item()`,
+    line: (src, dest) => `${dest} = ${src}.sum().item()`,
     claims: ['torch.cuda.item-synchronizes'],
-    why: 'item() brings one value to Python, and PyTorch names it as a call that synchronizes the CPU with the GPU, so the line waits until the GPU has finished the work queued before it.',
+    why: 'item() brings one value to Python (a tensor of many values has no single value, so it is called on a sum, a tensor of one value), and PyTorch names it as a call that synchronizes the CPU with the GPU, so the line waits until the GPU has finished the work queued before it.',
   },
   {
     id: 'tolist',

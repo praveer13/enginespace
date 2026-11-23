@@ -96,7 +96,8 @@ function shrink(rng: Rng, launch: Launch): Launch {
   return { ...launch, grid }
 }
 
-const tuple = (xs: readonly number[]): string => `(${xs.join(', ')})`
+/** A place or a shape as it is written: a tuple of two or more, and a bare number for one dimension (a 1-tuple would be read as Python's `(4,)`). */
+const tuple = (xs: readonly number[]): string => (xs.length === 1 ? String(xs[0]) : `(${xs.join(', ')})`)
 
 const shapePart = (shape: readonly number[]): Rich => (shape.length === 1 ? rich(num(shape[0], { unit: 'elements' })) : rich('a ', num(shape[0], { unit: 'rows' }), ' by ', num(shape[1], { unit: 'columns' }), ' tensor'))
 const blockPart = (block: readonly number[]): Rich => (block.length === 1 ? rich('BLOCK ', num(block[0], { unit: 'lanes' })) : rich('BLOCK ', num(block[0], { unit: 'rows' }), ' by ', num(block[1], { unit: 'columns' })))
@@ -141,7 +142,7 @@ function drawWhich(level: Level, seed: number, outcome: number, purpose: string)
   return { launch, at, program: coveringProgram(launch, at) }
 }
 
-const programText = (p: readonly number[]): string => (p.length === 1 ? String(p[0]) : tuple(p))
+const programText = tuple
 
 function whichWhy(scene: Which): Rich {
   const { launch, at, program } = scene

@@ -46,6 +46,8 @@ The lab loads one model, Qwen3-0.6B at the revision `c1899de2`. Its model card n
 
 Nothing on this page is a run of your machine. The grader runs only on your laptop, and the course has run none of the three stages on the pinned weights, so no logit, difference or time on this page was measured. The lab's own page says where each stage stands, in the same words.
 
+The Tests of the third and fifth lessons ask about the first and second lessons for now; their own questions are being written.
+
 Credit follows the same line. The module is browser-complete when the lessons' Tests and the graded levels of Tensor views are credited. It is complete when the lab's receipts are credited as well, and a Prove run with the agent closed is on record.
 
 > **Build.** The lab `tr0.forward` (lane L), stages `s1`, `s2`, `s3`. The lab page grades it.

@@ -258,7 +258,7 @@ describe("TR0 lesson 2: the three-d run's numbers are the model's, and the syncs
   })
 
   test("each call that the lesson lists is a row of the family's rule table, under the heading its row says, with the claims of that row", () => {
-    const byLine: Readonly<Record<string, string>> = { 'n = x.item()': 'item', 'ids = x.tolist()': 'tolist', 'small = x.cpu()': 'cpu', 'torch.cuda.synchronize()': 'synchronize', 'y = x.sum()': 'sum', 'z = x @ w': 'matmul', 'v = x.view(-1)': 'view' }
+    const byLine: Readonly<Record<string, string>> = { 'n = x.sum().item()': 'item', 'ids = x.tolist()': 'tolist', 'small = x.cpu()': 'cpu', 'torch.cuda.synchronize()': 'synchronize', 'y = x.sum()': 'sum', 'z = x @ w': 'matmul', 'v = x.view(-1)': 'view' }
     const items = lesson2.split('\n').flatMap((line) => {
       const m = /^- `([^`]+)`\. (.*)$/.exec(line)
       return m === null ? [] : [{ line: m[1], text: m[2] }]
@@ -476,6 +476,15 @@ describe('the five lessons, together', () => {
 })
 
 describe('the TR0 module page', () => {
+  test('the page says what the Tests of the third and fifth lessons ask, and holds no task id and no KC id', () => {
+    const page = read(MODULE_FILE).replace(/^---\n[\s\S]*?\n---\n/, '').replace(/:::[a-z-]+\n[\s\S]*?\n:::/g, '')
+    expect(page).toContain('The Tests of the third and fifth lessons ask about the first and second lessons for now; their own questions are being written.')
+    const kcs = [...read('tests/fixtures/schema/kc-graph.yaml').matchAll(/^- id: (\S+)/gm)].map((match) => match[1]).filter((id) => id.startsWith('tr0.'))
+    expect(kcs.length).toBeGreaterThan(0)
+    for (const kc of kcs) expect(page).not.toContain(kc)
+    expect(page).not.toMatch(/\bW\d[a-z]?[-\w]*-T\d+\b|\bT\d{2,3}\b|\bD-\d{3}\b|\bO-\d+\b/)
+  })
+
   test('says that TR0 helps before TR1 and locks nothing', () => {
     // The second of the two sentences the page sets under the title.
     const [first] = paragraphs(moduleText)

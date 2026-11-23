@@ -441,7 +441,7 @@
 
 - id: python.vllm.default-3-12
   value: 3.12
-  text: 'vLLM supports Python 3.11 to 3.14, and its default Dockerfile and its CI (except mypy) use Python 3.12. The course''s environments use Python 3.12 for the same reason.'
+  text: 'vLLM supports Python 3.11 to 3.14, and its default Dockerfile and its CI (except mypy) use Python 3.12. The course''s environments use Python 3.12 as well, the version vLLM''s own Dockerfile and CI run, so what a lab runs is what the engine is tested on.'
   tag: measured
   source:
     url: https://github.com/vllm-project/vllm/blob/v0.33.0/docs/contributing/README.md#L78

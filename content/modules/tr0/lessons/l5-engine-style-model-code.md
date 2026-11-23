@@ -97,7 +97,7 @@ This is one seam of one engine. The course has not measured what the Rust tree s
 
 ## Exit check
 
-Three questions on new code: two ask which line of a snippet waits for the GPU, the second lesson's syncs, which engine code like this is full of, and one asks which program covers an element of a launch like the temperature kernel's.
+Three questions on new code. Two are about the calls that wait for the GPU, which engine code like this is full of, each asking which line waits or how many times a loop waits, and one is about a launch like the temperature kernel's, asking which program covers an element, how many programs the grid holds or how many lanes are masked.
 
 :::item
 family: tr0.find-the-sync
