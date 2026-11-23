@@ -42,8 +42,9 @@ export type Json = null | boolean | number | string | Json[] | { [key: string]: 
  * 1  every graded kind stored its `score`, `ok` and `provenance`; a `receipt` event also stored a verdict for each check.
  * 2  a `receipt` event stores none of them: what a receipt is worth is worked out when the ledger is read, from the receipt and its report
  *    (A§8.5 rule 10). A ledger of version 1 is read as it is: the fields that its receipt events hold are kept in the file and never read.
+ * 3  a `play` event may hold `data.left`, the instant a run began that was left before its end. A ledger of version 2 holds none and is read as it is.
  */
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 /** The envelope's `v`. */
 export const EVENT_VERSION = 1
 /** The `schema` field of an export file (A§7.5). */
@@ -154,6 +155,12 @@ export interface ItemData {
 export interface PlayData {
   actions: string
   actionsSha256: Sha256
+  /**
+   * Set when the run was left before its end (a reload, the page closed, Leave Prove mode, a second tab that found the open record lapsed): the
+   * instant it began. The log holds the actions taken, `[]` when the writer knew none, and the grade is a miss. A reader that counts runs,
+   * best scores or a lesson's Run leaves these out (src/evidence/left.ts).
+   */
+  left?: IsoInstant
 }
 
 /** One check of a forge run (kernelspace's `LabCheckDetail`). */

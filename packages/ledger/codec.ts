@@ -367,7 +367,7 @@ const playSchema = z
     ...envelope,
     kind: z.literal('play'),
     ...graded,
-    data: z.strictObject({ actions: z.string().max(LIMITS.actionsChars), actionsSha256: sha256 }),
+    data: z.strictObject({ actions: z.string().max(LIMITS.actionsChars), actionsSha256: sha256, left: instant.optional() }),
   })
   .superRefine((event, ctx) => report(ctx, envelopeProblems(event)))
 

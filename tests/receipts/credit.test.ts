@@ -207,7 +207,7 @@ describe('a ledger written in the old shape still reads (schema version 1)', () 
 
   test('an export of the old shape parses, and one of the new shape holds the version that an older build refuses', async () => {
     const { buildExport, SCHEMA_VERSION } = await import('@es/ledger')
-    expect(SCHEMA_VERSION).toBe(2)
+    expect(SCHEMA_VERSION).toBe(3)
     const decoded = decodeEvent(legacy())
     if (!decoded.ok) throw new Error(decoded.reason)
     const old = JSON.stringify({ ...buildExport({ ledger: { events: [decoded.value], receipts: [] }, exportedAt: '2026-11-05T09:00:00.000Z', device: 'dev-old' }), schemaVersion: 1 })

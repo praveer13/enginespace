@@ -263,10 +263,10 @@ export function testState(lesson: MapLesson, events: readonly LedgerEvent[]): Te
   return tried ? 'tried' : 'none'
 }
 
-/** Whether a Run is done: a play event for each of its opener's refs. Null when the lesson opens on reading. */
+/** Whether a Run is done: a play event for each of its opener's refs, one that was left before its end (`data.left`) not among them. Null when the lesson opens on reading. */
 export function runDone(lesson: MapLesson, events: readonly LedgerEvent[]): boolean | null {
   if (lesson.opener === 'read' || lesson.run.length === 0) return null
-  return lesson.run.every((ref) => events.some((event) => event.kind === 'play' && event.ref === ref))
+  return lesson.run.every((ref) => events.some((event) => event.kind === 'play' && event.data?.left === undefined && event.ref === ref))
 }
 
 /** Every lesson's standing, from the events, in course order. */

@@ -830,7 +830,7 @@ interface Graded { score: number /* [0,1] */; ok: boolean; provenance: Provenanc
 |---|---|---|
 | `predict` | `predict:<lesson>#<id>` | value, reveal outcome |
 | `item` | `item:gen/<family>/<variant>` | answer |
-| `play` | `play:<game>/<level>` | actions (compressed), `actionsSha256` |
+| `play` | `play:<game>/<level>` | actions (compressed), `actionsSha256`, and `left` (the instant a run began that was left before its end; schema version 3) |
 | `lab-check` | `lab:<lab>` | `wasmSha256`, per-check results, seeds |
 | `prove` | `prove:<lab>` | the predicted reply and the module's actual reply |
 | `trace-mark` | `trace:<trace>/<task>` | marks, attribution error |

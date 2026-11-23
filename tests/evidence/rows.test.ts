@@ -70,6 +70,15 @@ describe('activityRows', () => {
     expect(practice.what).toBe('Played Step loop, close')
   })
 
+  test('reads a run left before its end as left, a miss that is in the log, and a run that ended as played', () => {
+    const left = { ...at('play', 'g9', { ref: 'play:loop/close', ok: false, provenance: 'proved' }), data: { actions: '[]', actionsSha256: 'a'.repeat(64), left: '2026-11-20T09:00:00.000Z' } } as LedgerEvent
+    const [row] = activityRows([left], { lessons: LESSONS, levelName: names })
+    expect(row.what).toBe('Left Step loop, close, agent closed, before its end')
+    expect(row.result).toBe(ATTEMPT_WORDS.no)
+    const [plain] = activityRows([{ ...left, provenance: 'unseen' } as LedgerEvent], { lessons: LESSONS, levelName: names })
+    expect(plain.what).toBe('Left Step loop, close, before its end')
+  })
+
   test('leaves out an acknowledgement, which carries no result', () => {
     expect(activityRows([copy(EXAMPLES.ack) as LedgerEvent], { lessons: LESSONS, levelName: names })).toEqual([])
   })

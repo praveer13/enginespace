@@ -63,7 +63,7 @@ export function runLines(own: readonly LedgerEvent[], refs: readonly string[], n
   const rank = { 'not yet': 0, 'passed in practice': 1, passed: 2 } as const
   // A level that the lesson lists in its Run, in a block and in its Test is one level: one line, whatever number of places name it.
   return [...new Set(refs)].flatMap((ref) => {
-    const runs = own.filter((event) => event.kind === 'play' && event.ref === ref)
+    const runs = own.filter((event) => event.kind === 'play' && event.data?.left === undefined && event.ref === ref)
     if (runs.length === 0) return []
     const best = runs.map(attemptWord).reduce((a, b) => (rank[b] > rank[a] ? b : a))
     const match = /^play:([^/]+)\/(.+)$/.exec(ref)
