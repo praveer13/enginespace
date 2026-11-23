@@ -167,7 +167,7 @@ export function failureRecords(report: Json): string[] {
           const stderr = output(result.stderr)
           if (stdout) lines.push('stdout:', stdout.replace(/\n$/, ''))
           if (stderr) lines.push('stderr:', stderr.replace(/\n$/, ''))
-          for (const attachment of result.attachments ?? []) lines.push(`attachment: ${attachment.name ?? ''} ${attachment.path ?? ''}`.trim())
+          for (const attachment of new Set((result.attachments ?? []).map((item) => `attachment: ${item.name ?? ''} ${item.path ?? ''}`.trim()))) lines.push(attachment)
         }
         records.push(clean(lines.join('\n').replace(ANSI, '')))
       }
@@ -479,10 +479,13 @@ function context(options: Options): Context {
   return { importers: supportImporters(files), routesAdded: added }
 }
 
-/** Where a file outside the repository is, as the log may say it: the temporary folder by that name, and nothing of the machine. */
-function where(file: string): string {
-  const temp = tmpdir()
-  return file.startsWith(`${temp}/`) ? `<the system's temporary folder>/${path.relative(temp, file)}` : clean(file)
+/**
+ * Where the failures file is, as the log may say it, with nothing of the machine: a file of the run's own choosing by its name in the
+ * system's temporary folder, and one that the caller named with --failures by its name alone (the caller knows where it put it).
+ */
+export function where(file: string, given: boolean): string {
+  const name = path.basename(file)
+  return given ? `the file that --failures names (${clean(name)})` : `${clean(name)} in the system's temporary folder`
 }
 
 function main(argv: readonly string[]): number {
@@ -532,7 +535,7 @@ function main(argv: readonly string[]): number {
   const printFailures = () => {
     const head = failuresHead(failuresFile)
     if (head.length === 0 || head.every((line) => line === '')) return
-    console.log(`\nfailures: the whole output is in ${where(failuresFile)}; its first 20 lines:`)
+    console.log(`\nfailures: the whole output is in ${where(failuresFile, options.failures !== undefined)}; its first 20 lines:`)
     console.log(head.map((line) => `  | ${line}`).join('\n'))
   }
   if (made.steps.length === 0) {
@@ -558,7 +561,7 @@ function main(argv: readonly string[]): number {
     for (const item of result.rerun) console.log(`${item.passed ? 'FLAKY, passed on its one re-run' : 'FLAKY, failed again'}: ${item.test.file} > ${item.test.title}`)
     for (const test of result.known) console.log(`known red: ${test.file} > ${test.title}`)
     for (const test of result.hostFailed) console.log(`host list, not counted: ${test.file} > ${test.title}`)
-    for (const test of result.refused) console.log(`NEW FAILURE: ${test.file} > ${test.title}\n    ${clean(test.error).split('\n')[0]}`)
+    for (const test of result.refused) console.log(`NEW FAILURE: ${test.file} > ${test.title}\n    ${clean(test.error).replace(ANSI, '').split('\n')[0]}`)
     for (const test of result.nowPassing) console.log(`red test passed this run (leaves the list after five of five): ${test.file} > ${test.title}`)
   }
   const bad = results.filter((result) => result.crash !== undefined || result.refused.length > 0)

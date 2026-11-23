@@ -25,6 +25,7 @@ import {
   supportImporters,
   uvEnv,
   verdict,
+  where,
   writeFailures,
 } from '../../scripts/gate/run'
 import {
@@ -770,6 +771,12 @@ describe('the failures file', () => {
       expect(text).not.toContain(root)
       expect(text).toContain('./e2e/a.spec.ts:3:1')
       expect(failuresHead(file)).toHaveLength(20)
+      for (const given of [true, false]) {
+        const said = where(path.join(tmpdir(), `${user}-x`, 'failures.txt'), given)
+        expect(said).toContain('failures.txt')
+        expect(said).not.toContain(tmpdir())
+        if (user.length > 1) expect(said).not.toContain(user)
+      }
       expect(failuresHead(file)[0]).toBe('FAILED e2e/a.spec.ts > t')
     } finally {
       rmSync(dir, { recursive: true, force: true })
