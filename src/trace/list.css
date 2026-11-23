@@ -1,0 +1,204 @@
+/*
+ * The trace as a list (ListMode.tsx), in Data Book (REDESIGN 2.8): the step on a flat sheet, a stretch to a row printed as a block of its
+ * own, each cell after its name, and the four categories as radio plates at least 44 px tall, each with its glyph of the one colour code
+ * (a category is never colour alone). Nothing here moves: no transition, no animation, so reduced motion has nothing to cut.
+ */
+
+.es-tlist {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-4);
+  outline: none;
+}
+
+.es-tlist__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-1);
+}
+
+.es-tlist__modes {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--es-space-2);
+}
+
+.es-tlist__modes-label {
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-tlist__steps {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--es-space-2);
+}
+
+.es-tlist__steps .es-button {
+  padding-inline: var(--es-space-3);
+}
+
+.es-tlist .es-button[aria-disabled='true'] {
+  border-style: dashed;
+  color: var(--es-text-2);
+  cursor: not-allowed;
+}
+
+.es-tlist__step {
+  margin: 0;
+  text-align: center;
+  font-weight: 700;
+}
+
+.es-tlist__step-len {
+  display: block;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  font-weight: 400;
+}
+
+/* Room for its longest, always: the counts change as the learner picks, and nothing under them moves. */
+.es-tlist__tally {
+  min-height: calc(3 * 1.5em);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.es-tlist__tally > span {
+  display: block;
+}
+
+.es-tlist__table,
+.es-tlist__table tbody,
+.es-tlist__table tr,
+.es-tlist__table th,
+.es-tlist__table td,
+.es-tlist__caption {
+  display: block;
+}
+
+.es-tlist__table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.es-tlist__caption {
+  padding-bottom: var(--es-space-2);
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+  text-align: left;
+}
+
+.es-tlist__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-1);
+  padding: var(--es-space-3) 0;
+  border-top: 1px solid var(--es-edge);
+}
+
+.es-tlist__row:last-child {
+  border-bottom: 1px solid var(--es-edge);
+}
+
+.es-tlist__when {
+  font-weight: 400;
+  text-align: left;
+}
+
+.es-tlist__n {
+  font-weight: 700;
+}
+
+.es-tlist__span {
+  color: var(--es-text-2);
+}
+
+.es-tlist__side {
+  overflow-wrap: anywhere;
+}
+
+.es-tlist__label {
+  display: inline-block;
+  min-width: 6.5rem;
+  color: var(--es-text-2);
+  font-size: var(--es-size-note);
+}
+
+.es-tlist__cats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
+  gap: var(--es-space-2);
+  margin-top: var(--es-space-1);
+}
+
+/* A plate is the radio's whole hit area: the input lies over it, unseen, so a tap anywhere on the plate picks it and focus sits on it. */
+.es-tlist__cat,
+.es-tlist__option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--es-space-2);
+  min-height: 2.75rem;
+  padding: var(--es-space-2) var(--es-space-3);
+  border: 1px solid var(--es-edge);
+  border-radius: var(--es-radius-control);
+  background-color: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.es-tlist__cat input,
+.es-tlist__option input {
+  /* Over the plate's edge too, so the hit area is the plate's whole box, 44 px and more. */
+  position: absolute;
+  inset: -1px;
+  width: calc(100% + 2px);
+  height: calc(100% + 2px);
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  /* Clear of the lesson's sticky strip and foot bar when the browser brings a radio into view. */
+  scroll-margin-block: 4.5rem;
+}
+
+.es-tlist__cat:has(input:checked),
+.es-tlist__option:has(input:checked) {
+  /* The same 1 px edge, darkened and doubled inside: a pick changes no box. */
+  border-color: var(--es-text-1);
+  background-color: var(--es-surface-2);
+  box-shadow: inset 0 0 0 1px var(--es-text-1);
+}
+
+.es-tlist__cat:has(input:focus-visible),
+.es-tlist__option:has(input:focus-visible) {
+  outline: 3px solid var(--es-focus);
+  outline-offset: 2px;
+}
+
+.es-tlist__cause {
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.es-tlist__legend {
+  padding: 0;
+  font-weight: 700;
+}
+
+.es-tlist__hint {
+  margin: 0;
+  color: var(--es-text-2);
+}
+
+.es-tlist__option {
+  align-items: flex-start;
+  overflow-wrap: anywhere;
+}
