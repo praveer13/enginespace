@@ -38,6 +38,31 @@ This file is for the agents that build the repository. The agent kit in the lab 
 13. **Paths stay private.** A commit, a report, a log and a pull request hold repository-relative paths only: no home-directory path, no scratch-directory path, no session id and no login name. Before a commit, grep the diff for them.
 14. **Toolchains.** Cargo and rustup run with `RUSTUP_AUTO_INSTALL=0`. Python runs only through `uv run --project`, with `UV_OFFLINE=1` and `UV_PYTHON_DOWNLOADS=never`.
 15. **Downloads.** An agent installs no wheel and downloads no model, bank or source tree without the owner's leave.
+16. **Merge.**
+    - One branch at a time goes through the lock-serialized merge gate, and no batch is run.
+    - A task's commit subjects begin with its own task id.
+    - Tracker markers move only in a wave's exit report, in the same commit that adds the ids to `MERGED` in `tests/ci/workflows.test.ts`. The exceptions are the tasks that name a marker in their own text.
+    - When the owner merges a wave's pull request into `main`, the later wave branch takes `main` in by a merge commit, not a rebase, because the audit of claimed merges reads merge commits.
+17. **Kit lock.** `src/games/kit/` and `src/design/` are changed by one task at a time, in a commit of their own that names every game it touches. A fix round that must change the kit waits for the kit task in flight and merges after it. Every kit commit runs every game's primary spec and its nightly-width walks. No game, lesson or lab task changes the kit.
+18. **Nightly width.** Nightly width is the smoke project with `ES_E2E_NIGHTLY=1`: the walks at 360 and 1280 px, and `a11y` and `screens` at 320, 360 and 1280 px. A change to a game, a lesson or the kit runs it before it merges.
+19. **Offline.**
+    - On the build computer a command runs only with `UV_OFFLINE=1`, `UV_PYTHON_DOWNLOADS=never`, `HF_HUB_OFFLINE=1` and `RUSTUP_AUTO_INSTALL=0`, and cargo with `--offline`, in the existing locked CPU environment and with no other `uv sync`.
+    - A command that fetches a model, a dataset or a GPU environment is checked by reading it against the manifest and the command's `--help`, and is never run.
+    - A report says of each printed command whether it was run or read and not run.
+20. **Heavy runs.**
+    - Agents share a few slow cores, so a task never pins every core, never starts a busy loop, and never runs 10,000 seeds or repeats a spec 20 times or more on them.
+    - Contention is simulated with Chromium's CPU throttling through CDP at rates 4 and 6.
+    - For a 10,000-seed run, a `--repeat-each` of 20 or more, or a run on a built site on four performance cores, the task writes the command and the coordinator runs it under the gate's lock before the task merges. The task's report quotes the run.
+21. **Defect classes.** Anything a learner plays carries a test for each class that fails before the fix.
+    - A, nothing moves: the rectangle of every control, readout and stage is the same before and after the press that opens something, the commit, the first move, the first draw and the result.
+    - B, in view: after every move, Tab and Enter, the control of the current decision is wholly in the viewport and topmost at its centre, at the twelve sizes from 1440x900 to 640x400; touch targets are at least 44 px; the goal's number is visible without opening a disclosure.
+    - C, keys: Enter or Space pressed twice within 500 ms, or held, applies nothing the learner did not aim at, and after a commit focus lands on a heading or a value.
+    - D, one seed: from Start to the result of a graded run no control, key, reload, Back, Forward, edited URL or second tab gives a second seed in an attempt that counts.
+    - E, true in every state: every sentence that states a fact about the run is built from the state and compared with an independent recomputation on 200 random walks, and no readout holds the answer to its guess.
+    - F, no self-scroll: `window.scrollY` is unchanged for 5 s with no input at 360x800 and 390x844, under CDP throttling 4x, and every `focus()` uses `preventScroll`.
+    - G, reduced motion: with `prefers-reduced-motion`, after every zoom, pan, step, move and result no animation or transition runs.
+    - H, nightly size: seeded properties are written in chunks of 100 seeds, and each new spec passes 5 of 5 at `--retries=0` and 20 of 20 under CDP throttling 4x.
+22. **Waiting states.** No learner-visible line holds "owner", a task id, a decision id or a level id. A waiting line says in plain words what is missing and what the learner can do now. Every table with a dash carries one caption sentence saying why the cell is empty and that the lab fills it with the learner's own number. A module whose browser part runs on model-made data says so on its first screen.
 
 The orchestrator is whoever dispatches your task. Set up with rules 1 and 2 before you change anything.
 

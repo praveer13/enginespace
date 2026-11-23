@@ -15,7 +15,7 @@ import { PR_ROUTES, W1_LEVEL_PAGES, W1_ROUTES, W2_ROUTES } from './routes'
 import { amberByScroll, copyProblems, FIRST_VISIT, LESSONS, stuck, wayOnProblems } from './support/screens'
 import { clipped, expect, open, quiet, test, withSettings } from './support/site'
 
-/** The routes of e2e/routes.ts, and every lesson and module the course has built (the lessons table of the compiled map): all 27 lessons, not a sample. */
+/** The routes of e2e/routes.ts, and every lesson and module the course has built (the lessons table of the compiled map): every lesson the course has built (32 at this writing), not a sample. */
 const ROUTES = [...new Set([...PR_ROUTES, ...W1_ROUTES, ...W2_ROUTES, ...W1_LEVEL_PAGES, ...LESSONS.map((lesson) => lesson.route), ...LESSONS.map((lesson) => `/m/${lesson.module}`)])]
 
 /** The widths of the reflow check (WCAG 1.4.10 names 320), at a height that a phone has. */

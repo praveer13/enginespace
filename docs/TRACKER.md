@@ -56,6 +56,31 @@ Paste this brief above the task text when dispatching a task. AGENTS.md (W0-T23)
 13. **Paths stay private.** A commit, a report, a log and a pull request hold repository-relative paths only: no home-directory path, no scratch-directory path, no session id and no login name. Before a commit, grep the diff for them.
 14. **Toolchains.** Cargo and rustup run with `RUSTUP_AUTO_INSTALL=0`. Python runs only through `uv run --project`, with `UV_OFFLINE=1` and `UV_PYTHON_DOWNLOADS=never`.
 15. **Downloads.** An agent installs no wheel and downloads no model, bank or source tree without the owner's leave.
+16. **Merge.**
+    - One branch at a time goes through the lock-serialized merge gate, and no batch is run.
+    - A task's commit subjects begin with its own task id.
+    - Tracker markers move only in a wave's exit report, in the same commit that adds the ids to `MERGED` in `tests/ci/workflows.test.ts`. The exceptions are the tasks that name a marker in their own text.
+    - When the owner merges a wave's pull request into `main`, the later wave branch takes `main` in by a merge commit, not a rebase, because the audit of claimed merges reads merge commits.
+17. **Kit lock.** `src/games/kit/` and `src/design/` are changed by one task at a time, in a commit of their own that names every game it touches. A fix round that must change the kit waits for the kit task in flight and merges after it. Every kit commit runs every game's primary spec and its nightly-width walks. No game, lesson or lab task changes the kit.
+18. **Nightly width.** Nightly width is the smoke project with `ES_E2E_NIGHTLY=1`: the walks at 360 and 1280 px, and `a11y` and `screens` at 320, 360 and 1280 px. A change to a game, a lesson or the kit runs it before it merges.
+19. **Offline.**
+    - On the build computer a command runs only with `UV_OFFLINE=1`, `UV_PYTHON_DOWNLOADS=never`, `HF_HUB_OFFLINE=1` and `RUSTUP_AUTO_INSTALL=0`, and cargo with `--offline`, in the existing locked CPU environment and with no other `uv sync`.
+    - A command that fetches a model, a dataset or a GPU environment is checked by reading it against the manifest and the command's `--help`, and is never run.
+    - A report says of each printed command whether it was run or read and not run.
+20. **Heavy runs.**
+    - Agents share a few slow cores, so a task never pins every core, never starts a busy loop, and never runs 10,000 seeds or repeats a spec 20 times or more on them.
+    - Contention is simulated with Chromium's CPU throttling through CDP at rates 4 and 6.
+    - For a 10,000-seed run, a `--repeat-each` of 20 or more, or a run on a built site on four performance cores, the task writes the command and the coordinator runs it under the gate's lock before the task merges. The task's report quotes the run.
+21. **Defect classes.** Anything a learner plays carries a test for each class that fails before the fix.
+    - A, nothing moves: the rectangle of every control, readout and stage is the same before and after the press that opens something, the commit, the first move, the first draw and the result.
+    - B, in view: after every move, Tab and Enter, the control of the current decision is wholly in the viewport and topmost at its centre, at the twelve sizes from 1440x900 to 640x400; touch targets are at least 44 px; the goal's number is visible without opening a disclosure.
+    - C, keys: Enter or Space pressed twice within 500 ms, or held, applies nothing the learner did not aim at, and after a commit focus lands on a heading or a value.
+    - D, one seed: from Start to the result of a graded run no control, key, reload, Back, Forward, edited URL or second tab gives a second seed in an attempt that counts.
+    - E, true in every state: every sentence that states a fact about the run is built from the state and compared with an independent recomputation on 200 random walks, and no readout holds the answer to its guess.
+    - F, no self-scroll: `window.scrollY` is unchanged for 5 s with no input at 360x800 and 390x844, under CDP throttling 4x, and every `focus()` uses `preventScroll`.
+    - G, reduced motion: with `prefers-reduced-motion`, after every zoom, pan, step, move and result no animation or transition runs.
+    - H, nightly size: seeded properties are written in chunks of 100 seeds, and each new spec passes 5 of 5 at `--retries=0` and 20 of 20 under CDP throttling 4x.
+22. **Waiting states.** No learner-visible line holds "owner", a task id, a decision id or a level id. A waiting line says in plain words what is missing and what the learner can do now. Every table with a dash carries one caption sentence saying why the cell is empty and that the lab fills it with the learner's own number. A module whose browser part runs on model-made data says so on its first screen.
 
 ## Wave gates and the critical path
 
@@ -972,8 +997,8 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   1. The export is deterministic, and a drift fails.
   2. The vectors cover seed 0, 0xffffffff, Unicode in canonical JSON, and floats.
 
-#### [~] W2-T02 · Grader core · L · sonnet · deps: W2-T01
-- **State (2026-11-19):** built; open check: `selftest --gpu` is a stub and needs a GPU, closes with W2b-T37.
+#### [=] W2-T02 · Grader core · L · sonnet · deps: W2-T01
+- **State (2026-11-22):** built; the open check of 2026-11-19, `selftest --gpu`, closed with W2b-T37, which made it fail in one line with no CUDA (docs/waves/W2m1b-report.md).
 - **Goal:** The `labs/grader` package (`uv_build==0.10.2`, `jsonschema==4.26.0`):
   - a CLI with `doctor` as a stub, `grade`, `receipt verify` and `selftest`;
   - the challenge codec, the RNG port, canonical JSON and hashing;
@@ -1017,8 +1042,8 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   2. Expired and used tokens are shown as such.
   3. The page passes a keyboard walk and axe.
 
-#### [~] W2-T07 · Receipt worker and import · M · sonnet · deps: W2-T06
-- **State (2026-11-19):** built; open check: the receipt event freezes the verdict (the open check below), closes with W2b-T23.
+#### [=] W2-T07 · Receipt worker and import · M · sonnet · deps: W2-T06
+- **State (2026-11-22):** built; the open check of 2026-11-19, the receipt event that froze the verdict, closed with W2b-T23, which computes the verdict on read (docs/waves/W2m1b-report.md).
 - **Goal:** `receipt.worker` runs A§8.5's rules 1-6: caps (`DecompressionStream` with a byte counter), zod, artifact hashes, binding, grader identity against the published list, and pins. Import works by drop or by file picker, and the parsed receipt and its report are stored.
 - **Accept:**
   1. Oversized and zip-bomb fixtures abort with a message.
@@ -1028,7 +1053,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 - **Open check (second review of W2's rest work, note 7, first half):** `src/receipts/keep.ts` (near line 54) freezes the verdict into the credited receipt event at import. A verdict is worked out when it is read (A§8.5 rule 10), so the event has to keep the receipt and its report and not the verdict. The receipts page reads it, so the redesign's rebuild of that page takes this with it.
 
 #### [~] W2-T08 · Verification rules and the forged bestiary · L · sonnet · deps: W1-T08, W1-T31, W2-T07, W2-T09
-- **State (2026-11-19):** built; open check: the open check below and the owner's real fixtures, closes with W2b-T24 and W2-T12.
+- **State (2026-11-22):** built; open check: the owner's real fixtures, closes with W2-T12. The other open check closed with W2b-T24.
 - **Goal:** `packages/verify` implements A§8.5's rules 7-10: re-checks, recomputation, physics floors and the verdict, with bounds printed. A generator builds forgeries from honest fixtures: synthetic ones until W2-T12, then the owner's.
 - **Accept:**
   1. Honest synthetic bundles pass.
@@ -1070,8 +1095,8 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 
 ### TR0: PyTorch and Triton reading
 
-#### [~] W2-T13 · Sim: the tensor model · M · sonnet · deps: W0-T12
-- **State (2026-11-19):** built; open check: the torch vectors come from a build that is not the `cpu` environment's own (the open check below), closes with W2-T13.
+#### [=] W2-T13 · Sim: the tensor model · M · sonnet · deps: W0-T12
+- **State (2026-11-22):** built; the open check of 2026-11-19, torch vectors from a build that was not the `cpu` environment's own, closed in wave 1b: the vectors are what the locked CPU environment's torch gives (docs/waves/W2m1b-report.md).
 - **Goal:** A§5.8's tensor rules and grid coverage.
 - **Accept:**
   1. The rules agree with PyTorch on a committed fixture set, generated once with CPU torch, with the torch version recorded.
@@ -1322,7 +1347,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 
 - **Closed by R-T09 (wave R).** The owner's call under the third way (D-067) was taken: 18 predictions are revealed after their run (the 17 that a run answered, and TR2 lesson 1's, reworded onto the ticks of `first-3-gap` by the second way) and 21 at commit, from the question's own numbers or from the claim it is about. `PLAN` has no waiting row left, so the first check holds with no record to write, and `tests/play/predictions.test.ts` plays each run it holds on a seed and holds the reading to the lesson's own figure, and each at-commit answer to the same figure.
 
-#### [ ] W2-T44 · Readers of the prediction event: Review's rescheduling and the calibration view on Progress · S · sonnet · deps: W1b-T02
+#### [=] W2-T44 · Readers of the prediction event: Review's rescheduling and the calibration view on Progress · S · sonnet · deps: W1b-T02
 - **Goal:** W1b-T02's box writes a `predict` event at each reveal (A§7.2: the value and the truth). The module page's loop and the course map's practised KCs read it (`src/progress`), and so does the Evidence page's count of events by kind. Two readers of it do not exist yet:
   - Today (`src/items/today/kcs.ts`) maps no `predict:` ref to a KC, so a prediction reschedules no idea. ASSESSMENT §4.7 says that it may reschedule an idea that is earned, and never earns one. Give Review (`/today`) the compiled map's refs for them, inside its gate, so Review reschedules from predictions as specified. The readers take both reveal kinds, a reveal after the run and a reveal at commit (R-T09).
   - The calibration view on Progress (`/evidence`; ASSESSMENT §4.2 and §4.7), as rows in words before counts: how often each confidence tap of an item or a prediction (guess, think so, sure) was right, derived from the ledger when the page is read, stored nowhere, and shown with the count it rests on, in words before the count.
@@ -1859,7 +1884,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   3. bun test tests/content/tr0-module.test.ts passes with zero diagnostics, and G0 passes
 - **Browser tests:** features: e2e/lesson-games.spec.ts, e2e/lesson-predict.spec.ts, e2e/items.spec.ts, e2e/titles.spec.ts; smoke: first-visit, a11y, screens; nightly width: walks (shape-shifter) if level copy changed
 
-#### [ ] W2b-T39 · Wave 1b exit review · S · opus · deps: all of wave 1b
+#### [=] W2b-T39 · Wave 1b exit review · S · opus · deps: all of wave 1b
 - **Goal:** Check wave 1b as a whole and hand it to the owner: a report under docs/waves/ with repository-relative paths only, and the pull request from wave-2m1b into wave-2m1a marked ready and not merged. W2b-T49 and W2-T15 are in the report as done or not started, each with its reason.
 - **Files:** `docs/waves/W2m1b-report.md`.
 - **Accept:**
