@@ -184,17 +184,17 @@
   description: You can read a profiler trace's tracks and spans, and tie a launch call on the CPU to the kernel it started on a GPU stream by its correlation id.
   requires: [ks:t0.flame-graphs]
   threshold: true
-  planned: W2-T24 # item family tr3.launch-and-kernel (W2b-T105)
+  planned: W2b-T105 # item family tr3.launch-and-kernel
 
 - id: tr3.capture-window
   description: You can choose the steps a capture holds with an engine's profiler window settings, so that warm-up stays out and the trace stays small.
   requires: [tr3.trace-anatomy]
-  planned: W2-T24 # item family tr3.capture-window (W2b-T105)
+  planned: W2b-T105 # item family tr3.capture-window
 
 - id: tr3.graph-traces
   description: You can say what a trace shows of a replayed CUDA graph at the launch level and at the node level, and which ranges and frames vanish inside it.
   requires: [tr3.trace-anatomy, tr2.graph-replay]
-  planned: W2-T24 # item family tr3.inside-a-graph (W2b-T105)
+  planned: W2b-T105 # item family tr3.inside-a-graph
 
 - id: tr3.partition
   description: You can put every nanosecond of a step window in one category, kernel, copy-only, CPU gap or both idle, so that the parts add up to the step's time exactly.
@@ -202,7 +202,7 @@
   # A gap's category (CPU gap or both idle) against its cause (the call that delayed the next launch): one says what the GPU waited
   # for, the other which call made it wait.
   confusable: [tr3.gap-cause]
-  planned: W2-T24 # item family tr3.which-category (W2b-T105), then Trace attribution's graded `attribute` (W2-T20)
+  planned: W2b-T105 # item family tr3.which-category, then Trace attribution's graded `attribute` (W2-T20)
 
 - id: tr3.gap-cause
   description: You can name the cause of a gap between kernels from the launch queue, either the CPU work that delayed the next launch or the blocking call that drained the queue.
@@ -213,17 +213,17 @@
 - id: tr3.step-floor
   description: You can work out the least time a decode step can take from the bytes it must read and the GPU's memory bandwidth.
   requires: [ks:t4.decode-bandwidth, ks:t4.ridge-point]
-  planned: W2-T24 # item family tr3.floor (W2b-T106)
+  planned: W2b-T106 # item family tr3.floor
 
 - id: tr3.flat-curve
   description: You can tell from a latency that stays flat as the prompt grows that a step is bound by launch overhead and not by compute.
   requires: [tr3.step-floor]
-  planned: W2-T24 # item family tr3.flat-curve (W2b-T106)
+  planned: W2b-T106 # item family tr3.flat-curve
 
 - id: tr3.provider-preflight
   description: You can check a rented GPU host before a capture, its driver, whether its profiler may sample the CPU, and which GPU it really is.
   requires: []
-  planned: W2-T24 # item family tr3.provider-preflight (W2b-T106); the lab's stage s1 records it and credits nothing
+  planned: W2b-T106 # item family tr3.provider-preflight; the lab's stage s1 records it and credits nothing
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # TR5a · Hybrid KV groups, and adapter pages in one pool
