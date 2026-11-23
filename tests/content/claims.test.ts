@@ -6,7 +6,7 @@ import { describe, expect, test } from 'bun:test'
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
 import { compileContent } from '../../scripts/content/build.ts'
-import { agrees, claimProblems, evaluate, FormulaError } from '../../scripts/verify-claims.ts'
+import { agrees, BOOK_CLAIM, citesBook, claimProblems, evaluate, FormulaError } from '../../scripts/verify-claims.ts'
 import { CLAIM_COUNT, CLAIMS, compile, errors, LESSON, lineOf, LOCK_KEYS, project, REPO_CLAIM_COUNT, REPO_COUNTS, repo, readSample, swap, where } from './support.ts'
 import type { Edit } from './support.ts'
 
@@ -224,6 +224,35 @@ describe('dates, pins and age', () => {
     const yearOn = new Date(Date.parse(`${latest}T00:00:00Z`) + 366 * 24 * 3600 * 1000).toISOString().slice(0, 10)
     const found = problems({}, yearOn)
     expect(found.map((d) => d.code)).toEqual(Array.from({ length: CLAIM_COUNT }, () => 'stale-claim'))
+  })
+})
+
+describe('the MLC book is cited, and never quoted (D-069)', () => {
+  const BOOK_COMMIT = '3a24144defa6da03d4ab8a1dfcf513b18007d15f'
+  const claim = (id: string, url: string, extra = '') =>
+    `- id: ${id}\n  value: 1\n  text: A figure of the book.\n  tag: unverified\n  source:\n    url: ${url}\n    title: The book\n    quote: 'one'\n    accessed: ${SAMPLE_DAY}\n  verifiedAt: ${SAMPLE_DAY}\n  ttlDays: 90\n${extra}`
+  const REPO_FILE = `https://github.com/mlc-ai/modern-gpu-programming-for-mlsys/blob/${BOOK_COMMIT}/appendix/benchmarking_gpu_kernels.md#L611`
+  const SITE = 'https://mlc.ai/modern-gpu-programming-for-mlsys/appendix/benchmarking_gpu_kernels.html'
+  const found = (file: string) => problems({ 'content/claims/book-test.yaml': file }).filter((d) => d.file === 'content/claims/book-test.yaml').map((d) => `${d.severity} ${d.code}`)
+
+  test("the repository's one claim of the book is the launch figure, read from the book's repository at a commit", () => {
+    const records = compileContent({ root: repo }).claims.filter((record) => citesBook(record.claim))
+    expect(records.map((record) => record.claim.id)).toEqual([BOOK_CLAIM])
+    expect(records[0].claim.source?.url).toMatch(/^https:\/\/github\.com\/mlc-ai\/modern-gpu-programming-for-mlsys\/blob\/[0-9a-f]{40}\/appendix\/benchmarking_gpu_kernels\.md#L\d+$/)
+    expect(records[0].claim.pin).toBe('mlc-book')
+  })
+
+  test('a second claim of the book is an error, by its id, by its pin or by either address', () => {
+    expect(found(claim('mlc-book.other', REPO_FILE))).toEqual(['error book-cited'])
+    expect(found(claim('vllm.anything.else', REPO_FILE))).toEqual(['error book-cited'])
+    expect(found(claim('vllm.anything.else', SITE))).toEqual(['error book-cited'])
+    expect(found(claim('vllm.anything.else', 'https://vllm.ai/blog/x', '  pin: mlc-book\n'))).toEqual(['error book-cited'])
+  })
+
+  test("the launch figure's own claim may cite only the repository's file at a commit, never the site or a branch", () => {
+    expect(found(claim(BOOK_CLAIM, REPO_FILE))).toEqual([])
+    expect(found(claim(BOOK_CLAIM, SITE))).toEqual(['error book-source'])
+    expect(found(claim(BOOK_CLAIM, 'https://github.com/mlc-ai/modern-gpu-programming-for-mlsys/blob/main/appendix/benchmarking_gpu_kernels.md#L611'))).toEqual(['error book-source'])
   })
 })
 
