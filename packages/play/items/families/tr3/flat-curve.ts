@@ -239,7 +239,7 @@ function entries(scene: Scene): Entry[] {
     {
       text: rich(BOTH),
       ...(key === 'mixed' ? { right: true as const } : { miss: `${FAMILY}.both-by-default` }),
-      why: key === 'mixed' ? rich('The latency grows, but by far less than the prompt: a fixed cost sets a floor and the work adds on top of it.') : key === 'flat' ? rich('The latency does not grow at all, so there is no work adding on top: the fixed cost is all of it.') : rich('The latency grows by about as much as the prompt, so there is no large fixed cost beside the work.'),
+      why: key === 'mixed' ? rich('The latency grows, but by far less than the prompt: a fixed cost holds the time up, and the work adds on top of it.') : key === 'flat' ? rich('The latency does not grow at all, so there is no work adding on top: the fixed cost is all of it.') : rich('The latency grows by about as much as the prompt, so there is no large fixed cost beside the work.'),
     },
   ]
 }
