@@ -1591,9 +1591,11 @@
   .es-frame[data-placement='page'][data-game='engine-floor'] :is(.es-floor-predict__hint, .es-floor-predict__why) {
     order: 1;
   }
+}
 
-  /* The ask, its six numbers and Commit are one decision: with the hint under them the dock needs 12 px less between them at 800 px tall,
-     or Commit's foot is cut by the screen. */
+/* Only the phones whose dock leaves Commit's foot a few pixels under the screen (700 to 820 px tall) take the tighter gaps; a taller or
+   wider phone keeps the desk's rhythm. */
+@media (max-width: 63.999rem) and (min-height: 700px) and (max-height: 820px) {
   .es-frame[data-placement='page'][data-game='engine-floor'] .es-floor-predict {
     gap: var(--es-space-1);
   }
