@@ -233,6 +233,6 @@ describe('the command', () => {
       expect(gradeCommandParts(stage.id).before + token + gradeCommandParts(stage.id).after).toBe(gradeCommand(stage.id, token))
     }
     const token = issueChallenge('tr0.forward.s3', AT, 0, entropyOf(7)).token
-    expect(gradeCommand('tr0.forward.s3', token)).toBe(`uv run --project envs/cpu enginespace grade tr0.forward.s3 --challenge ${token}`)
+    expect(gradeCommand('tr0.forward.s3', token)).toBe(`uv run --project envs/cpu enginespace grade tr0.forward.s3 --challenge ${token} --assisted <none|explain|code> --agent <yes|no>`)
   })
 })

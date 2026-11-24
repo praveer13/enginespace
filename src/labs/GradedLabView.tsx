@@ -56,6 +56,20 @@ export function Inline({ text }: { text: string }) {
   )
 }
 
+/** A line of shell as words that never break inside: a long command wraps between its words, so a flag is never cut from its name at `--`. */
+function Words({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(' ').map((word, at) => (
+        <Fragment key={at}>
+          {at > 0 ? ' ' : null}
+          <span className="es-glab-cmd__word">{word}</span>
+        </Fragment>
+      ))}
+    </>
+  )
+}
+
 /** The mark of a stage's state: a mark and a word, never a colour alone. */
 function StateMark({ state }: { state: StageState }) {
   if (state.kind === 'verified') return <Icon name="check" className="es-glab-state__mark" />
@@ -96,7 +110,7 @@ export function Command({ command, label }: { command: LabCommand; label: string
       <div className="es-glab-cmd__paper">
         <pre className="es-glab-cmd__line">
           <code ref={code} data-command-line="">
-            {command.line}
+            <Words text={command.line} />
           </code>
         </pre>
         <Button variant="plate" size="sm" className="es-glab-cmd__copy" aria-label={label} onClick={() => void copy(command.line, label, () => selectContents(code.current))}>
@@ -319,10 +333,11 @@ export function GradedLabView({ lab, files, defend = [] }: GradedLabViewProps) {
               <Inline text={PAGE.runLead} />
             </p>
             {stages.map(({ page, stage }) => (
-              <section key={page.id} className="es-glab-stage" aria-labelledby={`glab-run-${stage.n}`} data-stage={page.id}>
-                <div id={`glab-run-${stage.n}`}>
-                  <StageName stage={stage} />
-                </div>
+              <section key={page.id} className="es-glab-stage" aria-labelledby={`glab-run-${stage.n}-name`} data-stage={page.id}>
+                <p id={`glab-run-${stage.n}-name`} className="sr-only">
+                  {PAGE.runOf(`s${stage.n}`)}
+                </p>
+                <StageName stage={stage} />
                 <StateLine state={page.state} />
                 <p>
                   <span className="es-glab-stage__asks">{PAGE.asks}</span> <Inline text={page.asks} />
@@ -344,10 +359,11 @@ export function GradedLabView({ lab, files, defend = [] }: GradedLabViewProps) {
           <Step id="checks" title={PAGE.steps.checks}>
             <p className="es-glab-step__lead">{PAGE.checksLead}</p>
             {stages.map(({ page, stage }) => (
-              <section key={page.id} className="es-glab-stage" aria-labelledby={`glab-checks-${stage.n}`} data-stage={page.id}>
-                <div id={`glab-checks-${stage.n}`}>
-                  <StageName stage={stage} />
-                </div>
+              <section key={page.id} className="es-glab-stage" aria-labelledby={`glab-checks-${stage.n}-name`} data-stage={page.id}>
+                <p id={`glab-checks-${stage.n}-name`} className="sr-only">
+                  {PAGE.checksOf(`s${stage.n}`)}
+                </p>
+                <StageName stage={stage} />
                 <ul className="es-glab-checks" role="list">
                   {page.checks.map((check) => (
                     <CheckItem key={check.id} check={check} />

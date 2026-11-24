@@ -34,7 +34,7 @@ Prove: Tensor views' Fewest copies, in Prove mode, on three new targets with you
 
 ## The part on your laptop
 
-The laptop part is a lab: Qwen3-0.6B's forward pass, written in plain PyTorch and run on your laptop's CPU, first without a KV cache and then with one. The lab runs on your laptop's CPU, outside the browser, and needs no GPU. The course's grader runs Hugging Face transformers on the same CPU, in `float32`, and compares your logits with its own. The bar is a largest difference of 0.001 [estimated] in any logit.
+The laptop part is a lab: Qwen3-0.6B's forward pass, written in plain PyTorch and run on your laptop's CPU, first without a KV cache and then with one. The lab runs on your laptop's CPU, outside the browser, and needs no GPU. The course's grader runs Hugging Face transformers on the same CPU, in `float32`, and compares your logits with its own. The bar is a largest difference of 0.001 [estimated] in any logit. How far below it a correct forward pass lands on the pinned weights has not been measured yet [unverified].
 
 The lab has three stages, and each is graded by the checks it names:
 

@@ -67,7 +67,7 @@ describe('the page while the ledger opens', () => {
   const html = view({ ready: false })
 
   test('is one heading and its lead, and the lists are tickets that are still printing', () => {
-    expect(headings(html, 1)).toEqual(['GPU lab results'])
+    expect(headings(html, 1)).toEqual(['Lab results'])
     expect(html).toContain('Loading your challenges')
     expect(html).toContain('Loading your results')
     expect(html).not.toContain('class="es-held"')
@@ -218,7 +218,7 @@ describe('one receipt, opened at its hash', () => {
   const html = view({ held, receipts: [record], open: record.sha256 })
 
   test('is the page with the way back, and not the lists', () => {
-    expect(headings(html, 1)).toEqual(['GPU lab results'])
+    expect(headings(html, 1)).toEqual(['Lab results'])
     expect(html).toContain('data-view="receipt"')
     expect(html).toContain('<a class="es-link" href="/receipts" data-discover="true">All results</a>')
     expect(html).not.toContain('>Get a challenge</h2>')
@@ -339,7 +339,7 @@ describe('one receipt, opened at its hash', () => {
   })
 
   test('has the one heading of the page, whichever view', () => {
-    for (const page of [html, view({ ready: false, open: record.sha256 }), view({ open: sha256('nothing') })]) expect(headings(page, 1)).toEqual(['GPU lab results'])
+    for (const page of [html, view({ ready: false, open: record.sha256 }), view({ open: sha256('nothing') })]) expect(headings(page, 1)).toEqual(['Lab results'])
   })
 })
 

@@ -133,7 +133,7 @@ describe('routes against ARCHITECTURE §3.1', () => {
     '/trace-room': { h1: 'Traces', shows: 'Not published yet' },
     '/trace-room/:trace': { h1: 'Traces', shows: 'Trace id: sample' },
     // The page opens the ledger in the browser (W2-T06), so the server renders the tickets that are still printing.
-    '/receipts': { h1: 'GPU lab results', shows: 'Loading your challenges', title: 'GPU lab results · enginespace' },
+    '/receipts': { h1: 'Lab results', shows: 'Loading your challenges', title: 'Lab results · enginespace' },
     '/today': { h1: 'Review' },
     '/evidence': { h1: 'Progress' },
     '/design': { h1: 'Design system' },

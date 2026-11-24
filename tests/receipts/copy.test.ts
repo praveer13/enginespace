@@ -29,7 +29,7 @@ const documentOf = (url: string): Written => {
 
 describe('the lead', () => {
   test("is the served document's description, and the document is headed as the page is", () => {
-    expect(documentOf('/receipts')).toMatchObject({ heading: 'GPU lab results', description: LEAD })
+    expect(documentOf('/receipts')).toMatchObject({ heading: 'Lab results', description: LEAD })
   })
 
   test('says what the page does and that nothing leaves the browser, and holds no number', () => {

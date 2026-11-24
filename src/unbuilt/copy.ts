@@ -85,7 +85,7 @@ export const LAB_HOLDS = {
 /** The sentence a stub page of a lab that runs on the learner's own machine says, with the words of its link: the words come before and after it. */
 export const LAB_LOCAL = {
   before: 'This lab runs on your own machine. Get its challenge and bring its receipt file back on ',
-  link: 'GPU lab results',
+  link: 'Lab results',
   after: '.',
 } as const
 

@@ -51,10 +51,10 @@ The pieces, in order:
 Grade it:
 
 ```sh
-uv run --project envs/cpu enginespace grade tr0.forward.s1 --challenge <token>
+uv run --project envs/cpu enginespace grade tr0.forward.s1 --challenge <token> --assisted <none|explain|code> --agent <yes|no>
 ```
 
-The token comes from the course site's Receipts page, which also prints this command with the token in it. The grader asks how much help you had: say it with `--assisted none|explain|code` and `--agent yes|no`, or it records the most help. Stage 1 is practice: the module does not need it, and it shows you where an error starts before 28 layers hide it.
+The token comes from the course site's Lab results page, which also prints this command with the token in it. Replace `<token>` with it, and say how much help you had in place of `<none|explain|code>` and `<yes|no>`: the grader records the most help (`code`, `yes`) when you leave them out. Stage 1 is practice: the module does not need it, and it shows you where an error starts before 28 layers hide it.
 
 ## 5. Stage 2: the whole forward pass
 
@@ -65,10 +65,10 @@ The model is embedding, the layers in order, the final norm, then the output hea
 Grade it:
 
 ```sh
-uv run --project envs/cpu enginespace grade tr0.forward.s2 --challenge <token>
+uv run --project envs/cpu enginespace grade tr0.forward.s2 --challenge <token> --assisted <none|explain|code> --agent <yes|no>
 ```
 
-The stage checks two things on your machine. `logits-fp32` compares your logits with the reference's at every element and passes when the largest difference is within the bound. `import-guard` passes when your file did not import `transformers.models`. A third check, `argmax-bank`, is made by the course site from your receipt: it compares your top token at chosen positions with the ids the course recorded. Until the course has recorded them, that check cannot pass, and the page says so.
+The stage checks two things on your machine. `logits-fp32` compares your logits with the reference's at every element and passes when the largest difference is within the bound, 0.001 [estimated]. How far below that bound a correct forward pass lands on the pinned weights has not been measured yet [unverified]. `import-guard` passes when your file did not import `transformers.models`. A third check, `argmax-bank`, is made by the course site from your receipt: it compares your top token at chosen positions with the ids the course recorded. Until the course has recorded them, that check cannot pass, and the page says so.
 
 When `logits-fp32` fails, find where your forward pass leaves the reference's. Load the reference yourself in a scratch script (not in `forward.py`) and compare each layer's output:
 
@@ -95,14 +95,14 @@ What changes:
 The grader feeds a short prefix, then decodes one token at a time. After each step it compares your logits with a full recompute of the same prefix, by the reference and by your own uncached forward pass, and checks `cache.length` against the prefix length.
 
 ```sh
-uv run --project envs/cpu enginespace grade tr0.forward.s3 --challenge <token>
+uv run --project envs/cpu enginespace grade tr0.forward.s3 --challenge <token> --assisted <none|explain|code> --agent <yes|no>
 ```
 
 `cache-logits` fails for a cache written at the wrong position or read before it is written. `cache-lengths` fails for a cache that appends twice, or never.
 
 ## 7. Bring the receipt back
 
-Each `grade` writes one file under `receipts/`, whether the checks passed or not. Drop it on the course site's Receipts page. The site checks it again in your browser and sends nothing anywhere.
+Each `grade` writes one file under `receipts/`, whether the checks passed or not. Drop it on the course site's Lab results page. The site checks it again in your browser and sends nothing anywhere.
 
 ## What the grader does not do
 

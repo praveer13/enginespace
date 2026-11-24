@@ -1,6 +1,6 @@
 # enginespace GPU kit {{VERSION}}
 
-The local half of the Engine Internals GPU labs (ARCHITECTURE section 9). This folder holds the grader, one locked environment for each engine, and what a lab needs beside them. It is one folder, and it runs from wherever you unzip it.
+The local half of the Engine Internals labs (ARCHITECTURE section 9). This folder holds the grader, one locked environment for each engine, and what a lab needs beside them. It is one folder, and it runs from wherever you unzip it.
 
 | Folder | Holds |
 |---|---|
@@ -9,6 +9,17 @@ The local half of the Engine Internals GPU labs (ARCHITECTURE section 9). This f
 | `references/` | `manifest.json`, the pinned list of large files that `enginespace fetch <lab>` downloads |
 | `course.lock.json` | the engine pins that `enginespace doctor` compares your environment with |
 {{OPTIONAL_ROWS}}
+
+## Which environment each lab uses
+
+Run each lab in its own environment, with `--project envs/<folder>` in place of `envs/vllm` in the commands below. `envs/README.md` gives the engine pins.
+
+| Lab | Folder | Where it runs |
+|---|---|---|
+| `tr0.forward` (TR0, the forward pass) | `envs/cpu` | your laptop's CPU, no GPU |
+| `tr1.fork` (TR1, the nano-vllm fork) | `envs/nano-vllm` | a GPU |
+| `tr3.profile`, `tr4.sweep`, `tr5b.connector`, `tr6.proposer`, `tr7.reproduce`, `tr8.replay`, `capstone.pair` | `envs/vllm` | a GPU |
+| TR1 and TR3 reading runs, and TR6's alternative | `envs/sglang` | a GPU |
 
 ## Check what you downloaded
 
@@ -19,6 +30,8 @@ sha256sum enginespace-gpu-kit-{{VERSION}}.zip
 ```
 
 ## Install with uv 0.10.2
+
+The commands use `envs/vllm`; TR0 uses `envs/cpu`, which needs no GPU and is the only one to install on a laptop.
 
 ```sh
 unzip enginespace-gpu-kit-{{VERSION}}.zip && cd enginespace-gpu-kit
@@ -40,7 +53,7 @@ pip install --no-deps ./grader
 
 ## Rent a GPU
 
-Each environment has a `Dockerfile`. Build it from this folder: `docker build -f envs/vllm/Dockerfile -t enginespace-vllm .`. Nobody has built these images yet [unverified], and the owner's first runs will say.
+Each environment has a `Dockerfile`. Build it from this folder: `docker build -f envs/vllm/Dockerfile -t enginespace-vllm .`. Nobody has built these images yet [unverified], and the course's first runs will say.
 
 ## What this kit does not do
 
