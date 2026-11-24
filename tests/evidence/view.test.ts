@@ -155,7 +155,7 @@ describe('the page', () => {
   test('has one h1, "Progress", then the dated rows, then the counts, then the means to keep a copy', () => {
     const html = view()
     expect([...html.matchAll(/<h1[^>]*>(.*?)<\/h1>/gs)].map((match) => match[1])).toEqual(['Progress'])
-    expect(h2s(html)).toEqual(['What you did', 'Where that leaves you', 'Everything counted', 'GPU lab results', 'Keep a copy'])
+    expect(h2s(html)).toEqual(['What you did', 'Where that leaves you', 'Everything counted', 'Lab results', 'Keep a copy'])
     expect(html.indexOf('data-table="activity"')).toBeLessThan(html.indexOf('data-table="skills"'))
     expect(html).toContain('data-slot="files"')
     expect(html).toContain('<aside class="es-page__side" aria-label="Where your progress is kept"><p data-slot="side">')
@@ -202,7 +202,7 @@ describe('the page', () => {
     expect(body).not.toMatch(/\bXP\b|percent|%|\bscore\b|\bW\d|\bR-T\d|\bD-0\d|Evidence|ledger|Mirror/)
   })
 
-  test('links GPU lab results, and every figure of the page is a count of the learner`s own events with no tag', () => {
+  test('links Lab results, and every figure of the page is a count of the learner`s own events with no tag', () => {
     const html = view()
     expect(html).toContain('href="/receipts"')
     expect(html).not.toContain('data-tag')
@@ -213,7 +213,7 @@ describe('the page', () => {
     expect(text(html)).toContain('Nothing yet. Play a level, answer a question or commit a guess')
     expect(html).toContain('Continue: TR5a lesson 1')
     expect(html).not.toContain('es-ledger')
-    expect(h2s(html)).toEqual(['What you did', 'GPU lab results', 'Keep a copy'])
+    expect(h2s(html)).toEqual(['What you did', 'Lab results', 'Keep a copy'])
     expect(html).toContain('data-slot="files"')
   })
 

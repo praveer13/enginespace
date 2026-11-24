@@ -83,7 +83,7 @@ describe('activityRows', () => {
     expect(activityRows([copy(EXAMPLES.ack) as LedgerEvent], { lessons: LESSONS, levelName: names })).toEqual([])
   })
 
-  test('says a GPU lab result as passed, in practice or not counted, and a challenge as issued', () => {
+  test('says a lab result as passed, in practice or not counted, and a challenge as issued', () => {
     const rows = activityRows([copy(EXAMPLES.receipt) as LedgerEvent, copy(EXAMPLES.challenge) as LedgerEvent], { lessons: LESSONS, levelName: names })
     expect(rows.map((row) => row.what).every((what) => /lab result|challenge/.test(what))).toBe(true)
     expect(rows.some((row) => row.result === 'issued')).toBe(true)

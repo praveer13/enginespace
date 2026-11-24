@@ -2,7 +2,7 @@
  * R-T06: the chrome of every route (REDESIGN §2.3). The header is the wordmark, then Course, Games, Review and Progress, then the outline
  * Continue at the right, whose words and link are the pointer's (`es:next`, `nextStep`'s last answer) or, before any page has written one,
  * the empty ledger's answer. On a phone the links sit behind a button labelled Navigation. The footer is About, Sources and changes, and
- * Settings. No route's chrome links the design system's page or the GPU lab results.
+ * Settings. No route's chrome links the design system's page or the Lab results.
  *
  * Every route of the table is drawn on the server renderer, as tests/smoke.test.ts draws them. What the button does when pressed, and
  * the phone's layout, are a browser's to show (e2e/route-change.spec.ts).

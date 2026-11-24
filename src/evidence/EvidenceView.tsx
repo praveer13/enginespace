@@ -355,10 +355,10 @@ export function EvidenceView({ ready, counts, rows, skills, attempts, calibratio
           ) : null}
           <section aria-labelledby="ev-gpu" className="es-panel">
             <h2 id="ev-gpu" className="es-panel__title">
-              GPU lab results
+              Lab results
             </h2>
             <p className="es-panel__lead">
-              A lab that runs on your own GPU hands back a result file. <TextLink to="/receipts">Open GPU lab results</TextLink> to get a challenge, bring that file back and see how this browser checked it.
+              A lab that runs on your own machine hands back a result file. <TextLink to="/receipts">Open Lab results</TextLink> to get a challenge, bring that file back and see how this browser checked it.
             </p>
           </section>
           <section aria-labelledby="ev-files" className="es-panel">

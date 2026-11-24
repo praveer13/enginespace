@@ -37,7 +37,7 @@ const WORDS = [0x0badc0de, 0x12345678, 0x0abcdef0, 0x13572468]
 const STAGE = 'tr8.replay.s2'
 /** A stage of a lab with a page, which prints the page's own command; STAGE's lab has none and prints that it is not published. */
 const PAGE_STAGE = 'tr0.forward.s3'
-const pageCommand = (token: string) => `uv run --project envs/cpu enginespace grade ${PAGE_STAGE} --challenge ${token}`
+const pageCommand = (token: string) => `uv run --project envs/cpu enginespace grade ${PAGE_STAGE} --challenge ${token} --assisted <none|explain|code> --agent <yes|no>`
 
 declare global {
   interface Window {

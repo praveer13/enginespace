@@ -33,7 +33,7 @@ export function storageLines(
   }
   lines.push(
     { id: 'events', label: 'events', value: <Count value={ledger.events.length} /> },
-    { id: 'receipts', label: 'GPU lab results', value: <Count value={ledger.receipts.length} /> },
+    { id: 'receipts', label: 'Lab results', value: <Count value={ledger.receipts.length} /> },
   )
   if (ledger.unsaved > 0) lines.push({ id: 'unsaved', label: 'waiting to save', value: <Count value={ledger.unsaved} />, tone: 'ink-2' })
   lines.push({

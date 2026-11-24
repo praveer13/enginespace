@@ -37,6 +37,8 @@ const ready = (lab: GradedLab): KitFileState[] =>
   })
 
 const decode = (html: string) => html.replaceAll('&quot;', '"').replaceAll('&#x27;', "'").replaceAll('&lt;', '<').replaceAll('&gt;', '>').replaceAll('&amp;', '&')
+/** A command's characters as the terminal gets them: the words are spans, and the spaces between them are kept. */
+const codeOf = (html: string) => decode(html.replace(/<[^>]+>/g, ''))
 const textOf = (html: string) => decode(html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim())
 /**
  * The text a learner reads as prose: code is an identifier, and its digits are not figures. A readout's value is left out too: the
@@ -95,7 +97,7 @@ describe('/labs/tr0.forward, from the fixture descriptor', () => {
       expect(kit).toContain(`href="/labs/${file.name}"`)
       expect(kit).toContain(`value="${file.bytes}"`)
       expect(kit).toContain(file.sha256)
-      expect(decode(kit)).toContain(`echo '${file.sha256}  ${file.name}' | sha256sum -c`)
+      expect(codeOf(kit)).toContain(`echo '${file.sha256}  ${file.name}' | sha256sum -c`)
     }
     expect(FIXTURE.kit.map((ref) => ref.kind)).toEqual(['gpu-kit', 'grader-wheel'])
   })
@@ -111,7 +113,7 @@ describe('/labs/tr0.forward, from the fixture descriptor', () => {
 
   test('gives each command its own copy control and what the terminal then shows', () => {
     const commands = [...FIXTURE.inputs, ...FIXTURE.stages.map((stage) => stage.run)]
-    const lines = [...html.matchAll(/<code[^>]*data-command-line=""[^>]*>(.*?)<\/code>/gs)].map((m) => decode(m[1]))
+    const lines = [...html.matchAll(/<code[^>]*data-command-line=""[^>]*>(.*?)<\/code>/gs)].map((m) => codeOf(m[1]))
     // Every command, and the check line of each kit file.
     expect(lines.filter((line) => !line.startsWith('echo '))).toEqual(commands.map((command) => command.line))
     expect(lines.length).toBe(commands.length + FIXTURE.kit.length)
@@ -131,7 +133,7 @@ describe('/labs/tr0.forward, from the fixture descriptor', () => {
       const states = [...m[2].matchAll(/<p class="es-glab-state"[^>]*>(.*?)<\/p>/gs)].map((s) => textOf(s[1]))
       expect(states).toHaveLength(1)
       expect(states[0]).toContain(stateLine(page.state))
-      expect(decode(m[2])).toContain(`enginespace grade ${page.id} --challenge <token>`)
+      expect(codeOf(m[2])).toContain(`enginespace grade ${page.id} --challenge <token> --assisted <none|explain|code> --agent <yes|no>`)
     }
     const challenge = stepBody(html, 'challenge')
     for (const stage of listed.stages) expect(decode(challenge)).toContain(`href="/receipts?stage=${stage.id}"`)

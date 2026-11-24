@@ -151,7 +151,7 @@ export function ReceiptsView(props: ReceiptsViewProps) {
   return (
     <div className="es-page es-receipts" data-page="receipts" data-view={open === null ? 'lists' : 'receipt'}>
       <header className="es-page__header">
-        <h1 className="es-page__title">GPU lab results</h1>
+        <h1 className="es-page__title">Lab results</h1>
         <p className="es-page__lead">{LEAD}</p>
       </header>
       {open !== null ? (
