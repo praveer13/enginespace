@@ -1605,14 +1605,6 @@
   }
 }
 
-/* Before the first stage is laid the readout can only say zero, and on a phone its 64 px are the room the drawing's example and the
-   ask's Commit both need. It waits for the first lay, and comes back with it. */
-@media (max-width: 63.999rem) {
-  .es-frame[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='predict']) .es-frame__readout {
-    display: none;
-  }
-}
-
 @media (max-width: 63.999rem) and (min-height: 700px) {
   .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__dock-main {
     padding-block: var(--es-space-1);
@@ -1853,18 +1845,5 @@
 @media (max-width: 63.999rem) and (min-height: 700px) and (max-height: 820px) {
   .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__diagram {
     height: max(15rem, calc(67svh - 23rem));
-  }
-}
-
-/* A taller phone than 820 px has room for the ask's decision and the drawing's example both: with the readout waiting for the first
-   stage, the ask's dock holds the question, the six numbers and Commit, and the drawing keeps the 245 px its example fills. */
-@media (max-width: 63.999rem) and (min-height: 821px) {
-  .es-frame:is([data-placement='page'], [data-placement='embed'])[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='predict']) .es-frame__dock {
-    height: max(33svh, 19.5rem);
-    max-height: none;
-  }
-
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='predict']) .es-frame__diagram {
-    height: max(15.3125rem, calc(67svh - 23rem));
   }
 }
