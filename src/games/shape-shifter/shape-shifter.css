@@ -107,18 +107,33 @@
 }
 
 @media (max-width: 63.999rem) {
-  /* The table's name and its line, and the target's, each run on as one paragraph, so the cells and the buffer have the box's room. */
+  /* The table's name and its line, and the target's, each run on as one paragraph, the line on from the name's end, so the cells and the
+     buffer have the box's room. */
   .es-shift__table,
   .es-shift__target {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: baseline;
-    gap: 0 var(--es-space-2);
+    display: block;
   }
 
   .es-shift__table .es-shift__label,
   .es-shift__target .es-shift__label {
-    margin: 0;
+    display: inline-flex;
+    margin: 0 var(--es-space-2) 0 0;
+  }
+
+  /* While the first run names the parts, a name keeps the room of its disc after it (Intro.tsx sets the disc just after the name), so the
+     disc never covers the line's words. */
+  .es-frame[data-intro='parts'] :is(.es-shift__table, .es-shift__target) .es-shift__label {
+    margin-right: 2.375rem;
+  }
+
+  .es-shift__table .es-shift__line,
+  .es-shift__target .es-shift__target-line {
+    display: inline;
+  }
+
+  /* A shape or a stride tuple is read whole: the line breaks between its parts, never inside "(4, 6)". */
+  :is(.es-shift__line, .es-shift__target-line) .font-numeric {
+    white-space: nowrap;
   }
 
   .es-shift__line,
@@ -194,8 +209,19 @@
   cursor: pointer;
 }
 
-@media (max-width: 47.999rem) {
+/* The word is a line high; a ring of room round it takes a press of 44 px, over the lines next to it. */
+.es-shift__goal-toggle::after {
+  content: '';
+  position: absolute;
+  inset: -0.875rem -0.375rem;
+}
+
+/* On a phone the target's numbers wait behind the toggle; from 40rem (a tablet held long, a phone on its side) they stand under the line, as
+   at a desk, and the toggle is not drawn. */
+@media (max-width: 39.999rem) {
   .es-shift__goal-toggle {
+    position: relative;
+    z-index: 4;
     display: inline;
   }
 
@@ -575,6 +601,12 @@
   overflow-anchor: none;
 }
 
+/* On the game's page the dock keeper (hand.ts) alone takes a change of the drawing's height back: the browser's own scroll anchoring, which
+   would pick the dock under a short phone's screen as its anchor, would take it back a second time and carry the dock off by as much. */
+html:has(.es-frame[data-game='shape-shifter'][data-placement='page']) {
+  overflow-anchor: none;
+}
+
 @media (max-width: 63.999rem) {
   .es-frame[data-game='shape-shifter'][data-placement] .es-frame__view {
     height: auto;
@@ -606,6 +638,84 @@
 @media (max-width: 63.999rem) {
   .es-frame[data-game='shape-shifter'][data-phase='play'] .es-frame__dock-main:has([data-shift-picker]) > .es-frame__moment {
     display: none;
+  }
+}
+
+/*
+ * On a tall phone the drawing the guess reads (the cells and the buffer's first row, or the grid's tiles) stands over the pinned dock at
+ * the first screen, so the guess card and the first run's card cover none of it: the game's name shares its row with Parts and How to play
+ * (from 360 px, where both fit beside the title). The drawing is never so short that the dock floats up off the screen's foot, where the
+ * drawing's first growth would push it down under the hand.
+ */
+@media (max-width: 63.999rem) and (min-width: 22.5rem) {
+  .es-frame[data-game='shape-shifter'][data-placement='page'] .es-frame__strip {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'name tools'
+      'menu menu';
+    align-items: center;
+  }
+
+  .es-frame[data-game='shape-shifter'][data-placement='page'] .es-frame__name {
+    grid-area: name;
+  }
+
+  .es-frame[data-game='shape-shifter'][data-placement='page'] .es-frame__menu {
+    grid-area: menu;
+  }
+
+  .es-frame[data-game='shape-shifter'][data-placement='page'] .es-frame__tools {
+    grid-area: tools;
+    flex-wrap: nowrap;
+  }
+}
+
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame[data-game='shape-shifter'][data-placement='page'][data-phase='play'] .es-frame__diagram {
+    min-height: calc(67svh - 13rem);
+  }
+}
+
+/*
+ * Under 700 px of height the readout stands at the dock's head, over the decision: on a laptop's short window it is on the first screen
+ * with the dock's top, and nowhere does it move when the guess gives way to the operations, a picker opens or a moment is said under them.
+ */
+@media (max-height: 699.98px) {
+  .es-frame[data-game='shape-shifter'][data-phase='play'] .es-frame__readout {
+    order: -1;
+    border-top: 0;
+    border-bottom: 1px solid var(--es-paper-rule);
+  }
+}
+
+/* On a phone under 700 px of height nothing is pinned and the dock follows the drawing. It keeps one height, a screen's at most, while the
+   level is played, so the page under the hand does not grow or shrink with the decision: a long picker scrolls inside the dock. */
+@media (max-width: 63.999rem) and (max-height: 699.98px) {
+  .es-frame[data-game='shape-shifter'][data-placement='page'][data-phase='play'] .es-frame__dock,
+  .es-frame[data-game='shape-shifter'][data-placement='embed'][data-phase='play']:not([data-intro]) .es-frame__dock {
+    height: min(100svh - 2rem, 26rem);
+  }
+}
+
+/* A grid of programs is wide: at a desk narrower than 80rem its launch table stands over the tiles, so the tiles have the drawing's whole
+   width; at 320 px they take the paper's edge. */
+@media (min-width: 64rem) and (max-width: 79.999rem) {
+  .es-shift[data-shift-view='grid'] {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 22.499rem) {
+  .es-shift[data-shift-view='grid'] {
+    padding-inline: var(--es-space-1);
+  }
+}
+
+/* A part's name is a button whose box is 44 px high (part-popover.css): where the table's line fits one line of a wide phone or a tablet
+   held long, the target's name would stand a line under the table's and the two boxes would overlap, so the target keeps a line's room. */
+@media (min-width: 40rem) and (max-width: 63.999rem) {
+  .es-shift__target {
+    margin-top: 1.25rem;
   }
 }
 
@@ -810,8 +920,15 @@
   min-height: 0;
 }
 
-/* The dock's "More below" (frame.css) keeps its own height, so it does not lend the picker room the dock has not got. */
+/* The dock's "More below" (frame.css) keeps its own height, so it does not lend the picker room the dock has not got. Its words stand on
+   the paper itself: the lines going under them fade out above the words, and none shows through a letter. */
 .es-frame[data-game='shape-shifter'][data-phase='play'] .es-frame__dock-main::after {
+  flex-shrink: 0;
+  background: linear-gradient(transparent, var(--es-paper) 0.75rem);
+}
+
+/* The guess has no box of its own that scrolls: it keeps its whole height, the dock scrolls it, and "More below" stands at its foot. */
+.es-frame[data-game='shape-shifter'][data-phase='play'] .es-frame__dock-main > .es-shift-dock:has([data-shift-predict]) {
   flex-shrink: 0;
 }
 
@@ -836,7 +953,7 @@
     height: 1.75rem;
     margin-top: -1.75rem;
     padding-top: 0.5rem;
-    background: linear-gradient(transparent, var(--es-paper) 60%);
+    background: linear-gradient(transparent, var(--es-paper) 0.5rem);
     color: var(--es-text-2);
     font-size: var(--es-size-caption);
     font-weight: 700;
@@ -934,7 +1051,7 @@
     height: 1.75rem;
     margin-top: -1.75rem;
     padding-top: 0.5rem;
-    background: linear-gradient(transparent, var(--es-paper) 60%);
+    background: linear-gradient(transparent, var(--es-paper) 0.5rem);
     color: var(--es-text-2);
     font-size: var(--es-size-caption);
     font-weight: 700;

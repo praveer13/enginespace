@@ -108,19 +108,36 @@ export function seatInBoxBy(target: { top: number; bottom: number }, box: { top:
   return Math.min(target.bottom - room, target.top - top)
 }
 
+/** The height (px) of the "More below" a box that scrolls shows at its foot: its own (the dock's, 2.25rem) or its list's (1.75rem). */
+function footOf(box: Element): number {
+  for (const holder of [box, box.firstElementChild]) {
+    if (holder === null) continue
+    const after = getComputedStyle(holder, '::after')
+    if (after.content.includes('More below')) return parseFloat(after.height) || MORE_BELOW
+  }
+  return MORE_BELOW
+}
+
 /**
- * Brings `target` into view inside the dock that holds it (or inside `within`, where given), by scrolling the boxes that scroll there and
- * never the page: a pinned dock whose steppers or picker scroll inside it keeps the control the intro rings over the readout, where the
- * learner can see it and press it.
+ * Brings `target` into view inside the dock that holds it (or inside `within`, where given), by scrolling the boxes that scroll there: a
+ * pinned dock whose steppers or picker scroll inside it keeps the control the intro rings over the readout, where the learner can see it
+ * and press it. The page is scrolled only where the dock is not pinned and the control is off the screen, after the learner's own press.
  */
 export function seatInDock(target: HTMLElement, within?: Element | null): void {
   const room = within ?? target.closest('[data-dock]')
   if (room === null) return
   for (let box = target.parentElement; box !== null && room.contains(box); box = box.parentElement) {
     if (!/auto|scroll/.test(getComputedStyle(box).overflowY) || box.scrollHeight <= box.clientHeight + 1) continue
-    const by = seatInBoxBy(target.getBoundingClientRect(), box.getBoundingClientRect())
+    const by = seatInBoxBy(target.getBoundingClientRect(), box.getBoundingClientRect(), footOf(box))
     if (Math.abs(by) >= 1) box.scrollTop += by
   }
+  // Under 700 px of height the dock follows the drawing and nothing in it scrolls: a long picker runs on down the page, and the control
+  // the learner reached is brought on to the screen by the page, as far as it needs and no further.
+  const dock = target.closest('[data-dock]')
+  if (dock === null || getComputedStyle(dock).position === 'sticky') return
+  const r = target.getBoundingClientRect()
+  if (r.bottom > window.innerHeight) window.scrollBy({ top: r.bottom - window.innerHeight + SEAT_ABOVE, behavior: 'instant' })
+  else if (r.top < 0) window.scrollBy({ top: r.top - SEAT_ABOVE, behavior: 'instant' })
 }
 
 /** Under 64rem: the drawing stands in the page's flow (shape-shifter.css). */
