@@ -1,5 +1,5 @@
 /*
- * W2b-T105: what the four families of TR3's first half owe every family. Each item is deterministic and well formed, graded as its key says,
+ * W2b-T105 and W2b-T106: what the eight families of TR3 owe every family. Each item is deterministic and well formed, graded as its key says,
  * and explained: a sentence holds no digit, every option says why, and a lure names the misconception it encodes. The step shown before an
  * answer at level 1 (and a Test asks at level 1) is the rule alone, with no figure of the scene and no word of the key. Seeds run in chunks
  * of a hundred (tests/seeds.ts), so the nightly run's 10,000 are a hundred short tests.
@@ -8,14 +8,18 @@ import { describe, expect, test } from 'bun:test'
 import { LEVELS, offeredAt, plain } from '@es/play/items'
 import type { Gen, Item } from '@es/play/items'
 import { captureWindow } from '@es/play/items/families/tr3/capture-window'
+import { flatCurve } from '@es/play/items/families/tr3/flat-curve'
+import { floor } from '@es/play/items/families/tr3/floor'
+import { gapCause } from '@es/play/items/families/tr3/gap-cause'
 import { insideAGraph } from '@es/play/items/families/tr3/inside-a-graph'
 import { launchAndKernel } from '@es/play/items/families/tr3/launch-and-kernel'
+import { providerPreflight } from '@es/play/items/families/tr3/provider-preflight'
 import { whichCategory } from '@es/play/items/families/tr3/which-category'
 import { itemProblems } from '../../scripts/verify-items.ts'
 import { keyOf, wrongOf } from './items-support.ts'
 import { chunks } from './items-tr3-support.ts'
 
-const FAMILIES_UNDER_TEST: readonly Gen[] = [captureWindow, insideAGraph, launchAndKernel, whichCategory]
+const FAMILIES_UNDER_TEST: readonly Gen[] = [captureWindow, flatCurve, floor, gapCause, insideAGraph, launchAndKernel, providerPreflight, whichCategory]
 
 describe.each(FAMILIES_UNDER_TEST.map((gen) => [gen.id, gen] as const))('%s', (_, gen) => {
   for (const level of LEVELS) {

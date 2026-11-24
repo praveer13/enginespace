@@ -14,6 +14,7 @@ import type { Rng } from '@es/sim/core'
 import { attribute, traceBuilder } from '@es/sim/trace'
 import type { Attribution, AttributionCategory, EsTrace } from '@es/sim/trace'
 import { itemRng } from '../../draw'
+import { drawOutcome } from '../tr6/kit'
 import { num } from '../../rich'
 import type { ChoiceOption, Level, NumPart, Rich } from '../../types'
 
@@ -196,4 +197,20 @@ export function spanLines(scene: WindowScene): { label: string; line: string }[]
     seen.set(lane, at)
     return { label: `${lane}, span ${at}`, line: `${span.kind}, ${span.fromUs} to ${span.toUs}` }
   })
+}
+
+/**
+ * The word of TR3's one written form for the stretch in which the GPU idles while the CPU prepares the next step. It is `GAP_WORD` of
+ * src/copy/terms.ts, which packages/play may not import: tests/play/items-tr3-test-level.test.ts holds the two equal, so a stem reads the
+ * word of the form and an answer of the owner's to N2 changes one key and this line.
+ */
+export const CPU_GAP = 'CPU gap'
+
+/**
+ * Which of `n` outcomes a scene is about, drawn answer first. The scene of the item itself (`purpose` "scene") uses the item's own stream,
+ * so that each outcome is the key one seed in `n`; the scenes of a level-0 worked example (`example-0`, `example-1`, ...) each have a
+ * stream of their own, so that trying another example can reach another outcome, and the worked example is never the item's own answer.
+ */
+export function drawOutcomeOf(family: string, variant: string, level: Level, seed: number, purpose: string, n: number): number {
+  return purpose === 'scene' ? drawOutcome(family, variant, level, seed, n) : below(itemRng(family, variant, level, seed, `outcome-${purpose}`), n)
 }

@@ -204,22 +204,18 @@
   description: You can name the cause of a gap between kernels from the launch queue, either the CPU work that delayed the next launch or the blocking call that drained the queue.
   requires: [tr3.partition, tr0.hidden-syncs]
   confusable: [tr3.partition]
-  planned: W2-T20 # Trace attribution's graded `gap`, then item family tr3.gap-cause (W2b-T106)
 
 - id: tr3.step-floor
   description: You can work out the least time a decode step can take from the bytes it must read and the GPU's memory bandwidth.
   requires: [ks:t4.decode-bandwidth, ks:t4.ridge-point]
-  planned: W2b-T106 # item family tr3.floor
 
 - id: tr3.flat-curve
   description: You can tell from a latency that stays flat as the prompt grows that a step is bound by launch overhead and not by compute.
   requires: [tr3.step-floor]
-  planned: W2b-T106 # item family tr3.flat-curve
 
 - id: tr3.provider-preflight
   description: You can check a rented GPU host before a capture, its driver, whether its profiler may sample the CPU, and which GPU it really is.
   requires: []
-  planned: W2b-T106 # item family tr3.provider-preflight; the lab's stage s1 records it and credits nothing
 
 # ---------------------------------------------------------------------------------------------------------------------------------
 # TR5a · Hybrid KV groups, and adapter pages in one pool
