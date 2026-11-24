@@ -362,7 +362,8 @@ test.describe('the parts of the drawing on a phone', () => {
             return found
           })
         expect([level, 'part buttons that overlap', overlaps]).toEqual([level, 'part buttons that overlap', []])
-        if (level === 'grid') continue
+        // From 40rem the target's numbers stand under its line and the toggle is not drawn (shape-shifter.css).
+        if (level === 'grid' || size.width >= 640) continue
         const toggle = page.locator('[data-shift-target-toggle]')
         expect([level, 'show its order', await touchRoom(toggle)]).toEqual([level, 'show its order', { room: true, misses: [] }])
         await press(page, '[data-shift-target-toggle]')

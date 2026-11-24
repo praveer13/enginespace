@@ -114,11 +114,16 @@
     display: block;
   }
 
-  /* After the name, the room of the first run's disc (Intro.tsx sets it just after the name), so the disc never covers the line's words. */
   .es-shift__table .es-shift__label,
   .es-shift__target .es-shift__label {
     display: inline-flex;
-    margin: 0 2.375rem 0 0;
+    margin: 0 var(--es-space-2) 0 0;
+  }
+
+  /* While the first run names the parts, a name keeps the room of its disc after it (Intro.tsx sets the disc just after the name), so the
+     disc never covers the line's words. */
+  .es-frame[data-intro='parts'] :is(.es-shift__table, .es-shift__target) .es-shift__label {
+    margin-right: 2.375rem;
   }
 
   .es-shift__table .es-shift__line,
@@ -211,7 +216,9 @@
   inset: -0.875rem -0.375rem;
 }
 
-@media (max-width: 47.999rem) {
+/* On a phone the target's numbers wait behind the toggle; from 40rem (a tablet held long, a phone on its side) they stand under the line, as
+   at a desk, and the toggle is not drawn. */
+@media (max-width: 39.999rem) {
   .es-shift__goal-toggle {
     position: relative;
     z-index: 4;
