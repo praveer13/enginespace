@@ -231,7 +231,7 @@ export default function ProveSession({ entry, level, Game, record }: ProveSessio
               ? PROVE_COPY.footCounts
               : PROVE_COPY.footPractice(when)}
         </span>
-        <Link className="es-link" to={back}>
+        <Link className="es-link es-prove__leave" to={back}>
           {PROVE_COPY.leave}
         </Link>
       </span>

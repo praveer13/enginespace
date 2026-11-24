@@ -188,12 +188,18 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
           run.announce(`Camera: ${next.label}.`)
           return true
         }}
+        // The words for the end stand in the goal line from the start, held invisible until the answer is in (verifier.css): the line keeps its
+        // height at the result, and the drawing, the legend and the dock under it do not move down.
         goal={(run) => ({
           aim: copy.goal.aim,
           control: copy.goal.controls,
           target: copy.goal.beat,
           ends: copy.goal.ends,
-          met: run.done ? 'Your answer is in.' : undefined,
+          met: (
+            <span className="es-vf__met" data-vf-met={run.done ? '' : 'held'}>
+              Your answer is in.
+            </span>
+          ),
         })}
         diagram={(run) => <View2D run={run} />}
         // Depth is one row per draft position: on a level with one draft position it carries nothing, so the 3D view is offered on the

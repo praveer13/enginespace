@@ -14,6 +14,8 @@
  *   8. A second tab is told the truth: while the playing tab's record is alive it says an attempt is open in another tab, and once the record
  *      lapses it writes the attempt as left. A record from before the beat was written is read as lapsed.
  *   9. A graded run that is not a Prove run and is left after a move writes a left event, and no window applies to it.
+ *  10. On a phone, Leave Prove mode, the one way out of a run, is a touch target of 44 px each way (DC-B), and a tap on it leaves.
+ *  11. The verifier's Prove result offers Run again alone, which draws fresh numbers, and its sentence names no other button.
  */
 import { readFileSync } from 'node:fs'
 import type { Page } from '@playwright/test'
@@ -325,6 +327,40 @@ test('at 320 x 640 the verifier names its six tokens without running them togeth
   }))
   expect(boxes).toHaveLength(6)
   for (let i = 1; i < boxes.length; i++) expect([boxes[i - 1].text, boxes[i].text, boxes[i - 1].right <= boxes[i].left + 0.5]).toEqual([boxes[i - 1].text, boxes[i].text, true])
+})
+
+test.describe('Leave Prove mode, the one way out of a Prove run, is a whole touch target on a phone (DC-B)', () => {
+  test.use({ hasTouch: true })
+  for (const [width, height] of [
+    [390, 844],
+    [360, 800],
+    [320, 640],
+  ] as const) {
+    test(`at ${width} x ${height} it is at least 44 px each way, and a tap on it leaves`, async ({ page }) => {
+      await page.setViewportSize({ width, height })
+      await openProve(page, CASES[0])
+      await start(page)
+      const leave = page.locator('[data-prove-foot]').getByRole('link', { name: 'Leave Prove mode' })
+      await leave.scrollIntoViewIfNeeded()
+      const box = await leave.boundingBox()
+      expect([Math.round(box?.width ?? 0) >= 44, Math.round(box?.height ?? 0) >= 44], `the link's box: ${JSON.stringify(box)}`).toEqual([true, true])
+      await leave.tap()
+      await expect(page).toHaveURL(/\/play\/verifier\?level=exact$/)
+    })
+  }
+})
+
+test('a Prove result of the verifier offers Run again alone, and says only what it does', async ({ page }) => {
+  await openProve(page, CASES[0])
+  await start(page)
+  await page.getByLabel('Resample weight for token 0', { exact: true }).fill('1')
+  await page.getByRole('button', { name: 'Submit the weights' }).click()
+  await expect(page.locator('[data-prove-after]')).toBeVisible()
+  const result = page.locator('[data-result]')
+  await expect(result.getByRole('button', { name: 'Run again' })).toBeVisible()
+  await expect(result.getByRole('button', { name: 'New numbers' })).toHaveCount(0)
+  await expect(page.locator('[data-run-again]')).toContainText('Run again: the level asks the same question on fresh numbers.')
+  await expect(page.locator('[data-run-again]')).not.toContainText('New numbers')
 })
 
 test.describe('a graded run that is not a Prove run', () => {

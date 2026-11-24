@@ -314,8 +314,8 @@ test.describe('DC-A: the 3D stage keeps its box on the commit, the first draw an
       await page.getByRole('button', { name: 'Finish', exact: true }).click()
       await expect(page.locator('[data-result]')).toBeVisible()
       await settle(page)
-      // At the result the goal line above gains its closing sentence and the whole frame moves down with it: the sizes and the places of the parts
-      // inside the frame are what is compared.
+      // At the result the goal line above says the answer is in, in the room it held from the start: the sizes and places of the parts
+      // inside the frame are compared, and then the whole rectangles.
       const end = await rects()
       const inside = (at: Awaited<ReturnType<typeof rects>>) => ({
         stage: [at.stage?.width, at.stage?.height],
@@ -323,6 +323,7 @@ test.describe('DC-A: the 3D stage keeps its box on the commit, the first draw an
         note: [at.note?.width, at.note?.height, (at.note?.y ?? 0) - (at.stage?.y ?? 0)],
       })
       expect(inside(end), 'at the result').toEqual(inside(start))
+      expect(end, 'at the result').toEqual(start)
     })
   }
 })

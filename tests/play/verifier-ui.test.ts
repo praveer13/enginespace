@@ -130,7 +130,10 @@ describe('the diagram draws two bars for each token, numbered 0 to 5', () => {
   test('the four labels, each with its colour and glyph, once the level lets the decomposition print', () => {
     const markup = legend(stateAfter(buildLevel('overlap', 0), { t: 'commit', prediction: 38 }))
     for (const word of ['draft q', 'target p', 'accepted min(p, q)', 'residual (p − q)⁺']) expect(markup).toContain(word)
-    expect(count(markup, /data-glyph="/g)).toBe(4)
+    // Four shown, and the output's entry beside them, held invisible until a round is drawn (the legend holds its room).
+    expect(count(markup, /data-glyph="/g)).toBe(5)
+    expect(markup).not.toContain('data-held=""')
+    expect(markup).toContain('data-held-out=""')
     // Each slot's own glyph, as the design system's code gives it (src/design/code.ts): draft yellow, target blue, accepted green, residual red.
     for (const slot of ['yellow', 'blue', 'green', 'red'] as const) expect(markup).toContain(`data-glyph="${SLOT_MARKS[slot].glyph}"`)
     for (const slot of ['yellow', 'blue', 'green', 'red']) expect(markup).toContain(`--es-cat-${slot}`)
@@ -164,7 +167,24 @@ describe('the diagram draws two bars for each token, numbered 0 to 5', () => {
     expect(diagram(state, { mode: 'graded' })).not.toContain('data-part="accepted"')
     expect(diagram(state)).toContain('es-vf__out')
     expect(legend(state)).toContain('output of the sampler')
-    expect(legend(state, { mode: 'graded' })).not.toContain('output of the sampler')
+    // A graded run's legend holds the output's entry invisible (data-held-out), and the decomposition's two (data-held), until its result.
+    expect(legend(state)).not.toContain('data-held-out')
+    expect(legend(state, { mode: 'graded' })).toContain('data-held-out=""')
+    expect(legend(state, { mode: 'graded' })).toContain('data-held=""')
+  })
+
+  test('the 2D legend holds every entry and sentence from the start, invisible until earned, so its height never changes under a move', () => {
+    const level = buildLevel('chain', 1)
+    const states = [stateAfter(level), stateAfter(level, { t: 'commit', prediction: 2400 }), stateAfter(level, { t: 'commit', prediction: 2400 }, { t: 'draw', n: 20 })]
+    // The same entries and words at every step (the full stop moves to the end of the words shown): only what is held changes.
+    const shape = (markup: string) => [count(markup, /es-legend__entry/g), count(markup, /data-glyph="/g), textOf(markup).replace(/[\s.]+/g, '')]
+    const shapes = states.map((state) => shape(legend(state)))
+    expect(shapes[1]).toEqual(shapes[0])
+    expect(shapes[2]).toEqual(shapes[0])
+    const [start, committed, drawn] = states.map((state) => legend(state))
+    expect([start.includes('data-held=""'), start.includes('data-held-out=""'), count(start, /class="es-vf__held"/g)]).toEqual([true, true, 2])
+    expect([committed.includes('data-held=""'), count(committed, /class="es-vf__held"/g)]).toEqual([false, 1])
+    expect([drawn.includes('data-held=""'), drawn.includes('data-held-out=""'), count(drawn, /class="es-vf__held"/g)]).toEqual([false, false, 0])
   })
 
   test('a drawn round is a dot on a draft bar, solid or hollow', () => {
