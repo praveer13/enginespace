@@ -370,7 +370,10 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     const was = hadIntro.current
     hadIntro.current = intro !== null
     if (!was || intro !== null || !focusIsLost()) return
-    const first = container.current?.querySelector<HTMLElement>('[data-dock-main] :is(button, input):not(:disabled)')
+    // The paired guess puts its "How sure are you?" plates above or beside the number: the number is the decision, so focus goes to it, and the
+    // plates (optional, never a gate) are one Tab away.
+    const controls = [...(container.current?.querySelectorAll<HTMLElement>('[data-dock-main] :is(button, input):not(:disabled)') ?? [])]
+    const first = controls.find((control) => control.closest('.es-guess__sure') === null) ?? controls[0]
     ;(first ?? container.current)?.focus({ preventScroll: true })
   })
   // A swap of views can leave focus on a node that is gone, and a restart replaces the button that was pressed: focus goes back to the game.
