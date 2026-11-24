@@ -1835,8 +1835,15 @@
 
 @media (max-width: 63.999rem) and (min-height: 700px) {
   .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__diagram {
-    /* The legend over the drawing gains a second row as the path grows; a floor under the diagram keeps the lane box a few rows tall at
-       800 and 812 px tall phones, where the old 10rem floor left it 6 px. */
+    height: max(10rem, calc(67svh - 23rem));
+  }
+}
+
+/* The legend over the drawing gains a second row as the path grows; a floor under the diagram keeps the lane box a few rows tall at 800
+   and 812 px tall phones, where the 10rem floor left it 6 px. It stops at 820: a taller phone has the room, and the floor there put the
+   drawing's foot under the dock's top, where the coach card clipped the legend's second row. */
+@media (max-width: 63.999rem) and (min-height: 700px) and (max-height: 820px) {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__diagram {
     height: max(15rem, calc(67svh - 23rem));
   }
 }
