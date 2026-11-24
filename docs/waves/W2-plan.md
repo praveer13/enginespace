@@ -1,6 +1,6 @@
 # enginespace: plan for wave 2 (final), cut into wave 2a and wave 2b
 
-> This is the plan wave 2 is built from, written 2026-11-22 before the wave's first merge. It is a plan, not a record: the records are the reports under `docs/waves/`, `docs/DECISIONS.md` and the tracker's markers, and where the plan and the tracker or a later record disagree, the later record is what was built. The per-task paragraphs of sections 4.3 and 5.1 are in `docs/TRACKER.md`. The plan was kept on the build host; this copy replaces its paths on that host and its references to files kept with the build by plain words, and changes nothing else. It was checked in on `wave-2m2` at `a737ad22`.
+> This is the plan wave 2 is built from, written 2026-11-22 before the wave's first merge. It is a plan, not a record: the records are the reports under `docs/waves/`, `docs/DECISIONS.md` and the tracker's markers, and where the plan and the tracker or a later record disagree, the later record is what was built. The per-task paragraphs of sections 4.3 and 5.1 are in `docs/TRACKER.md`. The plan was kept on the build host; this copy replaces its paths on that host and its references to files kept with the build by plain words, and, besides the two pointers of 4.3 and 5.1, changes nothing else. The sentence in the plan about being private working material with absolute paths describes the copy kept with the build, not this one. It was checked against `wave-2m2` at `a737ad22`.
 
 Written 2026-11-22 against the read-only export of `wave-2m1b` at 4cae5068. The export is a copy of that commit on the build host, not in the repository, and every path is relative to it. Nothing was built, run, fetched or changed there. This file is private working material: it holds absolute paths, and none of them may reach a commit or a pull request. Tags: [measured] is a figure a document prints, with its source; [derived] is arithmetic on such figures; [estimated] is a judgment.
 
@@ -171,7 +171,6 @@ In this section and the next a bare `Tnn` is `W2b-Tnn`. A task marked (check) or
 ### 4.3 Wave 2a's tasks
 
 The per-task paragraphs of this section are not copied here. `docs/TRACKER.md`'s section "Wave 2 of the second build plan: 2a and 2b" holds every task of wave 2a in full, under "Wave 2a: the full headings" (W2-T20 and W2-T24 in its W2 section).
-
 
 ## 5. Wave 2b: lanes and order
 
