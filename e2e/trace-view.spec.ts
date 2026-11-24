@@ -897,6 +897,19 @@ const list = (page: Page) => page.locator('[data-trace-list]')
 const plate = (page: Page, row: number, category: Category) => list(page).locator(`tr[data-stretch="${row}"] input[value="${category}"]`)
 const causeRadio = (page: Page, name: string) => list(page).locator('[data-cause-span]').filter({ hasText: name }).first().locator('input')
 
+/**
+ * The lesson's own first paint: its game arrives in a chunk and the game's intro strip in a second one, so the strip can land after this
+ * spec has opened the trace block, and the page below it grows by the strip's height while the browser's scroll anchoring holds the
+ * reader's place. This spec measures the trace list's DC-A, not the game's; so it waits for the frame and, when the frame has planned an
+ * intro, for the strip, before it reads anything. The strip's late arrival moving the page is the WAIT-rule item the exit check
+ * (W2b-T120) holds, and it is not fixed here.
+ */
+async function lessonFirstPaint(page: Page): Promise<void> {
+  const frame = page.locator('[data-game]').first()
+  await frame.waitFor({ state: 'attached', timeout: 30_000 })
+  if ((await frame.getAttribute('data-intro')) !== null) await frame.locator('.es-intro').waitFor({ state: 'attached', timeout: 30_000 })
+}
+
 /** The specimen, or the lesson with its trace block opened by a tap, as a list. */
 async function openList(page: Page, where: 'viewer' | 'lesson'): Promise<void> {
   if (where === 'viewer') {
@@ -905,6 +918,7 @@ async function openList(page: Page, where: 'viewer' | 'lesson'): Promise<void> {
     await serveKeptLesson(page, dist)
     await page.goto(`${ORIGIN}${KEPT_LESSON.route}`)
     await page.locator('[data-block="trace"]').getByRole('button', { name: 'Open the trace' }).click()
+    await lessonFirstPaint(page)
   }
   await list(page).waitFor({ state: 'visible', timeout: 30_000 })
   await page.evaluate(() => document.fonts.ready)
