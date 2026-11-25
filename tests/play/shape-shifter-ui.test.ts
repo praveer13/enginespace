@@ -100,7 +100,8 @@ describe("the frame's five exports", () => {
     for (const id of LEVELS) {
       const view = shiftSession.view(shiftInit(practice(id)))
       const { goal } = view
-      expect([id, /\d/.test(goal.beat)]).toEqual([id, true])
+      // The practice `grid` goal line says to match the reference's masked lanes and holds no count: the guess asks for it.
+      expect([id, /\d/.test(goal.beat)]).toEqual([id, id !== 'grid'])
       for (const line of [goal.aim, goal.controls, goal.beat, goal.ends, view.predict.ask, ...partRows(id).map((part) => part.name)]) expect([id, line, findBanned(line)]).toEqual([id, line, []])
     }
   })

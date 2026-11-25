@@ -177,7 +177,7 @@ function Target({ layout }: { layout: LayoutView }) {
       <p className="es-shift__target-line">
         shape <span className="font-numeric">{shapeText(target.shape)}</span> · contiguous {target.contiguous ? 'required' : 'not required'} ·{' '}
         <span data-shift-inplace="">
-          {n(target.inPlace)} of {n(target.of)} in place
+          {n(target.inPlace)} of {n(target.of)} in order
         </span>
         <button type="button" className="es-shift__goal-toggle" aria-expanded={open} onClick={() => setOpen(!open)} data-shift-target-toggle="">
           {open ? 'hide its order' : 'show its order'}
@@ -453,7 +453,7 @@ function GridDrawing({ grid, pick, onPick }: { grid: GridView; pick: ShiftPick |
             <span>Tiles</span>
             <span className="es-shift__count">
               {/* The program's name is a button here, a line clear of BLOCK's and the grid's, so no two buttons' 44 px boxes overlap on a phone. */}
-              one <PartName id="program">program</PartName> each; a lane past the edge is <PartName id="mask">masked</PartName>
+              one <PartName id="program">program</PartName> each; <PartName id="mask">masked</PartName> past the edge
             </span>
           </h3>
           <div className="es-shift__cells" style={{ width: wideCols * size, height: tallRows * size, '--es-cell': `${size}px` } as CSSProperties} aria-hidden="true" data-small={size < 14 || undefined}>

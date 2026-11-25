@@ -301,11 +301,12 @@ async function playByPointer(page: Page, { size, level, calm = false }: Play) {
     } else {
       for (const [dim, value] of (task as { block: readonly number[] }).block.entries()) {
         const more = `[data-stepper="BLOCK along dimension ${dim}"] button[aria-label="BLOCK along dimension ${dim}: one more"]`
-        for (let v = 1; v < value; v++) {
+        // BLOCK steps through the powers of two, the values a launch takes.
+        for (let v = 1; v < value; v *= 2) {
           await scrollInItsBox(page, more)
           await inHand(page, more, `BLOCK ${dim}'s "one more", at ${v}`)
-          await pressStill(page, more, { ...still(size, false), more }, async () => undefined, `BLOCK ${dim} to ${v + 1}`)
-          await after(`BLOCK ${dim} to ${v + 1}`)
+          await pressStill(page, more, { ...still(size, false), more }, async () => undefined, `BLOCK ${dim} to ${v * 2}`)
+          await after(`BLOCK ${dim} to ${v * 2}`)
         }
       }
       await scrollInItsBox(page, '[data-shift-launch-button]')

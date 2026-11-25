@@ -95,13 +95,13 @@ function layoutOp(s: ShiftState, level: LayoutLevel, run: LayoutRun, op: ShiftOp
   if (copied > 0) moments = withMoment(moments, { id: 'copy', task: s.at, turn, op: op.op, n: copied })
   else if (op.op === 'expand' && hasInternalOverlap(node.view)) {
     const rows = node.view.shape.reduce((p, d, i) => (node.view.strides[i] === 0 ? p * d : p), 1)
-    moments = withMoment(moments, { id: 'stride-zero', task: s.at, turn, rows, m: numel(run.view.shape) })
+    moments = withMoment(moments, { id: 'stride-zero', task: s.at, turn, rows, m: numel(run.view.shape), rank: node.view.shape.length })
   } else if (node.view.strides.join() !== run.view.strides.join()) {
     moments = withMoment(moments, { id: 'view-free', task: s.at, turn, op: op.op, before: run.view.strides, after: node.view.strides })
   }
   const arrived = reaches(node, task.goal)
   if (!arrived && node.view.shape.join() === task.goal.shape.join()) {
-    // The shape matches and some element is not where the target puts it. A tensor with every element in place that only lacks contiguity is another thing.
+    // The shape matches and some element is not in the order the target puts it. A tensor with every element in the target's order that only lacks contiguity is another thing.
     const { k, of } = inPlace(node, task.goal)
     if (k < of) moments = withMoment(moments, { id: 'wrong-order', task: s.at, turn, k, n: of })
   }

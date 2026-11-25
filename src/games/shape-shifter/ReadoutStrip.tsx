@@ -6,7 +6,7 @@ import type { ShiftView } from '@es/play/shape-shifter/view'
 
 /*
  * Tensor views' readout strip (GAMES.md §4.1, REDESIGN §2.6): four numbers in the numeric face, with one stamp for the strip. On the view
- * levels: copies, elements moved, operations, and the elements in the target's place. On `grid`: programs, lanes, masked lanes and the
+ * levels: copies, elements moved, operations, and the elements already in the target's order. On `grid`: programs, lanes, masked lanes and the
  * elements covered. A number changes at once when an operation lands, and its change sits beside it for one second (the kit's delta).
  * A graded `grid` shows its counts after Launch, not before, so that sweeping the steppers reads nothing.
  */
@@ -14,6 +14,8 @@ import type { ShiftView } from '@es/play/shape-shifter/view'
 interface Item {
   readonly id: string
   readonly label: string
+  /** What a reader who cannot see the strip's width hears after the label. */
+  readonly more?: string
   readonly count: number
   readonly value: ReactNode
 }
@@ -40,7 +42,7 @@ function itemsOf(view: ShiftView): { items: readonly Item[]; hidden: boolean } {
       { id: 'copies', label: 'copies', count: r.copies, value: num(r.copies) },
       { id: 'moved', label: 'elements moved', count: r.moved, value: num(r.moved) },
       { id: 'operations', label: 'operations', count: r.operations, value: num(r.operations) },
-      { id: 'in-place', label: 'in place', count: r.inPlace, value: <>{num(r.inPlace)} of {num(r.of)}</> },
+      { id: 'in-place', label: 'in order', more: ' with the target', count: r.inPlace, value: <>{num(r.inPlace)} of {num(r.of)}</> },
     ],
   }
 }
@@ -57,7 +59,10 @@ export function ReadoutStrip({ view }: { view: ShiftView }) {
       <dl className="es-shift-strip__list">
         {items.map((item) => (
           <div key={item.id} className="es-shift-strip__item" data-readout-id={item.id} data-callout-above="">
-            <dt className="es-shift-strip__label">{item.label}</dt>
+            <dt className="es-shift-strip__label">
+              {item.label}
+              {item.more === undefined ? null : <span className="sr-only">{item.more}</span>}
+            </dt>
             <dd className="es-shift-strip__value font-numeric">
               {hidden ? <span aria-label="shown after Launch">–</span> : item.value}
               {hidden || deltas[item.id] === undefined ? null : <DeltaChip key={deltas[item.id].key} value={deltas[item.id].value} className="es-shift-strip__delta" />}

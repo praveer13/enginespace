@@ -165,7 +165,7 @@ export type Moment = { readonly task: number; readonly turn: number } & (
   | { readonly id: 'view-free'; readonly op: OpKind; readonly before: readonly number[]; readonly after: readonly number[] }
   | { readonly id: 'view-refused'; readonly shape: readonly number[] }
   | { readonly id: 'copy'; readonly op: OpKind; readonly n: number }
-  | { readonly id: 'stride-zero'; readonly rows: number; readonly m: number }
+  | { readonly id: 'stride-zero'; readonly rows: number; readonly m: number; readonly rank: number }
   | { readonly id: 'wrong-order'; readonly k: number; readonly n: number }
   | { readonly id: 'masked'; readonly index: readonly number[]; readonly lanes: number; readonly masked: number }
   | { readonly id: 'uncovered'; readonly n: number; readonly dim: number; readonly size: number; readonly block: number; readonly g: number }

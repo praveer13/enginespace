@@ -55,9 +55,12 @@ const NEAR: Readonly<Record<string, string>> = {
   masked: '[data-shift-grid] [data-program]',
   uncovered: '[data-shift-grid] [data-uncovered], [data-shift-grid]',
   'not-pow2': '[data-stepper="BLOCK along dimension 0"]',
+  'extra-copy-0': '[data-shift-buffer="now"]',
+  'extra-copy-1': '[data-shift-buffer="now"]',
+  'extra-copy-2': '[data-shift-buffer="now"]',
 }
 
-const MOMENT_IDS = ['view-free', 'view-refused', 'copy', 'stride-zero', 'wrong-order', 'too-many', 'masked', 'uncovered', 'not-pow2'] as const
+const MOMENT_IDS = ['view-free', 'view-refused', 'copy', 'stride-zero', 'wrong-order', 'too-many', 'masked', 'uncovered', 'not-pow2', 'extra-copy-0', 'extra-copy-1', 'extra-copy-2'] as const
 
 /** A moment is named when the session first records it in the level: its line is the session's, with the code spans as words. */
 export const shiftMoments: readonly KitMoment<ShiftView>[] = MOMENT_IDS.map((id) => ({

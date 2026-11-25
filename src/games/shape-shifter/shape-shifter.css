@@ -688,6 +688,16 @@ html:has(.es-frame[data-game='shape-shifter'][data-placement='page']) {
   }
 }
 
+/* `fewest`'s goal line now defines each operation it offers, which runs a line longer: at 768 px tall the readout at the frame's foot was
+   19 px under the screen, so on those laptops the fewest level's readout stands at the dock's head as a shorter window's does. */
+@media (max-height: 779.98px) {
+  .es-frame[data-game='shape-shifter'][data-level='fewest'][data-phase='play'] .es-frame__readout {
+    order: -1;
+    border-top: 0;
+    border-bottom: 1px solid var(--es-paper-rule);
+  }
+}
+
 /* On a phone under 700 px of height nothing is pinned and the dock follows the drawing. It keeps one height, a screen's at most, while the
    level is played, so the page under the hand does not grow or shrink with the decision: a long picker scrolls inside the dock. */
 @media (max-width: 63.999rem) and (max-height: 699.98px) {
@@ -894,6 +904,7 @@ html:has(.es-frame[data-game='shape-shifter'][data-placement='page']) {
   outline-offset: 2px;
 }
 
+.es-shift-dock__op:disabled,
 .es-shift-dock__step:disabled {
   border-style: dashed;
   color: var(--es-text-2);
@@ -1345,6 +1356,15 @@ html:has(.es-frame[data-game='shape-shifter'][data-placement='page']) {
 
 .es-shift-dockview .es-shift__cell {
   cursor: default;
+}
+
+/*
+ * A practice `grid` has one tensor, [12, 20]: a seed of any other number deals the three tensors of a graded run under a practice label. The
+ * foot's New numbers is the frame's (src/games/kit/Frame.tsx) and always last of its actions, so the game's own stylesheet leaves it out
+ * there; the result's own is left out in Debrief.tsx. A graded run draws new numbers at its start, and a practice view level has them.
+ */
+.es-frame[data-game='shape-shifter'][data-level='grid'][data-mode='practice'] .es-frame__foot-actions > :last-child {
+  display: none;
 }
 
 /* ------------------------------------------------------------------------------------------------ motion */

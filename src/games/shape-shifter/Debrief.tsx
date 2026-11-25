@@ -78,10 +78,11 @@ export function Debrief({ run, outcome, next, onNext, embedded = false }: Debrie
   const words = copyOf(level)
   const hasPassRule = words.passRule !== undefined
   const verdict = verdictOf(grade, hasPassRule)
-  const reference = outcome.ghostView
   const turn = debrief.names !== null && 'turn' in debrief.names ? debrief.names.turn : null
   const number = turn === null ? null : outcome.record.actions.slice(0, turn + 1).filter((action) => action.t !== 'commit').length
   const mine = run.score
+  // A practice `grid` has one tensor, [12, 20]: another seed would deal three graded-style tensors under a practice label, so it has no new numbers.
+  const hasNewNumbers = run.mode === 'graded' || view.grid === null
   const newNumbers = () => run.restart(drawInBand(shiftSession, view.level, crypto.getRandomValues(new Uint32Array(1))[0]))
 
   const lesson = useContext(LessonRunContext)
@@ -143,12 +144,17 @@ export function Debrief({ run, outcome, next, onNext, embedded = false }: Debrie
           },
         }))
   const refCopies = layoutLevel?.tasks.reduce((sum, task) => sum + task.copies, 0) ?? 0
+  // The reference's launches over every tensor the learner launched on, so that a sum is set beside a sum.
+  const gridLevel = level.kind === 'grid' ? level : null
+  const refMasked = gridLevel?.tasks.reduce((sum, task) => sum + task.least, 0) ?? 0
+  const refPrograms = gridLevel?.tasks.reduce((sum, task) => sum + task.programs, 0) ?? 0
+  const tensors = gridLevel !== null && gridLevel.tasks.length > 1 ? ` over all ${gridLevel.tasks.length} tensors` : ''
 
   const versus =
     view.grid !== null
       ? [
-          { id: 'masked', label: 'Masked lanes', mine: mine.masked, reference: reference.grid?.readouts.masked ?? 0 },
-          { id: 'programs', label: 'Programs', mine: mine.programs, reference: reference.grid?.readouts.programs ?? 0 },
+          { id: 'masked', label: `Masked lanes${tensors}`, mine: mine.masked, reference: refMasked },
+          { id: 'programs', label: `Programs${tensors}`, mine: mine.programs, reference: refPrograms },
         ]
       : [
           { id: 'copies', label: 'Copies', mine: mine.copies, reference: refCopies },
@@ -167,9 +173,11 @@ export function Debrief({ run, outcome, next, onNext, embedded = false }: Debrie
           <Button variant="quiet" aria-describedby={againId} onClick={() => (run.mode === 'graded' ? newNumbers() : run.restart())}>
             Run again
           </Button>
-          <Button variant="quiet" onClick={newNumbers}>
-            New numbers
-          </Button>
+          {hasNewNumbers ? (
+            <Button variant="quiet" onClick={newNumbers}>
+              New numbers
+            </Button>
+          ) : null}
         </>
       }
     >
@@ -179,7 +187,7 @@ export function Debrief({ run, outcome, next, onNext, embedded = false }: Debrie
           <strong>Run again:</strong>{' '}
           {view.grid !== null ? (
             <>
-              your masked lanes {figure(mine.masked)} against the reference&apos;s {figure(reference.grid?.readouts.masked ?? 0)}.
+              your masked lanes{tensors === '' ? ' ' : `${tensors}, `}{figure(mine.masked)} against the reference&apos;s {figure(refMasked)}.
             </>
           ) : (
             <>
@@ -205,7 +213,7 @@ export function Debrief({ run, outcome, next, onNext, embedded = false }: Debrie
           <section aria-label="In Triton" className="es-shift-debrief__engine">
             <h4>In Triton</h4>
             <p>
-              A kernel launches <code>cdiv(n, BLOCK)</code> programs along a dimension of size n, and each program masks the lanes whose offsets are past the edge, so its loads and
+              A kernel launches <code>cdiv(n, BLOCK)</code> programs along a dimension of size n, and each program masks the lanes whose positions are past the edge, so its loads and
               stores there do nothing.
             </p>
             <p>

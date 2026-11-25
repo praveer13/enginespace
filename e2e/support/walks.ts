@@ -876,7 +876,8 @@ export const shiftWalkWith = (level: ShiftLevelId, hooks: ShiftHooks = {}, seed 
       for (const [dim, value] of gridTask.block.entries()) {
         const more = new RegExp(`^BLOCK along dimension ${dim}: one more$`)
         await reach(page, walk, more)
-        for (let v = 1; v < value; v++) await page.keyboard.press('Enter')
+        // BLOCK steps through the powers of two, the values a launch takes.
+        for (let v = 1; v < value; v *= 2) await page.keyboard.press('Enter')
         await expect(page.locator(`[data-stepper="BLOCK along dimension ${dim}"] output`)).toHaveText(String(value))
       }
       await tabTo(walk, /^Launch$/, 12)

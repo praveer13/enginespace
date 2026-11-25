@@ -133,3 +133,14 @@ export function keyAction(command: string, view: ShiftView, done: boolean): Shif
   if (command === 'launch' && view.grid !== null) return { t: 'launch' }
   return null
 }
+
+/** The next value a BLOCK stepper takes: a power of two, because a BLOCK that is not one is refused at the launch. */
+export function nextBlock(value: number, step: 'less' | 'more', min: number, max: number): number {
+  let b = 1
+  if (step === 'more') {
+    while (b <= value) b *= 2
+    return Math.min(b, max)
+  }
+  while (b * 2 < value) b *= 2
+  return Math.max(b, min)
+}
