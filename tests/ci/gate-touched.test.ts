@@ -81,7 +81,7 @@ describe('the specs the plan names', () => {
 describe('the mapping, one row a test', () => {
   test('src/games/<g>/ gives the game\'s specs, the lesson specs, keep-list and the game\'s nightly walks', () => {
     const made = on('src/games/engine-floor/Floor.tsx')
-    expect(step(made, 'features', false)?.specs).toEqual(['engine-floor', 'engine-floor-map', 'lesson-games', 'lesson-games-scene', 'lesson-predict'])
+    expect(step(made, 'features', false)?.specs).toEqual(['engine-floor', 'engine-floor-map', 'engine-floor-sizes', 'lesson-games', 'lesson-games-scene', 'lesson-predict'])
     expect(step(made, 'smoke', false)?.specs).toEqual(['keep-list'])
     expect(step(made, 'smoke', true)).toMatchObject({ specs: ['walks'], grep: '\\((engine-floor)\\)' })
     expect(made.unmapped).toEqual([])
