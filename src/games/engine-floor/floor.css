@@ -1839,11 +1839,25 @@
   }
 }
 
-/* The legend over the drawing gains a second row as the path grows; a floor under the diagram keeps the lane box a few rows tall at 800
-   and 812 px tall phones, where the 10rem floor left it 6 px. It stops at 820: a taller phone has the room, and the floor there put the
-   drawing's foot under the dock's top, where the coach card clipped the legend's second row. */
+/* The legend over the drawing gains a second row as the path grows, so the diagram needs a floor on 800 and 812 px tall phones; but it may
+   not be taller than the room the dock leaves, or its foot goes under the dock's top and the intro's coach card covers the legend. 12rem
+   is the room at 812 px: 284 px of page above the frame and a 336 px dock leave 192. The second term is that room, 100svh minus
+   284 px and the dock's 336. */
 @media (max-width: 63.999rem) and (min-height: 700px) and (max-height: 820px) {
   .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__diagram {
-    height: max(15rem, calc(67svh - 23rem));
+    height: min(max(12rem, calc(67svh - 23rem)), calc(100svh - 38.75rem));
+  }
+}
+
+/* At 800 px the room above is 4 px less again; the ask's dock gives it those 4 px (its decision still fits) so the lane box keeps its
+   12rem floor and the "now" row stays whole. */
+@media (max-width: 63.999rem) and (min-height: 700px) and (max-height: 810px) {
+  .es-frame:is([data-placement='page'], [data-placement='embed'])[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='predict']) .es-frame__dock {
+    height: max(33svh, 20.5rem);
+    max-height: none;
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__diagram {
+    height: min(max(12rem, calc(67svh - 23rem)), calc(100svh - 38.25rem));
   }
 }
