@@ -11,7 +11,7 @@
 import type { GradedLab } from './types'
 
 const grade = (stage: string) => ({
-  line: `uv run --project envs/cpu enginespace grade ${stage} --challenge <token>`,
+  line: `uv run --project envs/cpu enginespace grade ${stage} --challenge <token> --assisted <none|explain|code> --agent <yes|no>`,
   then: `\`graded ${stage}\` with the grader's name and version, the receipt file it wrote under \`receipts/\`, and how many checks passed and failed. A failed check prints its id and what it found.`,
   from: 'course' as const,
 })
@@ -39,7 +39,7 @@ export const TR0_FORWARD: GradedLab = {
     },
     {
       line: 'uv run --project envs/cpu enginespace fetch tr0.forward',
-      then: 'A line that names the lab, how many files it pins and the cache folder, then one line for each file: `fetched` or `ok`, its path, its size and its licence. The course has not yet run this download on the pinned files [unverified].',
+      then: 'A line that names the lab, how many files it pins and the cache folder, then one line for each file: `fetched`, `resumed` (it carried on from a partial file) or `ok` (already in the cache), its path, its size and its licence. The course has not yet run this download on the pinned files [unverified].',
       from: 'course',
     },
   ],
@@ -66,7 +66,7 @@ export const TR0_FORWARD: GradedLab = {
     {
       id: 'tr0.forward.s2',
       state: { kind: 'awaiting-bank' },
-      asks: 'Every layer, the final norm and the language-model head: the logits of the whole prompt.',
+      asks: 'Every layer, the final norm and the language-model head: the logits of the whole prompt. The bar is a largest difference of 0.001 [estimated] in any logit. How far below it a correct forward pass lands on the pinned weights has not been measured yet [unverified].',
       run: grade('tr0.forward.s2'),
       checks: [
         {

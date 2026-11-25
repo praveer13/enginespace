@@ -103,13 +103,13 @@ describe('the other levels\' diagrams', () => {
     expect([view.readouts.moved, view.table.map((row) => row.stride)]).toEqual([0, [0, 1]])
   })
 
-  test('wrong order: 24 of 32 cells hatched and "8 of 32 in place" on a reshape straight to [2, 4, 4]', () => {
+  test('wrong order: 24 of 32 cells hatched and "8 of 32 in the target\'s order" on a reshape straight to [2, 4, 4]', () => {
     const state = stateAfter(practiceOf('three-d'), op({ op: 'reshape', shape: [2, 4, 4] }))
     const view = S.view(state)
     expect(view.layout?.cells.filter((cell) => cell.marked)).toHaveLength(24)
     expect([view.layout?.target.inPlace, view.layout?.target.of, view.layout?.slices]).toEqual([8, 32, 2])
     expect(view.moments.find((m) => m.id === 'wrong-order')?.line).toBe(
-      'The shape matches the target and the order does not: 8 of 32 elements are in place. `view` and `reshape` keep the elements in the order you read them, row by row; `permute` changes which dimension moves fastest.',
+      "The shape matches the target and the order does not: 8 of 32 elements are in the target's order. `view` and `reshape` keep the elements in the order you read them, row by row; `permute` changes which dimension moves fastest.",
     )
   })
 
@@ -176,9 +176,11 @@ describe('the named moments (GAMES.md §4.6)', () => {
 
   test('each line is the table\'s, with every figure the state\'s', () => {
     expect(momentLine({ id: 'copy', task: 0, turn: 1, op: 'reshape', n: 24 }, views)).toBe('`reshape` moved 24 elements into a new buffer, every one of them. The stride order now reads row by row.')
-    expect(momentLine({ id: 'stride-zero', task: 0, turn: 0, rows: 4, m: 6 }, practiceOf('stride-zero'))).toBe('Stride 0: the 4 rows read the same 6 elements. Writing to one row would change them all.')
+    expect(momentLine({ id: 'stride-zero', task: 0, turn: 0, rows: 4, m: 6, rank: 2 }, practiceOf('stride-zero'))).toBe('Stride 0: the 4 rows read the same 6 elements. Writing to one row would change them all.')
+    // A rank-3 tensor repeats whole grids, the diagram's slices, and its line does not call them rows.
+    expect(momentLine({ id: 'stride-zero', task: 0, turn: 0, rows: 3, m: 6, rank: 3 }, practiceOf('stride-zero'))).toBe('Stride 0: the 3 slices read the same 6 elements. Writing to one slice would change them all.')
     expect(momentLine({ id: 'masked', task: 0, turn: 3, index: [0, 0], lanes: 64, masked: 16 }, grid)).toBe(
-      'Program (0, 0) runs 64 lanes and 16 are masked: their offsets are past the edge, so the mask is false there.',
+      'Program (0, 0) runs 64 lanes and 16 are masked: their positions are past the edge, so the mask is false there.',
     )
     expect(momentLine({ id: 'uncovered', task: 0, turn: 3, n: 48, dim: 1, size: 20, block: 4, g: 5 }, grid)).toBe('48 elements are not covered: along dimension 1 the grid needs cdiv(20, 4) = 5 programs.')
     expect(momentLine({ id: 'not-pow2', task: 0, turn: 2, x: 12 }, grid)).toBe('BLOCK must be a power of two, because `tl.arange` takes one. 12 is not.')
@@ -187,17 +189,17 @@ describe('the named moments (GAMES.md §4.6)', () => {
 
   test('a refused view says reshape would copy, except on fewest, which offers none: there the target has failed', () => {
     const refused = { id: 'view-refused', task: 0, turn: 1, shape: [24] } as const
-    expect(momentLine(refused, views)).toBe('`view` cannot give [24] here: the stride order jumps where the new shape needs one stride. `reshape` would copy.')
+    expect(momentLine(refused, views)).toBe("`view` cannot give [24] here: the stride order jumps where the new shape needs one stride. `reshape` would copy, as PyTorch 2.14's does.")
     expect(momentLine(refused, fewest)).toBe('`view` cannot give [24] here: the stride order jumps where the new shape needs one stride. This target has failed.')
   })
 
   test('the wrong order says that view and reshape keep the order read row by row, and names view alone on fewest, which offers no reshape', () => {
     const wrongOrder = { id: 'wrong-order', task: 0, turn: 1, k: 8, n: 32 } as const
     expect(momentLine(wrongOrder, practiceOf('three-d'))).toBe(
-      'The shape matches the target and the order does not: 8 of 32 elements are in place. `view` and `reshape` keep the elements in the order you read them, row by row; `permute` changes which dimension moves fastest.',
+      "The shape matches the target and the order does not: 8 of 32 elements are in the target's order. `view` and `reshape` keep the elements in the order you read them, row by row; `permute` changes which dimension moves fastest.",
     )
     expect(momentLine(wrongOrder, fewest)).toBe(
-      'The shape matches the target and the order does not: 8 of 32 elements are in place. `view` keeps the elements in the order you read them, row by row; `permute` changes which dimension moves fastest.',
+      "The shape matches the target and the order does not: 8 of 32 elements are in the target's order. `view` keeps the elements in the order you read them, row by row; `permute` changes which dimension moves fastest.",
     )
   })
 })

@@ -4,9 +4,10 @@
  */
 import { describe, expect, test } from 'bun:test'
 import type { LedgerEvent } from '@es/ledger'
-import { activityRows, attemptCounts, dayWords, skillCounts } from '@/evidence/rows'
+import { activityRows, attemptCounts, dayWords, runGuesses, skillCounts } from '@/evidence/rows'
 import { ATTEMPT_WORDS } from '@/progress/words'
 import { MAP } from '../map/support'
+import { lessonName } from '@/progress/next'
 import { copy, EXAMPLES } from '../ledger/support'
 
 const LESSONS = MAP.lessons
@@ -59,13 +60,32 @@ describe('activityRows', () => {
     expect(unnamed.what).toBe('Played a level')
   })
 
+  test('reads a run proved with the agent closed as proved, and a graded run played with it open as it was', () => {
+    const [proved, unseen, practice] = ['proved', 'unseen', 'practice'].map(
+      (provenance, n) => activityRows([at('play', `g${n}`, { ref: 'play:loop/close', ok: true, provenance })], { lessons: LESSONS, levelName: names })[0],
+    )
+    expect(proved.what).toBe('Played Step loop, close, agent closed')
+    expect(proved.result).toBe(ATTEMPT_WORDS.yes)
+    expect(unseen.what).toBe('Played Step loop, close')
+    expect(practice.what).toBe('Played Step loop, close')
+  })
+
+  test('reads a run left before its end as left, a miss that is in the log, and a run that ended as played', () => {
+    const left = { ...at('play', 'g9', { ref: 'play:loop/close', ok: false, provenance: 'proved' }), data: { actions: '[]', actionsSha256: 'a'.repeat(64), left: '2026-11-20T09:00:00.000Z' } } as LedgerEvent
+    const [row] = activityRows([left], { lessons: LESSONS, levelName: names })
+    expect(row.what).toBe('Left Step loop, close, agent closed, before its end')
+    expect(row.result).toBe(ATTEMPT_WORDS.no)
+    const [plain] = activityRows([{ ...left, provenance: 'unseen' } as LedgerEvent], { lessons: LESSONS, levelName: names })
+    expect(plain.what).toBe('Left Step loop, close, before its end')
+  })
+
   test('leaves out an acknowledgement, which carries no result', () => {
     expect(activityRows([copy(EXAMPLES.ack) as LedgerEvent], { lessons: LESSONS, levelName: names })).toEqual([])
   })
 
-  test('says a GPU lab result as passed, in practice or not counted, and a challenge as issued', () => {
+  test('says a lab result as passed, in practice or not counted, and a challenge as issued', () => {
     const rows = activityRows([copy(EXAMPLES.receipt) as LedgerEvent, copy(EXAMPLES.challenge) as LedgerEvent], { lessons: LESSONS, levelName: names })
-    expect(rows.map((row) => row.what).every((what) => /GPU lab result|challenge/.test(what))).toBe(true)
+    expect(rows.map((row) => row.what).every((what) => /lab result|challenge/.test(what))).toBe(true)
     expect(rows.some((row) => row.result === 'issued')).toBe(true)
   })
 
@@ -74,6 +94,56 @@ describe('activityRows', () => {
     for (const row of activityRows(all, { lessons: LESSONS, levelName: names })) {
       expect(`${row.what} ${row.result} ${row.where ?? ''}`).not.toMatch(/\b(?:tr\d\.|item:|play:|predict:)|\bW\d|\bR-T\d|\bD-0\d/)
     }
+  })
+})
+
+describe('a row reads the record rightly', () => {
+  const rowOf = (event: LedgerEvent) => activityRows([event], { lessons: LESSONS, levelName: names })[0]
+
+  test('a guess that is the answer itself reads exact, a right one within the bar close, a wrong one off', () => {
+    const guess = (ok: boolean, value: unknown, truth: unknown) => rowOf(at('predict', 'p', { ok, data: { value, truth, unit: 'us' } })).result
+    expect(guess(true, 312, 312)).toBe('exact')
+    expect(guess(true, 300, 312)).toBe('close')
+    expect(guess(false, 300, 312)).toBe('off')
+    expect(guess(true, 'b', 'b')).toBe('exact')
+    expect(guess(true, { lo: 3, hi: 3 }, 3)).toBe('exact')
+    expect(guess(true, { lo: 2, hi: 4 }, 3)).toBe('close')
+  })
+
+  test('the in-run guess of a run is in its row, once per commit', () => {
+    const actions = JSON.stringify([{ t: 'commit', prediction: 1 }, { t: 'step' }, { t: 'commit', prediction: 3 }])
+    expect(rowOf(at('play', 'g', { ref: 'play:loop/close', data: { actions, actionsSha256: 'a'.repeat(64) } })).what).toBe('Played Step loop, close, guessing 1 and 3 before the moves')
+    expect(runGuesses('not json')).toEqual([])
+    expect(runGuesses('[{"t":"step"}]')).toEqual([])
+  })
+
+  test('a question is filed under the lesson it was answered in, when two lessons ask its family', () => {
+    const one = LESSONS[0]
+    const two = { ...one, id: `${one.id}.b`, route: `${one.route}-b` }
+    const row = { family: 'fam.shared', count: 1 }
+    const lessons = [
+      { ...one, run: [], inline: [], test: { ...one.test, graded: [], questions: [row] }, checkpoints: [] },
+      { ...two, run: ['play:loop/close'], inline: [], test: { ...two.test, graded: [], questions: [row] }, checkpoints: [] },
+    ] as typeof LESSONS
+    const events = [
+      at('play', 'g', { ref: 'play:loop/close', at: '2026-11-04T09:00:00.000Z' }),
+      at('item', 'q', { ref: 'item:gen/fam.shared/v', at: '2026-11-04T10:00:00.000Z' }),
+    ]
+    const where = activityRows(events, { lessons, levelName: names }).find((r) => r.id === 'q')?.where
+    expect(where).toBe(lessonName(lessons[1], lessons))
+    expect(where).not.toBe(lessonName(lessons[0], lessons))
+  })
+
+  test('a lab row carries the lab`s name', () => {
+    expect(rowOf(at('lab-check', 'l', { ref: 'lab:hybrid-kv' })).what).toBe('Checked “Build a hybrid KV cache manager” in this browser')
+    expect(rowOf(at('lab-check', 'l', { ref: 'lab:nowhere' })).what).toBe('Checked a lab in this browser')
+  })
+
+  test('a run at part weight on a graded level is a practice row', () => {
+    const lessons = LESSONS.map((lesson, n) => (n === 0 ? { ...lesson, test: { ...lesson.test, graded: ['play:loop/close'] } } : lesson))
+    const row = (provenance: string) => activityRows([at('play', 'g', { ref: 'play:loop/close', provenance })], { lessons, levelName: names })[0].kind
+    expect(row('unseen')).toBe('graded')
+    expect(row('practice')).toBe('practice')
   })
 })
 

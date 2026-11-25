@@ -44,6 +44,16 @@ function controlOf(target: EventTarget | null): string {
   return `${element.tagName}|${element.getAttribute('aria-label') ?? ''}|${(element.textContent ?? '').trim()}`
 }
 
+/**
+ * Whether a press is the press before it again, moments later at the same spot, on a control that came up there or on none: a double click
+ * on the last choice of a run, whose second press lands on the result. The browser's own answer to such a press, moving focus to the nearest
+ * thing that can have it (the whole game), is wrong: focus stays on the result. Pure.
+ */
+export function pressesAgain(before: Press | null, now: Press): boolean {
+  if (before === null || (now.control !== '' && now.control === before.control)) return false
+  return now.t - before.t <= SAME_TIME && Math.hypot(now.x - before.x, now.y - before.y) <= SAME_SPOT
+}
+
 /** Ignores stray presses inside `root` (see above). Returns the undo. */
 export function guardPresses(root: HTMLElement): () => void {
   let before: Press | null = null
@@ -51,6 +61,11 @@ export function guardPresses(root: HTMLElement): () => void {
   const down = (event: PointerEvent) => {
     before = now
     now = { x: event.clientX, y: event.clientY, t: event.timeStamp, control: controlOf(event.target) }
+  }
+  // The second press of a double click lands on what the first one brought up. It does not take focus from where the result put it.
+  const mouse = (event: MouseEvent) => {
+    if (now === null || !pressesAgain(before, { ...now, control: controlOf(event.target) })) return
+    event.preventDefault()
   }
   const click = (event: MouseEvent) => {
     // A key's click has no pointer (detail 0), and is never a stray.
@@ -60,9 +75,11 @@ export function guardPresses(root: HTMLElement): () => void {
     event.stopPropagation()
   }
   root.addEventListener('pointerdown', down, true)
+  root.addEventListener('mousedown', mouse, true)
   root.addEventListener('click', click, true)
   return () => {
     root.removeEventListener('pointerdown', down, true)
+    root.removeEventListener('mousedown', mouse, true)
     root.removeEventListener('click', click, true)
   }
 }
@@ -108,19 +125,36 @@ export function seatInBoxBy(target: { top: number; bottom: number }, box: { top:
   return Math.min(target.bottom - room, target.top - top)
 }
 
+/** The height (px) of the "More below" a box that scrolls shows at its foot: its own (the dock's, 2.25rem) or its list's (1.75rem). */
+function footOf(box: Element): number {
+  for (const holder of [box, box.firstElementChild]) {
+    if (holder === null) continue
+    const after = getComputedStyle(holder, '::after')
+    if (after.content.includes('More below')) return parseFloat(after.height) || MORE_BELOW
+  }
+  return MORE_BELOW
+}
+
 /**
- * Brings `target` into view inside the dock that holds it (or inside `within`, where given), by scrolling the boxes that scroll there and
- * never the page: a pinned dock whose steppers or picker scroll inside it keeps the control the intro rings over the readout, where the
- * learner can see it and press it.
+ * Brings `target` into view inside the dock that holds it (or inside `within`, where given), by scrolling the boxes that scroll there: a
+ * pinned dock whose steppers or picker scroll inside it keeps the control the intro rings over the readout, where the learner can see it
+ * and press it. The page is scrolled only where the dock is not pinned and the control is off the screen, after the learner's own press.
  */
 export function seatInDock(target: HTMLElement, within?: Element | null): void {
   const room = within ?? target.closest('[data-dock]')
   if (room === null) return
   for (let box = target.parentElement; box !== null && room.contains(box); box = box.parentElement) {
     if (!/auto|scroll/.test(getComputedStyle(box).overflowY) || box.scrollHeight <= box.clientHeight + 1) continue
-    const by = seatInBoxBy(target.getBoundingClientRect(), box.getBoundingClientRect())
+    const by = seatInBoxBy(target.getBoundingClientRect(), box.getBoundingClientRect(), footOf(box))
     if (Math.abs(by) >= 1) box.scrollTop += by
   }
+  // Under 700 px of height the dock follows the drawing and nothing in it scrolls: a long picker runs on down the page, and the control
+  // the learner reached is brought on to the screen by the page, as far as it needs and no further.
+  const dock = target.closest('[data-dock]')
+  if (dock === null || getComputedStyle(dock).position === 'sticky') return
+  const r = target.getBoundingClientRect()
+  if (r.bottom > window.innerHeight) window.scrollBy({ top: r.bottom - window.innerHeight + SEAT_ABOVE, behavior: 'instant' })
+  else if (r.top < 0) window.scrollBy({ top: r.top - SEAT_ABOVE, behavior: 'instant' })
 }
 
 /** Under 64rem: the drawing stands in the page's flow (shape-shifter.css). */
@@ -217,11 +251,14 @@ export function scrollToShow(box: { top: number; bottom: number }, above: number
 
 /**
  * On a phone's first run, each part the intro walk names is brought whole into view over the pinned dock. `parts` are the level's part
- * ids, in the walk's order. Returns the undo.
+ * ids, in the walk's order. In a lesson (`embedded`) the game stands far down the page and the page is the learner's: nothing scrolls until
+ * the learner has pressed, typed or focused inside the frame, and then the part the walk names at that moment is shown. Returns the undo.
  */
-export function showNamedParts(frame: HTMLElement, parts: readonly string[]): () => void {
+export function showNamedParts(frame: HTMLElement, parts: readonly string[], embedded = false): () => void {
   let shown: string | null = null
+  let acted = !embedded
   const look = () => {
+    if (!acted) return
     const walk = frame.querySelector('[data-intro-walk]')?.getAttribute('data-intro-walk') ?? null
     if (walk === shown) return
     shown = walk
@@ -235,10 +272,25 @@ export function showNamedParts(frame: HTMLElement, parts: readonly string[]): ()
     const by = scrollToShow(region.getBoundingClientRect(), above, below)
     if (by !== 0) window.scrollBy({ top: by, behavior: 'instant' })
   }
+  const act = () => {
+    if (acted) return
+    acted = true
+    look()
+  }
   const watch = new MutationObserver(look)
   watch.observe(frame, { subtree: true, attributes: true, attributeFilter: ['data-intro-walk'], childList: true })
+  if (embedded) {
+    frame.addEventListener('pointerdown', act, true)
+    frame.addEventListener('keydown', act, true)
+    frame.addEventListener('focusin', act)
+  }
   look()
-  return () => watch.disconnect()
+  return () => {
+    watch.disconnect()
+    frame.removeEventListener('pointerdown', act, true)
+    frame.removeEventListener('keydown', act, true)
+    frame.removeEventListener('focusin', act)
+  }
 }
 
 /**

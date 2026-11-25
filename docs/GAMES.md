@@ -242,11 +242,11 @@ D-063 (wave R) replaces D-049's two vocabularies with one: **the engine's term i
 | `verifier` | **Rejection sampler** | Accept with min(1, p/q), resample from (p - q)+, and the output is exactly p. | You are the verifier. |
 | `broken-bench` | **Broken benchmark** | Latency counts from when a request was due. | You audit a benchmark. |
 | `shape-shifter` | **Tensor views** | A view relabels the buffer. A copy moves every element. | You plan the reshape. |
-| `gap-hunt` | **Trace attribution** | Every nanosecond of a step belongs to a kernel, a copy, a CPU gap or idle. | You account for a step. |
+| `gap-hunt` | **Trace attribution** | Every nanosecond of a step belongs to a kernel, a copy, a CPU gap or idle. | You attribute the gap. |
 | `dispatch` | **Backend dispatch** | The first attention backend that meets every requirement takes the call. | You predict the backend. |
 | `switchyard` | **KV offload** | A page in transit cannot be read, and every move is published as an event. | You move KV between tiers. |
 
-The first five role lines are REDESIGN §2.6's. Tensor views' line is REDESIGN §7's and the tracker's, which are later than the roster's first line, "You lay out a tensor." (D-073, proposed). The three games still to be designed take theirs from their rule, and the task that builds each may reword its line.
+The first five role lines are REDESIGN §2.6's. Tensor views' line is REDESIGN §7's and the tracker's, which are later than the roster's first line, "You lay out a tensor." (D-073, proposed). Trace attribution's is the tracker's line for W2-T20, which is later than the roster's first line, "You account for a step." (D-079, proposed). The two games still to be designed take theirs from their rule, and the task that builds each may reword its line.
 
 #### Step loop (`loop`)
 
@@ -308,7 +308,7 @@ The first five role lines are REDESIGN §2.6's. Tensor views' line is REDESIGN �
 *Trace attribution.* In TR3 and the capstone; 2D. The traces live on the course's Traces page.
 
 - **The present:** the focused event.
-- **The diagram** (§6): a trace, synthetic or pinned with its GPU, engine pin, date and SHA-256. Tracks: the CPU main thread with its Python frames nested, CUDA API calls, GPU streams and copies. Step marks bound each window. The categories: kernel, copy-only, CPU gap and both idle, with overlap reported beside them. The unaccounted counter must reach 0. A gap's cause is read off the launch queue: CPU work covering most of the gap, or a blocking sync ending at or after its start. Correlation links join a launch to its kernel. On phones the trace becomes a list of the window's events.
+- **The diagram** (§6): a trace, synthetic or pinned with its GPU, engine pin, date and SHA-256. Tracks: the CPU main thread with its Python frames nested, CUDA API calls, GPU streams and copies. Step marks bound each window. The categories: kernel, copy-only, CPU gap and both idle, with overlap reported beside them. "CPU gap" is the trace model's word and the one TR3's form uses, from one key (`GAP_WORD` of `src/copy/terms.ts`): it is TR2's bubble as a trace shows it, and "bubble" stays TR2's word (D-080, proposed; N2's default). The unaccounted counter must reach 0. A gap's cause is read off the launch queue: CPU work covering most of the gap, or a blocking sync ending at or after its start. Correlation links join a launch to its kernel. On phones the trace becomes a list of the window's stretches with category radios, and a list of its CPU spans for the cause (§6, "Controls").
 - **Legible:** every span's category (pattern and code), the unaccounted counter, the window's ns, the cause mark and the step marks, all as DOM.
 
 #### Backend dispatch (`dispatch`)
@@ -1061,9 +1061,10 @@ ARCHITECTURE §5.7, §6.1 and §8.5 now state this partition in place of their e
 - Zoom with `+` and `−` (pinch optional); pan with the arrow keys (drag optional).
 - `J` and `K` jump to the previous and next event edge on the focused track, `Enter` sets a mark's start or end, and `1`-`4` choose a category.
 - `X` marks the focused event as the cause.
-- On phones the step's events are a table with category radios, and the timeline is a minimap: marking by list.
+- On phones the step's events are a table with category radios, and the timeline is a minimap: marking by list. A row is a stretch between two consecutive edges at which the GPU turns busy or idle, its work changes between kernel and copy-only, or the main thread turns busy or idle; a second list holds the window's main-thread spans and blocking calls for the cause. The list writes the same actions as the lanes and is graded the same (ASSESSMENT §4.3).
+- The session owns the marks, as its actions (`mark`, `unmark`, `cause`, `submit`, `commit`); the viewer receives them as props and emits the same actions, and its own state is the view only. A graded run is replayed from the action log.
 
-**Levels.**
+**Levels.** `read`, `graphs`, `gap` and `attribute` are built in wave 2, on synthetic traces. `pinned` and `yours` are neither built nor registered, and each shows a plain waiting line in their place (TR3's design, "Before you write", items 5 and 6, which also give each built level's goal line, its pass sentence and the spans that arrive already categorized).
 
 | Level | Traces | Kind |
 |---|---|---|
@@ -1071,13 +1072,13 @@ ARCHITECTURE §5.7, §6.1 and §8.5 now state this partition in place of their e
 | `gap` | synthetic with seeded jitter: find the largest gap and name its cause (eager launches, a sync, host scheduling) | practice → **graded** |
 | `attribute` | synthetic: partition a step | practice → **graded** |
 | `graphs` | graph replay against node-level traces (`--cuda-graph-trace=node`); NVTX is absent inside captured graphs (research T3) | practice |
-| `pinned` | the owner's 6-10 SHA-256-pinned traces; trace, step and ask drawn at grade time | **graded** (TR3's B artifact; after W2-T21) |
-| `yours` | the learner's own trace, loaded locally | practice in the browser. F-lane credit belongs to the grader (D-001). |
+| `pinned` | the owner's 6-10 SHA-256-pinned traces; trace, step and ask drawn at grade time | **graded** (TR3's B artifact; after W2-T21); not built in wave 2 |
+| `yours` | the learner's own trace, loaded locally | practice in the browser. F-lane credit belongs to the grader (D-001). Not built in wave 2 |
 
-- **Band.** On synthetic seeds, the largest gap is ≥ 1.5 × the second largest, and the cause is one CPU span covering ≥ 60% of the gap's lead-in. On pinned traces, candidate steps are pre-screened by the same rule.
+- **Band.** On synthetic seeds, the largest gap is ≥ 1.5 × the second largest, and the cause is one CPU span covering ≥ 60% of the gap's lead-in. On pinned traces, candidate steps are pre-screened by the same rule. Three more rules for a graded case [estimated] (TR3's design, items 6, 7 and 11): the window's non-kernel ns are at least 10% of it, so marking it all "kernel" stays under the bar; in at least half the cases a main-thread span longer than the cause lies under GPU-busy time, so "the widest span" fails; and the reference partition has at most 12 segments, the most marks a case may need.
 - **Difficulty.** Clean, then jittered, then graph traces, then real traces. The asks go from one gap to a full partition.
 
-**Scoring and pass.** Counted from the trace's own timestamps, in ns: correct ns over window ns, and whether the cause is the right event id. Pass when ≥ 95% of the window is in the right category and the cause is correct, on 3 fresh cases. The trace's ns were measured on the owner's GPU or computed by the model; the learner's pace is never measured.
+**Scoring and pass.** Counted from the trace's own timestamps, in ns: correct ns over window ns, and whether the cause is the right event id. Pass when ≥ 95% of the window is in the right category and the cause is correct, on 3 fresh cases. The graded `gap` answer is a place and a cause together: the gap's two edges and its cause's event id must both be the reference's. A lesson's `trace` block grades marks differently, by the share of the ns the learner marked (90%, `src/trace/grade.ts`); the two bars divide by different things and are never printed as one rule. The trace's ns were measured on the owner's GPU or computed by the model; the learner's pace is never measured.
 
 **Predict, Prove, Keep.**
 - Predict: the largest contributor.

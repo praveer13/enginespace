@@ -242,6 +242,8 @@
   z-index: 2;
   left: 2px;
   translate: 0 -35%;
+  /* Kept in the gutter when the box is scrolled sideways (View2D.tsx sets the scroll as --es-lanes-x). */
+  transform: translateX(var(--es-lanes-x, 0px));
   padding-right: 2px;
   background: var(--es-paper);
   font-size: var(--es-size-micro);
@@ -641,6 +643,7 @@
 }
 
 .es-floor-card {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -675,8 +678,33 @@
   gap: 0 var(--es-space-3);
 }
 
-.es-floor-card__note[open] {
-  flex-basis: 100%;
+/* The fold opens over the stage list, on a sheet of its own, and not into the dock: opening it moves nothing under the pointer. */
+.es-floor-card__panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  gap: var(--es-space-2);
+  max-height: min(22rem, calc(100svh - 14rem));
+  margin-top: var(--es-space-1);
+  padding: var(--es-space-3);
+  overflow: auto;
+  border: 1px solid var(--es-paper-ink);
+  border-radius: var(--es-radius-paper);
+  background: var(--es-paper);
+  box-shadow: var(--es-shadow-lift);
+}
+
+.es-floor-card__panel p {
+  font-size: var(--es-size-note);
+  line-height: 1.5;
+}
+
+.es-floor-card__read {
+  color: var(--es-text-2);
 }
 
 .es-floor-card__note summary {
@@ -923,12 +951,18 @@
   opacity: 0.8;
 }
 
-/* On a desk too short for three rows of chips and a list worth reading, the chips are one row that scrolls sideways, the dock's parts sit
-   closer, and the line that says the map allows one run is left to the pass rule over it, which says the same. */
-@media (min-width: 64rem) and (max-height: 759px) {
+/* On a desk too short for three rows of chips and a list worth reading (a laptop's 768 px is one), the chips are one row that scrolls
+   sideways, a wheel turned over it included (useFloorControls.ts), and a fade at its right edge says that more chips are there; the dock's
+   parts sit closer, and the line that says the map allows one run is left to the pass rule, which says the same. */
+@media (min-width: 64rem) and (max-height: 799px) {
   .es-floor-chips {
     flex-wrap: nowrap;
     overflow: auto hidden;
+    overscroll-behavior-x: contain;
+  }
+
+  .es-floor-chips[data-more] {
+    mask-image: linear-gradient(to right, var(--es-paper-ink) calc(100% - 2rem), transparent);
   }
 
   .es-floor-dock {
@@ -1154,6 +1188,19 @@
   background: var(--es-paper);
 }
 
+/* A learner who scrolls the actions into view keeps the whole 44 px target of each control on the screen: the scroll leaves the margin. */
+.es-floor-actions__row button {
+  scroll-margin-block: var(--es-space-2);
+}
+
+/* On a phone the two actions are pressed with a finger, so each keeps the 44 px target the parts rules ask of a control (DESIGN); a short
+   phone's foot no longer cuts it, since the target is the box itself. */
+@media (max-width: 63.999rem) {
+  .es-floor-actions__row .es-button[data-size='sm'] {
+    min-height: 2.75rem;
+  }
+}
+
 /* In a lesson the dock follows the page where it has no height of its own (a narrow column, a short phone): there the actions follow the
    list, not the screen's foot. */
 .es-frame[data-placement='embed'] .es-floor-actions {
@@ -1247,6 +1294,13 @@
   flex: none;
 }
 
+/* The stamp's 44 px touch box gives its extra height back to the line (parts.css, a stamp's trigger), which leaves it 12 px under the
+   line's foot; at the readout's foot that puts the focus ring (3 px at a 2 px offset) past the screen. The bottom margin goes, so the touch
+   box ends on the strip's own foot and the ring is inside it. */
+.es-floor-strip__stamp.es-pop[data-variant='stamp'] > .es-pop__trigger {
+  margin-block-end: 2px;
+}
+
 /*
  * At a desk, on the game's page, once the stage list is open: the drawing and the dock fill one screen (the page brings it whole into view
  * at the commit), the dock does not scroll, and the list's box takes what the dock does not need. A named moment stands over the card for
@@ -1255,6 +1309,8 @@
 @media (min-width: 64rem) {
   .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__body {
     height: clamp(26rem, 100svh - 1rem, 60rem);
+    /* The toolbar under the body stands a clear rem past the screen's foot, not a sliver of it under the edge. */
+    margin-bottom: var(--es-space-4);
     scroll-margin-block: var(--es-space-2);
   }
 
@@ -1301,6 +1357,71 @@
     z-index: 3;
     margin: 0;
     box-shadow: var(--es-shadow-lift);
+  }
+}
+
+/* Where the dock stands beside the drawing (the game's page at a desk, a lesson's Run in a wide column), the first run's last step (the ring
+   on the first move) stands over the drawing's foot, above its legend, as on a phone, and not in the dock: it goes with the first lay, and
+   so nothing in the dock moves when it does. */
+@media (min-width: 64rem) {
+  .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] {
+    position: absolute;
+    right: calc(100% + var(--es-space-3));
+    bottom: 3.5rem;
+    z-index: 3;
+    flex-flow: column nowrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    width: min(22rem, 40vw);
+    margin: 0;
+    padding: var(--es-space-3);
+    border: 1px solid var(--es-paper-ink);
+    border-radius: var(--es-radius-paper);
+    background: var(--es-paper);
+    box-shadow: var(--es-shadow-lift);
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] .es-intro__lead {
+    display: block;
+    order: 1;
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] .es-intro__actions {
+    position: static;
+    order: 2;
+    margin: 0;
+    padding: 0;
+  }
+
+  @container es-frame (min-width: 56rem) {
+    .es-frame[data-placement='embed'][data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] {
+      position: absolute;
+      right: calc(100% + var(--es-space-3));
+      bottom: 3.5rem;
+      z-index: 3;
+      flex-flow: column nowrap;
+      align-items: flex-start;
+      justify-content: flex-start;
+      width: min(22rem, 40cqw);
+      margin: 0;
+      padding: var(--es-space-3);
+      border: 1px solid var(--es-paper-ink);
+      border-radius: var(--es-radius-paper);
+      background: var(--es-paper);
+      box-shadow: var(--es-shadow-lift);
+    }
+
+    .es-frame[data-placement='embed'][data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] .es-intro__lead {
+      display: block;
+      order: 1;
+    }
+
+    .es-frame[data-placement='embed'][data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] .es-intro__actions {
+      position: static;
+      order: 2;
+      margin: 0;
+      padding: 0;
+    }
   }
 }
 
@@ -1464,6 +1585,26 @@
   }
 }
 
+/* On a phone's pinned dock the number and Commit come before the sentences that help to guess it (how to count, why there is no skip), so
+   the decision is whole over the readout at every height that pins the dock; the choices say the hint as their description. */
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame[data-placement='page'][data-game='engine-floor'] :is(.es-floor-predict__hint, .es-floor-predict__why) {
+    order: 1;
+  }
+}
+
+/* Only the phones whose dock leaves Commit's foot a few pixels under the screen (700 to 820 px tall) take the tighter gaps; a taller or
+   wider phone keeps the desk's rhythm. */
+@media (max-width: 63.999rem) and (min-height: 700px) and (max-height: 820px) {
+  .es-frame[data-placement='page'][data-game='engine-floor'] .es-floor-predict {
+    gap: var(--es-space-1);
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'] .es-floor-predict__choices {
+    gap: var(--es-space-1);
+  }
+}
+
 @media (max-width: 63.999rem) and (min-height: 700px) {
   .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__dock-main {
     padding-block: var(--es-space-1);
@@ -1476,7 +1617,7 @@
   /* The dock has one height while the path is laid, the list's box taking what the rest leaves (three tiles and a little more); a stopped
      run's note scrolls under the actions, and a named moment stands over the drawing's foot, just above the dock, so that neither moves
      what the dock holds. */
-  .es-frame:is([data-placement='page'], [data-placement='embed'])[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__dock {
+  .es-frame:is([data-placement='page'], [data-placement='embed'])[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__dock {
     height: max(33svh, 21rem);
     max-height: none;
   }
@@ -1486,7 +1627,9 @@
   .es-frame:is([data-placement='page'], [data-placement='embed'])[data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] {
     position: absolute;
     right: var(--es-space-2);
-    bottom: calc(100% + var(--es-space-1));
+    /* Over the drawing's empty foot and clear of its legend: the legend's two rows and the room round them stand between the dock's top and
+       the card's foot. */
+    bottom: calc(100% + 3.75rem);
     left: var(--es-space-2);
     z-index: 3;
     margin: 0;
@@ -1670,28 +1813,51 @@
    the legend gains a word for each mechanism laid, so the dock under the drawing does not move as the path grows. Nothing in the frame
    changes height then, so the browser is not asked to keep a part of it in place by scrolling the page. */
 @media (max-width: 63.999rem) {
-  .es-frame[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) {
+  .es-frame[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) {
     overflow-anchor: none;
   }
 
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__diagram {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__diagram {
     height: clamp(16rem, 32svh + 5rem, 27rem);
   }
 
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__view {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__view {
     flex: 1 1 0;
     min-height: 0;
     max-height: none;
     overflow: hidden;
   }
 
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) :is(.es-frame__surface, .es-lanes[data-floor-lanes]) {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) :is(.es-frame__surface, .es-lanes[data-floor-lanes]) {
     height: 100%;
   }
 }
 
 @media (max-width: 63.999rem) and (min-height: 700px) {
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__diagram {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__diagram {
     height: max(10rem, calc(67svh - 23rem));
+  }
+}
+
+/* The legend over the drawing gains a second row as the path grows, so the diagram needs a floor on 800 and 812 px tall phones; but it may
+   not be taller than the room the dock leaves, or its foot goes under the dock's top and the intro's coach card covers the legend. 12rem
+   is the room at 812 px: 284 px of page above the frame and a 336 px dock leave 192. The second term is that room, 100svh minus
+   284 px and the dock's 336. */
+@media (max-width: 63.999rem) and (min-height: 700px) and (max-height: 820px) {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__diagram {
+    height: min(max(12rem, calc(67svh - 23rem)), calc(100svh - 38.75rem));
+  }
+}
+
+/* At 800 px the room above is 4 px less again; the ask's dock gives it those 4 px (its decision still fits) so the lane box keeps its
+   12rem floor and the "now" row stays whole. */
+@media (max-width: 63.999rem) and (min-height: 700px) and (max-height: 810px) {
+  .es-frame:is([data-placement='page'], [data-placement='embed'])[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='predict']) .es-frame__dock {
+    height: max(33svh, 20.5rem);
+    max-height: none;
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__diagram {
+    height: min(max(12rem, calc(67svh - 23rem)), calc(100svh - 38.25rem));
   }
 }

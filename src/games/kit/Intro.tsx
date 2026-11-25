@@ -108,7 +108,11 @@ export function IntroCoach({ title, step, parts, replay, look, ask, askLead, ski
     const how = pressed.current
     pressed.current = null
     if (how !== 'step') return
-    const field = step === 'ask' ? root.current?.parentElement?.querySelector<HTMLElement>('input:not(:disabled), textarea, select') : null
+    // The paired guess's "How sure are you?" plates are not the field: the number comes first, and the plates are one Tab away.
+    const field =
+      step === 'ask'
+        ? [...(root.current?.parentElement?.querySelectorAll<HTMLElement>('input:not(:disabled), textarea, select') ?? [])].find((control) => control.closest('.es-guess__sure') === null)
+        : null
     if (field !== null && field !== undefined) {
       field.focus({ preventScroll: true })
       field.scrollIntoView({ block: 'nearest' })

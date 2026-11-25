@@ -15,7 +15,9 @@
  *   5. The first run: on `overlap` and on `chain`, the parts list names what the level draws, then a look at one token's bars, then the level's
  *      own ask, which cannot be skipped and says why; the move pointed at is one that gives no answer away. The draws of 10, 100 and 1,000
  *      settle on the overlap, and the moment is named once.
- *   6. P5: at 1440 x 900 and 390 x 844 the bars, the current control and the readout share the viewport.
+ *   6. P5: at 1440 x 900 and 390 x 844 the bars, the current control and the readout share the viewport. DC-A in the diagram, at eight
+ *      sizes from 1440 x 900 to 320 x 640: the goal line, the drawing and the legend keep their rectangles on the commit, the first draw
+ *      and the result, and the dock, its draws, Finish and the readout on the first draw.
  *   7. Reduced motion: nothing animates, and the game plays.
  *   8. Nothing leaves the origin (ARCHITECTURE §1, I1), and no banned word is on the page (src/copy/banned.ts).
  *   9. The same seed and the same actions give the same state hash in the browser as under Node (A§5.10), draws included.
@@ -47,6 +49,7 @@ import type { VerifierAction } from '../packages/play/verifier/types'
 import { findBanned } from '../src/copy/banned'
 import { SLOT_MARKS } from '../src/design/code'
 import { clipped } from './support/site'
+import { seedOf as readSeed } from './support/seed'
 
 const root = new URL('..', import.meta.url).pathname
 
@@ -73,6 +76,7 @@ base.afterAll(async () => {
 const test = base
 
 const game = (page: Page) => page.locator('section[data-game="verifier"]')
+const seedOf = (page: Page) => readSeed(page, 'section[data-game="verifier"]')
 const live = (page: Page) => page.locator('[data-live="line"]')
 const outcome = (page: Page) => page.locator('[data-live="outcome"]')
 const verdict = (page: Page) => page.locator('[data-result] [data-result-heading]')
@@ -340,7 +344,8 @@ test.describe('a graded run', () => {
     await expect(game(page).locator('.es-level__face')).toContainText('Resample from the residual')
     await expect(game(page)).toContainText('graded')
     for (const hidden of ['Undo', 'Start from p', 'Start from q', 'Draw 10']) await expect(page.getByRole('button', { name: hidden })).toHaveCount(0)
-    await expect(game(page)).not.toContainText('accepted min(p, q)')
+    // The legend holds the decomposition's entries invisible until the result: what the learner sees is what is checked.
+    await expect(game(page)).not.toContainText('accepted min(p, q)', { useInnerText: true })
     await expect(page.locator('[data-vf-readout]')).not.toContainText('distance from p')
     await expect(page.locator('td[data-label="min(p, q)"]')).toHaveCount(0)
     await expect(game(page)).toContainText('Graded: fresh numbers, no undo, no live distance, one submission.')
@@ -363,6 +368,26 @@ test.describe('a graded run', () => {
     await page.keyboard.press('Enter')
     await atTheResult(page, 'Not yet')
     await expect(page.getByRole('button', { name: 'Undo' })).toHaveCount(0)
+    // At a graded result Run again already draws fresh numbers: the result offers it alone, and says only what it does. The best names its
+    // unit and whether a run of the level has passed, so a miss's 0.99 is not read as a near pass.
+    const result = page.locator('[data-result]')
+    await expect(result.getByRole('button', { name: 'Run again' })).toBeVisible()
+    await expect(result.getByRole('button', { name: 'New numbers' })).toHaveCount(0)
+    const again = page.locator('[data-run-again]')
+    await expect(again).toContainText('Run again: the level asks the same question on fresh numbers.')
+    await expect(again).not.toContainText('New numbers')
+    await expect(again).toContainText(/Your best score on this level: 0\.\d\d out of 1, from 1 run; no run has passed yet\./)
+  })
+
+  test('a practice result offers Run again on the same numbers and New numbers on a fresh pair, and says so', async ({ page }) => {
+    await open(page, 'exact')
+    await page.getByRole('button', { name: 'Start from q' }).click()
+    await page.getByRole('button', { name: 'Submit the weights' }).click()
+    await expect(verdict(page)).toBeVisible()
+    const result = page.locator('[data-result]')
+    await expect(result.getByRole('button', { name: 'Run again' })).toBeVisible()
+    await expect(result.getByRole('button', { name: 'New numbers' })).toBeVisible()
+    await expect(page.locator('[data-run-again]')).toContainText('Run again: the level asks the same question on the same numbers; New numbers draws a fresh pair of distributions.')
   })
 })
 
@@ -393,7 +418,6 @@ async function startProve(page: Page) {
   await expect.poll(() => page.evaluate(() => document.activeElement?.matches('section[data-game]') ?? false)).toBe(true)
 }
 
-const seedOf = async (page: Page) => Number(await game(page).getAttribute('data-seed'))
 
 /** Ends a Prove run on whatever a weight of one on token 0 makes of it, and waits for the note on what the attempt was worth. */
 async function submitAnyWeights(page: Page) {
@@ -405,7 +429,7 @@ async function submitAnyWeights(page: Page) {
 test.describe('Prove mode (ASSESSMENT §7.2)', () => {
   test('by keyboard: the attestation, a graded run on fresh numbers with the readouts hidden, a pass recorded as proved, and the window closed', async ({ page }) => {
     await openProve(page)
-    await expect(page.locator('[data-prove-stake]')).toHaveText('This attempt counts: a pass is recorded as proved.')
+    await expect(page.locator('[data-prove-stake]')).toHaveText('This attempt counts, pass or miss. A pass is recorded as proved; a miss uses up the day.')
     await startProve(page)
     await expect(game(page)).toHaveAttribute('data-mode', 'graded')
     await expect(game(page)).toHaveAttribute('data-level', 'exact')
@@ -507,11 +531,12 @@ test.describe('the diagram', () => {
     await open(page, 'overlap')
     await expect(page.locator('[data-vf-token] .es-vf__name')).toHaveText(['token 0', 'token 1', 'token 2', 'token 3', 'token 4', 'token 5'])
     // Before the prediction the bars are whole: the draft and the target, and nothing the prediction would give away.
-    await expect(page.locator('[data-vf-legend] .es-legend__entry')).toHaveText(['draft q', 'target p'])
+    // The legend holds the room of the entries still to come, invisible: the ones shown are the draft and the target.
+    await expect(page.locator('[data-vf-legend] .es-legend__entry:visible')).toHaveText(['draft q', 'target p'])
     await tabTo(page, /^Accepted, in sixty-fourths$/)
     await page.keyboard.type('38')
     await page.keyboard.press('Enter')
-    const entries = page.locator('[data-vf-legend] .es-legend__entry')
+    const entries = page.locator('[data-vf-legend] .es-legend__entry:visible')
     await expect(entries).toHaveText(['draft q', 'target p', 'accepted min(p, q)', 'residual (p − q)⁺'])
     await expect(entries.locator('[data-glyph]')).toHaveCount(4)
     expect(await entries.locator('[data-glyph]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-glyph')))).toEqual([SLOT_MARKS.yellow.glyph, SLOT_MARKS.blue.glyph, SLOT_MARKS.green.glyph, SLOT_MARKS.red.glyph])
@@ -647,6 +672,60 @@ test.describe('the first digit of a weight on a phone', () => {
     await expect(page.getByLabel('Resample weight for token 0')).toHaveValue('1')
     await expect(page.getByLabel('Resample weight for token 0')).toBeFocused()
   })
+})
+
+/** Each part's rectangle in page coordinates, [x, y, width, height] to a tenth of a pixel, or null where the page has none. */
+const rectsOf = <K extends string>(page: Page, parts: Record<K, string>) =>
+  page.evaluate(
+    (selectors) =>
+      Object.fromEntries(
+        Object.entries(selectors).map(([name, selector]) => {
+          const node = document.querySelector(selector as string)
+          if (node === null) return [name, null]
+          const r = node.getBoundingClientRect()
+          return [name, [r.x + scrollX, r.y + scrollY, r.width, r.height].map((v) => Math.round(v * 10) / 10)]
+        }),
+      ) as Record<K, number[] | null>,
+    parts,
+  )
+
+test.describe('DC-A in the diagram: the commit, the first draw and the result move nothing', () => {
+  // The diagram is the default view at every width and the only one on a phone: the legend holds the room of the entries and the sentences
+  // the run has not yet earned, and the goal line the room of the words it gains at the result, so nothing under them moves.
+  const FRAME = { goal: '.es-frame__goal-box', diagram: '[data-frame-diagram]', legend: '[data-vf-legend]' }
+  const DOCK = { ...FRAME, dock: '[data-dock]', draw: '[data-vf-draws] button', finish: '.es-vf-dock__finish > button:last-child', readout: '[data-readout]' }
+  for (const [width, height] of [
+    [1440, 900],
+    [1280, 620],
+    [844, 390],
+    [640, 400],
+    [390, 844],
+    [375, 812],
+    [360, 800],
+    [320, 640],
+  ] as const) {
+    test(`at ${width} x ${height}: the goal, the diagram, the legend, the dock and its buttons keep their rectangles`, async ({ page }) => {
+      test.setTimeout(120_000)
+      await page.setViewportSize({ width, height })
+      await open(page, 'chain')
+      const start = await rectsOf(page, FRAME)
+      expect(start.legend?.[3], 'the legend has a box').toBeGreaterThan(0)
+      await page.getByLabel('Tokens per round').fill('2.4')
+      await page.keyboard.press('Enter')
+      await expect(page.getByRole('button', { name: 'Draw 10', exact: true })).toBeVisible()
+      const committed = await rectsOf(page, DOCK)
+      // The commit swaps the dock's decision for the draws, a shorter block (the dock keeps no blank band): what stands over the dock does not
+      // move. From the commit on the dock, its draws, Finish and the readout are compared too.
+      expect({ goal: committed.goal, diagram: committed.diagram, legend: committed.legend }, 'after the commit').toEqual(start)
+      await page.evaluate(() => document.querySelector<HTMLElement>('section[data-game="verifier"]')?.focus({ preventScroll: true }))
+      await page.keyboard.press('KeyD')
+      await expect(page.locator('[data-readout-id="rounds"] dd')).not.toHaveText('0')
+      expect(await rectsOf(page, DOCK), 'after the first draw').toEqual(committed)
+      await page.locator('.es-vf-dock__finish > button:last-child').click()
+      await expect(verdict(page)).toBeVisible()
+      expect(await rectsOf(page, FRAME), 'at the result').toEqual({ goal: start.goal, diagram: start.diagram, legend: start.legend })
+    })
+  }
 })
 
 test.describe('the draws settle on the overlap', () => {
@@ -897,6 +976,45 @@ test.describe('accessibility', () => {
       await expect(verdict(page)).toBeVisible()
       const debrief = await clipped(page, '[data-verifier-debrief]')
       expect(debrief.text, 'the result, past the right edge').toEqual([])
+    })
+
+    test('at 320 x 640 every number and name of the readout stands whole inside the readout, at a miss and at an exact pass', async ({ page }) => {
+      await page.setViewportSize({ width: 320, height: 640 })
+      // Each text of the strip against the readout's own box, and against its neighbours on the same line: none runs past or over another.
+      const cut = () =>
+        page.locator('[data-readout]').evaluate((box) => {
+          const edge = box.getBoundingClientRect()
+          // The drawn text of each, without the words kept for a screen reader alone, which sit in a box of one pixel.
+          const texts = [...box.querySelectorAll('.es-vf-strip__label, .es-vf-strip__value')].map((node) => {
+            const walk = document.createTreeWalker(node, NodeFilter.SHOW_TEXT)
+            const rects: DOMRect[] = []
+            for (let at = walk.nextNode(); at !== null; at = walk.nextNode()) {
+              if (at.parentElement?.closest('.sr-only') !== null || (at.textContent ?? '').trim() === '') continue
+              const range = document.createRange()
+              range.selectNodeContents(at)
+              rects.push(range.getBoundingClientRect())
+            }
+            const text = rects.length === 0 ? '' : (node.textContent ?? '').trim()
+            return { text, left: Math.min(...rects.map((r) => r.left)), right: Math.max(...rects.map((r) => r.right)), top: Math.min(...rects.map((r) => r.top)), bottom: Math.max(...rects.map((r) => r.bottom)) }
+          })
+          const out = texts.filter((t) => t.left < edge.left - 0.5 || t.right > edge.right + 0.5).map((t) => `past the readout: ${t.text}`)
+          for (const a of texts)
+            for (const b of texts)
+              if (a !== b && a.left < b.left && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5) out.push(`${a.text} runs over ${b.text}`)
+          return out
+        })
+      await open(page, 'exact')
+      await page.getByRole('button', { name: 'Start from q' }).click()
+      await page.getByRole('button', { name: 'Submit the weights' }).click()
+      await expect(verdict(page)).toBeVisible()
+      expect(await cut(), 'at a miss').toEqual([])
+      await open(page, 'exact')
+      await typeRecipe(page, excessPlates(buildLevel('exact', 0)))
+      await expect(page.locator('[data-readout-id="distance"] dd')).toHaveText('0 (exact)')
+      expect(await cut(), 'at an exact set of weights').toEqual([])
+      await page.keyboard.press('Enter')
+      await atTheResult(page, 'Passed')
+      expect(await cut(), 'at the pass').toEqual([])
     })
   })
 })

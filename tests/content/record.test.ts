@@ -83,6 +83,11 @@ describe('the rail’s answers and the Test’s tally', () => {
     expect(runLines(again, ROW.run, NAMES).map((line) => line.text)).toEqual(['One KV group: passed in practice', 'Full attention and a sliding window: passed in practice'])
   })
 
+  test('a level that a lesson lists in more than one place is one line for one launch', () => {
+    const lines = runLines(own, [...ROW.run, ...ROW.run], NAMES).map((line) => line.text)
+    expect(lines).toEqual(runLines(own, ROW.run, NAMES).map((line) => line.text))
+  })
+
   test('one of a unit is said in the singular: "you said 1 page", "guess 1 page", and a unit that is no plural noun stays as it is', () => {
     const one = guessLines([guess(1, 2)])[0]
     expect([one.said, one.record]).toEqual(['you said 1 page', 'guess 1 page, model 2 pages'])

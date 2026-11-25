@@ -14,7 +14,7 @@
  * verify:kc's reader to the same set.
  */
 import { describe, expect, test } from 'bun:test'
-import { between, markedTasks, read, TASK_ID, taskHeadings, tasksIn, trackerTasks, unreadTaskIds } from './support'
+import { between, markedTasks, read, TASK_ID, tableRows, taskHeadings, tasksIn, trackerTasks, unreadTaskIds } from './support'
 
 const tracker = read('docs/TRACKER.md')
 /** The pattern of before the close-out: a digit for the wave, and nothing after it. */
@@ -33,11 +33,15 @@ describe('TASK_ID', () => {
 
   test('reads the tasks of wave R, the redesign, whose wave is the letter R alone (D-068)', () => {
     for (const id of ['R-T01', 'R-T20', 'R-T50']) expect([id, whole.test(id)]).toEqual([id, true])
-    for (const id of ['R-T1', 'R-T100', 'Rb-T01', 'R1-T01', 'r-T01', 'WR-T01']) expect([id, whole.test(id)]).toEqual([id, false])
+    for (const id of ['R-T1', 'R-T1000', 'Rb-T01', 'R1-T01', 'r-T01', 'WR-T01']) expect([id, whole.test(id)]).toEqual([id, false])
   })
 
-  test('refuses what is not an id: a task number of one digit or of three, a wave with another letter, lower case, and a part alone', () => {
-    for (const id of ['W1-T1', 'W1b-T8', 'W1b-T100', 'W1c-T01', 'W1bb-T01', 'w1b-T01', 'W1B-T01', 'W1b-t01', 'W-T01', 'W1b', 'T01', 'W1b-T01 · x'])
+  test('reads a task number of two or three digits, as the second build plan numbers its tasks past 99', () => {
+    for (const id of ['W2b-T99', 'W2b-T100', 'W2b-T105', 'W2b-T209', 'R-T100']) expect([id, whole.test(id)]).toEqual([id, true])
+  })
+
+  test('refuses what is not an id: a task number of one digit or of four, a wave with another letter, lower case, and a part alone', () => {
+    for (const id of ['W1-T1', 'W1b-T8', 'W2b-T1050', 'W1c-T01', 'W1bb-T01', 'w1b-T01', 'W1B-T01', 'W1b-t01', 'W-T01', 'W1b', 'T01', 'W1b-T01 · x'])
       expect([id, whole.test(id)]).toEqual([id, false])
   })
 })
@@ -119,11 +123,11 @@ describe('what the readers do with a tracker', () => {
       '#### [=] W1b-T05 · An id the pattern reads · S',
       '#### [ ] W1c-T01 · A wave with another letter · S',
       '#### [x] W1b-T8 · One digit · S',
-      '#### [=] W1b-T100 · Three digits · S',
+      '#### [=] W1b-T1000 · Four digits · S',
       '',
     ].join('\n')
     expect(taskHeadings(odd).map(({ id }) => id)).toEqual(['W1b-T05'])
-    expect(unreadTaskIds(odd)).toEqual(['W1c-T01', 'W1b-T8', 'W1b-T100'])
+    expect(unreadTaskIds(odd)).toEqual(['W1c-T01', 'W1b-T8', 'W1b-T1000'])
     expect(unreadTaskIds(text)).toEqual([])
   })
 })
@@ -174,18 +178,174 @@ describe('the markers of W2, which are set to the tree (W2b-T01)', () => {
     expect(wrongDone(text)).toEqual(['W2-T90', 'W2-T91'])
   })
 
-  test('hold a State line on each task that is built and not done: W2-T02, T04, T07, T08, T11, T13 and T19', () => {
+  test('hold a State line on each task that is built and not done: W2-T04, T08, T11 and T19', () => {
     const tasks = trackerTasks()
-    for (const id of ['W2-T02', 'W2-T04', 'W2-T07', 'W2-T08', 'W2-T11', 'W2-T13', 'W2-T19']) {
+    for (const id of ['W2-T04', 'W2-T08', 'W2-T11', 'W2-T19']) {
       const text = tasks.get(id) ?? ''
       expect([id, text.startsWith('#### [~] ')]).toEqual([id, true])
-      expect([id, /\n- \*\*State \(2026-11-19\):\*\* built; open check: .+, closes with W2b?-T\d\d/.test(text)]).toEqual([id, true])
+      expect([id, /\n- \*\*State \(2026-11-(?:19|22)\):\*\* built; open check: .+, closes with W2b?-T\d{2,3}/.test(text)]).toEqual([id, true])
     }
   })
 
-  test('has a heading for each task of wave 1 and none for a later wave: W2b-T01 to T37 and T39 to T53', () => {
+  test('has a heading for each task of wave 1 (W2b-T01 to T37 and T39 to T53), and any other heading of W2b is a later task, T54 or after', () => {
     const w2b = taskHeadings(tracker).map(({ id }) => id).filter((id) => id.startsWith('W2b-'))
     const want = [...Array.from({ length: 37 }, (_, at) => at + 1), ...Array.from({ length: 15 }, (_, at) => at + 39)].map((n) => `W2b-T${String(n).padStart(2, '0')}`)
-    expect([...w2b].sort()).toEqual(want)
+    expect(want.filter((id) => !w2b.includes(id))).toEqual([])
+    // W2b-T38 is the one id below 54 that wave 1 left out and wave 2 took (W2b-T180): its heading is in wave 2's section.
+    expect(w2b.filter((id) => !want.includes(id) && Number(id.slice(5)) < 54 && id !== 'W2b-T38')).toEqual([])
+  })
+})
+
+/*
+ * Wave 2's section of TRACKER.md and the records beside it (W2b-T180). The ids below are the tasks of the wave's plan, in the order of its
+ * task list. W2-T20 and W2-T24 (tasks of 2a) and W2-T29, W2-T30 and W2-T33 (tasks of 2b) keep their headings in the W2 section, edited
+ * there; the section of wave 2 holds the rest, and W2b-T210, which is added from the reserve if W2b-T96's record says yes.
+ */
+const HALF_2A = [
+  'W2b-T69', 'W2b-T180', 'W2b-T70', 'W2b-T71', 'W2b-T72', 'W2b-T74', 'W2b-T78', 'W2b-T179',
+  'W2b-T88', 'W2b-T89', 'W2b-T191', 'W2b-T73', 'W2b-T79', 'W2b-T80', 'W2b-T90', 'W2b-T91',
+  'W2b-T192', 'W2b-T85', 'W2b-T86', 'W2b-T92', 'W2b-T93', 'W2b-T193', 'W2b-T77', 'W2b-T84',
+  'W2b-T81', 'W2b-T82', 'W2b-T83', 'W2b-T94', 'W2b-T95', 'W2b-T194', 'W2b-T75', 'W2b-T190',
+  'W2b-T76', 'W2b-T87', 'W2b-T129', 'W2b-T130', 'W2b-T131', 'W2b-T132', 'W2b-T133', 'W2b-T181',
+  'W2b-T134', 'W2b-T199', 'W2b-T38', 'W2b-T96', 'W2b-T97', 'W2b-T98', 'W2b-T99', 'W2b-T100',
+  'W2b-T101', 'W2b-T102', 'W2b-T103', 'W2b-T104', 'W2b-T195', 'W2b-T105', 'W2b-T106', 'W2b-T107',
+  'W2b-T108', 'W2b-T109', 'W2b-T196', 'W2b-T110', 'W2b-T111', 'W2b-T182', 'W2b-T183', 'W2b-T197',
+  'W2b-T112', 'W2b-T113', 'W2b-T114', 'W2b-T115', 'W2b-T116', 'W2b-T117', 'W2b-T198', 'W2b-T120',
+  'W2b-T184', 'W2b-T121', 'W2b-T122', 'W2b-T123', 'W2b-T200', 'W2b-T124', 'W2b-T201', 'W2b-T125',
+]
+
+const HALF_2B = [
+  'W2b-T126', 'W2b-T118', 'W2b-T119', 'W2b-T136', 'W2b-T137', 'W2b-T138', 'W2b-T139', 'W2b-T140',
+  'W2b-T141', 'W2b-T142', 'W2b-T202', 'W2b-T143', 'W2b-T144', 'W2b-T145', 'W2b-T146', 'W2b-T147',
+  'W2b-T203', 'W2b-T148', 'W2b-T185', 'W2b-T186', 'W2b-T204', 'W2b-T149', 'W2b-T150', 'W2b-T151',
+  'W2b-T152', 'W2b-T153', 'W2b-T154', 'W2b-T155', 'W2b-T205', 'W2b-T156', 'W2b-T157', 'W2b-T158',
+  'W2b-T159', 'W2b-T206', 'W2b-T170', 'W2b-T171', 'W2b-T172', 'W2b-T135', 'W2b-T187', 'W2b-T188',
+  'W2b-T207', 'W2b-T173', 'W2b-T189', 'W2b-T174', 'W2b-T175', 'W2b-T176', 'W2b-T208', 'W2b-T177',
+  'W2b-T209', 'W2b-T178',
+]
+
+describe("wave 2's section of the tracker (W2b-T180)", () => {
+  const section = between(tracker, '\n## Wave 2 of the second build plan: 2a and 2b', '\n## WR: ')
+  const inSection = taskHeadings(section)
+  const tasks = tasksIn(section)
+
+  test('has one heading for each task of the plan that the W2 section does not hold, in order, and W2b-T210 last', () => {
+    expect(inSection.map(({ id }) => id)).toEqual([...HALF_2A, ...HALF_2B, 'W2b-T210'])
+  })
+
+  test('has no marker: every task of wave 2 is `[ ]` until the exit reports move them (W2b-T125, W2b-T178)', () => {
+    expect(inSection.filter(({ marker }) => marker !== ' ')).toEqual([])
+    const all = new Map(taskHeadings(tracker).map(({ id, marker }) => [id, marker]))
+    for (const id of ['W2-T20', 'W2-T24', 'W2-T29', 'W2-T30', 'W2-T33']) expect([id, all.get(id)]).toEqual([id, ' '])
+  })
+
+  test('uses none of the ids that the plan leaves out: W2b-T127, W2b-T128 and W2b-T160 to W2b-T169', () => {
+    const unused = ['W2b-T127', 'W2b-T128', ...Array.from({ length: 10 }, (_, at) => `W2b-T${160 + at}`)]
+    const ids = new Set(taskHeadings(tracker).map(({ id }) => id))
+    expect(unused.filter((id) => ids.has(id))).toEqual([])
+    expect(section).toContain('W2b-T127, W2b-T128 and W2b-T160 to W2b-T169 are not used')
+  })
+
+  test('gives each task of 2a a Goal, a Files line and an Accept, and a Read line unless it reads nothing', () => {
+    for (const id of HALF_2A) {
+      const text = tasks.get(id) ?? ''
+      expect([id, /\n- \*\*Goal:\*\* /.test(text), /\n- \*\*Files:\*\* /.test(text), /\n- \*\*Accept:\*\*\n {2}1\. /.test(text)]).toEqual([id, true, true, true])
+    }
+  })
+
+  test('gives each task of 2b one line that says its body is written by W2b-T126, and W2b-T126 its own body', () => {
+    for (const id of HALF_2B.filter((task) => task !== 'W2b-T126')) {
+      const lines = (tasks.get(id) ?? '').trim().split('\n')
+      expect([id, lines.length, lines[1]?.startsWith('- Body written by W2b-T126.')]).toEqual([id, 2, true])
+    }
+    expect(tasks.get('W2b-T126')).toContain('- **Goal:** ')
+  })
+
+  test("W2b-T38's heading says it earns no KC, so a `planned:` line cannot name it; W2b-T210 is run only if W2b-T96's record says yes", () => {
+    expect(tasks.get('W2b-T38')?.split('\n', 1)[0]).toContain('earns no KC')
+    expect(tasks.get('W2b-T210')?.split('\n', 1)[0]).toContain('TR3: one real profiler trace from the locked CPU environment')
+    expect(tasks.get('W2b-T210')).toContain("Run only if W2b-T96's record says yes")
+  })
+
+  test('does not hold what a learner of the site would be told by a build: no path outside the repository, and no sentence that the owner chose something', () => {
+    expect(section).not.toMatch(new RegExp(['', 'home', ''].join('/') + '|' + ['', 'tmp', ''].join('/') + '|claude-\\d'))
+    // The accept lines that forbid such a sentence name it, and are not it.
+    const claims = section.split('\n').filter((line) => !/^\s*\d+\. (No sentence says|Nothing says)/.test(line))
+    expect(claims.filter((line) => /the owner (chose|approved|saw|decided)\b/i.test(line))).toEqual([])
+  })
+
+  test("W2-T24 no longer depends on W2-T23, and W2-T33 no longer on W2-T31 or W2-T32, with the reason said where the dependency was", () => {
+    const deps = (id: string) => (trackerTasks().get(id) ?? '').split('\n', 1)[0].split('deps: ')[1]
+    expect(deps('W2-T24')).toBe('W2b-T183')
+    expect(deps('W2-T33')).toBe('W2b-T149')
+    expect(trackerTasks().get('W2-T24')).toContain('no longer depends on W2-T23')
+    expect(trackerTasks().get('W2-T33')).toContain('no longer depends on W2-T31 or W2-T32')
+  })
+
+  test("W2-T20's and W2-T30's splits are said in their headings' bodies, each naming the tasks that took the parts", () => {
+    const t20 = trackerTasks().get('W2-T20') ?? ''
+    for (const id of ['W2b-T98', 'W2b-T99', 'W2b-T100', 'W2b-T101', 'W2b-T102']) expect([id, t20.includes(id)]).toEqual([id, true])
+    const t30 = trackerTasks().get('W2-T30') ?? ''
+    for (const id of ['W2b-T136', 'W2b-T137', 'W2b-T138', 'W2b-T139', 'W2b-T140']) expect([id, t30.includes(id)]).toEqual([id, true])
+  })
+
+  test('every dependency a heading of the section names is a heading of the tracker', () => {
+    const ids = new Set(taskHeadings(tracker).map(({ id }) => id))
+    const missing = inSection.flatMap(({ id }) => {
+      const line = (tasks.get(id) ?? '').split('\n', 1)[0]
+      const deps = line.split('deps: ')[1]?.split(', ').filter((dep) => dep !== '—') ?? []
+      return deps.filter((dep) => !ids.has(dep)).map((dep) => `${id} -> ${dep}`)
+    })
+    expect(missing).toEqual([])
+  })
+})
+
+describe('the decision numbers that wave 2 reserves (W2b-T180)', () => {
+  const rows = tableRows(between(tracker, '**Decision numbers.**', '\nD-077 to D-')).map((cells) => ({ number: cells[0], task: cells[1] }))
+  const LANES = ['2a:Gate', '2a:D2', '2a:D1', '2a:D3', '2a:D4', '2a:G', '2a:D5', '2a:D6', '2a:TR3', '2a:Exit', '2b:Open', '2b:TR5b', '2b:G', '2b:TR7', '2b:Cards', '2b:Exit']
+
+  test('start at D-077, run on without a gap or a repeat, and name W2b-T70, T71, T96 and T118', () => {
+    expect(rows.map(({ number }) => number)).toEqual(rows.map((_, at) => `D-${String(77 + at).padStart(3, '0')}`))
+    for (const id of ['W2b-T70', 'W2b-T71', 'W2b-T96', 'W2b-T118']) expect([id, rows.some(({ task }) => task === id)]).toEqual([id, true])
+  })
+
+  test('keep two spare numbers for each lane', () => {
+    for (const lane of LANES) expect([lane, rows.filter(({ task }) => task === `spare, lane ${lane}`).length]).toEqual([lane, 2])
+  })
+
+  // A record that a reserved number's own task has written (its status names that task) is the reservation used, not a clash.
+  const decisions = read('docs/DECISIONS.md')
+  const records = [...decisions.matchAll(/^### D-(\d{3}) · [^\n]*\n+- \*\*Status:\*\* ([^\n]*)/gm)].map((match) => ({ number: Number(match[1]), status: match[2] }))
+  const reservedFor = new Map(rows.map(({ number, task }) => [Number(number.slice(2)), task]))
+  const usesItsReservation = ({ number, status }: { number: number; status: string }) => {
+    const task = reservedFor.get(number)
+    return task !== undefined && !task.startsWith('spare') && status.includes(`(${task},`)
+  }
+
+  test('are above the highest record that docs/DECISIONS.md has written', () => {
+    const written = records.filter((record) => !usesItsReservation(record)).map(({ number }) => number)
+    expect(Math.max(...written)).toBeLessThan(77)
+  })
+
+  test('are each written only by the task the table reserves it for', () => {
+    const atOrAbove = records.filter(({ number }) => reservedFor.has(number))
+    for (const record of atOrAbove) expect([record.number, usesItsReservation(record)]).toEqual([record.number, true])
+    expect(records.length).toBe([...decisions.matchAll(/^### D-\d{3} · /gm)].length)
+  })
+})
+
+describe('the open questions of wave 2, recorded in docs/DECISIONS.md (W2b-T180)', () => {
+  const decisions = read('docs/DECISIONS.md')
+  const rows = tableRows(between(decisions, '### Open questions of wave 2', '\n**Answered.** O-1'))
+
+  test('are N2 first, then N9 to N19 in order, each with a question, a default and the tasks that need it', () => {
+    expect(rows.map((cells) => cells[0])).toEqual(['N2', ...Array.from({ length: 11 }, (_, at) => `N${9 + at}`)])
+    for (const cells of rows) expect([cells[0], cells.length, cells.slice(1).every((cell) => cell.length > 0)]).toEqual([cells[0], 4, true])
+  })
+
+  test('say that the owner has answered none of them, and give the three answers that D-070 to D-072 hold', () => {
+    const text = between(decisions, '### Open questions of wave 2', '| # | Question')
+    expect(text).toContain('The owner has answered none of them')
+    expect(text).toContain('D-070 to D-072')
   })
 })

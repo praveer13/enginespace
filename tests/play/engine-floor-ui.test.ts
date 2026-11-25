@@ -36,7 +36,7 @@ import { floorKit, floorStep, partRows } from '@/games/engine-floor/kit'
 import { Mirror } from '@/games/engine-floor/Mirror'
 import { handoffWords, permalink, plain, readoutOf, splitCode } from '@/games/engine-floor/text'
 import type { FloorOutcome } from '@/games/engine-floor/types'
-import { aboveWords, matches, onSameSpot, platformsOf, roomInSight } from '@/games/engine-floor/useFloorControls'
+import { aboveWords, matches, onSameSpot, platformsOf, roomInSight, wholeAfterLay } from '@/games/engine-floor/useFloorControls'
 import { FloorLegend, StageFacts, Swimlane } from '@/games/engine-floor/View2D'
 import { fakeRun, laidTo, levelOf, ranTo, truthOf, walk } from './engine-floor-support'
 
@@ -177,6 +177,18 @@ describe('the stage list', () => {
     // Scrolled up by a row or more, none of it shows, and the room goes.
     expect(roomInSight(44, 1230, 132, 1406)).toBeNull()
     expect(roomInSight(132, 1100, 132, 1406)).toBeNull()
+  })
+
+  test('a box that would keep so much room that no tile stands whole gives its room back', () => {
+    // A box from 100 to 232 px holds three tiles of 44 px at 100, 148 and 196 (rows of 48 px). The lowest is laid: the two above stay whole.
+    expect(wholeAfterLay([100, 148, 196], 196, 48, 44, 100, 232)).toBe(2)
+    // One tile left above the laid one stays whole; the last tile of the list laid leaves none.
+    expect(wholeAfterLay([100, 148], 100, 48, 44, 100, 232)).toBe(1)
+    expect(wholeAfterLay([100], 100, 48, 44, 100, 232)).toBe(0)
+    // A tile cut by the box's top edge is not whole, and a tile below the laid one is shifted up by the laid row.
+    expect(wholeAfterLay([70, 148, 196], 148, 48, 44, 100, 232)).toBe(1)
+    expect(wholeAfterLay([70, 148, 244], 148, 48, 44, 100, 232)).toBe(0)
+    expect(wholeAfterLay([70, 148, 244], 244, 48, 44, 100, 232)).toBe(1)
   })
 
   test('a press on the spot where Commit was pressed is that press, until the pointer has left the spot', () => {

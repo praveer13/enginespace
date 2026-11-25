@@ -15,8 +15,8 @@ export interface ProveFrame {
   readonly level: string
   /** Stands in the readout slot while the run is on. */
   readonly hidden: ReactNode
-  /** The foot strip's mode, while the Prove run is on and at its result. */
-  readonly foot: ReactNode
+  /** The foot strip's mode: for the run that is on (null), and at the result of the run `record`, where it speaks of the next run only. */
+  readonly foot: (record: RunRecord | null) => ReactNode
   /** Under the result of the run `record`: what the attempt was worth, and when the next one that counts opens. */
   readonly after: (record: RunRecord) => ReactNode
 }

@@ -30,7 +30,11 @@ import { FLOOR_COPY } from '@es/play/engine-floor/copy'
 import { LOOP_COPY } from '@es/play/loop/copy'
 import { FULL_COPY, MASK_CHOICES, MODE_CHOICES } from '@es/play/loop/full/copy'
 import { POOL_COPY } from '@es/play/pool/copy'
-import { copyOf as shiftCopy, momentLine as shiftMoment, SHIFT_PARTS } from '@es/play/shape-shifter/copy'
+import { copyOf as huntCopy, marksLine, overlapLine, stepLine, unaccountedLine, causeLine } from '@es/play/gap-hunt/copy'
+import { debriefOf as huntDebrief } from '@es/play/gap-hunt/debrief'
+import { buildLevel as huntLevel } from '@es/play/gap-hunt/levels'
+import { huntInit, huntReduce, ghostActions as huntGhostActions } from '@es/play/gap-hunt/session'
+import { copyOf as shiftCopy, EXTRA_COPY_LINE, momentLine as shiftMoment, SHIFT_PARTS } from '@es/play/shape-shifter/copy'
 import { buildLevel as shiftLevel } from '@es/play/shape-shifter/levels'
 import { shiftSession } from '@es/play/shape-shifter/session'
 import type { ShiftAction } from '@es/play/shape-shifter/types'
@@ -48,7 +52,7 @@ import { ROSTER } from '@es/play/roster'
 import { FORGE_LABS } from '@/forge/labs'
 import { VERIFIER_COPY } from '@es/play/verifier/copy'
 import { BANNED_PHRASES, BANNED_WORDS, findBanned, isClean, stripCode } from '@/copy/banned'
-import { PRODUCT_WORDS, PROVENANCE_WORDS, STATE_WORDS, TERMS, VERDICT_WORDS } from '@/copy/terms'
+import { GAP_WORD, PRODUCT_WORDS, PROVENANCE_WORDS, STATE_WORDS, TERMS, VERDICT_WORDS } from '@/copy/terms'
 import ts from 'typescript'
 import { compileContent } from '../../scripts/content/build.ts'
 import { BUILD_LOG } from '../../scripts/content/pacing.ts'
@@ -166,6 +170,7 @@ function copyTexts(): Text[] {
   const tables = { loop: { ...LOOP_COPY, ...FULL_COPY, MODE_CHOICES, MASK_CHOICES }, pool: POOL_COPY, verifier: VERIFIER_COPY, 'engine-floor': FLOOR_COPY, 'broken-bench': BENCH_COPY }
   const out: Text[] = Object.entries(tables).map(([game, table]) => ({ area: 'copy', where: `${game}/copy.ts`, text: copyStrings(table).join('\n') }))
   out.push({ area: 'copy', where: 'shape-shifter/copy.ts', text: shiftWords().join('\n') })
+  out.push({ area: 'copy', where: 'gap-hunt/copy.ts', text: huntWords().join('\n') })
   for (const entry of ROSTER) out.push({ area: 'copy', where: `roster ${entry.id}`, text: [entry.title, entry.subtitle, entry.role].join('\n') })
   for (const game of GAMES.games) {
     const words = [game.title, game.subtitle, ...game.levels.map((level) => level.title), ...game.keys.map((key) => key.description)]
@@ -179,6 +184,27 @@ function copyTexts(): Text[] {
     ...PROVENANCE_WORDS.flatMap((word) => [word.word, word.means]),
   ]
   out.push({ area: 'copy', where: 'src/copy/terms.ts', text: terms.join('\n') })
+  return out
+}
+
+/**
+ * Trace attribution's words (not in the registry yet): each level's copy on practice and dealt seeds with the form's word, the readouts at 0, 1
+ * and many, and the debrief's sentences: the reference's own, a wrong partition, and a right partition with a wrong cause.
+ */
+function huntWords(): string[] {
+  const out: string[] = []
+  for (const id of ['read', 'graphs', 'gap', 'attribute'] as const) {
+    for (const seed of [0, 1000, 1001]) {
+      const copy = huntCopy(huntLevel(id, seed), GAP_WORD)
+      out.push(...Object.values(copy.goal), copy.title, copy.prompt, copy.predict?.ask ?? '', copy.passRule ?? '', copy.practiceRule ?? '')
+    }
+    const level = huntLevel(id, 1000)
+    const ghost = level.cases.length === 0 ? huntInit(level) : huntGhostActions(level).reduce(huntReduce, huntInit(level))
+    out.push(huntDebrief(ghost).sentence)
+    // Played empty to its end: a case with nothing marked, or no count.
+    if (id === 'graphs') out.push(huntDebrief(huntReduce(huntInit(level), { t: 'commit', prediction: 0 })).sentence)
+  }
+  out.push(marksLine(0), marksLine(1), marksLine(5), unaccountedLine(0), unaccountedLine(1), unaccountedLine(900), causeLine(false), causeLine(true), overlapLine, stepLine(0, 3))
   return out
 }
 
@@ -197,7 +223,8 @@ function shiftWords(): string[] {
     shiftMoment({ id: 'view-refused', task: 0, turn: 0, shape: [24] }, shiftLevel('views', 30)),
     shiftMoment({ id: 'view-refused', task: 0, turn: 0, shape: [24] }, shiftLevel('fewest', 1000)),
     shiftMoment({ id: 'copy', task: 0, turn: 0, op: 'contiguous', n: 24 }, shiftLevel('views', 30)),
-    shiftMoment({ id: 'stride-zero', task: 0, turn: 0, rows: 4, m: 6 }, shiftLevel('stride-zero', 10)),
+    shiftMoment({ id: 'stride-zero', task: 0, turn: 0, rows: 4, m: 6, rank: 2 }, shiftLevel('stride-zero', 10)),
+    shiftMoment({ id: 'stride-zero', task: 0, turn: 0, rows: 3, m: 6, rank: 3 }, shiftLevel('stride-zero', 10)),
     shiftMoment({ id: 'wrong-order', task: 0, turn: 0, k: 8, n: 32 }, shiftLevel('three-d', 26)),
     shiftMoment({ id: 'masked', task: 0, turn: 0, index: [0, 0], lanes: 64, masked: 16 }, grid),
     shiftMoment({ id: 'uncovered', task: 0, turn: 0, n: 48, dim: 1, size: 20, block: 4, g: 5 }, grid),
@@ -218,7 +245,7 @@ function shiftWords(): string[] {
   const move = (...ops: ShiftOp[]) => ops.reduce((s, o) => shiftSession.reduce(s, { t: 'op', op: o }), shiftSession.init(three))
   const wasteful = move({ op: 'reshape', shape: [4, 2, 4] }, { op: 'permute', order: [0, 2, 1] }, { op: 'contiguous' }, { op: 'permute', order: [0, 2, 1] }, { op: 'permute', order: [1, 0, 2] }, { op: 'contiguous' })
   mistakes.push(shiftSession.debrief(wasteful, shiftSession.ghost(three)).sentence, shiftSession.debrief(move({ op: 'reshape', shape: [2, 4, 4] }), shiftSession.ghost(three)).sentence)
-  return [...words, ...parts, ...moments, ...debriefs, ...mistakes]
+  return [...words, ...parts, ...moments, EXTRA_COPY_LINE, ...debriefs, ...mistakes]
 }
 
 /** The text of rich text: its words, without its numbers or its code. */

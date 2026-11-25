@@ -207,6 +207,88 @@ export const CATALOG: readonly GenFace[] = [
     ],
   },
   {
+    id: 'tr3.capture-window',
+    version: 1,
+    title: 'The steps a profiler capture holds',
+    kcs: ['tr3.capture-window'],
+    variants: [
+      { id: 'which-steps', title: 'The steps a capture holds', kcs: ['tr3.capture-window'], levels: [0, 1, 2, 3] },
+      { id: 'count', title: 'How many steps a capture holds', kcs: ['tr3.capture-window'], levels: [0, 1, 2, 3] },
+      { id: 'done-by-end', title: 'The steps finished when a capture ends', kcs: ['tr3.capture-window'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr3.flat-curve',
+    version: 1,
+    title: 'A latency that stays flat',
+    kcs: ['tr3.flat-curve'],
+    variants: [
+      { id: 'which-bound', title: 'What limits a step whose latency is tabulated', kcs: ['tr3.flat-curve'], levels: [0, 1, 2, 3] },
+      { id: 'factor', title: 'How far the prompt grew while the latency stayed flat', kcs: ['tr3.flat-curve'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr3.floor',
+    version: 1,
+    title: 'The least time of a decode step',
+    kcs: ['tr3.step-floor'],
+    variants: [
+      { id: 'floor', title: 'The least time of a decode step', kcs: ['tr3.step-floor'], levels: [0, 1, 2, 3] },
+      { id: 'kv-part', title: "The KV cache's part of a step's floor", kcs: ['tr3.step-floor'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr3.gap-cause',
+    version: 1,
+    title: 'What caused a gap between two kernels',
+    kcs: ['tr3.gap-cause'],
+    variants: [
+      { id: 'which-call', title: 'The span that caused a gap', kcs: ['tr3.gap-cause'], levels: [0, 1, 2, 3] },
+      { id: 'three-parts', title: 'The three parts of a gap', kcs: ['tr3.gap-cause'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr3.inside-a-graph',
+    version: 1,
+    title: 'What a trace shows of a graph replay',
+    kcs: ['tr3.graph-traces'],
+    variants: [
+      { id: 'what-shows', title: 'What a trace shows of a graph replay', kcs: ['tr3.graph-traces'], levels: [0, 1, 2, 3] },
+      { id: 'kernels', title: 'The kernels a node-level trace shows', kcs: ['tr3.graph-traces'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr3.launch-and-kernel',
+    version: 1,
+    title: 'A launch call and its kernel',
+    kcs: ['tr3.trace-anatomy'],
+    variants: [
+      { id: 'which-kernel', title: 'The kernel a launch call started', kcs: ['tr3.trace-anatomy'], levels: [0, 1, 2, 3] },
+      { id: 'lag', title: 'From a launch call to its kernel', kcs: ['tr3.trace-anatomy'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr3.provider-preflight',
+    version: 1,
+    title: 'Whether a rented GPU host can take the captures',
+    kcs: ['tr3.provider-preflight'],
+    variants: [
+      { id: 'can-run', title: 'Whether a host passes both checks', kcs: ['tr3.provider-preflight'], levels: [0, 1, 2, 3] },
+      { id: 'fails-first', title: 'Which check fails first, and what the capture loses', kcs: ['tr3.provider-preflight'], levels: [0, 1, 2, 3] },
+      { id: 'hosts-ok', title: 'How many hosts pass both checks', kcs: ['tr3.provider-preflight'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
+    id: 'tr3.which-category',
+    version: 1,
+    title: "The category of a step's time",
+    kcs: ['tr3.partition'],
+    variants: [
+      { id: 'stretch', title: 'The category of one stretch of a step', kcs: ['tr3.partition'], levels: [0, 1, 2, 3] },
+      { id: 'window', title: 'How much of a step is one category', kcs: ['tr3.partition'], levels: [0, 1, 2, 3] },
+    ],
+  },
+  {
     id: 'tr5a.blocks-held',
     version: 1,
     title: 'Pages a request holds',

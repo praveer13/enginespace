@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { lazy, Suspense, useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { drawInBand, levelOf } from '@es/play'
 import type { GameMode } from '@es/play'
 import { VERIFIER_COPY } from '@es/play/verifier/copy'
@@ -12,6 +12,7 @@ import { LevelMenu } from '@/design/components/LevelMenu'
 import { Frame } from '@/games/kit/Frame'
 import type { GameView } from '@/games/kit/ViewSwitch'
 import type { GameProps } from '@/games/registry'
+import { ProveContext } from '@/prove/context'
 import { CameraButtons } from '@/scene/CameraButtons'
 import { unavailableReason, useDeviceTier } from '@/scene/tiers'
 import { WorldCard } from './Card'
@@ -121,10 +122,12 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
   const [preset, setPreset] = useState<string>(DEFAULT_PRESET)
 
   const embedded = placement === 'embed'
+  // In a Prove run (src/prove) the way on is Leave Prove mode: a Next level would play a level that is not the Prove level, outside the attestation.
+  const proving = useContext(ProveContext) !== null
   const entry = levelOf(VERIFIER, attempt.level) ?? VERIFIER.levels[0]
   const levelId = entry.id as VerifierLevelId
   const at = VERIFIER.levels.findIndex((candidate) => candidate.id === entry.id)
-  const after = embedded ? null : (VERIFIER.levels[at + 1] ?? null)
+  const after = embedded || proving ? null : (VERIFIER.levels[at + 1] ?? null)
   const isGraded = attempt.mode === 'graded' && entry.graded
   const copy = VERIFIER_COPY[levelId]
   const kit = useCallback(() => verifierKit(levelId), [levelId])
@@ -185,12 +188,18 @@ export default function Game({ level, mode, placement = 'page', rev, onFinish }:
           run.announce(`Camera: ${next.label}.`)
           return true
         }}
+        // The words for the end stand in the goal line from the start, held invisible until the answer is in (verifier.css): the line keeps its
+        // height at the result, and the drawing, the legend and the dock under it do not move down.
         goal={(run) => ({
           aim: copy.goal.aim,
           control: copy.goal.controls,
           target: copy.goal.beat,
           ends: copy.goal.ends,
-          met: run.done ? 'Your answer is in.' : undefined,
+          met: (
+            <span className="es-vf__met" data-vf-met={run.done ? '' : 'held'}>
+              Your answer is in.
+            </span>
+          ),
         })}
         diagram={(run) => <View2D run={run} />}
         // Depth is one row per draft position: on a level with one draft position it carries nothing, so the 3D view is offered on the

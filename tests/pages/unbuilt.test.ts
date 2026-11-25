@@ -114,7 +114,9 @@ describe.each(PAGES)('%s, which is not built yet', (url, copy) => {
 
 describe('the tasks that build the pages', () => {
   test('are tasks of the tracker, and the tracker\'s text for each is about the page', () => {
-    expect(heading('W2-T20')).toContain('Traces, and Trace attribution')
+    // W2b-T180 cut W2-T20 down to the game, and gave the Traces page its own task, W2b-T102, which moves this page's task with it.
+    expect(heading('W2-T20')).toContain('Trace attribution (`gap-hunt`)')
+    expect(tasks.get('W2b-T102')?.split('\n', 1)[0]).toContain('The Traces page')
   })
 
   test('each page has one, and it sits in the wave section of the tracker that it names', () => {

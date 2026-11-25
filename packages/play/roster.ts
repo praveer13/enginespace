@@ -37,7 +37,7 @@ export const ROSTER: readonly RosterEntry[] = Object.freeze([
   { id: 'shape-shifter', title: 'Tensor views', subtitle: 'A view relabels the buffer. A copy moves every element.', role: 'You plan the reshape.', modules: ['tr0'], has3d: false, wave: 2 },
   { id: 'engine-floor', title: 'Request path', subtitle: 'Every queue, IPC hop, copy and sync between the API server and the GPU.', role: 'You trace one request.', modules: ['tr1'], has3d: false, wave: 1 },
   { id: 'loop', title: 'Step loop', subtitle: 'Keep every slot live, and never make the GPU wait for the CPU.', role: 'You are the scheduler.', modules: ['tr2', 'tr6'], has3d: true, wave: 0 },
-  { id: 'gap-hunt', title: 'Trace attribution', subtitle: 'Every nanosecond of a step belongs to a kernel, a copy, a CPU gap or idle.', role: 'You account for a step.', modules: ['tr3', 'capstone'], has3d: false, wave: 2 },
+  { id: 'gap-hunt', title: 'Trace attribution', subtitle: 'Every nanosecond of a step belongs to a kernel, a copy, a CPU gap or idle.', role: 'You attribute the gap.', modules: ['tr3', 'capstone'], has3d: false, wave: 2 },
   { id: 'dispatch', title: 'Backend dispatch', subtitle: 'The first attention backend that meets every requirement takes the call.', role: 'You predict the backend.', modules: ['tr4'], has3d: false, wave: 2 },
   { id: 'pool', title: 'KV page pool', subtitle: 'One page pool serves every KV group and every adapter.', role: 'You are the KV allocator.', modules: ['tr5a'], has3d: true, wave: 1 },
   { id: 'switchyard', title: 'KV offload', subtitle: 'A page in transit cannot be read, and every move is published as an event.', role: 'You move KV between tiers.', modules: ['tr5b'], has3d: true, wave: 2 },

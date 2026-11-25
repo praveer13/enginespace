@@ -92,7 +92,7 @@ describe('the frame, apart from any game', () => {
           { location: '/play/pool?mode=prove' },
           h(
             ProveContext.Provider,
-            { value: { level, hidden: h('p', null, 'hidden'), foot: h('span', { 'data-probe': 'prove-foot' }), after: () => null } },
+            { value: { level, hidden: h('p', null, 'hidden'), foot: () => h('span', { 'data-probe': 'prove-foot' }), after: () => null } },
             h(Frame, {
               game: POOL,
               role: 'You are the KV allocator.',

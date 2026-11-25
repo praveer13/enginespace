@@ -154,7 +154,7 @@ The level draws three new tensors to cover, and three questions follow on new la
 
 > **Play.** The game `shape-shifter`, level `grid`, in `graded` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
-> **Practice.** Items from the generator family `tr0.grid-cover`, level `1`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr0.grid-cover`, level `1`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## Claims cited
 

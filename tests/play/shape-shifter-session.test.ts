@@ -106,7 +106,7 @@ describe('what a view and a copy do', () => {
     expect([written.copies, written.moved, written.status]).toEqual([1, 24, 'reached'])
   })
 
-  test('a reshape straight to the target\'s shape on three-d leaves 8 of 32 elements in place, and is a view', () => {
+  test("a reshape straight to the target's shape on three-d leaves 8 of 32 elements in the target's order, and is a view", () => {
     const level = practiceOf('three-d')
     const state = stateAfter(level, op({ op: 'reshape', shape: [2, 4, 4] }))
     const run = layoutRun(state)
@@ -212,7 +212,7 @@ describe('the moments, the counts and the grade', () => {
 
   test('expand over more than one element is the stride-zero moment, in place of view-free', () => {
     const state = stateAfter(practiceOf('stride-zero'), op({ op: 'expand', shape: [4, 6] }))
-    expect(state.moments).toEqual([{ id: 'stride-zero', task: 0, turn: 0, rows: 4, m: 6 }])
+    expect(state.moments).toEqual([{ id: 'stride-zero', task: 0, turn: 0, rows: 4, m: 6, rank: 2 }])
   })
 
   test('the score counts copies, elements moved, operations and refusals, and grade passes exactly the reference\'s copies', () => {

@@ -246,7 +246,7 @@ Every gap in the list below is a stage you will add to the path in the next less
 
 Three questions on new numbers. Each gives a queue of running and waiting requests and a budget, names the engine, and asks what its next step holds. The graded map at the end of the module tests what each part owns, on its nano-vllm scenarios.
 
-> **Practice.** Items from the generator family `tr1.step-budget`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr1.step-budget`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## Claims cited
 

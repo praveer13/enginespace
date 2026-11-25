@@ -7,12 +7,16 @@ name: CI
 #              properties and bestiaries.
 #   e2e-smoke  Playwright's Chromium against vite preview: axe on the eight routes of W0-T21 and the sixteen pages and five level pages
 #              that W1 added (W1-T36) at 360 and 1280 px, the keyboard walks of the front-page game and of one level of each W1 game,
-#              the network check, the screenshots and reduced motion. The specs that earlier tasks wrote, and every level of every game,
-#              run in nightly.yml: they take longer than a pull request should wait for.
+#              the network check, the screenshots and reduced motion. Every level of every game, at the nightly widths, runs in nightly.yml: it takes
+#              longer than a pull request should wait for. The specs that earlier tasks wrote run in e2e-features, below.
 #
 # A gate whose script is not built yet prints "pending: <task>" and exits 0 (kernelspace's pattern, scripts/verify.ts), so this
 # file does not change when a task lands its gate. The content compile and the export freshness check switch on the same way,
 # by file. Run the gates locally with `bun run verify:all`. labs.yml runs the one gate that needs the Rust toolchain (verify:labs).
+#
+#   e2e-features  the rest of the specs (Playwright's `features` project: the 3D scenes, frame counts, the ledger, receipts, settings, route
+#              changes and the lesson walks), in four shards, with the smoke job's workers and the configuration's own one retry. A test that
+#              passes only on its retry is printed. It checks the commits whose runs finish (ARCHITECTURE §10.1, D-078).
 #
 # The job timeouts are backstops [estimated], set well above the targets of §10.2 and §10.1: under 5 minutes for the fast gate
 # [estimated] and under 6 for e2e-smoke [estimated].
@@ -206,5 +210,110 @@ jobs:
           path: |
             playwright-report
             test-results
+          retention-days: 14
+          if-no-files-found: ignore
+
+  # W2b-T71 (D-078): the `features` project on the pull request. Until now only nightly.yml ran it, by hand, and a failure that only the
+  # nightly saw appeared after a wave was declared finished (B03 of the leftovers; ARCHITECTURE §10.1). It is the smoke job's shape: the
+  # same four-way `--shard` (the project is cut by file, in the order of the file names: playwright.config.ts's note on sorting says where a
+  # spec belongs), the same two workers and the configuration's own one retry (`retries: CI ? 1 : 0`, so a real failure fails twice), and
+  # no flag of its own. Nothing is skipped or quarantined here. The step after the run prints every test that passed only on its retry,
+  # so that a flaky spec is read in the log and does not hide behind a green job.
+  #
+  # The concurrency group is the job's own and carries the shard, because a job-level group holds one running and one waiting job: with a
+  # four-way matrix in one group three shards would wait, and a newer pending one would replace the older. cancel-in-progress is false, so
+  # a shard that has started is never cancelled by a later job of the group. The workflow's own group above still cancels the whole run
+  # when a newer commit is pushed to the same pull request, so the job checks the commits whose runs finish. It is not a required check
+  # until the owner makes it one (N14, an open question; D-078). The backstop is 25 minutes [estimated]: the project's 836 tests took 20.5
+  # minutes whole on four performance cores [measured 2026-11-22 at f0ede6ec, D-077], so a shard of a quarter is about 5 minutes there and
+  # a runner of two cores is slower; the first dispatch of this file on a branch gives each shard's minutes, which D-078 records.
+  e2e-features:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    concurrency:
+      group: e2e-features-${{ github.ref }}-${{ matrix.shard }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 24
+          cache: npm
+
+      # front.spec.ts runs scripts/prepare-pages.ts, which uses Bun's HTMLRewriter, so the specs need the pinned Bun that the other jobs have.
+      - name: Set up pinned Bun
+        id: bun
+        continue-on-error: true
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: 1.3.14
+
+      # A failed download from GitHub falls back to npm's copy of the same release (ARCHITECTURE §10.3).
+      - name: Set up pinned Bun from npm, when GitHub's download failed
+        if: steps.bun.outcome == 'failure'
+        env:
+          BUN_VERSION: 1.3.14
+        run: npm install --global --no-audit --no-fund "bun@$BUN_VERSION" && test "$(bun --version)" = "$BUN_VERSION"
+
+      - run: npm ci
+
+      # The browser is the revision that the locked @playwright/test pins, with the system libraries it needs.
+      - name: Install Playwright's Chromium
+        run: npx playwright install --with-deps chromium
+
+      # The list reporter and the HTML report are the configuration's own; the JSON file is for the step below.
+      - name: Run this shard of the features specs
+        env:
+          SHARD: ${{ matrix.shard }}
+          PLAYWRIGHT_JSON_OUTPUT_NAME: features-report.json
+        run: npx playwright test --project=features --shard="$SHARD/4" --reporter=list,html,json
+
+      # A test that failed once and passed on its retry is green in the job. It is listed here, and in the run's summary, with its file and
+      # title, so that a pull request that is green by retry is read as such.
+      - name: Print every test that passed only on its retry
+        if: ${{ !cancelled() }}
+        env:
+          SHARD: ${{ matrix.shard }}
+        run: |
+          node - <<'JS'
+          const fs = require('node:fs')
+          if (!fs.existsSync('features-report.json')) {
+            console.log('no report: the run did not reach the end')
+            process.exit(0)
+          }
+          const report = JSON.parse(fs.readFileSync('features-report.json', 'utf8'))
+          const flaky = []
+          const walk = (suite, trail) => {
+            const here = suite.title && !suite.file ? [...trail, suite.title] : trail
+            for (const spec of suite.specs ?? []) {
+              for (const test of spec.tests ?? []) {
+                if (test.status === 'flaky') flaky.push(`${spec.file}:${spec.line} ${[...here, spec.title].join(' > ')} (${test.results.length} attempts)`)
+              }
+            }
+            for (const child of suite.suites ?? []) walk(child, here)
+          }
+          for (const suite of report.suites ?? []) walk(suite, [])
+          const lines = [`shard ${process.env.SHARD}/4: ${report.stats.expected} passed, ${report.stats.unexpected} failed, ${flaky.length} passed only on the retry, ${report.stats.skipped} skipped`, ...flaky.map((line) => `  retried: ${line}`)]
+          console.log(lines.join('\n'))
+          if (process.env.GITHUB_STEP_SUMMARY) fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, lines.join('\n') + '\n\n')
+          if (flaky.length > 0) console.log(`::warning title=Passed only on the retry::${flaky.length} test(s) of shard ${process.env.SHARD}`)
+          JS
+
+      - name: Keep the report, the traces and the JSON
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-features-${{ matrix.shard }}
+          path: |
+            playwright-report
+            test-results
+            features-report.json
           retention-days: 14
           if-no-files-found: ignore

@@ -31,7 +31,7 @@ export const stateLine = (state: StageState): string => (state.kind === 'verifie
 export const KIT_KIND: Readonly<Record<KitRef['kind'], { name: string; is: string }>> = {
   'gpu-kit': {
     name: 'The kit',
-    is: "The grader's source, the locked environment of each engine, and the guides for a rented GPU. Every command below runs in the folder it unzips to.",
+    is: "The grader's source, the locked environment of each lab, and the guides for a rented GPU. Every command below runs in the folder it unzips to.",
   },
   'grader-wheel': {
     name: 'The grader alone',
@@ -68,10 +68,12 @@ export const PAGE = {
   checkNote: 'Run this line where you saved the file. It prints OK when the file is the one the site holds. On a Mac, `shasum -a 256 -c` reads it in place of `sha256sum -c`.',
   inputsLead: 'Run these in order, from the folder the kit unzipped to. The large files are not in the kit: the grader downloads them and keeps a file only when its SHA-256 is the one the course pinned.',
   challengeLead:
-    'A challenge is a one-use token that this site makes for one stage. Your grader draws every seed of the run from it, so a receipt shows the run came after you asked. Get one for the stage you are about to run; the page that makes it also prints the command with the token filled in.',
+    'A challenge is a one-use token that this site makes for one stage. Your grader draws every seed of the run from it, so a receipt shows the run came after you asked. Lab results makes it: open it for the stage you are about to run, and it prints the command with the token filled in.',
   challengeLink: (stage: string) => `Get a challenge for ${stage}`,
   editLead: (folder: string) => `In \`${folder}\`, this is the only file you change. Every stage grades the same file.`,
-  runLead: 'Grade one stage at a time, with the token of its challenge in place of `<token>`. The grader runs the stage on your machine, checks the result, and writes one receipt file, whether the checks passed or not.',
+  runLead: 'Grade one stage at a time. Put the token of its challenge in place of `<token>`, and say in your own words how much help you had: `--assisted` takes `none`, `explain` or `code`, and `--agent` takes `yes` or `no`. Leave them out and the receipt records the most help, `code` and `yes`. The grader runs the stage on your machine, checks the result, and writes one receipt file, whether the checks passed or not.',
+  runOf: (stage: string) => `Run ${stage}`,
+  checksOf: (stage: string) => `Checks of ${stage}`,
   asks: 'What it asks',
   then: 'Then you see',
   copy: 'Copy the command',
@@ -79,16 +81,16 @@ export const PAGE = {
   refused: 'The browser would not copy. The line is selected: press Ctrl+C (Cmd+C on a Mac).',
   unverified: 'Taken from the pinned project\'s documents. The course has not run this line.',
   importLead: 'The receipt is one file in the `receipts` folder, ending in `.es.json.gz`. Drop it on the results page. This browser checks it against your challenge there, and the file never leaves the tab.',
-  importLink: 'Open GPU lab results',
+  importLink: 'Open Lab results',
   checksLead: 'What a receipt of each stage must show to pass. Your grader checks some on your machine and writes its word into the receipt; this browser checks the others again from what the receipt holds.',
   byGrader: 'your grader',
   byBrowser: 'this browser',
   checkedBy: 'checked by',
   catches: 'Catches',
   proveLead: 'Once a receipt of a required stage passes, its page asks you questions that only your own run can answer. You answer first, and then the browser shows the computation from your receipt.',
-  proveOpen: 'Open a passed receipt on GPU lab results to start.',
+  proveOpen: 'Open a passed receipt on Lab results to start.',
   defendLink: (stage: string) => `Defend your receipt for ${stage}`,
-  proveClosed: 'Not published yet.',
+  proveClosed: 'The questions for this lab are not written yet, so there is nothing to defend here for now.',
 } as const
 
 /** Every string above that holds words, for the tests. */

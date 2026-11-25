@@ -31,6 +31,7 @@ describe('an empty ledger', () => {
     expect(tr2?.loop).toEqual({
       predicted: 0,
       play: { tried: 0, credited: 0, partial: 0 },
+      ask: { tried: 0, credited: 0, partial: 0 },
       build: { tried: 0, credited: 0, partial: 0 },
       proved: false,
       keep: { tried: 0, credited: 0, partial: 0 },
@@ -170,8 +171,12 @@ describe("a module's loop (Predict, Play, Build, Prove, Keep)", () => {
     expect(tr2?.loop.predicted).toBe(2)
   })
 
-  test('Play counts game runs and items: tried, credited at full weight, and partial', () => {
-    expect(tr2?.loop.play).toEqual({ tried: 4, credited: 2, partial: 1 })
+  test('Play counts game runs only: tried, credited at full weight, and partial; a question is not a run', () => {
+    expect(tr2?.loop.play).toEqual({ tried: 3, credited: 1, partial: 1 })
+  })
+
+  test('Ask counts the questions answered, apart from the runs', () => {
+    expect(tr2?.loop.ask).toEqual({ tried: 1, credited: 1, partial: 0 })
   })
 
   test('Keep counts reviews', () => {

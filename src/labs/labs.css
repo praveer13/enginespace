@@ -32,10 +32,10 @@
   font-size: var(--es-size-print);
 }
 
-.es-glab__crumbs li + li::before {
+.es-glab__crumbs li:not(:last-child)::after {
   content: '/';
   content: '/' / '';
-  margin-inline-end: var(--es-space-2);
+  margin-inline-start: var(--es-space-2);
   color: var(--es-text-3);
 }
 
@@ -374,6 +374,13 @@ p.es-glab-stage__name {
 }
 
 .es-glab-cmd__line code {
+  overflow-wrap: anywhere;
+}
+
+/* A word of a command is whole: the line wraps between words, never at the hyphens of a flag. A word wider than the line still breaks, as it did. */
+.es-glab-cmd__word {
+  display: inline-block;
+  max-width: 100%;
   overflow-wrap: anywhere;
 }
 

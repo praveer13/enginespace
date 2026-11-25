@@ -31,6 +31,9 @@ export const SHELL_ENTRY = '/src/front/shell.ts'
 const FRONT_PAGE = 'src/front/FrontPage.tsx'
 const COURSE_INDEX = 'src/content/generated/index.json'
 
+/** A stylesheet link, as `preloadsFor` writes it. */
+const SHEET_LINK = /<link rel="stylesheet"[^>]*>/g
+
 type RenderShell = (base: string) => Promise<string>
 
 async function renderWith(server: ViteDevServer, base: string): Promise<string> {
@@ -124,7 +127,12 @@ export function frontShell(): Plugin {
         })
         try {
           const markup = await renderWith(server, config.base)
-          return html.replace(SHELL_MARK, `${markup}${preloadsFor(ctx, config.root, config.base)}`)
+          // The stylesheets lead the root, ahead of the page's markup, where they hold its first paint until they are in: after it they came
+          // late, the markup was drawn without them and moved when they arrived (the diagram 17 to 44 px, the dock and the readout with it).
+          // They stay in the body and not in the head: the cascade has them after the stylesheets that the page's chunks add to the head, as it always did.
+          const links = preloadsFor(ctx, config.root, config.base)
+          const sheets = links.match(SHEET_LINK) ?? []
+          return html.replace(SHELL_MARK, `${sheets.join('')}${markup}${links.replace(SHEET_LINK, '')}`)
         } finally {
           await server.close()
         }

@@ -82,6 +82,7 @@
 /* The scenario's numbers, as lines of a table: the label, a dotted leader, the figure. */
 .es-item__givens {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--es-space-1);
 }
 
@@ -115,6 +116,17 @@
   margin-left: auto;
   font-family: var(--es-font-numeric);
   font-weight: var(--es-font-numeric-weight);
+}
+
+/* A given that is a line of code keeps its indentation: every line of a ticket shares one left edge, so a loop body reads as a body. */
+.es-item__given dd:has(> code) {
+  flex: 1 1 22rem;
+  min-width: 0;
+  margin-left: 0;
+  text-align: left;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.875rem;
 }
 
 /* Steps shown before the question: a whole example, or the words of the first step. */

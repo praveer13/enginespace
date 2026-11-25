@@ -315,6 +315,12 @@ describe('the event a reveal writes (A§7.2)', () => {
     expect(decodeEvent(JSON.parse(JSON.stringify(events[0]))).ok).toBe(true)
   })
 
+  test('says "Counted: none" only for a reading that names what it counted: one that names nothing leaves the line out', async () => {
+    const { result } = await revealed(numeric('tr2.l4.p1', 'us', 0.05), 300, null, new MemoryStore())
+    // The loop's reading of this question names no count, so "none on this path" would be a claim nobody made.
+    expect(result.counted).toBeUndefined()
+  })
+
   test('a miss is written too, with its outcome: a prediction that was wrong is evidence of what the learner expected', async () => {
     const store = new MemoryStore()
     const { result } = await revealed(numeric('tr2.l4.p1', 'us', 0.05), 100, null, store)
@@ -461,9 +467,9 @@ describe('the pages that read predictions read this event', () => {
     expect(progress.modules.get('tr2')?.counts.earned).toBe(0)
   })
 
-  test('the two readers that do not exist yet, Review\'s rescheduling and the calibration view on Progress, are one open task of the tracker that says so', () => {
+  test('the two readers, Review\'s rescheduling and the calibration view on Progress, are one task of the tracker, built and marked for review', () => {
     const text = trackerTasks().get('W2-T44') ?? ''
-    expect(text.split('\n', 1)[0]).toMatch(/^#### \[[ ~]\] W2-T44 · Readers of the prediction event/)
+    expect(text.split('\n', 1)[0]).toMatch(/^#### \[=\] W2-T44 · Readers of the prediction event/)
     expect(text).toContain('Review (`/today`)')
     expect(text).toContain('calibration view on Progress')
     expect(text).toContain('src/items/today/kcs.ts')

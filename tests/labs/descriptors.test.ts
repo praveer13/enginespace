@@ -92,10 +92,22 @@ describe.each(ALL)('%s', (_, lab) => {
       }
     }
     for (const command of [...lab.inputs, ...lab.stages.map((stage) => stage.run)]) {
+      expect(command.line.split('<token>').length - 1, `${command.line}: at most one token slot`).toBeLessThanOrEqual(1)
       if (command.ran !== undefined) expect(command.ran).toMatch(/^\d{4}-\d{2}-\d{2}$/)
       expect(command.line.trim()).toBe(command.line)
       expect(command.line).not.toContain('\n')
     }
+  })
+
+  test('prints each grade command whole: the uv run prefix, one token slot, and the learner\'s own declaration of help', () => {
+    for (const stage of lab.stages) {
+      const line = stage.run.line
+      expect(line.split('<token>').length - 1, `${stage.id}: exactly one token slot`).toBe(1)
+      expect(line.startsWith('uv run --project '), stage.id).toBe(true)
+      expect(line, stage.id).toContain('--assisted <none|explain|code>')
+      expect(line, stage.id).toContain('--agent <yes|no>')
+    }
+    for (const command of lab.inputs) expect(command.line.includes('<token>'), command.line).toBe(false)
   })
 
   test("links files the site's list holds, each once, a crate only of a forge lab", () => {

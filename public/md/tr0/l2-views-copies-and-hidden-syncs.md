@@ -49,7 +49,7 @@ A **sync** is a call that makes the CPU wait until the GPU has finished the work
 
 Here is what each call does, from the pinned PyTorch's documents. These lines wait, because each brings a value or a tensor back from the GPU to the CPU, or asks to wait:
 
-- `n = x.item()`. PyTorch names `.item()` as a call that synchronizes the CPU with the GPU. **.item() synchronizes** [measured]
+- `n = x.sum().item()`. The sum is a tensor of one value, and `.item()` hands that value to Python. PyTorch names `.item()` as a call that synchronizes the CPU with the GPU. **.item() synchronizes** [measured]
 - `ids = x.tolist()`. The tensor is moved to the CPU first. **moved to the CPU first** [measured]
 - `small = x.cpu()`. It returns a copy in CPU memory, and a copy off a GPU is a transfer that waits. **a copy in CPU memory** [measured]
 - `torch.cuda.synchronize()`. It waits for all kernels in all streams on the device to complete. **waits for every kernel** [measured]
@@ -89,13 +89,13 @@ This lesson says which lines wait. It does not say what a wait costs. A sync cos
 
 ## Exit check
 
-The level draws three new targets, and each is to be reached with as few copies as the reference. Three questions follow on new lines: which line waits for the GPU, how many times a loop waits, and what a chain of calls does to a tensor of three dimensions.
+The level draws three new targets, and each is to be reached with as few copies as the reference. Three questions follow on new lines. Two are about the calls that wait for the GPU, each asking which line waits or how many times a loop waits, and one is about a chain of calls on a tensor, asking either whether its last call makes a view, makes a copy or fails, or how many elements the calls move.
 
 > **Play.** The game `shape-shifter`, level `fewest`, in `graded` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 
-> **Practice.** Items from the generator family `tr0.find-the-sync`, level `1`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr0.find-the-sync`, level `1`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
-> **Practice.** Items from the generator family `tr0.view-or-copy`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr0.view-or-copy`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## Claims cited
 

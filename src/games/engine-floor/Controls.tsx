@@ -1,4 +1,4 @@
-import { useContext, useEffect, useId, useRef } from 'react'
+import { useContext, useEffect, useId, useRef, type ReactNode } from 'react'
 import { FLOOR_COPY, FLOOR_QUESTION, GRADED_LINE, NO_SKIP, PATH_HEAD, PREDICT_HINT, READOUT_WORDS } from '@es/play/engine-floor/copy'
 import { ENGINE_NAMES } from '@es/play/engine-floor/engine'
 import type { FloorView, TileView } from '@es/play/engine-floor/types'
@@ -51,11 +51,13 @@ function scenarioWords(view: FloorView): string[] {
 }
 
 /**
- * The scenario card: the engine at its pin, and what this request asks. Once the prediction is in, the level's note opens under it, with
- * the prediction beside it in one quiet line.
+ * The scenario card: the engine at its pin, and what this request asks. Once the prediction is in, the card is two short lines: the engine
+ * and its pin, then a fold that holds the rest of the request (what it asks, the day the source was read, how the engine is built and, on
+ * the graded map, the pass rule) beside the prediction. The fold opens over the stage list and not into it, so opening it moves nothing.
  */
-function ScenarioCard({ view }: { view: FloorView }) {
+function ScenarioCard({ view, graded }: { view: FloorView; graded: ReactNode }) {
   const pin = view.pin
+  const folded = view.prediction !== null
   return (
     <section
       className="es-floor-card"
@@ -71,23 +73,29 @@ function ScenarioCard({ view }: { view: FloorView }) {
       <p className="es-floor-card__engine">
         <strong>{ENGINE_NAMES[view.scenario.engine]}</strong>{' '}
         <span className="es-floor-card__pin">
-          <code>{pin.repo}</code> at <code>{pin.ref.slice(0, 7)}</code>, read {pin.readOn}
+          <code>{pin.repo}</code> at <code>{pin.ref.slice(0, 7)}</code>
+          {folded ? null : <>, read {pin.readOn}</>}
         </span>
       </p>
-      <p className="es-floor-card__asks">{scenarioWords(view).join(' · ')}</p>
-      {view.prediction === null ? null : (
+      {folded ? null : <p className="es-floor-card__asks">{scenarioWords(view).join(' · ')}</p>}
+      {folded ? (
         <div className="es-floor-card__foot">
           <details className="es-floor-card__note" data-floor-prompt="">
-            <summary>How this engine is built</summary>
-            <p>
-              <Code>{view.prompt}</Code>
-            </p>
+            <summary>About this request</summary>
+            <div className="es-floor-card__panel">
+              <p className="es-floor-card__asks">{scenarioWords(view).join(' · ')}</p>
+              <p className="es-floor-card__read">Source read {pin.readOn}.</p>
+              <p>
+                <Code>{view.prompt}</Code>
+              </p>
+              {graded}
+            </div>
           </details>
           <p className="es-floor-said" data-prediction="">
             Your prediction: <span className="font-numeric">{view.prediction}</span> process {view.prediction === 1 ? 'boundary' : 'boundaries'}.
           </p>
         </div>
-      )}
+      ) : null}
     </section>
   )
 }
@@ -96,6 +104,7 @@ function ScenarioCard({ view }: { view: FloorView }) {
 function Prediction({ controls, shown }: { controls: FloorControls; shown: boolean }) {
   const { view, choices, pick, setPick, commit } = controls
   const question = useId()
+  const hint = useId()
   // In a lesson whose guess asks this question, the lesson's words stand in, and how sure the learner is goes with it.
   const lesson = useContext(LessonGuessContext)
   // At a desk the question, its six numbers and Commit come into view together in the dock, which may have to scroll to hold them under the
@@ -119,8 +128,10 @@ function Prediction({ controls, shown }: { controls: FloorControls; shown: boole
       <h3 id={question} className="es-floor-predict__ask">
         {lesson?.ask ?? FLOOR_QUESTION}
       </h3>
-      <p className="es-floor-predict__hint">{PREDICT_HINT}</p>
-      <div role="group" aria-labelledby={question} className="es-floor-predict__choices">
+      <p id={hint} className="es-floor-predict__hint">
+        {PREDICT_HINT}
+      </p>
+      <div role="group" aria-labelledby={question} aria-describedby={hint} className="es-floor-predict__choices">
         {choices.map((n) => (
           <Button key={n} variant={pick === n ? 'ink' : 'plate'} aria-pressed={pick === n} aria-label={`${n} ${n === 1 ? 'boundary' : 'boundaries'}`} onClick={() => setPick(n)}>
             {n}
@@ -391,8 +402,9 @@ export function Controls({ run, ring = null }: { run: FloorRun; ring?: string | 
   const { view } = controls
   return (
     <div className="es-floor-dock" data-floor-controls="" data-step={view.step}>
-      <ScenarioCard view={view} />
-      <GradedNote view={view} mode={run.mode} />
+      {/* Where the stage list is open the pass rule is in the card's fold, so the list has the room. */}
+      <ScenarioCard view={view} graded={view.step === 'lay' ? <GradedNote view={view} mode={run.mode} /> : null} />
+      {view.step === 'lay' ? null : <GradedNote view={view} mode={run.mode} />}
       <Prediction controls={controls} shown={run.intro.askShown} />
       <StageList controls={controls} ring={ring} />
       <StopNote controls={controls} />

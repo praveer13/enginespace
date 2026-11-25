@@ -35,6 +35,9 @@ import { clipped, expect, open, quiet, test, withSettings } from './support/site
 const ROUTE = '/receipts'
 const WORDS = [0x0badc0de, 0x12345678, 0x0abcdef0, 0x13572468]
 const STAGE = 'tr8.replay.s2'
+/** A stage of a lab with a page, which prints the page's own command; STAGE's lab has none and prints that it is not published. */
+const PAGE_STAGE = 'tr0.forward.s3'
+const pageCommand = (token: string) => `uv run --project envs/cpu enginespace grade ${PAGE_STAGE} --challenge ${token} --assisted <none|explain|code> --agent <yes|no>`
 
 declare global {
   interface Window {
@@ -144,7 +147,10 @@ test.describe('issuing a challenge', () => {
     const expected = drawParts(STAGE, today(), wordsOf(...WORDS))
     expect(parseChallenge(text)).toMatchObject({ stage: STAGE, seed: 0x0badc0de, nonce: expected.nonce, issuedOn: today() })
     expect(text.split(':')[2]).toBe('0badc0de')
-    await expect(page.getByText(`enginespace grade ${STAGE} --challenge ${text}`)).toBeVisible()
+    // STAGE's lab has no page, so the ticket prints no command, says so, and offers none to copy.
+    await expect(page.getByText(`This lab is not published yet, so there is no command to run.`)).toBeVisible()
+    await expect(ticket(page).getByRole('button', { name: 'Copy the command' })).toHaveCount(0)
+    await expect(ticket(page)).not.toContainText('enginespace grade')
 
     // One event, in the learner's IndexedDB, of the kind and the ref that A§7.2 gives it, with the token's own parts.
     const stored = await events(page)
@@ -268,18 +274,18 @@ test.describe('copying', () => {
 
   test('puts the token, and the command, on the clipboard, and says so in words that a reader hears', async ({ page }) => {
     await open(page, ROUTE)
-    await issue(page)
+    await issue(page, 'tr0.forward', PAGE_STAGE)
     const made = await tokenText(page)
-    const status = ticket(page).getByRole('status')
+    const status = ticket(page, PAGE_STAGE).getByRole('status')
     await expect(status).toBeEmpty()
 
-    await ticket(page).getByRole('button', { name: 'Copy the token' }).click()
+    await ticket(page, PAGE_STAGE).getByRole('button', { name: 'Copy the token' }).click()
     await expect(status).toHaveText('Copied the token.')
     expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(made)
 
-    await ticket(page).getByRole('button', { name: 'Copy the command' }).click()
+    await ticket(page, PAGE_STAGE).getByRole('button', { name: 'Copy the command' }).click()
     await expect(status).toHaveText('Copied the command.')
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(`enginespace grade ${STAGE} --challenge ${made}`)
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(pageCommand(made))
   })
 
   test('copies the token of an open challenge from the list, and the word goes by itself', async ({ page }) => {
@@ -313,14 +319,14 @@ test.describe('copying', () => {
     await page.evaluate(() => {
       Object.defineProperty(navigator.clipboard, 'writeText', { value: () => Promise.reject(new Error('refused')), configurable: true })
     })
-    await issue(page)
+    await issue(page, 'tr0.forward', PAGE_STAGE)
     const made = await tokenText(page)
-    await ticket(page).getByRole('button', { name: 'Copy the token' }).click()
-    await expect(ticket(page).getByRole('status')).toHaveText('The browser would not copy. The text is selected: copy it yourself.')
+    await ticket(page, PAGE_STAGE).getByRole('button', { name: 'Copy the token' }).click()
+    await expect(ticket(page, PAGE_STAGE).getByRole('status')).toHaveText('The browser would not copy. The text is selected: copy it yourself.')
     expect(await page.evaluate(() => window.getSelection()?.toString())).toBe(made)
 
-    await ticket(page).getByRole('button', { name: 'Copy the command' }).click()
-    expect(await page.evaluate(() => window.getSelection()?.toString().replace(/\s+/g, ' '))).toBe(`enginespace grade ${STAGE} --challenge ${made}`)
+    await ticket(page, PAGE_STAGE).getByRole('button', { name: 'Copy the command' }).click()
+    expect(await page.evaluate(() => window.getSelection()?.toString().replace(/\s+/g, ' '))).toBe(pageCommand(made))
   })
 
   test("prints, for a lab with a page, the lab page's own grade command, which runs in the kit as it is copied", async ({ page }) => {
@@ -517,11 +523,7 @@ test.describe('the keyboard, at 360 px', () => {
     // Focus stays on the button that asked for the ticket: nothing is taken from a keyboard that is in the middle of a task.
     expect((await walk.see()).name).toBe('Get a challenge')
 
-    // The ticket's controls are the next stops, in the order that they stand on the paper: the command, the lab's page, and the stub.
-    expect((await walk.press('Tab')).name).toBe('Copy the command')
-    await page.keyboard.press('Space')
-    await expect(ticket(page).getByRole('status')).toHaveText('Copied the command.')
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(`enginespace grade ${STAGE} --challenge ${await tokenText(page)}`)
+    // The ticket's controls are the next stops, in the order that they stand on the paper: the lab's page (this lab has no command to copy), and the stub.
     expect((await walk.press('Tab')).name).toBe("The lab's page")
     expect((await walk.press('Tab')).name).toBe('Copy the token')
     await page.keyboard.press('Enter')

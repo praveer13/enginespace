@@ -106,11 +106,11 @@ The rotation's row follows from its angles, which come from each token's positio
 
 ## Exit check
 
-Three questions on new tensors: two ask for a stride after the reshapes of attention, as this lesson's query table did, and one asks what a chain of calls does, as the first two lessons did.
+Three questions on new tensors. Two ask for the stride of one dimension after a few calls, which may be a transpose, an expand or the reshapes of attention, and one is about a chain of calls on a tensor, asking either whether its last call makes a view, makes a copy or fails, or how many elements the calls move.
 
-> **Practice.** Items from the generator family `tr0.strides-of`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr0.strides-of`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
-> **Practice.** Items from the generator family `tr0.view-or-copy`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr0.view-or-copy`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## Claims cited
 

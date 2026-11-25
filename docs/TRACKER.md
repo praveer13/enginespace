@@ -56,6 +56,31 @@ Paste this brief above the task text when dispatching a task. AGENTS.md (W0-T23)
 13. **Paths stay private.** A commit, a report, a log and a pull request hold repository-relative paths only: no home-directory path, no scratch-directory path, no session id and no login name. Before a commit, grep the diff for them.
 14. **Toolchains.** Cargo and rustup run with `RUSTUP_AUTO_INSTALL=0`. Python runs only through `uv run --project`, with `UV_OFFLINE=1` and `UV_PYTHON_DOWNLOADS=never`.
 15. **Downloads.** An agent installs no wheel and downloads no model, bank or source tree without the owner's leave.
+16. **Merge.**
+    - One branch at a time goes through the lock-serialized merge gate, and no batch is run.
+    - A task's commit subjects begin with its own task id.
+    - Tracker markers move only in a wave's exit report, in the same commit that adds the ids to `MERGED` in `tests/ci/workflows.test.ts`. The exceptions are the tasks that name a marker in their own text.
+    - When the owner merges a wave's pull request into `main`, the later wave branch takes `main` in by a merge commit, not a rebase, because the audit of claimed merges reads merge commits.
+17. **Kit lock.** `src/games/kit/` and `src/design/` are changed by one task at a time, in a commit of their own that names every game it touches. A fix round that must change the kit waits for the kit task in flight and merges after it. Every kit commit runs every game's primary spec and its nightly-width walks. No game, lesson or lab task changes the kit.
+18. **Nightly width.** Nightly width is the smoke project with `ES_E2E_NIGHTLY=1`: the walks at 360 and 1280 px, and `a11y` and `screens` at 320, 360 and 1280 px. A change to a game, a lesson or the kit runs it before it merges.
+19. **Offline.**
+    - On the build computer a command runs only with `UV_OFFLINE=1`, `UV_PYTHON_DOWNLOADS=never`, `HF_HUB_OFFLINE=1` and `RUSTUP_AUTO_INSTALL=0`, and cargo with `--offline`, in the existing locked CPU environment and with no other `uv sync`.
+    - A command that fetches a model, a dataset or a GPU environment is checked by reading it against the manifest and the command's `--help`, and is never run.
+    - A report says of each printed command whether it was run or read and not run.
+20. **Heavy runs.**
+    - Agents share a few slow cores, so a task never pins every core, never starts a busy loop, and never runs 10,000 seeds or repeats a spec 20 times or more on them.
+    - Contention is simulated with Chromium's CPU throttling through CDP at rates 4 and 6.
+    - For a 10,000-seed run, a `--repeat-each` of 20 or more, or a run on a built site on four performance cores, the task writes the command and the coordinator runs it under the gate's lock before the task merges. The task's report quotes the run.
+21. **Defect classes.** Anything a learner plays carries a test for each class that fails before the fix.
+    - A, nothing moves: the rectangle of every control, readout and stage is the same before and after the press that opens something, the commit, the first move, the first draw and the result.
+    - B, in view: after every move, Tab and Enter, the control of the current decision is wholly in the viewport and topmost at its centre, at the twelve sizes from 1440x900 to 640x400; touch targets are at least 44 px; the goal's number is visible without opening a disclosure.
+    - C, keys: Enter or Space pressed twice within 500 ms, or held, applies nothing the learner did not aim at, and after a commit focus lands on a heading or a value.
+    - D, one seed: from Start to the result of a graded run no control, key, reload, Back, Forward, edited URL or second tab gives a second seed in an attempt that counts.
+    - E, true in every state: every sentence that states a fact about the run is built from the state and compared with an independent recomputation on 200 random walks, and no readout holds the answer to its guess.
+    - F, no self-scroll: `window.scrollY` is unchanged for 5 s with no input at 360x800 and 390x844, under CDP throttling 4x, and every `focus()` uses `preventScroll`.
+    - G, reduced motion: with `prefers-reduced-motion`, after every zoom, pan, step, move and result no animation or transition runs.
+    - H, nightly size: seeded properties are written in chunks of 100 seeds, and each new spec passes 5 of 5 at `--retries=0` and 20 of 20 under CDP throttling 4x.
+22. **Waiting states.** No learner-visible line holds "owner", a task id, a decision id or a level id. A waiting line says in plain words what is missing and what the learner can do now. Every table with a dash carries one caption sentence saying why the cell is empty and that the lab fills it with the learner's own number. A module whose browser part runs on model-made data says so on its first screen.
 
 ## Wave gates and the critical path
 
@@ -972,8 +997,8 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   1. The export is deterministic, and a drift fails.
   2. The vectors cover seed 0, 0xffffffff, Unicode in canonical JSON, and floats.
 
-#### [~] W2-T02 · Grader core · L · sonnet · deps: W2-T01
-- **State (2026-11-19):** built; open check: `selftest --gpu` is a stub and needs a GPU, closes with W2b-T37.
+#### [=] W2-T02 · Grader core · L · sonnet · deps: W2-T01
+- **State (2026-11-22):** built; the open check of 2026-11-19, `selftest --gpu`, closed with W2b-T37, which made it fail in one line with no CUDA (docs/waves/W2m1b-report.md).
 - **Goal:** The `labs/grader` package (`uv_build==0.10.2`, `jsonschema==4.26.0`):
   - a CLI with `doctor` as a stub, `grade`, `receipt verify` and `selftest`;
   - the challenge codec, the RNG port, canonical JSON and hashing;
@@ -1017,8 +1042,8 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   2. Expired and used tokens are shown as such.
   3. The page passes a keyboard walk and axe.
 
-#### [~] W2-T07 · Receipt worker and import · M · sonnet · deps: W2-T06
-- **State (2026-11-19):** built; open check: the receipt event freezes the verdict (the open check below), closes with W2b-T23.
+#### [=] W2-T07 · Receipt worker and import · M · sonnet · deps: W2-T06
+- **State (2026-11-22):** built; the open check of 2026-11-19, the receipt event that froze the verdict, closed with W2b-T23, which computes the verdict on read (docs/waves/W2m1b-report.md).
 - **Goal:** `receipt.worker` runs A§8.5's rules 1-6: caps (`DecompressionStream` with a byte counter), zod, artifact hashes, binding, grader identity against the published list, and pins. Import works by drop or by file picker, and the parsed receipt and its report are stored.
 - **Accept:**
   1. Oversized and zip-bomb fixtures abort with a message.
@@ -1028,7 +1053,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 - **Open check (second review of W2's rest work, note 7, first half):** `src/receipts/keep.ts` (near line 54) freezes the verdict into the credited receipt event at import. A verdict is worked out when it is read (A§8.5 rule 10), so the event has to keep the receipt and its report and not the verdict. The receipts page reads it, so the redesign's rebuild of that page takes this with it.
 
 #### [~] W2-T08 · Verification rules and the forged bestiary · L · sonnet · deps: W1-T08, W1-T31, W2-T07, W2-T09
-- **State (2026-11-19):** built; open check: the open check below and the owner's real fixtures, closes with W2b-T24 and W2-T12.
+- **State (2026-11-22):** built; open check: the owner's real fixtures, closes with W2-T12. The other open check closed with W2b-T24.
 - **Goal:** `packages/verify` implements A§8.5's rules 7-10: re-checks, recomputation, physics floors and the verdict, with bounds printed. A generator builds forgeries from honest fixtures: synthetic ones until W2-T12, then the owner's.
 - **Accept:**
   1. Honest synthetic bundles pass.
@@ -1070,8 +1095,8 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 
 ### TR0: PyTorch and Triton reading
 
-#### [~] W2-T13 · Sim: the tensor model · M · sonnet · deps: W0-T12
-- **State (2026-11-19):** built; open check: the torch vectors come from a build that is not the `cpu` environment's own (the open check below), closes with W2-T13.
+#### [=] W2-T13 · Sim: the tensor model · M · sonnet · deps: W0-T12
+- **State (2026-11-22):** built; the open check of 2026-11-19, torch vectors from a build that was not the `cpu` environment's own, closed in wave 1b: the vectors are what the locked CPU environment's torch gives (docs/waves/W2m1b-report.md).
 - **Goal:** A§5.8's tensor rules and grid coverage.
 - **Accept:**
   1. The rules agree with PyTorch on a committed fixture set, generated once with CPU torch, with the torch version recorded.
@@ -1128,17 +1153,30 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   1. The fixtures round-trip.
   2. TypeScript's `traceChecks` passes on the exported fixtures (a cross-language test).
 
-#### [ ] W2-T20 · Traces, and Trace attribution (`gap-hunt`) · L · sonnet · deps: W1-T09, W1-T08
-- **Goal:**
-  - `/trace-room`, on a page labelled Traces: lists pinned and synthetic traces, each with its card. It is reached from Games and from TR3.
-  - Trace attribution (`gap-hunt`, 2D, in the instrument frame, built on `src/trace`): find the gap, mark the spans, name the cause, with GAMES.md §6's levels (`read`, `gap`, `attribute`, `graphs`, `pinned`, `yours`) and its list mode for phones, which ASSESSMENT §4.3 grades the same. The span categories use the one colour code, and the game supplies the frame's five exports (REDESIGN.md §2.6), with the role line "You attribute the gap."
-  - Runs are graded on fresh synthetic seeds, and on the pinned traces against the owner's annotations once W2-T21 lands.
+#### [ ] W2-T20 · Trace attribution (`gap-hunt`) in the frame: lanes at a desk, the list on a phone, the walkers, the registration, `attribute` as the Prove level · L · opus · deps: W2b-T100, W2b-T101, W2b-T87, W2b-T74, W2b-T78, W2b-T179
+- **Kind:** build; lane 2a:TR3; merges; merges after: W2b-T79, W2b-T86.
+- **Split (wave 2):** this task was one task for the Traces page, the trace generator, the gap and cause model, the pure session, the list mode and the game. It is cut: W2b-T98 (the generator's second GPU stream), W2b-T99 (the gap and cause model), W2b-T100 (the pure session), W2b-T101 (the list mode) and W2b-T102 (the Traces page) are tasks of their own, and this task keeps the game in the frame.
+- **Goal:** The game a learner plays. The frame's five exports; the session's marks drive the viewer through a bridge (the viewer's own reducer is not the record); the first run's callouts anchor on the lane gutter or the table; parsing stays in a lazy chunk on the main thread, with no new worker; `pinned` and `yours` show their plain waiting lines (WAIT), for example 'Traces captured from vLLM on real GPUs are not recorded yet. Every trace here is made by the course's model of the step loop.'; the game's named moment; both registries, the record loader, the card row. A lesson's graded `attribute` block runs graded; Prove mode starts only from its own control, as Tensor views' does. The first commit is a skeleton that measures the route.
+- **Read:** the rewritten brief; docs/GAMES.md 2.6 and 6; src/games/shape-shifter/ (the model); src/games/kit/Frame.tsx; e2e/shape-shifter.spec.ts, shape-shifter-sizes.spec.ts
+- **Files:** src/games/gap-hunt/**; packages/play/registry.ts, src/games/registry.ts; src/pages/About.tsx; src/content/render/model.ts; tests/content/pending.test.ts; e2e/gap-hunt.spec.ts, e2e/gap-hunt-sizes.spec.ts; e2e/levels.ts, e2e/support/walks.ts, e2e/walks.spec.ts, e2e/keep-list.spec.ts, e2e/routes.ts, e2e/a11y.spec.ts, e2e/network.spec.ts; the `tests/play/*` files that count the roster's games, with their moved counts in the allow file
 - **Accept:**
   1. The game can be completed by keyboard.
   2. `verify:games` passes.
   3. Synthetic traces carry their label.
   4. At 360 px, a graded `attribute` case can be completed in list mode (e2e).
-- **Before you write (2026-11-18):** one case needs a second GPU stream from the trace generator, so that an empty stretch on one stream is not read as an idle GPU, and the `attribute` level's goal line waits for the owner's word on "bubble" against "CPU gap". See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", (a) and (e).
+  5. The tracker's four checks, the fourth being a graded `attribute` case finished in list mode at 360 px
+  6. DC-A to DC-G, with DC-B's twelve sizes in `e2e/gap-hunt-sizes.spec.ts` re-run after the rebase on W2b-T86; `M`, `X` and the digits never repeat
+  7. DC-G: with reduced motion a zoom cuts and nothing animates after a zoom, a pan, a mark or a result
+  8. DC-D: the seed is in no attribute, text or URL (`seedInPage: false`); a passed Prove run is read as proved
+  9. A scripted first run of `read` reaches the named moment in under 60 s
+  10. No learner-visible line holds 'owner', 'pinned' as a build word, a task id or a level id; synthetic traces carry their label
+  11. The viewer's 5,000-rectangle and 8 ms bounds hold in the frame
+  12. ROWS with the stop rule; the game's own route is at least 10,000 B under its gate; the viewer chunk's size is reported
+  13. `src/games/kit` and `src/design` are unchanged; no new baseline
+  14. DC-H, with the HEAVY run by the coordinator
+- **Browser tests:** features: gap-hunt, gap-hunt-sizes, trace-view, keep-list, lesson-games, prove-mode; smoke: walks, a11y, screens, network, reduced-motion; nightly width: walks (gap-hunt), all four levels at 360 and 1280 px, and the first-run tests at 1440x900 and 390x844
+- **Owner default:** N1, N2, N11, Q-5, O-5 (`pinned` waits)
+- **Before you write (2026-11-18, rewritten 2026-11-22):** one case needs a second GPU stream from the trace generator, so that an empty stretch on one stream is not read as an idle GPU. For the word of the `attribute` level's goal line, the build takes "CPU gap" as the default; the owner may overturn it (N2), and the word is read from `GAP_WORD` in `src/copy/terms.ts`, so an answer is a one-line change. See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", items 1 to 12 and point (a).
 
 #### [ ] W2-T21 · Owner: capture 6-10 reference traces · M · owner · deps: W2-T04, W2-T19
 - **Goal:** Per O-5:
@@ -1169,10 +1207,19 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   2. A forged trace that is too fast fails its floor.
   3. The lab's page is the numbered procedure, with the titles and labels above.
 
-#### [ ] W2-T24 · TR3 content · L · sonnet · deps: W2-T20, W2-T23
-- **Goal:** TR3's module and lessons: `--profile`, Perfetto, and nsys graph traces. Written to the authoring rules of REDESIGN.md §2.5 (and `content/README.md`) from the start: an opener chosen by rule 1, guesses that each get a reveal, a Test that closes the file, and engine terms only (`src/copy/terms.ts`). Each new lesson adds its row to the openers table, and `tests/content/openers.test.ts` and `tests/content/vocabulary.test.ts` hold it.
-- **Accept:** The checks of W1-T15 pass, and each lesson has its row in the openers table and passes the openers and vocabulary tests.
-- **Before you write (2026-11-18):** four rules for reading a GPU timeline, each at its lesson, the place of rule 11's form, three pointers and four questions for the owner. See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", (a) to (f).
+#### [ ] W2-T24 · TR3 lessons 5 and 6, and the module closed in the browser · M · sonnet · deps: W2b-T183
+- **Kind:** build; lane 2a:TR3; merges. It no longer depends on W2-T23 (the TR3 lab, which moves to wave 3): a module closes in the browser when its lessons, game and items are in, and until the lab merges the module page shows the lab as not published and the KCs that only the lab earns keep their `planned: W2-T23` lines.
+- **Goal:** Floors and flat curves (arithmetic from claims), with the '300 us' question said as a number no primary source gives, which the lab will replace with the learner's own; and SGLang's profiler from its documents, opening on one synthetic step with both engines' labels. The module page complete for the browser part; every claim of `tr3.yaml` cited.
+- **Read:** as W2b-T107
+- **Files:** content/modules/tr3/lessons/l5-*.md and l6-*.md; tests/content/tr3-module.test.ts, tr3-demos.ts; tests/content/openers-table.ts, module-counts.ts; packages/play/predictions/{plan,truth,commit-tr3,tr3}.ts; e2e/routes.ts, e2e/support/lessons.ts, e2e/lesson-games.spec.ts; e2e/first-visit.spec.ts and e2e/support/screens.ts (its own routes' rows); public/md/tr3/**, public/llms.txt; content/modules/tr3/module.md
+- **Accept:**
+  1. LES
+  2. The minutes sum is within 10% of the brief's
+  3. `bun run verify:kc`: every KC has a family, a graded level or a credit-bearing lab stage, and only the lab-earned KCs still carry `planned: W2-T23`
+  4. The export names each Test as a Test (W2b-T77's test passes on `public/md/tr3`)
+- **Browser tests:** features: lesson-games, lesson-predict, trace-view, map, titles, items, front; smoke: first-visit, a11y, screens; nightly width: a11y at 320 px on the module page and each touched lesson; nightly width: walks (gap-hunt) for the lesson's levels
+- **Owner default:** Q-5; the lab waits for wave 3 (wave 3 holds the lab)
+- **Before you write (2026-11-18, rewritten 2026-11-22):** the lessons' openers, first acts, own KCs, Tests and minutes, the module page's prerequisite line, the step floor from the `qwen3.*` claims, the promises of TR2's and TR0's lessons, the form and its word, and the defaults taken for the four questions of 2026-11-18. See `curriculum/TR3-profile-a-real-engine.md`, "Before you write", items 2, 3 and 13 to 19 and points (a) to (f).
 
 ### TR4: backends as a consumer
 
@@ -1213,7 +1260,8 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   2. Each bestiary member (a dropped event, events out of order, a missing `AllBlocksCleared`) fails.
   3. The lab's page is the numbered procedure, and `verify:labs` still holds the two sides together.
 
-#### [ ] W2-T30 · KV offload (`switchyard`): session, 2D view and mirror · M · sonnet · deps: W0-T14, W2-T28
+#### [ ] W2-T30 · KV offload (`switchyard`) in the frame, 2D: the registration, the walkers, `yard` as the Prove level · L · opus · deps: W2b-T139, W2b-T140
+- **Split (wave 2):** this task was the tiers model's session, the 2D view and the mirror in one task. It is cut: W2b-T136 (the tiers model gains sequence numbers, a replay buffer, the adapter field, a faulty transport and a restart), W2b-T137 and W2b-T138 (the yard model), W2b-T139 (the pure session, seven levels) and W2b-T140 (the 2D parts, unregistered) are tasks of their own, and this task keeps the registration, the walkers and `yard` as the Prove level, in the frame. Its body below is the old one; W2b-T126 writes the new.
 - **Goal:** `packages/play/switchyard`, titled KV offload, with the role line "You publish the events." The learner publishes each move, and the consumer's board is checked after every event. The 2D view is lanes per tier, in the instrument frame. It is built in the instrument frame (REDESIGN.md §2.6) and supplies the frame's five exports: `Diagram2D`, `DockView`, `parts`, `moments` and `firstMove`, with the role line and the goal line in `packages/play/<game>/copy.ts`, where the engine's term is the only name (D-063).
 - **Accept:**
   1. The game can be completed by keyboard.
@@ -1221,6 +1269,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   3. The frame's five exports exist, and each level has a goal line with its number.
 
 #### [ ] W2-T31 · KV offload (`switchyard`): the 3D scene · L · sonnet · deps: W0-T15, W2-T30
+- **Wave 2:** not in wave 2. W2b-T118's camera table weighs each camera against the 2D; if none carries meaning, the roster says 2D and this task is recommended cut (N3, the owner decides). If one does, the scene is wave 3's.
 - **Goal:** KV offload's 3D view: three decks, one per tier, with pages in transit drawn as dashed outlines, event signals, and the consumer's board (A§6.1). It is built from the scene kit's primitives, with no props chunk and no carrier prop.
 - **Accept:**
   1. Scene budgets as in W1-T18.
@@ -1236,7 +1285,8 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   1. A synthetic fixture passes.
   2. A fixture with a corrupted event log fails conformance.
 
-#### [ ] W2-T33 · TR5b content · M · sonnet · deps: W2-T29, W2-T30, W2-T31, W2-T32
+#### [ ] W2-T33 · TR5b lesson 5, and the module closed in the browser · M · sonnet · deps: W2b-T149
+- **Wave 2:** it no longer depends on W2-T31 or W2-T32: a module closes in the browser when its lessons, game and items are in, and until the lab of W2-T32 (moved to wave 3) merges the module page shows that lab as not published. W2-T29 and W2-T30 are reached through W2b-T149's own dependencies. The title and dependencies are the wave's; W2b-T126 writes the body.
 - **Goal:** TR5b's module and lessons: native offload, the engine side of the connector contract, and the event publisher. P/D sizing and transport are pointed to The Wire. Written to the authoring rules of REDESIGN.md §2.5 (and `content/README.md`) from the start: an opener chosen by rule 1, guesses that each get a reveal, a Test that closes the file, and engine terms only (`src/copy/terms.ts`). Each new lesson adds its row to the openers table, and `tests/content/openers.test.ts` and `tests/content/vocabulary.test.ts` hold it.
 - **Accept:** The checks of W1-T15 pass, and each lesson has its row in the openers table and passes the openers and vocabulary tests.
 
@@ -1322,7 +1372,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 
 - **Closed by R-T09 (wave R).** The owner's call under the third way (D-067) was taken: 18 predictions are revealed after their run (the 17 that a run answered, and TR2 lesson 1's, reworded onto the ticks of `first-3-gap` by the second way) and 21 at commit, from the question's own numbers or from the claim it is about. `PLAN` has no waiting row left, so the first check holds with no record to write, and `tests/play/predictions.test.ts` plays each run it holds on a seed and holds the reading to the lesson's own figure, and each at-commit answer to the same figure.
 
-#### [ ] W2-T44 · Readers of the prediction event: Review's rescheduling and the calibration view on Progress · S · sonnet · deps: W1b-T02
+#### [=] W2-T44 · Readers of the prediction event: Review's rescheduling and the calibration view on Progress · S · sonnet · deps: W1b-T02
 - **Goal:** W1b-T02's box writes a `predict` event at each reveal (A§7.2: the value and the truth). The module page's loop and the course map's practised KCs read it (`src/progress`), and so does the Evidence page's count of events by kind. Two readers of it do not exist yet:
   - Today (`src/items/today/kcs.ts`) maps no `predict:` ref to a KC, so a prediction reschedules no idea. ASSESSMENT §4.7 says that it may reschedule an idea that is earned, and never earns one. Give Review (`/today`) the compiled map's refs for them, inside its gate, so Review reschedules from predictions as specified. The readers take both reveal kinds, a reveal after the run and a reveal at commit (R-T09).
   - The calibration view on Progress (`/evidence`; ASSESSMENT §4.2 and §4.7), as rows in words before counts: how often each confidence tap of an item or a prediction (guess, think so, sure) was right, derived from the ledger when the page is read, stored nowhere, and shown with the count it rests on, in words before the count.
@@ -1353,7 +1403,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
 
 **Models.** Opus has the tasks that set a pattern, the exit checks and the cold-reader checks; haiku has the mechanical ones; the rest are sonnet's (D-036).
 
-**Order.** A task lists its deps by id. Lane G's tasks (the grader, the kits, the receipts and the references manifest) merge one at a time, in the order of the plan. W2b-T38 and the tasks of waves 2 to 5 have no heading here until their wave starts.
+**Order.** A task lists its deps by id. Lane G's tasks (the grader, the kits, the receipts and the references manifest) merge one at a time, in the order of the plan. W2b-T38 and the tasks of wave 2 have their headings in the section "Wave 2 of the second build plan: 2a and 2b" below; the tasks of waves 3 to 5 have none until their wave starts.
 
 #### [=] W2b-T01 · Record wave 1 in the tracker, and set the stale markers to the tree · S · sonnet · deps: —
 - **Goal:** Write a W2b section into docs/TRACKER.md with a heading for each wave-1 task (W2b-T01 to T37 and T39 to T53) and none for a later wave. Set the markers of W2-T01 to T11, T13, T19, T28 and T43 to what the tree holds: [x] only when every check is met by files and none is the owner's or needs a GPU; otherwise [~] with a first body line 'State (2026-11-19): built; open check: <what>, closes with <task id>'. Known to need the second form: W2-T02 (selftest --gpu, W2b-T37), W2-T04 (Dockerfile builds, W2-T12), W2-T07 (W2b-T23), W2-T08 (W2b-T24 and W2-T12), W2-T11 (W2-T12), W2-T13 (its own open check), W2-T19 (nsys table names, W2-T21). Remove W2-T18's dep on W2-T15 with the reason. Reword W2-T16's first check from the nightly labs.yml job to the labs.yml CPU job on the wave's pull request and the weights job on a dispatch, with the reason (labs.yml has no schedule; the nightly is off, D-052). Correct line 1154's 'three questions' to four. Add to AGENTS.md, word for word as the tracker has them, the rules: never lowered, no quiet skip, paths stay private, RUSTUP_AUTO_INSTALL=0, and no wheel or model downloaded without the owner's leave.
@@ -1859,7 +1909,7 @@ W1b closes these, with the carry-overs of W1-report §5, §7.4 and §12, before 
   3. bun test tests/content/tr0-module.test.ts passes with zero diagnostics, and G0 passes
 - **Browser tests:** features: e2e/lesson-games.spec.ts, e2e/lesson-predict.spec.ts, e2e/items.spec.ts, e2e/titles.spec.ts; smoke: first-visit, a11y, screens; nightly width: walks (shape-shifter) if level copy changed
 
-#### [ ] W2b-T39 · Wave 1b exit review · S · opus · deps: all of wave 1b
+#### [=] W2b-T39 · Wave 1b exit review · S · opus · deps: all of wave 1b
 - **Goal:** Check wave 1b as a whole and hand it to the owner: a report under docs/waves/ with repository-relative paths only, and the pull request from wave-2m1b into wave-2m1a marked ready and not merged. W2b-T49 and W2-T15 are in the report as done or not started, each with its reason.
 - **Files:** `docs/waves/W2m1b-report.md`.
 - **Accept:**
@@ -1890,6 +1940,1246 @@ The plan of wave 1 did not foresee these; the coordinator added each from a chec
 - [=] W2b-T66 · The merge gate lists a renamed file under both names, so that a rename cannot skip the browser tests of the feature it left (wave 1b)
 - [=] W2b-T67 · Tensor views' level tests finish inside their own timeouts at nightly size (wave 1b, after its exit check)
 - [=] W2b-T68 · Three browser tests that failed the merge gate at random: the TR2 lesson-predict walk, scroll restored on Back, and one ledger conformance test (wave 1b, after its exit check)
+
+---
+
+## Wave 2 of the second build plan: 2a and 2b
+
+**Why this section.** Wave 2 is built in two halves. Wave 2a, on the branch `wave-2m2` (stacked on `wave-2m1b`), holds the opening, the holes of the merge gate, every defect a learner meets today, TR0's Tests of lessons 3 and 5, words and paint, and TR3 ("profile a real engine") complete in the browser with its game and the Traces page. Wave 2b, on `wave-2m2b` (stacked on `wave-2m2`), holds TR5b complete in the browser, the forge lab `kv-publisher`, Prove-it on the three forge labs, TR7's design, sources and draft targets, and the cards in the five older modules. Each half ends mergeable and deployable. Every task of 2a has its full heading below (Goal, Read, Files, Accept). Every task of 2b has a one-line heading marked "Body written by W2b-T126", so that a `planned:` line can name it; W2b-T126 writes the bodies when 2a is done.
+
+**Markers.** No task of this section carries a marker but `[ ]`. Markers move only in W2b-T125 for wave 2a and in W2b-T178 for wave 2b, each in the same commit that adds the ids to `MERGED` in `tests/ci/workflows.test.ts`.
+
+**Ids not used.** W2b-T127, W2b-T128 and W2b-T160 to W2b-T169 are not used: an earlier draft of this wave gave them to the block of GPU labs that moved to wave 3.
+
+**Dependencies that changed, and why.**
+- W2-T24 no longer depends on W2-T23, and W2-T33 no longer depends on W2-T31 or W2-T32. A module closes in the browser when its lessons, game and items are in. Until its lab merges, the module page shows the lab as not published, and the KCs that only that lab earns keep their `planned:` lines. Otherwise neither module could be live at the end of its half. The GPU labs of TR8, TR3 and TR5b (W2-T36, W2-T23, W2-T32) move to wave 3, and W2-T31 (the 3D scene of KV offload) is not in wave 2: W2b-T118's camera table decides whether any camera carries meaning (N3, D-074's reasoning for Tensor views).
+- W2-T20 and W2-T30 are split, and their headings in the W2 section say how. W2-T20 (Trace attribution) keeps the game in the frame; the generator's second stream (W2b-T98), the gap and cause model (W2b-T99), the pure session (W2b-T100), the list mode (W2b-T101) and the Traces page (W2b-T102) are tasks of their own. W2-T30 (KV offload) keeps the registration in the frame; the tiers model (W2b-T136), the yard model (W2b-T137 and W2b-T138), the pure session (W2b-T139) and the 2D parts (W2b-T140) are tasks of their own. Their headings stay in the W2 section, with the new title and dependencies; W2-T24 is there too, with the full body below.
+- W2b-T38 (the capture runbook for the owner's reference traces) earns no KC; its heading says so, and `bun run verify:kc` refuses a `planned:` line that names it.
+
+**Decision numbers.** D-077 onward are reserved by task, so that two tasks that run side by side never write the same number. A task uses only the numbers of its own row; a task that needs one more takes the next spare of its lane and says so in its report. The numbers are written as proposed records; the owner's answers are D-070 to D-072 only.
+
+| D- number | Reserved for | What it records |
+|---|---|---|
+| D-077 | W2b-T70 | The gate's minutes per merge: 40, and 50 for a kit merge (N18) |
+| D-078 | W2b-T71 | The `e2e-features` job, with each shard's measured minutes (N14) |
+| D-079 | W2b-T96 | TR3's design: the role line (N1), the levels, the Prove level, the KCs and the defaults of the rewritten brief, N19's among them |
+| D-080 | W2b-T96 | The form's category, "CPU gap", held in one key, with "bubble" kept for TR2 (N2) |
+| D-081 | W2b-T118 | TR5b's design: the game and the lab's stages (N1, N10) |
+| D-082 | W2b-T118 | KV offload's camera table against the 2D (N3) |
+| D-083 | spare, lane 2a:Gate | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-084 | spare, lane 2a:Gate | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-085 | spare, lane 2a:D2 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-086 | spare, lane 2a:D2 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-087 | spare, lane 2a:D1 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-088 | spare, lane 2a:D1 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-089 | spare, lane 2a:D3 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-090 | spare, lane 2a:D3 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-091 | spare, lane 2a:D4 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-092 | spare, lane 2a:D4 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-093 | spare, lane 2a:G | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-094 | spare, lane 2a:G | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-095 | spare, lane 2a:D5 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-096 | spare, lane 2a:D5 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-097 | spare, lane 2a:D6 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-098 | spare, lane 2a:D6 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-099 | spare, lane 2a:TR3 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-100 | spare, lane 2a:TR3 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-101 | spare, lane 2a:Exit | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-102 | spare, lane 2a:Exit | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-103 | spare, lane 2b:Open | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-104 | spare, lane 2b:Open | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-105 | spare, lane 2b:TR5b | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-106 | spare, lane 2b:TR5b | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-107 | spare, lane 2b:G | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-108 | spare, lane 2b:G | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-109 | spare, lane 2b:TR7 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-110 | spare, lane 2b:TR7 | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-111 | spare, lane 2b:Cards | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-112 | spare, lane 2b:Cards | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-113 | spare, lane 2b:Exit | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+| D-114 | spare, lane 2b:Exit | Taken by a task of that lane that needs a record the table does not name; the task says so in its report |
+
+D-077 to D-114 are reserved. The next free number after the table is D-115.
+
+**Open questions.** N2 and N9 to N19 are recorded in docs/DECISIONS.md, each as open, with the default the named task takes. The owner has answered N4, N5 and N8 only (D-070 to D-072).
+
+### Wave 2a: the full headings
+
+W2-T20 (Trace attribution in the frame) and W2-T24 (TR3 lessons 5 and 6) are tasks of 2a whose headings are in the W2 section, edited there with their full text; they are not repeated here.
+
+#### [ ] W2b-T69 · The task-id reader takes two or three digits, the agent brief gains wave 2's rules, and the stale markers are set · S · sonnet · deps: —
+- **Kind:** build; lane 2a:Gate; merges.
+- **Goal:** Widen the id pattern `(?:W\d+b?|R)-T\d\d` to two or three digits in both readers. Move the pinned W2b heading list of `tests/ci/task-ids.test.ts` so that later headings are legal. Add MERGE, KIT LOCK, NIGHTLY, OFFLINE, HEAVY, DC and WAIT (the wave's rules) to the tracker's agent brief and, word for word, to `AGENTS.md`. Set the stale markers (W2-T44 is built; the State lines of W2-T02, T07, T08, T13; W2b-T39) in the same commit that adds those ids to `MERGED`. Make the KC gate refuse a `planned:` line that names a task whose heading says 'earns no KC' (W2b-T38 will be the first).
+- **Read:** docs/TRACKER.md: the reading guide, the agent brief, the head of the W2b section; AGENTS.md; tests/docs/repo-docs.test.ts; tests/ci/task-ids.test.ts 180-190; tests/ci/support.ts 50-60; scripts/verify-kc.ts 425-435; tests/ci/workflows.test.ts 700-790
+- **Files:** docs/TRACKER.md (the agent brief and the markers only); `AGENTS.md`; `scripts/verify-kc.ts`; `tests/ci/support.ts`; `tests/ci/task-ids.test.ts`; `tests/kc/verify-kc.test.ts`; `tests/ci/workflows.test.ts`; `tests/content/predict.test.ts`; e2e/screens.spec.ts (a comment)
+- **Accept:**
+  1. bun test tests/ci tests/kc tests/docs tests/content/predict.test.ts
+  2. A test that `planned: W2b-T105` is read, that `W2b-T1050` is not, and that a `planned:` line naming an 'earns no KC' task is refused
+  3. bun run verify:kc
+  4. Every moved expect line is in the allow file
+  5. `bun scripts/gate/run.ts --plan` for the branch is a documents-and-tests plan: nothing under `src/` changes
+  6. No sentence says the owner chose, saw or approved anything
+- **Browser tests:** smoke, by G0
+
+#### [ ] W2b-T180 · Wave 2's headings in the tracker, the D- numbers each task may use, and the open questions recorded · M · sonnet · deps: W2b-T69
+- **Kind:** build; lane 2a:Gate; merges.
+- **Goal:** A new tracker section for wave 2. A full heading (Goal, Read, Files, Accept) for every task of 2a, from the task list the coordinator hands over with private paths removed. A one-line heading for every 2b task, marked 'body written by W2b-T126', so that `planned:` lines can name it. A sentence that W2b-T127, T128 and T160 to T169 are not used. W2-T24 no longer depends on W2-T23, and W2-T33 no longer on W2-T31 or W2-T32, with the reasons the tracker gives. W2-T20's and W2-T30's splits. W2b-T38's heading says 'earns no KC'. A one-line heading for W2b-T210, 'TR3: one real profiler trace from the locked CPU environment', marked 'run only if W2b-T96's record says yes'. A table that reserves D-077 onward by task (T70, T71, T96, T118, and two spare per lane). In `docs/DECISIONS.md`: N2 first, then N9 to N19, each recorded as open with the default a task takes.
+- **Read:** docs/TRACKER.md: the W2 and W2b sections; docs/DECISIONS.md: the open-question tables and D-070 to D-076; the task list
+- **Files:** `docs/TRACKER.md`; `docs/DECISIONS.md`; `tests/ci/task-ids.test.ts`; `tests/content/pending.test.ts`
+- **Accept:**
+  1. bun test tests/ci tests/kc tests/docs tests/content/pending.test.ts
+  2. bun run verify:kc
+  3. No wave 2 task carries a marker: markers move only in W2b-T125 and W2b-T178
+  4. The set of heading ids equals the handed-over list (a script's output in the report)
+  5. A grep of the diff for a home-directory path, a scratch-directory path and the login name finds nothing
+  6. No sentence says the owner chose anything
+- **Browser tests:** smoke, by G0
+- **Owner default:** lists N2 and N9 to N19; takes none
+
+#### [ ] W2b-T70 · The merge gate maps every folder, runs the scene, kit, Prove, ledger, items, lab, page and data rows, keeps a failed test's output, and holds a stated time per merge · L · opus · deps: W2b-T69
+- **Kind:** build; lane 2a:Gate; merges.
+- **Goal:** Close the holes that let wave 1b's defects through, inside a measured budget of gate time. Rows: `src/scene/` runs `scene-kit` and every `*-scene` spec. `src/games/kit/{Frame.tsx,first-move.ts,Intro.tsx,useRun.ts,record.ts}`, `src/pages/Game.tsx` and `src/games/registry.ts` run every game's primary spec and every game's nightly-width walks; the rest of the kit and `src/design/` keep today's row. `packages/play/roster.ts` runs `tests/play/roster.test.ts` only. `src/prove/` and `packages/ledger/` run `settings`, `ledger-conformance`, every `prove-*` spec and the specs a named constant lists as holding a Prove describe. `packages/play/items/` and `src/items/` run `items`, `today`, `lesson-games`. `packages/play/predictions/` runs `lesson-predict`, `keep-list`. `src/labs/` runs `lab-page`, `lab-kits`. `src/pages/`, `src/settings/`, `src/evidence/`, `src/progress/` and `src/map/` run their own specs, and `a11y` and `screens` at nightly width with `-g` limited to the routes the touched page serves. `course.lock.json` also runs `a11y` at nightly width for `/changes`. `e2e/routes.ts` and `content/modules/**` run `a11y` at nightly width for the routes the diff adds or changes, from a helper that diffs `e2e/routes.ts`. A table from each `packages/sim/<model>` to the games that stand on it. `src/trace/` also runs a game that embeds the viewer. The lab prefixes of the gate's lab rows are mapped the same way. A `<game>-sizes` spec is run by its game's row and not by the kit row. No row runs a levels file at the nightly seed count. `run.ts` prints every unmapped path, and writes each failed test's whole error, stdout and stderr through `clean()` to a file outside the repository, printing its first 20 lines.
+- **Read:** scripts/gate/touched.ts; scripts/gate/run.ts; tests/ci/gate-touched.test.ts; docs/waves/W2m1b-report.md 2.1 and 16.2
+- **Files:** `scripts/gate/touched.ts`; `scripts/gate/run.ts`; `tests/ci/gate-touched.test.ts`; docs/DECISIONS.md (one proposed record: the minutes a merge may take)
+- **Accept:**
+  1. A plan is the pull request's first comment
+  2. A test lists the real folders under `src/`, `packages/` and `e2e/support/` and fails for one with no row and no stated reason
+  3. One test row per new mapping, the two data rows among them
+  4. The plan for a documents-only branch is unchanged (a test); the verdict logic is unchanged (the recorded reporter JSON gives the same exit codes)
+  5. The budget: `bun scripts/gate/run.ts --plan` is run against the Files list of every planned wave 2 task and the browser minutes each adds are measured on four performance cores and tabled
+  6. No planned merge exceeds 40 minutes of whole gate time, but the kit merges (T74, T78, T179, T79, T86, W2-T20, W2-T30), which may reach 50; a row that cannot meet this is narrowed and the report says what it no longer runs
+  7. A planted break in `src/scene/` and one in `src/games/kit/Frame.tsx`, on throwaway branches, are refused
+  8. A test that the failure file holds neither the home path nor `os.userInfo().username`
+  9. No timeout, retry or skip changes; the allow file names every changed gate line
+- **Browser tests:** the specs each new row names, once, to measure
+- **Owner default:** N18: 40 minutes a merge, 50 for a kit merge, as a proposed record
+
+#### [ ] W2b-T71 · CI runs the features project on the pull request, and `pack-kit --check` in the Labs workflow · M · sonnet · deps: W2b-T70
+- **Kind:** build; lane 2a:Gate; merges.
+- **Goal:** An `e2e-features` job in `ci.yml` in four shards, in a concurrency group of its own with `cancel-in-progress: false`, with the smoke job's worker count and the configuration's own retry. It prints every test that passed only on its retry. `bun scripts/pack-kit.ts --check` in `labs.yml`. A proposed D- record with each shard's measured minutes. ARCHITECTURE 10.1 says what the job checks: the commits whose runs finish.
+- **Read:** .github/workflows/ci.yml; .github/workflows/nightly.yml; .github/workflows/labs.yml; tests/ci/workflows.test.ts; playwright.config.ts 140-170 (not edited)
+- **Files:** `.github/workflows/ci.yml`; `.github/workflows/labs.yml`; `tests/ci/workflows.test.ts`; `docs/ARCHITECTURE.md`; `docs/DECISIONS.md`
+- **Accept:**
+  1. bun test tests/ci/workflows.test.ts
+  2. The coordinator dispatches `ci.yml` on the task's branch and the task quotes each shard's minutes from that run
+  3. If one shard takes more than twice another, spec files are renamed as the configuration's sorting note allows; `playwright.config.ts` is not edited
+  4. No test is retried more than the configuration says, skipped or quarantined
+- **Browser tests:** the job itself, on a runner
+- **Owner default:** N14: the job is not a required check until the owner makes it one
+
+#### [ ] W2b-T72 · Rejection sampler: the 3D stage keeps its box on the commit and the first draw · M · sonnet · deps: W2b-T69
+- **Kind:** build; lane 2a:D2; merges; merges after: W2b-T70.
+- **Goal:** The legend and the note reserve their full height in 3D, so the stage does not shrink 46 px and the bars do not jump. The dock's blank band after the first digit goes. The weight labels do not touch at 390 px. The frame test counts the first draw again.
+- **Read:** src/games/verifier/View2D.tsx 205-250; src/games/kit/frame.css 422-424; e2e/verifier-scene.spec.ts
+- **Files:** `src/games/verifier/View2D.tsx`; `src/games/verifier/verifier.css`; e2e/verifier-scene.spec.ts (allow file: the warm-up draw is removed, the bound of 3 stays)
+- **Accept:**
+  1. DC-A on the commit, the first draw and the result at 1440x900 and 390x844
+  2. The counted first draw passes 5 of 5 at `--retries=0`, and 20 of 20 under CDP throttling 4x
+  3. HEAVY: `--repeat-each 100 --workers 2` is run by the coordinator on idle performance cores; the report quotes it, with the distribution of frames before and after
+  4. No copy is shortened
+  5. ROWS
+- **Browser tests:** features: verifier-scene, verifier, lesson-games-scene; nightly width: walks (verifier)
+
+#### [ ] W2b-T74 · Prove mode: the foot after a proved run, Start held while the ledger is read, one clock, Progress reads the run as proved · M · sonnet · deps: W2b-T69
+- **Kind:** build; lane 2a:D2; merges; merges after: W2b-T70.
+- **Goal:** A passed Prove run shows `PROVE_COPY.proved`, not 'Recorded as practice'. Start is disabled while the stake is unknown. The retry time uses the 24-hour clock of `/receipts`. The Progress page reads the run as proved. 'Next level' stays in Prove mode. The first panel says a miss uses up the day. Token labels do not run together at 320 px.
+- **Read:** src/prove/ProveSession.tsx, copy.ts, window.ts; src/games/kit/record.ts 30-40 (`provenanceOf`); src/games/kit/Frame.tsx 440-460 (`modeWord`)
+- **Files:** `src/prove/ProveSession.tsx`; `src/prove/copy.ts`; `src/prove/window.ts`; src/games/kit/record.ts and Frame.tsx (a separate commit, KIT LOCK); the one file of `src/progress/` that reads the event, named in the plan comment; `tests/play/prove.test.ts`; e2e/prove-mode.spec.ts (new, table-driven over both Prove levels)
+- **Accept:**
+  1. DC-D's foot and Start lines as tests on both Prove levels
+  2. A test under CDP throttling 30x that Start cannot be pressed before the stake is read
+  3. KIT LOCK: every game's primary spec and nightly-width walks pass after the kit commit
+  4. ROWS
+- **Browser tests:** features: prove-mode, shape-shifter, verifier, settings, ledger-conformance; every game's primary spec; nightly width: walks of every game
+- **Owner default:** N16: the 24-hour clock
+
+#### [ ] W2b-T78 · Prove mode: a left attempt is an event the export shows, a second tab is told the truth, and a graded run left early is recorded · M · sonnet · deps: W2b-T74
+- **Kind:** build; lane 2a:D2; merges.
+- **Goal:** A left Prove attempt is written as a `proved` event with `ok: false` and a `left` note. The playing tab refreshes its open record about every 30 s, and a second tab says an attempt is open in another tab until that lapses. A graded run left before its end writes a `play` event marked left (no window applies to it).
+- **Read:** src/prove/window.ts; packages/ledger; src/evidence/export.ts; W2b-T23's migration, as the pattern; docs/ASSESSMENT.md 7.3
+- **Files:** `src/prove/*`; packages/ledger/ (a schema bump with its migration only if the event needs one); src/games/kit/record.ts and Frame.tsx (a separate commit, KIT LOCK); `src/evidence/export.ts`; `tests/play/prove.test.ts`; `e2e/prove-mode.spec.ts`; `e2e/ledger-conformance.spec.ts`
+- **Accept:**
+  1. DC-D whole, as one table-driven spec over both Prove levels
+  2. A two-tab test that passes 20 of 20 under CDP throttling 4x
+  3. The export of a left attempt shows the miss; an older record migrates (a test)
+  4. KIT LOCK
+  5. ROWS
+- **Browser tests:** features: prove-mode, shape-shifter, verifier, settings, ledger-conformance; every game's primary spec; nightly width: walks of every game
+- **Owner default:** Q-5 yes; the builders' rule that a missed attempt that counted opens the 24-hour window stands
+
+#### [ ] W2b-T179 · The frame can leave the seed out of the page, and gives it to tests through a hook · S · sonnet · deps: W2b-T78
+- **Kind:** build; lane 2a:D2; merges.
+- **Goal:** `Frame` takes a per-game option `seedInPage`. With `false` it writes no `data-seed` in graded and Prove runs, and a test hook (present only when the page is opened with the e2e flag the walkers already use) returns the seed. The six built games keep the attribute (N11's default); `e2e/support` gains one `seedOf` that reads either.
+- **Read:** src/games/kit/Frame.tsx 470-490; e2e/shape-shifter.spec.ts and e2e/verifier.spec.ts (`seedOf`)
+- **Files:** `src/games/kit/Frame.tsx`; src/games/kit/types.ts or the file that holds the game's options; `e2e/support/seed.ts`; `tests/games/kit-frame.test.ts`
+- **Accept:**
+  1. A test that a game with `seedInPage: false` has no `data-seed` and no seed in any attribute, text node or URL in a graded run
+  2. A test that the hook is absent without the e2e flag
+  3. The six built games' markup is unchanged (a snapshot of the frame's attributes)
+  4. KIT LOCK
+  5. ROWS: the front page grows at most 30 B
+- **Browser tests:** features: every game's primary spec; nightly width: walks of every game
+- **Owner default:** N11: the six built games keep `data-seed`; a new game does not write it
+
+#### [ ] W2b-T88 · Check: the Rejection sampler and Prove mode · M · opus · deps: W2b-T72, W2b-T179
+- **Kind:** check; lane 2a:D2; merges nothing.
+- **Goal:** CHK on `/play/verifier` and both Prove levels: the first draw's box; a doubled and a held key; a reload, Back, an edited URL and a second tab inside an attempt; the foot at each result; the export after a pass, a miss and a left attempt; the Progress page.
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  2. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  3. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  4. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T89 · Fix round for the sampler and Prove mode · M · opus · deps: W2b-T88
+- **Kind:** fix; lane 2a:D2; merges; merges after: W2b-T191.
+- **Goal:** FIX: every broken row of W2b-T88 is fixed with a test that failed before; small rough rows are fixed; each other row is closed in a 'Closing lines' section as fixed, left for a named task, or left for the owner with the reason.
+- **Read:** the checker's report
+- **Files:** `src/games/verifier/`; `src/prove/`; src/games/kit/ (a separate commit); `e2e/prove-mode.spec.ts`
+- **Accept:**
+  1. Each fix has a test that failed before it
+  2. No bar, tolerance, timeout or retry moves; an expect line that moves is in the allow file
+  3. KIT LOCK if `src/games/kit/` or `src/design/` changes
+  4. ROWS
+  5. SHOTS if a baseline is re-shot
+- **Browser tests:** features: verifier, verifier-scene, prove-mode, shape-shifter, ledger-conformance
+
+#### [ ] W2b-T191 · Confirm W2b-T89 · S · opus · deps: —
+- **Kind:** confirm; lane 2a:D2; merges nothing; finished before it starts: W2b-T89.
+- **Goal:** CONFIRM: before W2b-T89 merges, a fresh context re-runs the rows it says it fixed and DC-C and DC-D on both Prove levels at DC-B's twelve sizes, on a built site of the fix branch, and reports any new broken row.
+- **Read:** the fix branch; the checker's report; not the fixer's report
+- **Files:** `none`
+- **Accept:**
+  1. Each fixed row is re-run and marked holds or does not hold, with the measured value
+  2. A new broken row is reported to the coordinator, who adds a second round from the reserve
+  3. It changes no file
+- **Browser tests:** the specs the fix branch lists, once, at `--retries=0`
+
+#### [ ] W2b-T73 · Tensor views inside a lesson: no self-scroll, lesson 4's steppers whole, a 1-D target on one row · M · sonnet · deps: W2b-T69
+- **Kind:** build; lane 2a:D1; merges; merges after: W2b-T70.
+- **Goal:** In a lesson the game scrolls only after the learner has acted in its frame. Lesson 4's dimension-1 'one more' is whole from 1280 to 1920 px. A 1-D target is one row that scrolls inside its box.
+- **Read:** src/games/shape-shifter/hand.ts 205-250; src/games/shape-shifter/Game.tsx 160-180
+- **Files:** `src/games/shape-shifter/hand.ts`; `Game.tsx`; `View2D.tsx`; `shape-shifter.css`; `e2e/lesson-games.spec.ts`; `e2e/shape-shifter.spec.ts`
+- **Accept:**
+  1. DC-F on `/m/tr0/l1-pytorch-in-rust-terms` and lesson 4
+  2. A scrollport test for lesson 4's steppers at 1280, 1440 and 1920 px
+  3. `e2e/lesson-games.spec.ts` passes 20 of 20 under CDP throttling 4x
+  4. ROWS
+- **Browser tests:** features: lesson-games, shape-shifter; nightly width: walks (shape-shifter)
+
+#### [ ] W2b-T79 · Tensor views on a phone and a short desk: the aim in view, nothing over 'Your guess', no stepper under the fold · M · opus · deps: W2b-T73, W2b-T179
+- **Kind:** build; lane 2a:D1; merges.
+- **Goal:** At 390x844 the goal's number and end show without 'more'; 'More below' does not overprint; an opened target order stays above the dock; the guess card and the intro card do not cover the drawing or the buffer row. At 375x812 and 360x800 dimension 1's 'one more' is reachable while the first-move strip is held. The readout is in view at 1280x620. The launch panel is whole at 1440 px. No tensor is drawn too small to read (W2-T14's R8). The part buttons do not overlap on a phone. The 'show its order' toggle has a 44 px hit area.
+- **Read:** src/games/kit/Frame.tsx, Intro.tsx, first-move.ts
+- **Files:** `src/games/shape-shifter/shape-shifter.css`; `src/games/shape-shifter/View2D.tsx`; src/games/kit/Frame.tsx, Intro.tsx, first-move.ts (a separate commit, KIT LOCK); e2e/shape-shifter-sizes.spec.ts (new); e2e/support/sizes.ts (the twelve sizes, shared)
+- **Accept:**
+  1. DC-A and DC-B on all five levels at all twelve sizes, in `e2e/shape-shifter-sizes.spec.ts`
+  2. DC-G after each move
+  3. KIT LOCK: every other game's specs and nightly-width walks pass
+  4. No new screenshot baseline
+  5. ROWS on every game route
+- **Browser tests:** features: shape-shifter, shape-shifter-sizes, and every game's primary spec; nightly width: walks of every game
+
+#### [ ] W2b-T80 · Tensor views: what its words and controls mean · L · sonnet · deps: W2b-T79
+- **Kind:** build; lane 2a:D1; merges.
+- **Goal:** Words: 'in place' is renamed or defined so that the readout says what it counts and lesson 1's primer agrees; 'offset' and 'buffer' each keep one meaning; no operation is named before a line defines it; `reshape`'s copy rule is said to be the pinned version's; the 12-operation cap is stated; a stride-zero moment does not call rank-3 slices 'rows'; 'Counted: none on this path.' shows only when true; the debrief compares like with like; the practice `grid` beat reads 'Match the reference's masked lanes, the fewest any launch can leave; its count shows when you launch.' Controls: `contiguous()` is not offered on a contiguous tensor; the BLOCK stepper skips values it would refuse; practice 'New numbers' on `grid` deals practice tensors; a graded target reached with extra copies says so when the copy is made; a double click on the last choice keeps focus on the result; the level menu pushes history, so Back, Forward and Reload at a result keep it; Next level updates the URL. The stale line 'BLOCK must be a power of two.' goes, and the debrief does not print 'on seed 00000000'.
+- **Read:** docs/waves/W2m1b-tr0-cold-read.md 98 and 160; packages/play/shape-shifter/copy.ts, session.ts; tests/copy/game-copy.test.ts 55-66, 318-332
+- **Files:** packages/play/shape-shifter/copy.ts, session.ts, debrief.ts; src/games/shape-shifter/Controls.tsx, DockView.tsx, Mirror.tsx, ReadoutStrip.tsx, Game.tsx; content/modules/tr0/lessons/l1-pytorch-in-rust-terms.md (one sentence); tests/copy/game-copy.test.ts, tests/play/shape-shifter-labels.test.ts (allow file, the three assertions of the grid beat among them); `public/md/tr0/**`
+- **Accept:**
+  1. A plan is the first comment
+  2. DC-E as a 200-walk fuzz against a second implementation
+  3. Graded play is unchanged: the replay tests pass with no vector moved
+  4. DC-C on the last choice; Back, Forward and Reload at a result leave it as it was (DC-F's last line)
+  5. Every moved string is in the allow file
+  6. HEAVY if a `*-levels.test.ts` file is edited
+  7. ROWS
+- **Browser tests:** features: shape-shifter, shape-shifter-sizes, lesson-games; nightly width: walks (shape-shifter)
+- **Owner default:** N13: no 'give up' on a graded target
+
+#### [ ] W2b-T90 · Check: Tensor views on its page and inside TR0's lessons · M · opus · deps: W2b-T80
+- **Kind:** check; lane 2a:D1; merges nothing.
+- **Goal:** CHK with DC-B's twelve sizes, every level played whole, with rotation mid-level and 200% zoom, and each TR0 lesson that embeds the game.
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  2. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  3. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  4. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T91 · Fix round for Tensor views · M · opus · deps: W2b-T90
+- **Kind:** fix; lane 2a:D1; merges; merges after: W2b-T192.
+- **Goal:** FIX: every broken row of W2b-T90 is fixed with a test that failed before; small rough rows are fixed; each other row is closed in a 'Closing lines' section as fixed, left for a named task, or left for the owner with the reason.
+- **Read:** the checker's report
+- **Files:** `src/games/shape-shifter/`; `packages/play/shape-shifter/`; src/games/kit/ (a separate commit)
+- **Accept:**
+  1. Each fix has a test that failed before it
+  2. No bar, tolerance, timeout or retry moves; an expect line that moves is in the allow file
+  3. KIT LOCK if `src/games/kit/` or `src/design/` changes
+  4. ROWS
+  5. SHOTS if a baseline is re-shot
+- **Browser tests:** features: shape-shifter, shape-shifter-sizes, lesson-games; nightly width: walks (shape-shifter), and of every game if the kit changed
+
+#### [ ] W2b-T192 · Confirm W2b-T91 · S · opus · deps: —
+- **Kind:** confirm; lane 2a:D1; merges nothing; finished before it starts: W2b-T91.
+- **Goal:** CONFIRM: before W2b-T91 merges, a fresh context re-runs the rows it says it fixed and the DC-A to DC-G sweep of Tensor views at DC-B's twelve sizes, on a built site of the fix branch, and reports any new broken row.
+- **Read:** the fix branch; the checker's report; not the fixer's report
+- **Files:** `none`
+- **Accept:**
+  1. Each fixed row is re-run and marked holds or does not hold, with the measured value
+  2. A new broken row is reported to the coordinator, who adds a second round from the reserve
+  3. It changes no file
+- **Browser tests:** the specs the fix branch lists, once, at `--retries=0`
+
+#### [ ] W2b-T85 · Request path at a desk: the list box keeps its stages in view and the first lay moves nothing · M · sonnet · deps: W2b-T69
+- **Kind:** build; lane 2a:D3; merges; merges after: W2b-T70.
+- **Goal:** Findings 2, 3, 4, 8 and 10 of the wave 1b check: no empty box while stages remain; more whole tiles at 1366x768; the first lay of a first run leaves 'Run the path' where it was; a vertical wheel scrolls the chip row at 1280x620.
+- **Read:** the check report of W2b-T59
+- **Files:** `src/games/engine-floor/floor.css`; `Controls.tsx`; `useFloorControls.ts`; `View2D.tsx`; `e2e/engine-floor.spec.ts`
+- **Accept:**
+  1. DC-A on the first lay and on every sixth lay at 1440x900, 1366x768 and 1280x620
+  2. No kit file changes
+  3. SHOTS
+  4. ROWS
+- **Browser tests:** features: engine-floor, engine-floor-map; nightly width: walks (engine-floor)
+
+#### [ ] W2b-T86 · Request path on a phone, the stamp's focus, and the paired guess's first focus · M · sonnet · deps: W2b-T85, W2b-T79
+- **Kind:** build; lane 2a:D3; merges.
+- **Goal:** Findings 6, 7, 9, 11 and 12: Commit is on screen at 390x844; 'Run the path' and 'Remove last' are on screen at 320x640 after a stop; the first-move card does not cover the legend; 'now' is not cut; the debrief stamp's focus ring is inside the foot; the toolbar does not start under the screen's foot. In the kit: the paired guess focuses the number before the how-sure plates (`Intro.tsx`).
+- **Read:** the check report of W2b-T59
+- **Files:** `src/games/engine-floor/floor.css`; `Controls.tsx`; e2e/engine-floor-sizes.spec.ts (new); src/games/kit/Stamp and Intro.tsx (a separate commit, KIT LOCK)
+- **Accept:**
+  1. DC-B on both levels at the twelve sizes, in `e2e/engine-floor-sizes.spec.ts`
+  2. KIT LOCK
+  3. SHOTS
+  4. ROWS
+- **Browser tests:** features: engine-floor, engine-floor-sizes, and every game's primary spec; nightly width: walks of every game
+
+#### [ ] W2b-T92 · Check: Request path, and the four older games after the kit changes · M · opus · deps: W2b-T86
+- **Kind:** check; lane 2a:D3; merges nothing.
+- **Goal:** CHK on Request path at the sizes of the W2b-T59 check and on a phone, both levels played whole. Then the Step loop, KV page pool, Rejection sampler and Broken benchmark each played once whole at 390x844 and 1280x620, since T79 and T86 changed the kit under them.
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  2. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  3. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  4. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T93 · Fix round for Request path and the older games · M · sonnet · deps: W2b-T92
+- **Kind:** fix; lane 2a:D3; merges; merges after: W2b-T193.
+- **Goal:** FIX: every broken row of W2b-T92 is fixed with a test that failed before; small rough rows are fixed; each other row is closed in a 'Closing lines' section as fixed, left for a named task, or left for the owner with the reason.
+- **Read:** the checker's report
+- **Files:** `src/games/engine-floor/`; the folder of an older game the check names; src/games/kit/ (a separate commit)
+- **Accept:**
+  1. Each fix has a test that failed before it
+  2. No bar, tolerance, timeout or retry moves; an expect line that moves is in the allow file
+  3. KIT LOCK if `src/games/kit/` or `src/design/` changes
+  4. ROWS
+  5. SHOTS if a baseline is re-shot
+- **Browser tests:** features: engine-floor, engine-floor-map, engine-floor-sizes; the named game's specs; nightly width: walks (engine-floor), and of every game if the kit changed
+
+#### [ ] W2b-T193 · Confirm W2b-T93 · S · opus · deps: —
+- **Kind:** confirm; lane 2a:D3; merges nothing; finished before it starts: W2b-T93.
+- **Goal:** CONFIRM: before W2b-T93 merges, a fresh context re-runs the rows it says it fixed and DC-A to DC-C on Request path at DC-B's twelve sizes, on a built site of the fix branch, and reports any new broken row.
+- **Read:** the fix branch; the checker's report; not the fixer's report
+- **Files:** `none`
+- **Accept:**
+  1. Each fixed row is re-run and marked holds or does not hold, with the measured value
+  2. A new broken row is reported to the coordinator, who adds a second round from the reserve
+  3. It changes no file
+- **Browser tests:** the specs the fix branch lists, once, at `--retries=0`
+
+#### [ ] W2b-T77 · Code spans render in guess prompts and reveals, and the Markdown export names a Test as a Test · M · sonnet · deps: W2b-T73
+- **Kind:** build; lane 2a:D4; merges.
+- **Goal:** Route the bodies of `Predict` and `Tagged` through the inline-code renderer of the prose, in every module. In `scripts/content/directives.ts` an item block under the lesson's last `##` exports as '**Test.**', not '**Practice.**'; `public/md` and `public/llms.txt` are regenerated for every module.
+- **Read:** src/content/render/Predict.tsx, Tagged.tsx, Prose.tsx; scripts/content/directives.ts 260-290; public/md/tr0/l1-pytorch-in-rust-terms.md 115-130
+- **Files:** `src/content/render/Predict.tsx`; `src/content/render/Tagged.tsx`; `scripts/content/directives.ts`; tests/content/export-labels.test.ts (new); a content test for code spans; `public/md/**`; `public/llms.txt`
+- **Accept:**
+  1. A content test that no rendered guess text of any lesson holds a backtick
+  2. A content test over every module's `public/md`: the item block of each lesson's Test section reads 'Test.', and no other block does
+  3. The lesson route's row reported; ROWS
+- **Browser tests:** features: lesson-predict, lesson-games, titles; smoke: screens, a11y
+
+#### [ ] W2b-T84 · TR0's Test questions read as code, and the module page says what two Tests ask · M · sonnet · deps: W2b-T77
+- **Kind:** build; lane 2a:D4; merges.
+- **Goal:** The sync questions keep their indentation and never call `.item()` on a whole tensor. Test leads promise only the kinds drawn. The expand hint speaks of expand. 1-D places are not written as 1-tuples. Two checkable `[unverified]` sentences are settled in the locked CPU environment (OFFLINE). `/m/tr0` says, in the learner's words: 'The Tests of lessons 3 and 5 ask about lessons 1 and 2 for now; their own questions are being written.' W2b-T131 and W2b-T132 each remove their half of that line.
+- **Read:** packages/play/items/families/tr0/
+- **Files:** `packages/play/items/families/tr0/*.ts`; tests/fixtures/items/vectors.json (by `bun scripts/verify-items.ts --write`); content/modules/tr0/module.md and lessons 2, 3, 5; `content/claims/tr0.yaml`; `public/md/tr0/**`
+- **Accept:**
+  1. A test that every printed loop body is indented and every `.item()` is on a 0-d value
+  2. The first step of no part-worked question holds its key
+  3. bun run verify:items; the report names how many vectors moved
+  4. A test that `/m/tr0` holds no task id and no KC id
+  5. LES for the touched lessons
+- **Browser tests:** features: items, today, lesson-games
+- **Owner default:** N5 as answered
+
+#### [ ] W2b-T81 · Records: the module page counts game runs, and `/evidence` files, names and words each row rightly · M · sonnet · deps: W2b-T69
+- **Kind:** build; lane 2a:D4; merges; merges after: W2b-T70, W2b-T74.
+- **Goal:** `/m/tr0`'s Game line counts runs, not Test answers. An answer is filed under the lesson it was given in. An exact guess reads 'exact'. The in-run guess of graded `fewest` is recorded. A lab row carries the lab's name. One launch is one row.
+- **Read:** src/progress/derive.ts 100-107; src/evidence/rows.ts
+- **Files:** `src/progress/derive.ts`; `src/evidence/rows.ts`; their tests
+- **Accept:**
+  1. Unit tests for each of the six, built from a recorded ledger
+  2. DC-E's rule for the counts
+  3. ROWS (`/evidence`, `/m/:module`)
+- **Browser tests:** features: map, today, settings; nightly width: a11y and screens on `/evidence` and `/m/tr0`
+
+#### [ ] W2b-T82 · Receipts: a synthetic receipt earns nothing, and a lab with no page prints no command · S · sonnet · deps: W2b-T69
+- **Kind:** build; lane 2a:G; merges; merges after: W2b-T70.
+- **Goal:** `ext.synthetic` is never credited with a skill or a Build pass, and the defend panel gives that as its reason. The fallback of `gradeCommandParts` says the lab is not published. The honest synthetic bundle passes rule 5 in the real browser, or the page says why it cannot.
+- **Read:** src/receipts/credit.ts 33-52; src/receipts/challenge.ts 172-192; src/receipts/defend/standing.ts, copy.ts
+- **Files:** `src/receipts/credit.ts`; `src/receipts/challenge.ts`; `src/receipts/defend/copy.ts`; `tests/receipts/*`; `e2e/receipts.spec.ts`
+- **Accept:**
+  1. Tests for both
+  2. The honest synthetic bundles of `tests/verify` still verify; a browser test drops one on `/receipts` and reads rule 5's line
+  3. ROWS (`/receipts`)
+- **Browser tests:** features: receipts, receipts-import; the grader row
+- **Owner default:** O-10: full weight for a verified receipt
+
+#### [ ] W2b-T83 · The TR0 lab page and kit say and print what is true · M · sonnet · deps: W2b-T82, W2b-T84
+- **Kind:** build; lane 2a:G; merges.
+- **Goal:** The grade command prints `--assisted` and `--agent` slots and the `uv run` prefix in every step, and holds one token slot. One sentence says the 0.001 bar's margin is not measured. The kit README names each lab's environment. 'GPU lab results' becomes 'Lab results'. Step 5's landmarks are unique. 'Prove it' says what is not published. Step 2's 'Then you see' names the `resumed` status. Step 3's sentence names the same destination as step 5. The breadcrumb and the command do not break badly at 320 px.
+- **Read:** src/labs/tr0-forward.ts, copy.ts; labs/kit/README.template.md
+- **Files:** src/labs/tr0-forward.ts, copy.ts, GradedLabView.tsx; src/routes.tsx, src/evidence/counts.ts, storage-lines.tsx, EvidenceView.tsx; labs/kit/README.template.md, labs/gpu/tr0-forward/LAB.md; `content/modules/tr0/module.md`; `tests/labs/descriptors.test.ts`; public/labs/*, src/receipts/graders.ts (repacked)
+- **Accept:**
+  1. A test that each descriptor line holds exactly one token slot
+  2. OFFLINE: the grade command is run as printed in the locked CPU environment up to the grader's argument check; `uv sync` and `enginespace fetch` lines are read against the manifest and `--help`, never run; the report marks each line 'run' or 'read, not run (download)'
+  3. axe finds no `landmark-unique` at 320, 360 and 1280 px
+  4. bun scripts/pack-kit.ts --check
+  5. SHOTS
+  6. ROWS
+- **Browser tests:** features: lab-page, lab-kits, receipts; nightly width: a11y and screens on `/labs/tr0.forward`
+- **Owner default:** N12: 'Lab results'; D-075 stands
+
+#### [ ] W2b-T94 · Check: TR0 from `/m/tr0` to a defended receipt · M · opus · deps: W2b-T81, W2b-T83
+- **Kind:** check; lane 2a:D4; merges nothing.
+- **Goal:** CHK as a learner: the five lessons' guesses and Tests, the module page's counts, `/evidence`, the lab page, `/receipts` with a synthetic bundle, 'Defend your receipt'.
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. OFFLINE: commands run only with `UV_OFFLINE=1`, `UV_PYTHON_DOWNLOADS=never`, `HF_HUB_OFFLINE=1`, in the existing locked CPU environment, with no `uv sync`; `enginespace fetch` and every model or dataset line is read against the manifest and the CLI's `--help`, never run; each line is reported 'run' or 'read, not run (download)'
+  2. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  3. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  4. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  5. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T95 · Fix round for TR0's path · M · sonnet · deps: W2b-T94
+- **Kind:** fix; lane 2a:D4; merges; merges after: W2b-T194.
+- **Goal:** FIX: every broken row of W2b-T94 is fixed with a test that failed before; small rough rows are fixed; each other row is closed in a 'Closing lines' section as fixed, left for a named task, or left for the owner with the reason.
+- **Read:** the checker's report
+- **Files:** `content/modules/tr0/`; `packages/play/items/families/tr0/`; src/progress/, src/evidence/, src/labs/, src/receipts/ as the rows name; `public/md/tr0/**`
+- **Accept:**
+  1. Each fix has a test that failed before it
+  2. No bar, tolerance, timeout or retry moves; an expect line that moves is in the allow file
+  3. KIT LOCK if `src/games/kit/` or `src/design/` changes
+  4. ROWS
+  5. SHOTS if a baseline is re-shot
+- **Browser tests:** features: lab-page, receipts, items, lesson-predict; nightly width: a11y, screens on the touched pages
+
+#### [ ] W2b-T194 · Confirm W2b-T95 · S · opus · deps: —
+- **Kind:** confirm; lane 2a:D4; merges nothing; finished before it starts: W2b-T95.
+- **Goal:** CONFIRM: before W2b-T95 merges, a fresh context re-runs the rows it says it fixed and DC-E on the counts of `/m/tr0` and `/evidence`, and DC-F on each touched lesson, on a built site of the fix branch, and reports any new broken row.
+- **Read:** the fix branch; the checker's report; not the fixer's report
+- **Files:** `none`
+- **Accept:**
+  1. Each fixed row is re-run and marked holds or does not hold, with the measured value
+  2. A new broken row is reported to the coordinator, who adds a second round from the reserve
+  3. It changes no file
+- **Browser tests:** the specs the fix branch lists, once, at `--retries=0`
+
+#### [ ] W2b-T75 · `e2e/loop.spec.ts:380` against a built site: find the failing assertion, then fix the game or the test; the dead control file goes · M · sonnet · deps: W2b-T69
+- **Kind:** build; lane 2a:D5; merges; merges after: W2b-T70, W2b-T190.
+- **Goal:** Say whether the Step loop's first screen at 390x844 is cut on a built site, and fix what is wrong. Delete `src/games/loop/ControlPieces.tsx`, which nothing imports.
+- **Read:** e2e/loop.spec.ts 365-410
+- **Files:** `src/games/loop/`; e2e/loop.spec.ts (allow file if an expect line moves)
+- **Accept:**
+  1. HEAVY: the coordinator runs the test 20 times against `vite preview` of a pristine export on four performance cores with the JSON reporter; the report quotes the first failing expect
+  2. The test changes only where the report quotes the assertion's intent and shows the assertion is wrong; no bound, tolerance or wait is widened; a fresh reviewer grants the allow file
+  3. After the fix 20 of 20 on the built site and on the dev server; no retry or timeout is added
+  4. ROWS if the game changes
+- **Browser tests:** features: loop, loop-full; nightly width: walks (loop)
+
+#### [ ] W2b-T190 · Confirm W2b-T75 · S · opus · deps: —
+- **Kind:** confirm; lane 2a:D5; merges nothing; finished before it starts: W2b-T75.
+- **Goal:** CONFIRM: before W2b-T75 merges, a fresh context re-runs the rows it says it fixed and the Step loop's first screen at 390x844 and 360x640 (DC-A, DC-B, DC-F), on a built site of the fix branch, and reports any new broken row.
+- **Read:** the fix branch; the checker's report; not the fixer's report
+- **Files:** `none`
+- **Accept:**
+  1. Each fixed row is re-run and marked holds or does not hold, with the measured value
+  2. A new broken row is reported to the coordinator, who adds a second round from the reserve
+  3. It changes no file
+- **Browser tests:** the specs the fix branch lists, once, at `--retries=0`
+
+#### [ ] W2b-T76 · The claims re-quote script reads lines rightly after a character outside the BMP, and reads page claims · S · sonnet · deps: W2b-T69
+- **Kind:** build; lane 2a:D5; merges.
+- **Goal:** Fix `locate` (it mixes code points and UTF-16 units). Add a mode that re-reads a claim whose source is a versioned document page or a file in a tagged repository, since TR3 and TR7 cite such pages. It may merge before W2b-T70: it changes no path the new rows map.
+- **Read:** scripts/claims/requote.ts 60-104
+- **Files:** `scripts/claims/requote.ts`; its test
+- **Accept:**
+  1. A test with an emoji line above the quote
+  2. `bun scripts/claims/requote.ts content/claims/tr0.yaml` reports no row 'moved' for the five rows wave 1b listed. It fetches only the raw files at the pinned commits that those rows already cite, with a generic User-Agent and no token; the coordinator runs it if the task has no network
+  3. The count of skipped rows is printed with the reason for each kind
+- **Browser tests:** none
+
+#### [ ] W2b-T87 · Room on `/today` and the other pages that read `GAMES` · M · sonnet · deps: W2b-T69
+- **Kind:** build; lane 2a:D5; merges; merges after: W2b-T70.
+- **Goal:** The pages that need only a game's id, modules, KCs, levels and Prove level import a lean rows export; a game's title lines, keys and claims stay in its own chunk. The first commit is a table of what `/today` holds and the measured cost on `/today` of one item family's catalog row and of one registered game.
+- **Read:** packages/play/index.ts, registry.ts; src/items/today/kcs.ts; src/items/families.ts; src/progress/sources.ts, useProgress.ts
+- **Files:** packages/play/index.ts, registry.ts; `src/items/today/kcs.ts`; src/progress/sources.ts, useProgress.ts; `src/pages/PlayIndex.tsx`; `src/pages/Evidence.tsx`; `tests/play/registry.test.ts`
+- **Accept:**
+  1. The target is (the measured cost of one family) x 19 + (one game) x 2 + 400 B, for the wave's 19 families [estimated: 8 for TR3, 5 for TR0, 6 for TR5b] and two games; `/today` has at least that much room and no gated row grows
+  2. If it has less, the task also applies the pure annotation of the loop's `entry.ts` that W2b-T40's follow-up names; if `/today` then covers 2a's 13 families and one game but not the wave, it says so and the coordinator adds a room task before W2b-T143 from 2b's reserve; if it does not cover 2a, it stops and reports
+  3. No budget is edited
+- **Browser tests:** features: today, map, items; smoke: walks, screens
+
+#### [ ] W2b-T129 · Words a learner reads · M · sonnet · deps: W2b-T84, W2b-T83, W2b-T80
+- **Kind:** build; lane 2a:D6; merges.
+- **Goal:** The header says Start on a lesson nobody started, and does not link a page to itself. Test leads print skill names, not ids. 'Builds on kernelspace T5.L10' becomes that lesson's title. No design-document reference, package path or level id in a module fold. No learner-visible line holds 'owner', 'pinned' or a task id: `src/games/loop/KeysWaiting.tsx` says what is missing in plain words (WAIT). `/map` says, as TR0's module page does, that TR0 is an advised primer. The level picker and TR0's tables at 320 px. The nits: the heading on `/m/tr8`; TR6 lesson 2's Test says its rule once; the ticket row and a planned module's Start label at 320 px; 'Start: TR1 lesson 1' on a half-read lesson; in 'Defend your receipt', the explanation once, a 44 px lab link at 390 px, a reason on the disabled Start; the section strip's toggle keeps focus; disabled buttons and empty chips on the front page do not look alike.
+- **Read:** src/settings/store.ts 178-184; src/pages/Lesson.tsx 596; src/content/render/ksTitles.ts; scripts/content/pacing.ts (`BUILD_LOG`)
+- **Files:** `src/settings/store.ts`; `src/pages/Lesson.tsx`; `src/games/loop/KeysWaiting.tsx`; src/receipts/defend/ (copy and one target); about 15 lessons under `content/modules/`; tests/copy/waiting-copy.test.ts (new: no rendered route holds 'owner', a task id or a level id); `public/md/**`
+- **Accept:**
+  1. A content test that no rendered Test lead or fold matches `BUILD_LOG` or holds a KC id
+  2. The copy-guard test passes on every route of `e2e/routes.ts`
+  3. LES for the touched lessons
+  4. The front page's first paint grows at most 30 B; ROWS
+- **Browser tests:** features: titles, lesson-games, map, receipts; nightly width: a11y, screens
+- **Owner default:** O-19: as built; TR1 lesson 1 may be edited, but guess 2 of 2 is not moved
+
+#### [ ] W2b-T130 · Paint and layout shift on a slow link · M · sonnet · deps: W2b-T87
+- **Kind:** build; lane 2a:D6; merges.
+- **Goal:** The first commit measures at 1.6 Mbps and CDP throttling 4x. Then deep links are styled at first paint, the footer does not jump, a lesson's load does not shift, and the front page's demo reserves its height in CSS.
+- **Read:** scripts/prepare-pages.ts; e2e/perf.spec.ts
+- **Files:** `scripts/prepare-pages.ts`; src/front/ (CSS); the page CSS
+- **Accept:**
+  1. The measured shift before and after on `/`, a lesson and a deep link, at 360x800 and 390x844, in the report
+  2. DC-F on those three routes
+  3. The front page's first paint grows at most 30 B
+  4. No bound of `e2e/perf.spec.ts` changes
+  5. SHOTS
+- **Browser tests:** features: front, route-change, stale-chunk; smoke: screenshots
+
+#### [ ] W2b-T131 · TR0's Test of lesson 3 tests lesson 3 · L · sonnet · deps: W2b-T129, W2b-T87
+- **Kind:** build; lane 2a:D6; merges.
+- **Goal:** Families `tr0.module-as-struct`, `tr0.decoder-forward` and `tr0.kv-cache-contract`, each with a numeric variant, and lesson 3's Test drawn from them. The half of W2b-T84's line about lesson 3 goes.
+- **Read:** packages/play/items/families/tr0/ (the model); curriculum/TR0-pytorch-for-rust.md
+- **Files:** `packages/play/items/families/tr0/`; packages/play/items/registry.ts, catalog.ts; `src/items/families.ts`; `tests/play/items-tr0-*.test.ts`; `tests/fixtures/items/vectors.json`; content/modules/tr0/lessons/l3-*.md, module.md; `public/md/tr0/**`
+- **Accept:**
+  1. A plan is the first comment
+  2. bun run verify:items, verify:kc
+  3. Each family's blind bound is at most 15% (O-14's reading)
+  4. No first step holds its key
+  5. The Test asks only lesson 3's KCs (a test)
+  6. DC-H for its property tests
+  7. ROWS (`/today`), inside W2b-T87's room
+- **Browser tests:** features: items, today, lesson-games
+- **Owner default:** N5 as answered; O-14
+
+#### [ ] W2b-T132 · TR0's Test of lesson 5 tests lesson 5, and the minor content batch · L · sonnet · deps: W2b-T131
+- **Kind:** build; lane 2a:D6; merges.
+- **Goal:** As W2b-T131 for the merged projection and the launch arithmetic, and the rest of W2b-T84's line goes. Then: example numbers that were chosen are tagged as chosen; the Read tables do not show under an unplayed game; lesson 5's file list is a table; the claim chips; the stride-zero note speaks of expand; 'for the same reason' gets its reason; the grid levels' subtitle fits them; the minutes sit inside the 10% band.
+- **Read:** as W2b-T131
+- **Files:** as W2b-T131, for lesson 5; `content/cards/tensor.md`
+- **Accept:**
+  1. As W2b-T131, for lesson 5
+  2. LES for the touched lessons
+- **Browser tests:** features: items, today, lesson-games
+- **Owner default:** N5 as answered; O-14
+
+#### [ ] W2b-T133 · Check: TR0's Tests and the words · M · opus · deps: W2b-T132
+- **Kind:** check; lane 2a:D6; merges nothing.
+- **Goal:** CHK: each TR0 Test passed and failed on 20 draws, looking for a question the lesson did not teach; the leads, folds and waiting lines of all six modules; the header's Start and Continue on a fresh ledger and a half-read one.
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  2. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  3. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  4. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T181 · Check: paint on a slow phone link · S · opus · deps: W2b-T130
+- **Kind:** check; lane 2a:D6; merges nothing.
+- **Goal:** CHK at 1.6 Mbps and CDP throttling 4x, 360x800 and 390x844, on `/`, three lessons and three deep links: an unstyled paint, a shift (measured), a self-scroll (DC-F).
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  2. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  3. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  4. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T134 · Fix round for TR0's Tests, the words and the paint · M · sonnet · deps: W2b-T133, W2b-T181
+- **Kind:** fix; lane 2a:D6; merges; merges after: W2b-T199.
+- **Goal:** FIX: every broken row of W2b-T133, W2b-T181 is fixed with a test that failed before; small rough rows are fixed; each other row is closed in a 'Closing lines' section as fixed, left for a named task, or left for the owner with the reason.
+- **Read:** the checker's report
+- **Files:** `content/modules/`; `packages/play/items/families/tr0/`; src/pages/, src/settings/, the page CSS
+- **Accept:**
+  1. Each fix has a test that failed before it
+  2. No bar, tolerance, timeout or retry moves; an expect line that moves is in the allow file
+  3. KIT LOCK if `src/games/kit/` or `src/design/` changes
+  4. ROWS
+  5. SHOTS if a baseline is re-shot
+- **Browser tests:** features: items, titles, lesson-games, front, route-change; nightly width: a11y, screens on the touched pages
+
+#### [ ] W2b-T199 · Confirm W2b-T134 · S · opus · deps: —
+- **Kind:** confirm; lane 2a:D6; merges nothing; finished before it starts: W2b-T134.
+- **Goal:** CONFIRM: before W2b-T134 merges, a fresh context re-runs the rows it says it fixed and DC-F on each touched lesson and a terms-before-use read of the touched parts, on a built site of the fix branch, and reports any new broken row.
+- **Read:** the fix branch; the checker's report; not the fixer's report
+- **Files:** `none`
+- **Accept:**
+  1. Each fixed row is re-run and marked holds or does not hold, with the measured value
+  2. A new broken row is reported to the coordinator, who adds a second round from the reserve
+  3. It changes no file
+- **Browser tests:** the specs the fix branch lists, once, at `--retries=0`
+
+#### [ ] W2b-T38 · The capture runbook for the owner's reference traces, and a checker (earns no KC) · M · sonnet · deps: W2b-T83
+- **Kind:** build; lane 2a:G; merges.
+- **Goal:** `docs/owner/W2-T21-traces.md` for a rented pod with a 4090 and one with an H100: O-5's workloads; the profiler commands from the pin's documents, each `[unverified]`; a check of `nsys` inside the container first; the nsys fallbacks; what to bring home; that a receipt must be made with the kit of the tip the owner merged. `enginespace trace check <file>` on the pod. `scripts/traces-intake.ts` on the owner's computer, which runs `traceChecks`, refuses a synthetic trace, hashes and appends to a manifest. The grader's missing-file message prints the whole `uv run` command. This task earns no KC.
+- **Read:** docs/owner/W2-T12-smoke.md; scripts/fixtures-intake.ts
+- **Files:** `docs/owner/W2-T21-traces.md`; labs/grader/src/enginespace_grader/cli.py, fetch.py, trace/; `labs/grader/tests/`; scripts/traces-intake.ts and its test; public/labs/* (repacked)
+- **Accept:**
+  1. LAB
+  2. The tests use labelled synthetic captures and write nothing under `public/traces/`
+  3. The grader's unittest and `bun scripts/pack-kit.ts --check` pass
+  4. The runbook claims no run, and names no provider's price
+- **Browser tests:** the grader row
+- **Owner default:** O-5: 6 to 10 traces on a 4090 and an H100; annotations are left out and the runbook says so
+
+#### [ ] W2b-T96 · TR3's design: the brief rewritten, the KCs, the game's levels, its phone path, and each lesson's first act · M · opus · deps: W2b-T69
+- **Kind:** build; lane 2a:TR3; merges; merges after: W2b-T180.
+- **Goal:** Rewrite the brief's 'Before you write' as decisions with reasons, to the model of TR0's. It settles: the role line (N1 default, 'You attribute the gap.'). N2: the form's category is 'CPU gap', the trace model's and the game's own word for what the learner measures; 'bubble' stays TR2's coined word and is not renamed; `src/copy/terms.ts` gains one key that holds the word and says it is the bubble of TR2 as a trace shows it; `content/README.md` rule 11 and the tracker's W2-T20 'Before you write' are rewritten to 'the build takes CPU gap as the default; the owner may overturn it', so an answer is a one-line change. The eight KCs, each with a named family, graded level or credit-bearing lab stage (`tr3.provider-preflight` gets a family and lesson 2; the lab-earned ones keep `planned: W2-T23`). The levels built now (`read`, `graphs`, `gap`, `attribute`), `attribute` as the Prove level, `pinned` and `yours` not built, with the plain line each shows (WAIT). That the session owns the marks as actions; the list mode for phones. The most marks a graded `attribute` case may need, and which spans arrive already categorized at each level, with the reason. The graded `gap` answer as a place and a cause together; that the game's bar (0.95) and the lesson block's (0.9) are never printed as one rule. A table of each lesson's first act and its control, inside the opener rule: lesson 1 marks a launch and its kernel in a `trace` block; lesson 2 sets `delay_iterations` and `max_iterations` on a synthetic run whose first steps are warm-up and sees which steps the capture holds, and holds the provider preflight (brief item 8); lesson 3 opens on the `graphs` level or a graph-on against graph-off pair; lesson 4 runs `gap` and graded `attribute`; lesson 5 opens on a guess of a floor from bytes and bandwidth and holds the '300 us' question (brief item 9); lesson 6 shows one synthetic step with SGLang's `step[...]` labels beside vLLM's. Each lesson's minutes and own KCs; the module page's prerequisite list; the floor derived from the `qwen3.*` claims, not the brief's 1.2 GB; what TR2's and TR0's built lessons already promise of TR3; the exact files W2b-T97 reads. It also records whether one real torch-profiler trace of a small random-weight module can be captured in the locked CPU environment with no download, where its file would live and its bytes (N19); if yes, the coordinator adds W2b-T210 from the reserve.
+- **Read:** curriculum/TR3-profile-a-real-engine.md; curriculum/TR0-pytorch-for-rust.md 'Before you write'; docs/GAMES.md 2.6 and 6; docs/ASSESSMENT.md 4.1 and 4.3; docs/REDESIGN.md 2.5 and P1 to P4; content/README.md rules 8 to 12; src/copy/terms.ts
+- **Files:** `curriculum/TR3-profile-a-real-engine.md`; docs/GAMES.md (2.6 and section 6); content/README.md (rule 11); `packages/play/roster.ts`; `src/copy/terms.ts`; tests/copy/terms-tr3.test.ts (new: the form's word is read from the key); `content/kc/graph.yaml`; `tests/kc/graph.test.ts`; docs/DECISIONS.md (the records W2b-T180 reserved for it); the TR3 block of docs/TRACKER.md, W2-T20's 'Before you write' among it
+- **Accept:**
+  1. bun run verify:kc
+  2. bun test tests/play/roster.test.ts tests/content/roster.test.ts tests/content/vocabulary.test.ts
+  3. Every KC has a family, a graded level or a credit-bearing lab stage named in the brief's table
+  4. The new text holds no word of `src/copy/banned.ts`
+  5. A fresh opus read before the merge, told to find a KC with no graded reference, a term used before it is given, a lesson with no first act and a promise of a built lesson the design breaks, finds none or its rows are fixed in the branch
+  6. Nothing says the owner chose
+- **Browser tests:** smoke, by G0
+- **Owner default:** N1; N2 ('CPU gap' for the form, 'bubble' kept for TR2's idea); the brief's four questions (no unprofiled run per side; no 'what changed' table; no further quotation of the book); N19; O-14, O-17, Q-5
+
+#### [ ] W2b-T97 · TR3's sources at the pins, as claims · L · sonnet · deps: W2b-T96, W2b-T76
+- **Kind:** build; lane 2a:TR3; merges.
+- **Goal:** `content/claims/tr3.yaml` (60 to 90 rows [estimated]). It fetches exactly: of vLLM at commit 4ba787ec, `docs/contributing/profiling.md` and `vllm/config/profiler.py`, the files those name for the profiled step, and the four Triton kernel files that W2b-T52 walked (for what one program of each covers), each as a raw file at that commit; of SGLang at commit 297e54fd, `benchmark_and_profiling.mdx` (path as research row T1 gives); of PyTorch, the profiler's source documentation file in the repository at tag v2.14.0; of NVIDIA, the Nsight Systems User Guide in its 2026.5 archived version or the copy that ships with the 2026.5.1 package (the flags, the `perf_event_paranoid` requirement, the field definitions of `cuda_kern_exec_trace`); of Perfetto, the trace-format document at tag v59.1; of NVIDIA, the driver requirement of the CUDA 13 wheels as the pinned vLLM's install document states it at 4ba787ec. It re-cites `mlc-book.gemm-launch-api` to the book's repository file: one request resolves the repository's current commit id, then `appendix/benchmarking_gpu_kernels.md` is read at that id, which is recorded as a pin; no new quote of the book is added, and a `verify:claims` rule refuses any other claim that cites the book. A blog post or a provider's page with no version is read once and its claim is `[unverified]`.
+- **Read:** content/claims/README.md; research/upstream-vllm.md P1 and research/upstream-sglang.md T1 to T3, N1 to N5, C4 (as pointers only); the rewritten brief
+- **Files:** `content/claims/tr3.yaml`; content/claims/tr2.yaml (one claim); `course.lock.json`; scripts/verify-claims.ts or its rule file, and its test; `content/cards/trace-room-trace.md`; public/labs/* (a repack, if the lock changed; then it merges in lane G's order)
+- **Accept:**
+  1. A plan is the first comment
+  2. SRC
+  3. Each cited page is version-specific: a tagged file or an archived guide; a claim with no versioned copy stays `[unverified]` and is listed
+  4. The 'Queue Dur' sentence is kept only if the pinned guide defines the column; else the claim is not written and the design's sentence is dropped
+  5. The trace's event names at the pin stay `[unverified]` (no owner capture exists) and are listed
+- **Browser tests:** none; the gate's `a11y` on `/changes` at nightly width if the lock changed
+- **Owner default:** O-4, O-21, O-3 (nothing is copied from the book; it is cited only)
+
+#### [ ] W2b-T98 · The trace generator draws a second GPU stream · M · sonnet · deps: W2b-T96
+- **Kind:** build; lane 2a:TR3; merges.
+- **Goal:** An option of `traceFromRun` adds a second `gpu-stream` track, so that an empty stretch on one stream can be covered by the other.
+- **Read:** packages/sim/trace/synth.ts, attribute.ts; the brief's point (a)
+- **Files:** `packages/sim/trace/synth.ts`; `tests/sim/trace*.test.ts`; tests/fixtures/sim/ (new goldens only)
+- **Accept:**
+  1. A test that every existing golden is byte-identical with the option off
+  2. GPU-busy is the union over streams in `attribute` (200 seeds in chunks of 100)
+  3. `traceChecks` passes on two-stream traces
+- **Browser tests:** features: trace-view
+
+#### [ ] W2b-T99 · The gap and cause model: cases with a known cause, the band, the reference split · L · sonnet · deps: W2b-T98
+- **Kind:** build; lane 2a:TR3; merges.
+- **Goal:** `huntCase`, `referenceSplit` and `checkHunt` of GAMES 6: a seeded case whose largest gap has one of three causes (eager launches, a call that waits, host scheduling), in a band where the largest gap is at least 1.5 times the second and one CPU span covers at least 60% of its lead-in; the three parts of a gap between two kernels in exact integer ns, keeping seeds where a part is zero; node-level graph traces for `graphs`; a bestiary of plausible wrong causes.
+- **Read:** docs/GAMES.md section 6; packages/sim/trace/; the rewritten brief, points (a) and (b)
+- **Files:** packages/sim/trace/hunt.ts and its parts; `tests/sim/trace-hunt*.test.ts`; `tests/fixtures/sim/`
+- **Accept:**
+  1. A plan is the first comment
+  2. The partition sums to the window exactly on 200 seeds
+  3. Each bestiary cause fails `checkHunt`
+  4. DC-H, with the HEAVY run by the coordinator
+  5. No existing golden moves
+- **Browser tests:** features: trace-view
+
+#### [ ] W2b-T100 · Trace attribution's pure session · L · sonnet · deps: W2b-T99
+- **Kind:** build; lane 2a:TR3; merges.
+- **Goal:** `packages/play/gap-hunt/**`, unregistered, to the pattern of `packages/play/shape-shifter/`: entry, the levels `read`, `graphs`, `gap`, `attribute`, bands, score, a session over `mark`, `unmark`, `cause`, `submit`, debrief, labels, copy, blind probes; `prove: 'attribute'`; `seedInPage: false`.
+- **Read:** packages/play/shape-shifter/ (the model); the rewritten brief; docs/ASSESSMENT.md 4.1
+- **Files:** `packages/play/gap-hunt/**`; `scripts/games/blind.ts`; packages/play/predictions/ (the game's block); `tests/play/gap-hunt-*.test.ts`; `tests/copy/game-copy.test.ts`; `tests/copy/no-kitchen.test.ts`
+- **Accept:**
+  1. A plan is the first comment
+  2. The blind probe of each graded level is measured in the first commit and is at most 15%
+  3. Three habits (always the first gap, always the same cause, the widest-looking span) pass at most that on 50 fresh seeds each
+  4. The reference's move count for a graded case is measured on 200 seeds and stays under the design's bound
+  5. DC-E as a 200-walk fuzz with the 'largest misattributed span' recomputed by brute force; no goal line or readout, practice or graded, holds the answer to its guess
+  6. The goal line and stems read the form's word from `src/copy/terms.ts`
+  7. DC-H, with the HEAVY run by the coordinator
+  8. No route grows: it is unregistered
+- **Browser tests:** none yet
+- **Owner default:** O-14, O-17, N2
+
+#### [ ] W2b-T101 · The trace's list mode for phones, on the Traces viewer and in a lesson's `trace` block · M · opus · deps: W2b-T99
+- **Kind:** build; lane 2a:TR3; merges.
+- **Goal:** A component of `src/trace` that shows a step's events as a table with category radios and a cause pick, taking marks as props and emitting actions, so that a phone can do what the lanes do. `src/content/render/TraceTape.tsx` uses it below the narrow breakpoint and writes the same `trace-mark` events.
+- **Read:** src/trace/SpanMirror.tsx, marks.ts, keys.ts, key-rules.ts, state.ts; src/content/render/TraceRun.tsx, TraceTape.tsx; docs/ASSESSMENT.md 4.3
+- **Files:** src/trace/ListMode.tsx, its CSS and unit tests; `src/content/render/TraceTape.tsx`; e2e/trace-view.spec.ts (on the dev specimen and a lesson specimen)
+- **Accept:**
+  1. At 360x640 and 320x640 a whole step can be marked by touch and by keys, on the viewer and on a lesson specimen
+  2. Touch targets are at least 44 px
+  3. DC-A, DC-B, DC-C and DC-G for the list
+  4. axe passes
+  5. The `/trace-room` route, the lesson route and the lesson's `TraceTape` chunk are reported
+- **Browser tests:** features: trace-view
+
+#### [ ] W2b-T102 · The Traces page · M · sonnet · deps: W2-T20
+- **Kind:** build; lane 2a:TR3; merges.
+- **Goal:** `/trace-room` in production: the synthetic traces with their cards, reached from Games and from TR3; one plain line that traces captured from a real engine are not recorded yet and that every trace on the page is made by the course's model (WAIT).
+- **Read:** src/pages/TraceRoom.tsx; the tracker's W2-T20; content/cards/trace-room-*.md
+- **Files:** `src/pages/TraceRoom.tsx`; `src/trace/ids.ts`; `src/unbuilt/copy.ts`; e2e/routes.ts, e2e/first-visit.spec.ts, e2e/support/screens.ts
+- **Accept:**
+  1. The page names its way on and its parts (first-visit)
+  2. Nothing is called pinned or measured; the copy-guard test of W2b-T129, if merged, passes on the route
+  3. The step-loop code it shares with the front page adds at most 30 B to the first paint; ROWS
+- **Browser tests:** features: trace-view; smoke: first-visit, a11y, screens; nightly width: a11y at 320 px on `/trace-room`
+- **Owner default:** O-5
+
+#### [ ] W2b-T103 · Check: Trace attribution and the Traces page · L · opus · deps: W2b-T102
+- **Kind:** check; lane 2a:TR3; merges nothing.
+- **Goal:** CHK with DC-B's twelve sizes; every level played whole in lanes and in list mode; rotation mid-level and 200% zoom; Prove mode attacked as in DC-D; 50 fresh seeds per habit on each graded level; once under CDP throttling 6x and 30x; how many marks a graded case took, against the design's bound.
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  2. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  3. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  4. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T104 · Fix round for Trace attribution · M · opus · deps: W2b-T103
+- **Kind:** fix; lane 2a:TR3; merges; merges after: W2b-T195.
+- **Goal:** FIX: every broken row of W2b-T103 is fixed with a test that failed before; small rough rows are fixed; each other row is closed in a 'Closing lines' section as fixed, left for a named task, or left for the owner with the reason.
+- **Read:** the checker's report
+- **Files:** `src/games/gap-hunt/`; `packages/play/gap-hunt/`; `src/trace/`; `src/pages/TraceRoom.tsx`
+- **Accept:**
+  1. Each fix has a test that failed before it
+  2. No bar, tolerance, timeout or retry moves; an expect line that moves is in the allow file
+  3. KIT LOCK if `src/games/kit/` or `src/design/` changes
+  4. ROWS
+  5. SHOTS if a baseline is re-shot
+- **Browser tests:** features: gap-hunt, gap-hunt-sizes, trace-view, keep-list; nightly width: walks (gap-hunt)
+
+#### [ ] W2b-T195 · Confirm W2b-T104 · S · opus · deps: —
+- **Kind:** confirm; lane 2a:TR3; merges nothing; finished before it starts: W2b-T104.
+- **Goal:** CONFIRM: before W2b-T104 merges, a fresh context re-runs the rows it says it fixed and the DC-A to DC-G sweep of Trace attribution at DC-B's twelve sizes, in lanes and in list mode, on a built site of the fix branch, and reports any new broken row.
+- **Read:** the fix branch; the checker's report; not the fixer's report
+- **Files:** `none`
+- **Accept:**
+  1. Each fixed row is re-run and marked holds or does not hold, with the measured value
+  2. A new broken row is reported to the coordinator, who adds a second round from the reserve
+  3. It changes no file
+- **Browser tests:** the specs the fix branch lists, once, at `--retries=0`
+
+#### [ ] W2b-T105 · TR3's item families, first half · M · sonnet · deps: W2b-T96, W2b-T99, W2b-T87
+- **Kind:** build; lane 2a:TR3; merges.
+- **Goal:** `tr3.which-category`, `tr3.capture-window`, and the families the design names for `tr3.trace-anatomy` and `tr3.graph-traces`, each with a numeric variant, keys from `packages/sim/trace`.
+- **Read:** packages/play/items/families/tr0/ (the model); the rewritten brief
+- **Files:** `packages/play/items/families/tr3/*.ts`; packages/play/items/registry.ts, catalog.ts; `src/items/families.ts`; `tests/play/items-tr3-*.test.ts`; `tests/fixtures/items/vectors.json`; content/kc/graph.yaml (its `planned:` lines)
+- **Accept:**
+  1. bun run verify:items, verify:kc
+  2. Each family's blind bound is at most 15%
+  3. No first step holds its key
+  4. DC-H
+  5. ROWS (`/today`), inside W2b-T87's room; it stops and reports otherwise
+- **Browser tests:** features: items, today
+- **Owner default:** O-14
+
+#### [ ] W2b-T106 · TR3's item families, second half · M · sonnet · deps: W2b-T105, W2b-T97
+- **Kind:** build; lane 2a:TR3; merges.
+- **Goal:** `tr3.gap-cause` with the three-part numeric variant (timestamps from the item's seed, seeds with a zero part kept); `tr3.floor` (from the `qwen3.*` and hardware claims); `tr3.flat-curve`; `tr3.provider-preflight` (keys from the driver and `perf_event_paranoid` claims of `tr3.yaml`); a Test-level test for each lesson's own KCs.
+- **Read:** as W2b-T105; content/claims/tr3.yaml
+- **Files:** as W2b-T105; `tests/play/items-tr3-test-level.test.ts`
+- **Accept:**
+  1. As W2b-T105
+  2. Stems read the form's word from `src/copy/terms.ts`
+  3. Every key that rests on an upstream fact cites its claim id
+- **Browser tests:** features: items, today
+- **Owner default:** O-14, N2
+
+#### [ ] W2b-T107 · TR3 lesson 1 and the module page · M · opus · deps: W2-T20, W2b-T105, W2b-T97, W2b-T77
+- **Kind:** build; lane 2a:TR3; merges.
+- **Goal:** `content/modules/tr3/module.md` and lesson 1, 'A trace is evidence': tracks, spans, correlation ids and flows given before they are used; the first lesson to use the `trace` block. The module page's first screen says that the browser part uses traces made by the course's model, shows the lab as not published, and says only what is true when it merges.
+- **Read:** the rewritten brief; content/README.md; content/modules/tr0/ (the model); tests/content/module-kit.ts (and not the PACING_CODES allowance of the tr1, tr2 and tr5a tests)
+- **Files:** `content/modules/tr3/module.md`; `content/modules/tr3/lessons/l1-*.md`; tests/content/tr3-module.test.ts, tr3-demos.ts; tests/content/openers-table.ts, module-counts.ts; `packages/play/predictions/{plan,truth,commit-tr3,tr3}.ts`; e2e/routes.ts, e2e/support/lessons.ts, e2e/lesson-games.spec.ts; e2e/first-visit.spec.ts and e2e/support/screens.ts (its own routes' rows); public/md/tr3/**, public/llms.txt
+- **Accept:**
+  1. LES
+  2. A sentence about what a real vLLM trace holds says the names are the model's, since the course has opened no trace of the pinned engine
+  3. The front page's Start still names TR1 lesson 1
+  4. DC-F on the lesson
+  5. The lesson's first action comes within 60 seconds of reading (the design's first-act table)
+- **Browser tests:** features: lesson-games, lesson-predict, trace-view, map, titles, items, front; smoke: first-visit, a11y, screens; nightly width: a11y at 320 px on the module page and each touched lesson; nightly width: walks (gap-hunt) for the lesson's levels
+- **Owner default:** N5, N8 as answered; O-21
+
+#### [ ] W2b-T108 · Check: TR3's lesson 1, its module page and the `trace` block · M · opus · deps: W2b-T107
+- **Kind:** check; lane 2a:TR3; merges nothing.
+- **Goal:** CHK as a learner who skipped TR0: every guess, the `trace` block by keys and by touch at 360x640 (list mode), the Test passed and failed, a term met before it is given, an answer shown before it is asked, a bare dash with no caption.
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  2. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  3. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  4. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T109 · Fix round for TR3's lesson 1 · S · sonnet · deps: W2b-T108
+- **Kind:** fix; lane 2a:TR3; merges; merges after: W2b-T196.
+- **Goal:** FIX: every broken row of W2b-T108 is fixed with a test that failed before; small rough rows are fixed; each other row is closed in a 'Closing lines' section as fixed, left for a named task, or left for the owner with the reason.
+- **Read:** the checker's report
+- **Files:** `content/modules/tr3/`; src/content/render/ if the block is at fault; `public/md/tr3/**`
+- **Accept:**
+  1. Each fix has a test that failed before it
+  2. No bar, tolerance, timeout or retry moves; an expect line that moves is in the allow file
+  3. KIT LOCK if `src/games/kit/` or `src/design/` changes
+  4. ROWS
+  5. SHOTS if a baseline is re-shot
+- **Browser tests:** features: lesson-games, lesson-predict, trace-view, map, titles, items, front; smoke: first-visit, a11y, screens; nightly width: a11y at 320 px on the module page and each touched lesson; nightly width: walks (gap-hunt) for the lesson's levels
+
+#### [ ] W2b-T196 · Confirm W2b-T109 · S · opus · deps: —
+- **Kind:** confirm; lane 2a:TR3; merges nothing; finished before it starts: W2b-T109.
+- **Goal:** CONFIRM: before W2b-T109 merges, a fresh context re-runs the rows it says it fixed and DC-F on the lesson and a terms-before-use read of the touched parts, on a built site of the fix branch, and reports any new broken row.
+- **Read:** the fix branch; the checker's report; not the fixer's report
+- **Files:** `none`
+- **Accept:**
+  1. Each fixed row is re-run and marked holds or does not hold, with the measured value
+  2. A new broken row is reported to the coordinator, who adds a second round from the reserve
+  3. It changes no file
+- **Browser tests:** the specs the fix branch lists, once, at `--retries=0`
+
+#### [ ] W2b-T110 · TR3 lessons 2 and 3 · M · sonnet · deps: W2b-T109, W2b-T106
+- **Kind:** build; lane 2a:TR3; merges.
+- **Goal:** Capturing vLLM at the pin, with the provider preflight (driver, `perf_event_paranoid`, the GPU's name); and nsys with CUDA graphs. Each opens on the first act the design names. Commands come from the pin's documents and are `[unverified]`. Warm-up gets one sentence and a pointer to TR8. NVTX and node-level traces are said before they are used. Lesson 3 has its graph-on against graph-off table with a column for what else changed (rule 10) and the stream card (a).
+- **Read:** as W2b-T107; content/claims/tr3.yaml
+- **Files:** content/modules/tr3/lessons/l2-*.md and l3-*.md; tests/content/tr3-module.test.ts, tr3-demos.ts; tests/content/openers-table.ts, module-counts.ts; `packages/play/predictions/{plan,truth,commit-tr3,tr3}.ts`; e2e/routes.ts, e2e/support/lessons.ts, e2e/lesson-games.spec.ts; e2e/first-visit.spec.ts and e2e/support/screens.ts (its own routes' rows); public/md/tr3/**, public/llms.txt
+- **Accept:**
+  1. LES
+  2. Lesson 2's Test asks `tr3.capture-window` and `tr3.provider-preflight`; lesson 3's asks `tr3.graph-traces`
+  3. The 'Queue Dur' sentence appears only if W2b-T97 wrote its claim
+- **Browser tests:** features: lesson-games, lesson-predict, trace-view, map, titles, items, front; smoke: first-visit, a11y, screens; nightly width: a11y at 320 px on the module page and each touched lesson; nightly width: walks (gap-hunt) for the lesson's levels
+- **Owner default:** O-21
+
+#### [ ] W2b-T111 · TR3 lesson 4, attribution · M · opus · deps: W2b-T109, W2b-T106
+- **Kind:** build; lane 2a:TR3; merges.
+- **Goal:** The partition that sums to the window; a gap's cause read off the launch queue; the three parts of a gap; rule 11's form written once, with the word of `src/copy/terms.ts`, and one sentence that this category is what TR2 called the bubble, seen in a trace. It runs `gap` and graded `attribute`. A stream, a sync and the blocking calls are given in this lesson's own words or in lesson 1: TR0 is optional.
+- **Read:** as W2b-T107; content/modules/tr2/lessons/l3-async-scheduling-closes-the-bubble.md
+- **Files:** `content/modules/tr3/lessons/l4-*.md`; tests/content/tr3-module.test.ts, tr3-demos.ts; tests/content/openers-table.ts, module-counts.ts; `packages/play/predictions/{plan,truth,commit-tr3,tr3}.ts`; e2e/routes.ts, e2e/support/lessons.ts, e2e/lesson-games.spec.ts; e2e/first-visit.spec.ts and e2e/support/screens.ts (its own routes' rows); public/md/tr3/**, public/llms.txt; tests/content/vocabulary.test.ts (the mapping of the two words, one row)
+- **Accept:**
+  1. LES
+  2. No real number: a dash with its caption, or the hypothesis, wherever a captured gap would be
+  3. The form's words, the `attribute` goal line and the item stems use one term, the one `src/copy/terms.ts` holds; `tests/content/vocabulary.test.ts` passes across all modules
+  4. The graded `attribute` block is graded, not Prove
+- **Browser tests:** features: lesson-games, lesson-predict, trace-view, map, titles, items, front; smoke: first-visit, a11y, screens; nightly width: a11y at 320 px on the module page and each touched lesson; nightly width: walks (gap-hunt) for the lesson's levels
+- **Owner default:** N2
+
+#### [ ] W2b-T182 · Check: a cold read of TR3's lessons 1 to 4 as they stand · M · opus · deps: W2b-T110, W2b-T111
+- **Kind:** check; lane 2a:TR3; merges nothing.
+- **Goal:** A fresh reader takes TR2 and then TR3's lessons 1 to 4 in order, as a learner who skipped TR0, and looks for a term used before it is given, a Test question the lesson did not teach, a first act that is reading and not doing, and a table cell with no reason for being empty. It also plays each lesson's block on a phone.
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  2. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  3. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  4. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T183 · Fix round for TR3's lessons 2 to 4 · S · opus · deps: W2b-T182
+- **Kind:** fix; lane 2a:TR3; merges; merges after: W2b-T197.
+- **Goal:** FIX: every broken row of W2b-T182 is fixed with a test that failed before; small rough rows are fixed; each other row is closed in a 'Closing lines' section as fixed, left for a named task, or left for the owner with the reason.
+- **Read:** the checker's report
+- **Files:** `content/modules/tr3/`; `public/md/tr3/**`
+- **Accept:**
+  1. Each fix has a test that failed before it
+  2. No bar, tolerance, timeout or retry moves; an expect line that moves is in the allow file
+  3. KIT LOCK if `src/games/kit/` or `src/design/` changes
+  4. ROWS
+  5. SHOTS if a baseline is re-shot
+- **Browser tests:** features: lesson-games, lesson-predict, trace-view, map, titles, items, front; smoke: first-visit, a11y, screens; nightly width: a11y at 320 px on the module page and each touched lesson; nightly width: walks (gap-hunt) for the lesson's levels
+
+#### [ ] W2b-T197 · Confirm W2b-T183 · S · opus · deps: —
+- **Kind:** confirm; lane 2a:TR3; merges nothing; finished before it starts: W2b-T183.
+- **Goal:** CONFIRM: before W2b-T183 merges, a fresh context re-runs the rows it says it fixed and a terms-before-use read of lessons 1 to 4 and DC-F on each, on a built site of the fix branch, and reports any new broken row.
+- **Read:** the fix branch; the checker's report; not the fixer's report
+- **Files:** `none`
+- **Accept:**
+  1. Each fixed row is re-run and marked holds or does not hold, with the measured value
+  2. A new broken row is reported to the coordinator, who adds a second round from the reserve
+  3. It changes no file
+- **Browser tests:** the specs the fix branch lists, once, at `--retries=0`
+
+#### [ ] W2b-T112 · TR3 end to end: the first-visit and screen checks on its routes · S · haiku · deps: W2-T24
+- **Kind:** build; lane 2a:TR3; merges.
+- **Goal:** Confirm, to the pattern of W2b-T33, that `/m/tr3`, its six lessons, `/play/gap-hunt` and `/trace-room` each have their first-visit and per-screen rows, and add any that the lesson tasks left out. This is W2-T39's share for TR3; it does not close W2-T39.
+- **Read:** e2e/first-visit.spec.ts; e2e/screens.spec.ts; e2e/support/screens.ts; e2e/routes.ts
+- **Files:** `e2e/first-visit.spec.ts`; `e2e/screens.spec.ts`; `e2e/support/screens.ts`
+- **Accept:**
+  1. Both widths at `--retries=0`, 5 of 5
+  2. No existing expectation is edited
+- **Browser tests:** smoke: first-visit, screens, at nightly width
+
+#### [ ] W2b-T113 · Check: TR3's lessons 5 and 6 and the whole module as a learner · M · opus · deps: W2-T24
+- **Kind:** check; lane 2a:TR3; merges nothing.
+- **Goal:** CHK from `/m/tr3`: lessons 5 and 6 as W2b-T108 did lesson 1, then the module page closed, Review the next day (a moved clock), and the way from the last lesson to the game's Prove control.
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  2. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  3. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  4. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T114 · Check: TR3's technical check · M · opus · deps: W2-T24
+- **Kind:** check; lane 2a:TR3; merges nothing.
+- **Goal:** MODULE END: every claim and number of the six lessons, the items' keys and the game's rule tables against its pinned source, with `bun scripts/claims/requote.ts content/claims/tr3.yaml` (it re-reads only the URLs the claims already store) and a hand re-read of what the script skips; which function holds each cited line; every negative statement's search. Its report is the first commit of W2b-T116's branch, as `docs/waves/W2m2a-tr3-technical.md`.
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  2. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  3. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  4. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T115 · Check: TR3's cold-reader check · M · opus · deps: W2-T24
+- **Kind:** check; lane 2a:TR3; merges nothing.
+- **Goal:** MODULE END: a fresh reader takes TR2 and then TR3 in course order and marks each place they were lost, with the line. Its report is the first commit of W2b-T117's branch, as `docs/waves/W2m2a-tr3-cold-read.md`.
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  2. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  3. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  4. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T116 · TR3's fixes from the learner check and the technical check · M · sonnet · deps: W2b-T113, W2b-T114
+- **Kind:** fix; lane 2a:TR3; merges.
+- **Goal:** FIX: every broken row of W2b-T113, W2b-T114 is fixed with a test that failed before; small rough rows are fixed; each other row is closed in a 'Closing lines' section as fixed, left for a named task, or left for the owner with the reason.
+- **Read:** the checker's report
+- **Files:** `content/modules/tr3/`; `content/claims/tr3.yaml`; `packages/play/items/families/tr3/`; `docs/waves/W2m2a-tr3-technical.md`; `public/md/tr3/**`
+- **Accept:**
+  1. It is split in two if the rows pass twelve
+  2. Each fix has a test that failed before it
+  3. No bar, tolerance, timeout or retry moves; an expect line that moves is in the allow file
+  4. KIT LOCK if `src/games/kit/` or `src/design/` changes
+  5. ROWS
+  6. SHOTS if a baseline is re-shot
+- **Browser tests:** features: lesson-games, lesson-predict, trace-view, map, titles, items, front; smoke: first-visit, a11y, screens; nightly width: a11y at 320 px on the module page and each touched lesson; nightly width: walks (gap-hunt) for the lesson's levels
+
+#### [ ] W2b-T117 · TR3's teaching fixes and a re-read of W2b-T116 · M · opus · deps: W2b-T115, W2b-T116
+- **Kind:** fix; lane 2a:TR3; merges; merges after: W2b-T198.
+- **Goal:** Rewrite the passages where the cold reader was lost; re-read what W2b-T116 changed; close every row of both reports in a 'Closing lines' section.
+- **Read:** both reports; content/modules/tr3/
+- **Files:** `content/modules/tr3/`; `docs/waves/W2m2a-tr3-cold-read.md`; `public/md/tr3/**`
+- **Accept:**
+  1. LES for the touched lessons
+  2. Every row is closed as fixed, left for a named task, or left for the owner with the reason
+- **Browser tests:** features: lesson-games, lesson-predict, trace-view, map, titles, items, front; smoke: first-visit, a11y, screens; nightly width: a11y at 320 px on the module page and each touched lesson; nightly width: walks (gap-hunt) for the lesson's levels
+
+#### [ ] W2b-T198 · Confirm W2b-T117 · S · opus · deps: —
+- **Kind:** confirm; lane 2a:TR3; merges nothing; finished before it starts: W2b-T117.
+- **Goal:** CONFIRM: before W2b-T117 merges, a fresh context re-runs the rows it says it fixed and a terms-before-use read of every rewritten passage and DC-F on each touched lesson, on a built site of the fix branch, and reports any new broken row.
+- **Read:** the fix branch; the checker's report; not the fixer's report
+- **Files:** `none`
+- **Accept:**
+  1. Each fixed row is re-run and marked holds or does not hold, with the measured value
+  2. A new broken row is reported to the coordinator, who adds a second round from the reserve
+  3. It changes no file
+- **Browser tests:** the specs the fix branch lists, once, at `--retries=0`
+
+#### [ ] W2b-T120 · Final check: the three games the wave built or changed most, and Prove mode · L · opus · deps: W2b-T71, W2b-T75, W2b-T76, W2b-T81, W2b-T87, W2b-T89, W2b-T91, W2b-T93, W2b-T95, W2b-T104, W2b-T112, W2b-T117, W2b-T134, W2b-T38
+- **Kind:** check; lane 2a:Exit; merges nothing.
+- **Goal:** CHK on Trace attribution, Tensor views and the Rejection sampler: each level played whole, rotation and 200% zoom, double presses on every committing control by mouse and by keys, and every Prove level attacked as in DC-D.
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  2. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  3. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  4. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T184 · Final check: the four older games after the kit changes · L · opus · deps: W2b-T71, W2b-T75, W2b-T76, W2b-T81, W2b-T87, W2b-T89, W2b-T91, W2b-T93, W2b-T95, W2b-T104, W2b-T112, W2b-T117, W2b-T134, W2b-T38
+- **Kind:** check; lane 2a:Exit; merges nothing.
+- **Goal:** CHK on the Step loop, KV page pool, Request path and Broken benchmark: each level played whole at DC-B's twelve sizes, keyboard alone once, rotation and 200% zoom.
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  2. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  3. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  4. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T121 · Final check: TR3 and TR0 walked as a learner from the front page · L · opus · deps: W2b-T71, W2b-T75, W2b-T76, W2b-T81, W2b-T87, W2b-T89, W2b-T91, W2b-T93, W2b-T95, W2b-T104, W2b-T112, W2b-T117, W2b-T134, W2b-T38
+- **Kind:** check; lane 2a:Exit; merges nothing.
+- **Goal:** CHK from `/` to a passed Test in each lesson of TR3, a Prove run, Review the next day (a moved clock), and TR0 to a defended receipt.
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. OFFLINE, as W2b-T94
+  2. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  3. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  4. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  5. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T122 · Final check: every page at 320, 390 and 1440 px · L · opus · deps: W2b-T71, W2b-T75, W2b-T76, W2b-T81, W2b-T87, W2b-T89, W2b-T91, W2b-T93, W2b-T95, W2b-T104, W2b-T112, W2b-T117, W2b-T134, W2b-T38
+- **Kind:** check; lane 2a:Exit; merges nothing.
+- **Goal:** CHK on every document route of `e2e/routes.ts`: reflow, a control off screen, a self-scroll, a false count, raw markup, a dead link, a waiting line that uses a build word, the shared Sources list on a lesson with many claims, a Test header's 'Lesson n of m'.
+- **Read:** the built site only; docs/GAMES.md and the module's brief for what the piece should do; no task report
+- **Files:** none: the report goes to the coordinator, outside the repository
+- **Accept:**
+  1. CHK: a fresh opus context that did not build the piece and reads no builder's report; it plays `vite preview` of a pristine export of the tip named in its brief
+  2. Widths 1440x900, 390x844 and 320x640, and DC-B's twelve sizes for a game; a mouse, touch emulation, and the keyboard alone; reduced motion on and off; once under CDP CPU throttling 4x
+  3. It looks for DC-A to DC-G first, then for anything false, lost or dead; every finding is classed broken, rough or nit, with steps and a measured rectangle, count or quoted line
+  4. Its report ends with 'Not checked', listing each thing in its scope it did not reach; it changes no file and merges nothing
+- **Browser tests:** none of its own: it drives the built site by hand and with throwaway Playwright scripts that are not committed
+
+#### [ ] W2b-T123 · Fix round for the final checks of the games · M · opus · deps: W2b-T120, W2b-T184
+- **Kind:** fix; lane 2a:Exit; merges; merges after: W2b-T200.
+- **Goal:** FIX: every broken row of W2b-T120, W2b-T184 is fixed with a test that failed before; small rough rows are fixed; each other row is closed in a 'Closing lines' section as fixed, left for a named task, or left for the owner with the reason.
+- **Read:** the checker's report
+- **Files:** the game folders the rows name; `src/prove/`; src/games/kit/ (a separate commit)
+- **Accept:**
+  1. Each fix has a test that failed before it
+  2. No bar, tolerance, timeout or retry moves; an expect line that moves is in the allow file
+  3. KIT LOCK if `src/games/kit/` or `src/design/` changes
+  4. ROWS
+  5. SHOTS if a baseline is re-shot
+- **Browser tests:** features: every game's spec and sizes spec; nightly width: walks of every game
+
+#### [ ] W2b-T200 · Confirm W2b-T123 · S · opus · deps: —
+- **Kind:** confirm; lane 2a:Exit; merges nothing; finished before it starts: W2b-T123.
+- **Goal:** CONFIRM: before W2b-T123 merges, a fresh context re-runs the rows it says it fixed and the DC-A to DC-G sweep of each touched game at DC-B's twelve sizes, on a built site of the fix branch, and reports any new broken row.
+- **Read:** the fix branch; the checker's report; not the fixer's report
+- **Files:** `none`
+- **Accept:**
+  1. Each fixed row is re-run and marked holds or does not hold, with the measured value
+  2. A new broken row is reported to the coordinator, who adds a second round from the reserve
+  3. It changes no file
+- **Browser tests:** the specs the fix branch lists, once, at `--retries=0`
+
+#### [ ] W2b-T124 · Fix round for the final walk and the final pages check · M · sonnet · deps: W2b-T121, W2b-T122
+- **Kind:** fix; lane 2a:Exit; merges; merges after: W2b-T201.
+- **Goal:** FIX: every broken row of W2b-T121, W2b-T122 is fixed with a test that failed before; small rough rows are fixed; each other row is closed in a 'Closing lines' section as fixed, left for a named task, or left for the owner with the reason.
+- **Read:** the checker's report
+- **Files:** `content/modules/`; `src/pages/`; the page CSS; `public/md/**`
+- **Accept:**
+  1. Each fix has a test that failed before it
+  2. No bar, tolerance, timeout or retry moves; an expect line that moves is in the allow file
+  3. KIT LOCK if `src/games/kit/` or `src/design/` changes
+  4. ROWS
+  5. SHOTS if a baseline is re-shot
+- **Browser tests:** nightly width: a11y and screens; the touched lessons' specs
+
+#### [ ] W2b-T201 · Confirm W2b-T124 · S · opus · deps: —
+- **Kind:** confirm; lane 2a:Exit; merges nothing; finished before it starts: W2b-T124.
+- **Goal:** CONFIRM: before W2b-T124 merges, a fresh context re-runs the rows it says it fixed and DC-F on each touched page and lesson at 320, 390 and 1440 px, on a built site of the fix branch, and reports any new broken row.
+- **Read:** the fix branch; the checker's report; not the fixer's report
+- **Files:** `none`
+- **Accept:**
+  1. Each fixed row is re-run and marked holds or does not hold, with the measured value
+  2. A new broken row is reported to the coordinator, who adds a second round from the reserve
+  3. It changes no file
+- **Browser tests:** the specs the fix branch lists, once, at `--retries=0`
+
+#### [ ] W2b-T125 · Wave 2a's exit report, with the markers and the merged list · M · opus · deps: W2b-T123, W2b-T124
+- **Kind:** build; lane 2a:Exit; merges.
+- **Goal:** `docs/waves/W2m2a-report.md` with the sweeps of W2b-T39: G0 on the tip; the bundle table; `known-red.json` empty; every bar the wave moved, from `bun scripts/gate/bars.ts`; a spot check of five tasks; the heavy unit run at nightly size, the rates test, `verify:claims`, `verify:pins`; what each check found and what is still open; an audit of every claimed merge against a merge commit on the first-parent line; the owner's steps and what each page says meanwhile; the defaults taken; that frame-time p95 on a reference laptop and phone was not measured (O-9). In the same commit: the marker of every merged 2a task in `docs/TRACKER.md`, those ids added to `MERGED` in `tests/ci/workflows.test.ts`, and any reserved 'pending: <task>' step that names a merged task built.
+- **Read:** docs/waves/W2m1b-report.md (the model); tests/ci/workflows.test.ts 700-790
+- **Files:** `docs/waves/W2m2a-report.md`; docs/TRACKER.md (markers); `tests/ci/workflows.test.ts`
+- **Accept:**
+  1. `ES_E2E_NIGHTLY=1 npx playwright test --project=smoke --project=features` once on the tip, run by the coordinator on four performance cores (HEAVY)
+  2. bun test tests/ci
+  3. The CI, Labs and `e2e-features` runs on the pushed tip are quoted
+  4. No sentence says the owner chose, saw or approved anything but N4, N5 and N8
+  5. After it merges the coordinator dispatches `nightly.yml` on that tip and reads all five jobs; a red job is fixed with an addendum; only then is the description written, and it records the run
+- **Browser tests:** as the first Accept line
+- **Owner default:** lists every open question of wave 2, with its default
+
+
+### Wave 2b: one line each
+
+W2-T29, W2-T30 and W2-T33 are tasks of 2b whose headings are in the W2 section; they are not repeated here.
+
+#### [ ] W2b-T126 · Wave 2b's headings get their bodies · M · sonnet · deps: W2b-T125
+- **Kind:** build; lane 2b:Open; merges.
+- **Goal:** Write the Goal, Read, Files and Accept of every 2b heading, from the task list the coordinator hands over with private paths removed, checked against wave 2a's report and, if it is finished, W2b-T118's branch. W2b-T118 writes the bodies of TR5b's own block when it merges. Add a heading for anything a 2a fix round left to 2b. No marker moves: 2a's were set by W2b-T125.
+- **Read:** docs/TRACKER.md, wave 2's section; docs/waves/W2m2a-report.md; W2b-T118's branch (the rewritten TR5b brief); the task list
+- **Files:** `docs/TRACKER.md`; `tests/ci/task-ids.test.ts`; `tests/content/pending.test.ts`
+- **Accept:**
+  1. bun test tests/ci tests/kc tests/docs
+  2. bun run verify:kc
+  3. The set of heading ids equals the handed-over list
+  4. Allow file for each moved line; no private path in the diff
+- **Browser tests:** smoke, by G0
+
+#### [ ] W2b-T118 · TR5b's design: the brief rewritten, the KCs, the game against GAMES 9, the camera table, the lab's stage list, and each lesson's levels and first act · M · opus · deps: W2b-T96, W2b-T180
+- Body written by W2b-T126. Build; lane 2b:TR5b.
+
+#### [ ] W2b-T119 · TR5b's sources at the pins, as claims · L · sonnet · deps: W2b-T76
+- Body written by W2b-T126. Build; lane 2b:TR5b.
+
+#### [ ] W2b-T136 · The tiers model gains sequence numbers, a replay buffer, the adapter field, a faulty transport and a restart · M · sonnet · deps: —
+- Body written by W2b-T126. Build; lane 2b:TR5b.
+
+#### [ ] W2b-T137 · The yard model, first half: a clock, transfers in flight, request states, layers, the cost of a load against a recompute · L · sonnet · deps: —
+- Body written by W2b-T126. Build; lane 2b:TR5b.
+
+#### [ ] W2b-T138 · The yard model, second half: violations, failed loads, the reference, the consumer's view · L · sonnet · deps: —
+- Body written by W2b-T126. Build; lane 2b:TR5b.
+
+#### [ ] W2b-T139 · KV offload's pure session, seven levels · L · sonnet · deps: —
+- Body written by W2b-T126. Build; lane 2b:TR5b.
+
+#### [ ] W2b-T140 · KV offload's 2D parts, unregistered: lanes per tier, the transfer table, the event log, the consumer's board, the dock · L · opus · deps: W2b-T86
+- Body written by W2b-T126. Build; lane 2b:TR5b.
+
+#### [ ] W2b-T141 · Check: KV offload · L · opus · deps: W2-T30
+- Body written by W2b-T126. Check; lane 2b:TR5b.
+
+#### [ ] W2b-T142 · Fix round for KV offload · M · opus · deps: W2b-T141
+- Body written by W2b-T126. Fix; lane 2b:TR5b.
+
+#### [ ] W2b-T202 · Confirm W2b-T142 · S · opus · deps: —
+- Body written by W2b-T126. Confirm; lane 2b:TR5b.
+
+#### [ ] W2b-T143 · TR5b's item families, first half · M · sonnet · deps: W2b-T138, W2b-T118
+- Body written by W2b-T126. Build; lane 2b:TR5b.
+
+#### [ ] W2b-T144 · TR5b's item families, second half · M · sonnet · deps: W2b-T143
+- Body written by W2b-T126. Build; lane 2b:TR5b.
+
+#### [ ] W2b-T145 · TR5b lesson 1 and the module page · M · opus · deps: W2-T30, W2b-T143, W2b-T119
+- Body written by W2b-T126. Build; lane 2b:TR5b.
+
+#### [ ] W2b-T146 · Check: TR5b's lesson 1 and module page · M · opus · deps: W2b-T145
+- Body written by W2b-T126. Check; lane 2b:TR5b.
+
+#### [ ] W2b-T147 · Fix round for TR5b's lesson 1 · S · sonnet · deps: W2b-T146
+- Body written by W2b-T126. Fix; lane 2b:TR5b.
+
+#### [ ] W2b-T203 · Confirm W2b-T147 · S · opus · deps: —
+- Body written by W2b-T126. Confirm; lane 2b:TR5b.
+
+#### [ ] W2b-T148 · TR5b lesson 2, the connector contract · M · opus · deps: W2b-T147, W2b-T144
+- Body written by W2b-T126. Build; lane 2b:TR5b.
+
+#### [ ] W2b-T185 · Check: a cold read of TR5b's lessons 1 and 2 · S · opus · deps: W2b-T148
+- Body written by W2b-T126. Check; lane 2b:TR5b.
+
+#### [ ] W2b-T186 · Fix round for TR5b's lesson 2 · S · opus · deps: W2b-T185
+- Body written by W2b-T126. Fix; lane 2b:TR5b.
+
+#### [ ] W2b-T204 · Confirm W2b-T186 · S · opus · deps: —
+- Body written by W2b-T126. Confirm; lane 2b:TR5b.
+
+#### [ ] W2b-T149 · TR5b lessons 3 and 4 · M · sonnet · deps: W2b-T186, W2-T29
+- Body written by W2b-T126. Build; lane 2b:TR5b.
+
+#### [ ] W2b-T150 · TR5b end to end: the first-visit and screen checks on its routes · S · haiku · deps: W2-T33
+- Body written by W2b-T126. Build; lane 2b:TR5b.
+
+#### [ ] W2b-T151 · Check: TR5b's lessons 3 to 5 and the whole module as a learner · M · opus · deps: W2-T33
+- Body written by W2b-T126. Check; lane 2b:TR5b.
+
+#### [ ] W2b-T152 · Check: TR5b's technical check · M · opus · deps: W2-T33
+- Body written by W2b-T126. Check; lane 2b:TR5b.
+
+#### [ ] W2b-T153 · Check: TR5b's cold-reader check · M · opus · deps: W2-T33
+- Body written by W2b-T126. Check; lane 2b:TR5b.
+
+#### [ ] W2b-T154 · TR5b's fixes from the learner check and the technical check · M · sonnet · deps: W2b-T151, W2b-T152
+- Body written by W2b-T126. Fix; lane 2b:TR5b.
+
+#### [ ] W2b-T155 · TR5b's teaching fixes and a re-read of W2b-T154 · M · opus · deps: W2b-T153, W2b-T154
+- Body written by W2b-T126. Fix; lane 2b:TR5b.
+
+#### [ ] W2b-T205 · Confirm W2b-T155 · S · opus · deps: —
+- Body written by W2b-T126. Confirm; lane 2b:TR5b.
+
+#### [ ] W2b-T156 · `kv-publisher`, stages s5 and s6 · M · sonnet · deps: W2-T29
+- Body written by W2b-T126. Build; lane 2b:G.
+
+#### [ ] W2b-T157 · Prove-it on a forge lab, for `hybrid-kv`, `rejection-sampler` and `kv-publisher` · L · opus · deps: W2-T29, W2b-T156, W2b-T78
+- Body written by W2b-T126. Build; lane 2b:G.
+
+#### [ ] W2b-T158 · Check: the `kv-publisher` page and Prove-it on the three forge labs · M · opus · deps: W2b-T157
+- Body written by W2b-T126. Check; lane 2b:G.
+
+#### [ ] W2b-T159 · Fix round for the forge lab and Prove-it · M · opus · deps: W2b-T158
+- Body written by W2b-T126. Fix; lane 2b:G.
+
+#### [ ] W2b-T206 · Confirm W2b-T159 · S · opus · deps: —
+- Body written by W2b-T126. Confirm; lane 2b:G.
+
+#### [ ] W2b-T170 · TR7's design · S · opus · deps: W2b-T180
+- Body written by W2b-T126. Build; lane 2b:TR7.
+
+#### [ ] W2b-T171 · TR7's sources at the pins, and a census script · M · sonnet · deps: W2b-T76
+- Body written by W2b-T126. Build; lane 2b:TR7.
+
+#### [ ] W2b-T172 · TR7's targets, as a draft for the owner · S · sonnet · deps: —
+- Body written by W2b-T126. Build; lane 2b:TR7.
+
+#### [ ] W2b-T135 · 'In vLLM today' and Build cards in TR1, TR2, TR5a, TR6 and TR8 · M · sonnet · deps: W2b-T129, W2b-T126
+- Body written by W2b-T126. Build; lane 2b:Cards.
+
+#### [ ] W2b-T187 · Check: the cards in the five older modules · S · opus · deps: W2b-T135
+- Body written by W2b-T126. Check; lane 2b:Cards.
+
+#### [ ] W2b-T188 · Fix round for the cards · S · sonnet · deps: W2b-T187
+- Body written by W2b-T126. Fix; lane 2b:Cards.
+
+#### [ ] W2b-T207 · Confirm W2b-T188 · S · opus · deps: —
+- Body written by W2b-T126. Confirm; lane 2b:Cards.
+
+#### [ ] W2b-T173 · Final check: KV offload, Trace attribution, Tensor views, and every Prove level and Prove-it · L · opus · deps: W2b-T142, W2b-T150, W2b-T155, W2b-T159, W2b-T172, W2b-T188
+- Body written by W2b-T126. Check; lane 2b:Exit.
+
+#### [ ] W2b-T189 · Final check: the five other games · L · opus · deps: W2b-T142, W2b-T150, W2b-T155, W2b-T159, W2b-T172, W2b-T188
+- Body written by W2b-T126. Check; lane 2b:Exit.
+
+#### [ ] W2b-T174 · Final check: TR5b and TR3 walked as a learner, and the forge lab · L · opus · deps: W2b-T142, W2b-T150, W2b-T155, W2b-T159, W2b-T172, W2b-T188
+- Body written by W2b-T126. Check; lane 2b:Exit.
+
+#### [ ] W2b-T175 · Final check: every page at 320, 390 and 1440 px · L · opus · deps: W2b-T142, W2b-T150, W2b-T155, W2b-T159, W2b-T172, W2b-T188
+- Body written by W2b-T126. Check; lane 2b:Exit.
+
+#### [ ] W2b-T176 · Fix round for the final checks of the games · M · opus · deps: W2b-T173, W2b-T189
+- Body written by W2b-T126. Fix; lane 2b:Exit.
+
+#### [ ] W2b-T208 · Confirm W2b-T176 · S · opus · deps: —
+- Body written by W2b-T126. Confirm; lane 2b:Exit.
+
+#### [ ] W2b-T177 · Fix round for the final walk and the final pages check · M · sonnet · deps: W2b-T174, W2b-T175
+- Body written by W2b-T126. Fix; lane 2b:Exit.
+
+#### [ ] W2b-T209 · Confirm W2b-T177 · S · opus · deps: —
+- Body written by W2b-T126. Confirm; lane 2b:Exit.
+
+#### [ ] W2b-T178 · Wave 2's exit report, with the markers and the merged list · M · opus · deps: W2b-T176, W2b-T177
+- Body written by W2b-T126. Build; lane 2b:Exit.
+
+
+#### [ ] W2b-T210 · TR3: one real profiler trace from the locked CPU environment · S · sonnet · deps: W2b-T96
+- Run only if W2b-T96's record says yes (N19): one real torch-profiler trace of a small random-weight module, captured in the locked CPU environment with no download. It is not one of the tasks handed over for wave 2; it is added from the reserve, and its size and model are [estimated] until that record gives them. If the record says no, it is not run, and no marker is ever set.
 
 ---
 

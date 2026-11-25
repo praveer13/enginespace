@@ -323,7 +323,9 @@
     line-height: 1.4;
   }
 
-  .es-front-goal__line {
+  /* Two classes: the stylesheet of the game's goal line (.es-goal, one class) comes after this one in the static page and beat it there, so the
+     line was drawn at the body size and fell to the caption size, 44 px of the demo, when the app took the page over. */
+  .es-front-goal .es-front-goal__line {
     display: inline;
     font-size: inherit;
     line-height: inherit;

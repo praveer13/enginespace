@@ -756,12 +756,13 @@
   text: The book Modern GPU Programming For MLSys reports that, in one traced run of a GEMM and a ReLU through PyTorch on one B200, the host's launch API call for the GEMM kernel took 50.717 µs. It is the authors' figure from one run under Nsight Systems, and the course has not reproduced it.
   tag: unverified
   source:
-    url: https://mlc.ai/modern-gpu-programming-for-mlsys/appendix/benchmarking_gpu_kernels.html
-    title: 'Modern GPU Programming For MLSys (MLC), appendix Measuring and Analyzing GPU Kernel Performance, section Locate the Most Expensive Kernel in the Timeline, the table of each kernel''s API time, the BF16 GEMM row'
+    url: https://github.com/mlc-ai/modern-gpu-programming-for-mlsys/blob/3a24144defa6da03d4ab8a1dfcf513b18007d15f/appendix/benchmarking_gpu_kernels.md#L611
+    title: 'Modern GPU Programming For MLSys (MLC), appendix/benchmarking_gpu_kernels.md at 3a24144d, section Locate the Most Expensive Kernel in the Timeline, the table of each kernel''s API time, the BF16 GEMM row'
     quote: '50.717 μs'
-    accessed: 2026-11-18
-  verifiedAt: 2026-11-18
-  ttlDays: 365
+    accessed: 2026-11-23
+  verifiedAt: 2026-11-23
+  ttlDays: 90
+  pin: mlc-book
 
 
 # --- Lesson 6: dispatch keys -------------------------------------------------------------------------------------------------------------

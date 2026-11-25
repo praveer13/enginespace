@@ -215,3 +215,25 @@ describe('served as GitHub Pages serves it', () => {
     expect(response.headers.get('content-type') ?? '').not.toContain('html')
   })
 })
+
+describe('first paint on a slow link', () => {
+  test('the front page links its extra stylesheets at the head of the root, ahead of its markup, in the body where the cascade has always had them', () => {
+    const root = template.slice(template.indexOf('<div id="root">'))
+    const first = root.indexOf('rel="stylesheet"')
+    expect(first).toBeGreaterThan(0)
+    expect(first).toBeLessThan(root.indexOf('<a href="#main"'))
+    expect(template.slice(0, template.indexOf('<div id="root">'))).not.toContain('href="/enginespace/assets/View2D')
+  })
+
+  test('every other page opens with the app\'s own header over its shell, and with no footer, so the header stays and a footer that arrives moves nothing', () => {
+    const [module] = sources.index.modules.filter((candidate) => candidate.published)
+    const files = [`${module.route.slice(1)}/index.html`, `${sources.lessons.modules[module.id][0].route.slice(1)}/index.html`, 'map/index.html', '404.html']
+    for (const file of files) {
+      const html = readFile(dist, file)
+      const root = html.slice(html.indexOf('<div id="root">'))
+      const order = [root.indexOf('class="es-skip"'), root.indexOf('<header>'), root.indexOf('<main id="main"'), root.indexOf('<h1>')]
+      expect([file, order.every((at) => at > 0), [...order].sort((a, b) => a - b)]).toEqual([file, true, order])
+      expect([file, root.includes('<footer'), root.includes('aria-current="page"')]).toEqual([file, false, false])
+    }
+  })
+})

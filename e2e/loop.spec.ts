@@ -92,6 +92,10 @@ const activeName = (page: Page) =>
  */
 async function open(page: Page, level: string) {
   await page.goto(`${origin}/play/loop?level=${level}`, { waitUntil: 'domcontentloaded' })
+  // A preview server first serves the front page's own shell on this route, which holds a loop section too: the wait is for this route's page,
+  // its heading and its diagram's now marker, so a check never reads the shell's empty boxes.
+  await expect(page.locator('h1').first()).toHaveText(/^step loop$/i, { timeout: BOOT })
+  await expect(page.locator('[data-loop-view] [data-lane-now]').first()).toBeAttached({ timeout: BOOT })
   await expect(game(page)).toBeVisible({ timeout: BOOT })
   await page.evaluate(() => document.fonts.ready)
 }
@@ -392,6 +396,8 @@ test.describe('action, state and result share one screen', () => {
       expect(await inView('[data-loop-readout]')).toBe(true)
       // A level of many steps: the track keeps now in its box as the run goes on.
       await open(page, 'first-4-par')
+      // The game's frame is in the page before its diagram and its tickets are: the run starts when the first ticket is there to press.
+      await expect(enabledTickets(page).first()).toBeVisible({ timeout: BOOT })
       for (let turn = 0; turn < 10; turn++) {
         while ((await enabledTickets(page).count()) > 0) await enabledTickets(page).first().click()
         if ((await bell(page).count()) > 0) await bell(page).click()

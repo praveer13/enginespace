@@ -188,7 +188,7 @@ git grep -n "WAITING_FOR_FSM" v0.33.0 -- vllm || echo "gone: search for what it 
 
 Three questions on new numbers. Each gives a name or a statement from the post and asks where it is at the pin, or whether it still holds. The graded map at the end of the module tests the vLLM path on whole paths.
 
-> **Practice.** Items from the generator family `tr1.what-moved`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr1.what-moved`, level `2`, `3` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 ## Claims cited
 

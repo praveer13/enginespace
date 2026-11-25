@@ -140,6 +140,21 @@ function countAbove(list: HTMLUListElement): void {
   if (list.dataset.above !== words) list.dataset.above = words
 }
 
+/**
+ * How many tiles stand whole in a box once a row has been laid and its room kept: the tiles that are left, each shifted up by the laid row if
+ * it stood below it. A box that would keep so much room that none is left whole is blank while stages remain, so it gives the room back.
+ */
+export function wholeAfterLay(tops: readonly number[], laidAt: number, room: number, tileHeight: number, boxTop: number, boxBottom: number): number {
+  return tops.filter((top) => {
+    if (top === laidAt) return false
+    const at = top > laidAt ? top - room : top
+    return at >= boxTop - 0.5 && at + tileHeight <= boxBottom + 0.5
+  }).length
+}
+
+/** How long, in ms, a press on the spot where a tile has just come to stand under the pointer lays nothing. */
+export const ARRIVAL_MS = 800
+
 /** A point on the screen, in CSS px from the viewport's top left. */
 export interface Point {
   readonly x: number
@@ -215,6 +230,7 @@ export function useFloorControls(run: FloorRun, ring: string | null = null): Flo
   const boxHold = useRef<BoxHold | null>(null)
   const listTop = useRef<number | null>(null)
   const commitSpot = useRef<{ at: Point; stop: () => void } | null>(null)
+  const arrival = useRef<{ at: Point; until: number } | null>(null)
   const setFilter = setChosen
   const setQuery = setText
   const query = text
@@ -327,6 +343,9 @@ export function useFloorControls(run: FloorRun, ring: string | null = null): Flo
 
   const lay = (id: string, index: number, at: Point | null = null) => {
     if (at !== null && onSameSpot(at, commitSpot.current?.at ?? null)) return
+    // A tile that has just come to stand under the pointer (a box that gave back its room) is not pressed by a second press on the same spot.
+    if (at !== null && arrival.current !== null && performance.now() < arrival.current.until && onSameSpot(at, arrival.current.at)) return
+    arrival.current = null
     const byPointer = at !== null
     focusAfterLay.current = index
     revealAfterLay.current = !byPointer
@@ -337,7 +356,31 @@ export function useFloorControls(run: FloorRun, ring: string | null = null): Flo
     // The laid row's room: the row and the gap that goes with it.
     const gapOf = item === null ? null : item.previousElementSibling !== null ? item : item.nextElementSibling
     const room = item === null ? 0 : item.getBoundingClientRect().height + (gapOf === null ? 0 : parseFloat(getComputedStyle(gapOf).marginTop))
-    if (list !== null && ownBox && byPointer && item !== null && list.scrollTop > 0 && list.scrollTop > list.scrollHeight - list.clientHeight - room + 0.5) {
+    const nearFoot = list !== null && ownBox && byPointer && item !== null && list.scrollTop > 0 && list.scrollTop > list.scrollHeight - list.clientHeight - room + 0.5
+    if (nearFoot && list !== null && item !== null) {
+      // Room kept over room kept would leave the box blank while stages remain: the box gives its room back instead, and the tile above
+      // the one laid comes under the pointer, where a press within a moment lays nothing.
+      const tiles = Array.from(list.querySelectorAll<HTMLElement>('[data-stage]'))
+      const box = list.getBoundingClientRect()
+      const whole = wholeAfterLay(
+        Array.from(list.children).map((row) => row.getBoundingClientRect().top),
+        item.getBoundingClientRect().top,
+        room,
+        tiles[0]?.getBoundingClientRect().height ?? 0,
+        box.top + list.clientTop,
+        box.top + list.clientTop + list.clientHeight,
+      )
+      // At a desk only: on a phone the box keeps its room and says the stages are above, and the learner scrolls up to them.
+      const atDesk = typeof window.matchMedia === 'function' && window.matchMedia('(min-width: 64rem)').matches
+      if (atDesk && whole < 1 && tiles.length > 1) {
+        releaseBox()
+        if (at !== null) arrival.current = { at, until: performance.now() + ARRIVAL_MS }
+        setStop(index)
+        dispatch({ t: 'lay', stage: id })
+        return
+      }
+    }
+    if (nearFoot && list !== null && item !== null) {
       // A box that the lay would pull up (it stands within a row of its foot) keeps the laid row's room at its end, so it stays where it is.
       const held = boxHold.current
       if (held !== null && held.list === list) held.room += room
@@ -398,6 +441,34 @@ export function useFloorControls(run: FloorRun, ring: string | null = null): Flo
   const sendIt = () => {
     if (view.canRun) dispatch({ t: 'run' })
   }
+
+  // A row of chips that scrolls sideways (a short desk's, a phone's) answers a wheel turned over it, which only goes up and down: the row
+  // moves sideways by what the wheel moved, and the fade at its right edge goes once its last chip is in sight.
+  useEffect(() => {
+    const row = chips.current
+    if (row === null) return
+    const mark = () => {
+      if (row.scrollWidth > row.clientWidth + 1 && row.scrollLeft + row.clientWidth < row.scrollWidth - 1) row.dataset.more = ''
+      else delete row.dataset.more
+    }
+    const wheel = (event: WheelEvent) => {
+      if (event.ctrlKey || Math.abs(event.deltaY) <= Math.abs(event.deltaX) || row.scrollWidth <= row.clientWidth + 1) return
+      if (getComputedStyle(row).overflowX === 'visible') return
+      const before = row.scrollLeft
+      row.scrollLeft += event.deltaY
+      if (row.scrollLeft !== before) event.preventDefault()
+    }
+    mark()
+    row.addEventListener('scroll', mark, { passive: true })
+    row.addEventListener('wheel', wheel, { passive: false })
+    const watch = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(mark)
+    watch?.observe(row)
+    return () => {
+      row.removeEventListener('scroll', mark)
+      row.removeEventListener('wheel', wheel)
+      watch?.disconnect()
+    }
+  }, [view.step, platforms.length])
 
   // Chrome brings a focused control into view only when none of it shows, and the field and the chips share a row that scrolls sideways
   // on a phone (and at a short desk): a chip reached by the keys is brought whole into the row. A pointer's press is left alone, so a chip

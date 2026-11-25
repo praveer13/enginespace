@@ -42,7 +42,7 @@ function LayoutDock({ view }: { view: ShiftView }) {
         <PartName id="buffer" />{' '}
         <span className="es-shift__count">
           target <span className="font-numeric">{shapeText(layout.target.shape)}</span>, <span className="font-numeric">{layout.target.inPlace}</span> of{' '}
-          <span className="font-numeric">{layout.target.of}</span> in place
+          <span className="font-numeric">{layout.target.of}</span> in the target&apos;s order
         </span>
       </p>
       <ol className="es-shift__buffer" style={{ '--es-addr': `${SMALL}px` } as CSSProperties} aria-hidden="true">

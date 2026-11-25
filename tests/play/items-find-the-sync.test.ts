@@ -221,3 +221,42 @@ describe('the draws', () => {
     }
   })
 })
+
+describe('the printed lines read as code', () => {
+  test('every printed line of a loop body is indented, and the line after the loop is not', () => {
+    for (const seed of SEEDS) {
+      for (const level of LEVELS) {
+        const which = findTheSync.make(seed, level, 'which-line')
+        const printed = which.givens.filter((given) => given.label.startsWith('line ')).map((given) => (given.value.t === 'code' ? given.value.code : ''))
+        expect(printed).toHaveLength(5)
+        for (const line of printed) expect(line.startsWith('    ')).toBe(level >= 2)
+      }
+      const count = findTheSync.make(seed, 1, 'count')
+      const [head, ...rest] = count.givens.map((given) => (given.value.t === 'code' ? given.value.code : ''))
+      expect(head.startsWith('for layer in range(')).toBe(true)
+      const body = rest.filter((line) => line.startsWith('    '))
+      expect(body.length).toBeGreaterThanOrEqual(2)
+      // The body comes first and the lines after the loop follow it, none indented.
+      expect(rest.slice(0, body.length)).toEqual(body)
+    }
+  })
+
+  test('every .item() is called on a 0-d value: a reduction, never a whole tensor', () => {
+    for (const seed of SEEDS) {
+      for (const level of LEVELS) {
+        for (const variant of ['which-line', 'count']) {
+          const item = findTheSync.make(seed, level, variant)
+          for (const given of item.givens) {
+            const line = given.value.t === 'code' ? given.value.code : ''
+            if (line.includes('.item()')) expect(line).toMatch(/\.(sum|max|min|mean)\(\)\.item\(\)$/)
+          }
+        }
+      }
+    }
+  })
+
+  test('the stylesheet keeps the spaces of a given that is code', () => {
+    const css = readFileSync(path.join(root, 'src/items/items.css'), 'utf8')
+    expect(css).toMatch(/\.es-item__given dd:has\(> code\)\s*\{[^}]*white-space: pre-wrap;/)
+  })
+})

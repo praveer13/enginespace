@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { GAMES } from '@es/play'
+import { ROWS } from '@es/play/rows'
 import { rosterEntry } from '@es/play/roster'
 import { Icon } from '@/design/components/Glyph'
 import { TextLink } from '@/design/components/TextLink'
@@ -104,7 +104,7 @@ export function Rows({ games, labs, progress, ready }: RowsProps) {
           {games.map((id) => {
             const entry = rosterEntry(id)
             const title = entry?.title ?? id
-            const built = GAMES.get(id)
+            const built = ROWS.get(id)
             if (built === undefined) return <span key={id}>{title}: {MODULE.waiting}</span>
             return (
               <span key={id} className="es-module__game">

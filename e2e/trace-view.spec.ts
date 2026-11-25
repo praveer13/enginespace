@@ -22,9 +22,13 @@ import os, { tmpdir } from 'node:os'
 import path from 'node:path'
 import AxeBuilder from '@axe-core/playwright'
 import { test as base, expect } from '@playwright/test'
-import type { Page } from '@playwright/test'
+import type { Locator, Page } from '@playwright/test'
 import { build } from 'vite'
+import { attribute, stepWindows } from '@es/sim/trace'
 import { TRACE_KEYS } from '../src/trace/keys'
+import { stretchesOf } from '../src/trace/list'
+import type { Category } from '../src/trace/marks'
+import { specimenTrace } from '../src/trace/specimen'
 import type { TraceProbe } from '../src/trace/test-hook'
 import { bannedOn } from './support/copy-scan'
 import { KEPT_LESSON, KEPT_TRACE, serveKeptLesson } from './support/kept-blocks'
@@ -106,9 +110,17 @@ const probe = <T,>(page: Page, read: (p: TraceProbe) => T): Promise<T> => page.e
 
 async function open(page: Page, address = SPECIMEN): Promise<void> {
   await page.goto(`${ORIGIN}${address}`)
+  // Below the narrow breakpoint the specimen opens as a list (W2b-T101): these tests are the lanes', so they ask for the lanes.
+  await lanesOnPhone(page)
   await viewer(page).waitFor({ state: 'attached', timeout: 30_000 })
   await page.evaluate(() => document.fonts.ready)
   await page.waitForFunction(() => (window.__esTrace?.draws() ?? 0) > 0, null, { timeout: 30_000 })
+}
+
+/** On a phone, a trace opens as a list with a switch to the lanes: this presses the switch. At a desk there is no switch, and nothing is pressed. */
+async function lanesOnPhone(page: Page): Promise<void> {
+  const narrow = await page.evaluate(() => window.matchMedia('(max-width: 47.999rem)').matches)
+  if (narrow) await page.locator('[data-trace-mode="lanes"]').click({ timeout: 30_000 })
 }
 
 const windowOf = (page: Page) => probe(page, (p) => p.window())
@@ -827,6 +839,7 @@ test.describe("a lesson's trace block", () => {
         await serveKeptLesson(page, dist)
         await page.goto(`${ORIGIN}${KEPT_LESSON.route}`)
         await trace(page).getByRole('button', { name: 'Open the trace' }).click()
+        await lanesOnPhone(page)
         await expect(trace(page).locator('[data-trace-view]')).toBeVisible({ timeout: 30_000 })
         await trace(page).locator('[data-command="mark"]').click()
         await trace(page).locator('[data-command="category-kernel"]').click()
@@ -851,5 +864,397 @@ test.describe("a lesson's trace block", () => {
       const moving = await trace(page).evaluate((root) => root.getAnimations({ subtree: true }).filter((animation) => animation.playState === 'running').length)
       expect(moving).toBe(0)
     })
+  })
+})
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// 6. The list, on a phone (W2b-T101)
+//
+// Below the narrow breakpoint a trace is a list: the step's stretches, each with four category radios, and the step's frames and calls for
+// the cause (src/trace/ListMode.tsx). A whole step is marked by touch and by keys, on the specimen and in a lesson's trace block, and the
+// marks are the same marks the lanes make. The defect classes it is held to: DC-A (nothing moves), DC-B (in view, 44 px targets), DC-C
+// (keys), DC-G (reduced motion).
+
+const LIST_TRACE = specimenTrace(7)
+const LIST_STEP = stepWindows(LIST_TRACE)[5]
+const LIST_ROWS = stretchesOf(LIST_TRACE, LIST_STEP)
+/** The category each stretch truly is, from the model that made the tape: what a learner who reads each row right picks. */
+const LIST_TRUTH: Category[] = LIST_ROWS.map((row) => (row.gpu === 'kernel' ? 'kernel' : row.gpu === 'copy' ? 'copy' : row.cpu ? 'cpu-gap' : 'both-idle'))
+const LIST_SEGMENTS = attribute(LIST_TRACE, LIST_STEP).segments.map((segment) => ({
+  kind: 'range',
+  fromNs: segment.fromNs,
+  toNs: segment.toNs,
+  category: segment.category,
+}))
+const DIGIT: Record<Category, string> = {
+  kernel: 'Digit1',
+  copy: 'Digit2',
+  'cpu-gap': 'Digit3',
+  'both-idle': 'Digit4',
+}
+
+const list = (page: Page) => page.locator('[data-trace-list]')
+const plate = (page: Page, row: number, category: Category) => list(page).locator(`tr[data-stretch="${row}"] input[value="${category}"]`)
+const causeRadio = (page: Page, name: string) => list(page).locator('[data-cause-span]').filter({ hasText: name }).first().locator('input')
+
+/**
+ * The lesson's own first paint: its game arrives in a chunk and the game's intro strip in a second one, so the strip can land after this
+ * spec has opened the trace block, and the page below it grows by the strip's height while the browser's scroll anchoring holds the
+ * reader's place. This spec measures the trace list's DC-A, not the game's; so it waits for the frame and, when the frame has planned an
+ * intro, for the strip, before it reads anything. The strip's late arrival moving the page is the WAIT-rule item the exit check
+ * (W2b-T120) holds, and it is not fixed here.
+ */
+async function lessonFirstPaint(page: Page): Promise<void> {
+  const frame = page.locator('[data-game]').first()
+  await frame.waitFor({ state: 'attached', timeout: 30_000 })
+  if ((await frame.getAttribute('data-intro')) !== null) await frame.locator('.es-intro').waitFor({ state: 'attached', timeout: 30_000 })
+}
+
+/** The specimen, or the lesson with its trace block opened by a tap, as a list. */
+async function openList(page: Page, where: 'viewer' | 'lesson'): Promise<void> {
+  if (where === 'viewer') {
+    await page.goto(`${ORIGIN}${SPECIMEN}`)
+  } else {
+    await serveKeptLesson(page, dist)
+    await page.goto(`${ORIGIN}${KEPT_LESSON.route}`)
+    await page.locator('[data-block="trace"]').getByRole('button', { name: 'Open the trace' }).click()
+    await lessonFirstPaint(page)
+  }
+  await list(page).waitFor({ state: 'visible', timeout: 30_000 })
+  await page.evaluate(() => document.fonts.ready)
+  await expect(page.locator('[data-trace-view]')).toHaveCount(0)
+  await expect(list(page).locator('tr[data-stretch]')).toHaveCount(LIST_ROWS.length)
+}
+
+/** DC-B: the focused control is wholly in the viewport and topmost at its centre. */
+async function focusInView(page: Page, after: string): Promise<void> {
+  const seen = await page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null
+    if (el === null || el === document.body) return { ok: false, why: 'nothing has focus' }
+    const r = el.getBoundingClientRect()
+    const inside = r.top >= -0.5 && r.left >= -0.5 && r.bottom <= window.innerHeight + 0.5 && r.right <= window.innerWidth + 0.5
+    const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2)
+    const topmost = top !== null && (top === el || el.contains(top))
+    return {
+      ok: inside && topmost,
+      why: `${el.outerHTML.slice(0, 90)} at ${Math.round(r.top)}..${Math.round(r.bottom)} of ${window.innerHeight}, inside ${inside}, topmost ${topmost} (${top?.className ?? 'nothing'})`,
+    }
+  })
+  expect(seen.ok, `after ${after}: ${seen.why}`).toBe(true)
+}
+
+/** The rectangles of every control and readout of the block on the screen, by a stable name. */
+async function rects(page: Page): Promise<Record<string, string>> {
+  return page.evaluate(() => {
+    const out: Record<string, string> = {}
+    const host = document.querySelector('[data-trace-list]')?.parentElement ?? document.body
+    host
+      .querySelectorAll<HTMLElement>(
+        '[data-trace-modes] button, [data-trace-list] input, [data-trace-list] button, [data-list-tally], [data-list-step-at], [data-trace-check], .es-trace-run__hint',
+      )
+      .forEach((el, at) => {
+        const r = el.getBoundingClientRect()
+        out[`${at} ${el.tagName} ${el.getAttribute('value') ?? el.getAttribute('data-list-step') ?? el.getAttribute('data-trace-mode') ?? el.className}`] = [
+          r.left,
+          r.top,
+          r.width,
+          r.height,
+        ]
+          .map((v) => v.toFixed(1))
+          .join(',')
+      })
+    return out
+  })
+}
+
+/** DC-A: a tap on `target` in plain view, mid-screen, with the rectangles on the screen read just before and just after it. Nothing scrolls in between. */
+async function tapStill(page: Page, target: Locator, what: string): Promise<void> {
+  await target.evaluate((el) => el.scrollIntoView({ block: 'center' }))
+  const before = await rects(page)
+  const scroll = await page.evaluate(() => window.scrollY)
+  await target.tap()
+  await expect(target).toBeChecked()
+  expect(await page.evaluate(() => window.scrollY), `the page scrolled on ${what}`).toBe(scroll)
+  expect(await rects(page), `after ${what}`).toEqual(before)
+}
+
+const exportedMarks = async (page: Page) =>
+  (await exported(page)) as {
+    kind: string
+    fromNs?: number
+    toNs?: number
+    category?: string
+    span?: number
+  }[]
+
+/** A whole step marked by keys alone: Tab to each stretch, a digit for its category, Tab on, the arrows in the cause list, and the check. */
+async function walkByKeys(page: Page, where: 'viewer' | 'lesson'): Promise<void> {
+  await openList(page, where)
+  // From the top of the page, by Tab alone, to the first stretch's radios.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
+  for (let i = 0; i < 200 && (await page.evaluate(() => document.activeElement?.getAttribute('data-row'))) !== '0'; i++) await press(page, 'Tab')
+  await focusInView(page, 'Tab to the first stretch')
+  for (const [row, category] of LIST_TRUTH.entries()) {
+    expect(await page.evaluate(() => document.activeElement?.getAttribute('data-row'))).toBe(String(row))
+    await press(page, DIGIT[category])
+    await expect(plate(page, row, category)).toBeChecked()
+    await expect(plate(page, row, category)).toBeFocused()
+    await focusInView(page, `${DIGIT[category]} on stretch ${row + 1}`)
+    await press(page, 'Tab')
+    await focusInView(page, `Tab from stretch ${row + 1}`)
+  }
+  // Tab has left the last stretch for the cause list, on its checked radio, "No cause named"; the arrows move down it and pick.
+  await expect(list(page).locator('[data-list-cause] input').first()).toBeFocused()
+  await press(page, 'ArrowDown')
+  await focusInView(page, 'ArrowDown in the cause list')
+  await press(page, 'ArrowDown')
+  await focusInView(page, 'ArrowDown in the cause list')
+  await expect(list(page).locator('[data-cause-span] input').nth(1)).toBeChecked()
+  await expect(list(page).locator('[data-list-tally]')).toContainText('Unaccounted: 0 ns of the step.')
+  if (where === 'viewer') {
+    await expect.poll(async () => (await exportedMarks(page)).length).toBe(LIST_SEGMENTS.length + 1)
+    expect((await exportedMarks(page)).slice(0, -1)).toEqual(LIST_SEGMENTS)
+  } else {
+    for (let i = 0; i < 80 && !(await page.getByRole('button', { name: 'Check my marks' }).evaluate((el) => el === document.activeElement)); i++) {
+      await press(page, 'Tab')
+      await focusInView(page, 'Tab towards the check')
+    }
+    await press(page, 'Enter')
+    const result = page.locator('[data-trace-result]')
+    await expect(result).toContainText('Saved to your record.')
+    // DC-C: after the check, focus is on the verdict it wrote, in view.
+    await expect(result).toBeFocused()
+    await focusInView(page, 'Enter on the check')
+    const written = ((await ledgerEvents(page)) as { kind: string; score: number }[]).filter((event) => event.kind === 'trace-mark')
+    expect(written).toHaveLength(1)
+    expect(written[0].score).toBe(1)
+  }
+}
+
+for (const where of ['viewer', 'lesson'] as const) {
+  for (const size of [
+    { width: 360, height: 640 },
+    { width: 320, height: 640 },
+  ]) {
+    test.describe(`the list on the ${where}, at ${size.width}x${size.height}`, () => {
+      test.use({ viewport: size, hasTouch: true, isMobile: true })
+
+      test('a whole step is marked by touch: a tap on each stretch’s category and on a cause, and the marks are the lanes’ marks', async ({ page }) => {
+        await openList(page, where)
+        await expect(list(page).locator('[data-list-step-at]')).toContainText(`Step 6 of ${stepWindows(LIST_TRACE).length}`)
+        for (const [row, category] of LIST_TRUTH.entries()) {
+          await plate(page, row, category).tap()
+          await expect(plate(page, row, category)).toBeChecked()
+        }
+        await expect(list(page).locator('[data-list-tally]')).toContainText(`${LIST_ROWS.length} of ${LIST_ROWS.length} stretches have a category.`)
+        await expect(list(page).locator('[data-list-tally]')).toContainText('Unaccounted: 0 ns of the step.')
+        await causeRadio(page, 'cudaStreamSynchronize').tap()
+        await expect(causeRadio(page, 'cudaStreamSynchronize')).toBeChecked()
+        if (where === 'viewer') {
+          await expect.poll(async () => (await exportedMarks(page)).length).toBe(LIST_SEGMENTS.length + 1)
+          const marks = await exportedMarks(page)
+          expect(marks.slice(0, -1)).toEqual(LIST_SEGMENTS)
+          expect(marks[marks.length - 1].kind).toBe('cause')
+        } else {
+          const check = page.getByRole('button', { name: 'Check my marks' })
+          await check.tap()
+          const result = page.locator('[data-trace-result]')
+          await expect(result).toContainText('Your marks name the right category for 100% of the time you marked.')
+          await expect(result).toContainText('Saved to your record.')
+          const written = (
+            (await ledgerEvents(page)) as {
+              kind: string
+              score: number
+              ok: boolean
+              data: { marks: { kind: string }[]; error: number }
+            }[]
+          ).filter((event) => event.kind === 'trace-mark')
+          expect(written).toHaveLength(1)
+          expect(written[0]).toMatchObject({
+            score: 1,
+            ok: true,
+            data: { error: 0 },
+          })
+          expect(written[0].data.marks).toEqual([...LIST_SEGMENTS, { kind: 'cause', span: expect.any(Number) }])
+        }
+      })
+
+      test('a whole step is marked by keys: Tab to each stretch, a digit for its category, the arrows for the cause; focus stays in view', async ({ page }) => {
+        await walkByKeys(page, where)
+      })
+
+      test('every control of the list is at least 44 px each way, the page never scrolls sideways, and axe finds no violation', async ({ page }) => {
+        await openList(page, where)
+        await plate(page, 0, LIST_TRUTH[0]).tap()
+        await causeRadio(page, 'cudaStreamSynchronize').tap()
+        const small = await page.evaluate(() =>
+          [...document.querySelectorAll<HTMLElement>('[data-trace-modes] button, [data-trace-list] input, [data-trace-list] button, [data-trace-check]')]
+            .map((el) => ({ el, r: el.getBoundingClientRect() }))
+            .filter(({ r }) => r.width < 44 || r.height < 44)
+            .map(({ el, r }) => `${el.outerHTML.slice(0, 60)} ${r.width.toFixed(1)}x${r.height.toFixed(1)}`),
+        )
+        expect(small).toEqual([])
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+        await audit(page, `the list on the ${where} at ${size.width}x${size.height}`)
+      })
+    })
+  }
+
+  // DC-B: the rest of the defect class's sizes at which a trace is a list (the wider ones show the lanes).
+  for (const size of [
+    { width: 412, height: 915 },
+    { width: 390, height: 844 },
+    { width: 375, height: 812 },
+    { width: 360, height: 800 },
+    { width: 640, height: 400 },
+  ]) {
+    test.describe(`the list on the ${where}, at ${size.width}x${size.height}`, () => {
+      test.use({ viewport: size, hasTouch: true, isMobile: true })
+
+      test('DC-B: marked by keys, the focused control is whole in view and on top after every key', async ({ page }) => {
+        await walkByKeys(page, where)
+      })
+    })
+  }
+
+  test.describe(`the list on the ${where}, held to the defect classes`, () => {
+    test.use({
+      viewport: { width: 360, height: 640 },
+      hasTouch: true,
+      isMobile: true,
+    })
+
+    test('DC-A: nothing moves when a stretch is picked, when a cause is named, when the step changes and when the marks are checked', async ({ page }) => {
+      await openList(page, where)
+      for (const [row, category] of LIST_TRUTH.entries()) await tapStill(page, plate(page, row, category), `the pick of stretch ${row + 1}`)
+      await tapStill(page, plate(page, 0, LIST_TRUTH[0] === 'kernel' ? 'copy' : 'kernel'), 'a second pick of stretch 1')
+      await tapStill(page, causeRadio(page, 'cudaStreamSynchronize'), 'a cause')
+      await tapStill(page, list(page).locator('[data-list-cause] input').first(), 'no cause')
+      if (where === 'lesson') {
+        const check = page.getByRole('button', { name: 'Check my marks' })
+        await check.evaluate((el) => el.scrollIntoView({ block: 'center' }))
+        const before = await rects(page)
+        await check.tap()
+        await expect(page.locator('[data-trace-result]')).toContainText('Saved to your record.')
+        expect(await rects(page), 'after the check').toEqual(before)
+      }
+      // The step buttons and what they say hold still when the step changes under them.
+      const next = list(page).locator('[data-list-step="next"]')
+      await next.evaluate((el) => el.scrollIntoView({ block: 'center' }))
+      const steps = async () =>
+        page.evaluate(() => [...document.querySelectorAll('[data-list-steps] > *')].map((el) => JSON.stringify(el.getBoundingClientRect())))
+      const at = await steps()
+      await next.tap()
+      await expect(list(page).locator('[data-list-step-at]')).toContainText('Step 7')
+      expect(await steps()).toEqual(at)
+    })
+
+    test('DC-C: a key held down picks once, Space twice is one pick, and a step button pressed twice at once moves one step', async ({ page }) => {
+      await openList(page, where)
+      await plate(page, 0, 'kernel').focus()
+      await press(page, 'Space')
+      await press(page, 'Space')
+      await expect(plate(page, 0, 'kernel')).toBeChecked()
+      const marked = await list(page).locator('[data-list-tally]').innerText()
+      // A held key: the repeats of a digit and of an arrow apply nothing.
+      const prevented = await page.evaluate(() => {
+        const el = document.activeElement as HTMLElement
+        const out: boolean[] = []
+        for (const [code, key] of [
+          ['Digit2', '2'],
+          ['ArrowRight', 'ArrowRight'],
+        ]) {
+          const event = new KeyboardEvent('keydown', {
+            code,
+            key,
+            repeat: true,
+            bubbles: true,
+            cancelable: true,
+          })
+          el.dispatchEvent(event)
+          out.push(event.defaultPrevented)
+        }
+        return out
+      })
+      expect(prevented).toEqual([true, true])
+      await expect(plate(page, 0, 'kernel')).toBeChecked()
+      expect(await list(page).locator('[data-list-tally]').innerText()).toBe(marked)
+      // Enter twice on Next step, within half a second: one step.
+      await list(page).locator('[data-list-step="next"]').focus()
+      await press(page, 'Enter')
+      await press(page, 'Enter')
+      await expect(list(page).locator('[data-list-step-at]')).toContainText('Step 7 of')
+      await page.waitForTimeout(600)
+      await press(page, 'Enter')
+      await expect(list(page).locator('[data-list-step-at]')).toContainText('Step 8 of')
+      // At the last step Next stays where it is, with focus on it, and does nothing.
+      const last = stepWindows(LIST_TRACE).length
+      for (let i = 8; i < last + 2; i++) {
+        await page.waitForTimeout(520)
+        await press(page, 'Enter')
+      }
+      await expect(list(page).locator('[data-list-step-at]')).toContainText(`Step ${last} of ${last}`)
+      await expect(list(page).locator('[data-list-step="next"]')).toBeFocused()
+      await expect(list(page).locator('[data-list-step="next"]')).toHaveAttribute('aria-disabled', 'true')
+      if (where === 'lesson') {
+        // Back to the step with a mark, and a check pressed twice at once writes one event.
+        await list(page).locator('[data-list-step="prev"]').focus()
+        await page.getByRole('button', { name: 'Check my marks' }).focus()
+        await press(page, 'Enter')
+        await press(page, 'Enter')
+        await expect(page.locator('[data-trace-result]')).toContainText('Saved to your record.')
+        await page.waitForTimeout(300)
+        expect(((await ledgerEvents(page)) as { kind: string }[]).filter((event) => event.kind === 'trace-mark')).toHaveLength(1)
+      }
+    })
+
+    test.describe('under reduced motion', () => {
+      test.use({ reducedMotion: 'reduce' })
+
+      test('DC-G: after every pick, cause and step nothing animates and nothing is in transition', async ({ page }) => {
+        await openList(page, where)
+        const moving = () =>
+          page.evaluate(
+            () =>
+              document
+                .getAnimations()
+                .filter(
+                  (animation) =>
+                    animation.playState === 'running' &&
+                    (animation.effect as KeyframeEffect | null)?.target?.closest?.('[data-trace-list], [data-trace-modes], .es-trace-run__check') != null,
+                ).length,
+          )
+        for (const [row, category] of LIST_TRUTH.entries()) {
+          await plate(page, row, category).tap()
+          expect(await moving(), `after stretch ${row + 1}`).toBe(0)
+        }
+        await causeRadio(page, 'cudaStreamSynchronize').tap()
+        expect(await moving(), 'after the cause').toBe(0)
+        await list(page).locator('[data-list-step="next"]').tap()
+        expect(await moving(), 'after a step').toBe(0)
+      })
+    })
+  })
+}
+
+test.describe('the list and the lanes', () => {
+  test.use({
+    viewport: { width: 360, height: 640 },
+    hasTouch: true,
+    isMobile: true,
+  })
+
+  test('marks made in the list are on the lanes when the switch shows them, and a desk never sees the list', async ({ page }) => {
+    await openList(page, 'viewer')
+    for (const [row, category] of LIST_TRUTH.entries()) await plate(page, row, category).tap()
+    await page.locator('[data-trace-mode="lanes"]').tap()
+    await expect(viewer(page)).toBeVisible()
+    await expect(viewer(page).locator('[data-trace-marks] tbody tr')).toHaveCount(LIST_SEGMENTS.length)
+    await page.locator('[data-trace-mode="list"]').tap()
+    await expect(list(page).locator('[data-list-tally]')).toContainText(`${LIST_ROWS.length} of ${LIST_ROWS.length}`)
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await expect(viewer(page)).toBeVisible()
+    await expect(page.locator('[data-trace-modes]')).toHaveCount(0)
+    await expect(list(page)).toHaveCount(0)
   })
 })

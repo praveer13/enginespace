@@ -23,7 +23,7 @@ import { Unbuilt } from '@/unbuilt/Unbuilt'
  * Every lab's page sets the title and, until it is built, the heading that its served document has (scripts/pages/plan.ts), so the tab
  * and the heading do not change when the app takes over (WCAG 2.4.2). A lab that the course does not have says so.
  */
-/** `?stage=<first stage>` for a lab that issues challenges, so GPU lab results opens on it; nothing for a lab it does not list. */
+/** `?stage=<first stage>` for a lab that issues challenges, so Lab results opens on it; nothing for a lab it does not list. */
 const stageQuery = (lab: string): string => {
   const first = labById(lab)?.stages[0]
   return first === undefined ? '' : `?stage=${first.id}`

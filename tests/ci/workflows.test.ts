@@ -258,9 +258,64 @@ describe('permissions and credentials (acceptance 1)', () => {
 })
 
 describe('ci.yml (§10.1)', () => {
-  test('runs on pull requests, and has the jobs fast-gate, tests and e2e-smoke', () => {
+  test('runs on pull requests, and has the jobs fast-gate, tests, e2e-smoke and e2e-features', () => {
     expect(Object.keys(workflow('ci.yml').on ?? {})).toContain('pull_request')
     expect(jobsOf('ci.yml').map(([name]) => name)).toEqual(expect.arrayContaining(['fast-gate', 'tests', 'e2e-smoke']))
+    expect(jobsOf('ci.yml').map(([name]) => name)).toContain('e2e-features')
+  })
+
+  test('e2e-features (W2b-T71, D-078) runs the features project in four shards, in a group of its own that never cancels a running shard, with the smoke job\'s flags and no retry or skip of its own', () => {
+    const job = workflow('ci.yml').jobs?.['e2e-features'] as Job & { concurrency?: { group?: string; 'cancel-in-progress'?: boolean } }
+    expect(job.strategy?.['fail-fast']).toBe(false)
+    expect(job.strategy?.matrix?.shard).toEqual([1, 2, 3, 4])
+    // The group is the job's own, and the shard is in it: one group for four shards would queue three of them and replace a waiting one.
+    expect(job.concurrency?.['cancel-in-progress']).toBe(false)
+    expect(job.concurrency?.group).toContain('e2e-features')
+    expect(job.concurrency?.group).toContain('${{ matrix.shard }}')
+    expect(job.concurrency?.group).not.toBe('ci-${{ github.ref }}')
+    expect(typeof job['timeout-minutes']).toBe('number')
+    expect(job['timeout-minutes']).toBeLessThanOrEqual(25)
+
+    const run = (stepsOf('ci.yml', 'e2e-features').find((step) => step.run?.includes('playwright test'))?.run ?? '').trim()
+    expect(run).toBe('npx playwright test --project=features --shard="$SHARD/4" --reporter=list,html,json')
+    // The smoke job's own command, with the project and the reporters changed: no flag that sets the workers or the retries, so the configuration's apply.
+    const smoke = (stepsOf('ci.yml', 'e2e-smoke').find((step) => step.run?.includes('playwright test'))?.run ?? '').trim()
+    expect(smoke).toBe('npx playwright test --project=smoke --shard="$SHARD/4"')
+    for (const text of [run, ...runsOf('ci.yml', 'e2e-features')]) expect(text).not.toMatch(/--retries|--workers|--grep|--max-failures/)
+    expect(stepsOf('ci.yml', 'e2e-features').find((step) => step.run?.includes('playwright test'))?.env?.SHARD).toBe('${{ matrix.shard }}')
+    // The configuration holds what the job leaves to it, and this task does not edit it.
+    const config = read('playwright.config.ts')
+    expect(config).toContain('retries: CI ? 1 : 0')
+    expect(config).toContain('workers: CI ? 2 : undefined')
+    expect(config).toContain("{ name: 'features', testIgnore: [...SMOKE, LAB], use: chromium }")
+  })
+
+  test('e2e-features installs the same pinned Bun as the other jobs, before it installs the dependencies, because e2e/front.spec.ts runs scripts/prepare-pages.ts under Bun', () => {
+    const steps = stepsOf('ci.yml', 'e2e-features')
+    const at = steps.findIndex((step) => step.uses?.startsWith('oven-sh/setup-bun@'))
+    expect(at).toBeGreaterThan(-1)
+    // The same action, sha and version as the fast gate's step: the pins test below holds the sha to ARCHITECTURE 10.3, and the fallback test the step after it.
+    expect(steps[at].uses).toBe(stepsOf('ci.yml', 'fast-gate').find((step) => step.uses?.startsWith('oven-sh/setup-bun@'))?.uses)
+    expect(String(steps[at].with?.['bun-version'])).toBe(tool('Bun') as string)
+    expect(steps[at + 1]?.if).toBe(BUN_FALLBACK)
+    expect(at).toBeLessThan(steps.findIndex((step) => step.run === 'npm ci'))
+  })
+
+  test('e2e-features prints every test that passed only on its retry, and keeps the report whatever the result', () => {
+    const steps = stepsOf('ci.yml', 'e2e-features')
+    const printer = steps.find((step) => step.run?.includes("'flaky'"))
+    expect(printer?.if).toBe('${{ !cancelled() }}')
+    expect(printer?.run).toContain('features-report.json')
+    expect(steps.findIndex((step) => step === printer)).toBeGreaterThan(steps.findIndex((step) => step.run?.includes('playwright test')))
+    const keep = steps.find((step) => step.uses?.startsWith('actions/upload-artifact@'))
+    expect(keep?.if).toBe('${{ !cancelled() }}')
+    expect(String(keep?.with?.name)).toBe('e2e-features-${{ matrix.shard }}')
+  })
+
+  test('D-078 records the job, and says that it is not a required check until the owner makes it one (N14)', () => {
+    const record = between(read('docs/DECISIONS.md'), '### D-078', '### D-079')
+    expect(record).toContain('e2e-features')
+    expect(record).toContain('not a required check')
   })
 
   test('the fast gate runs lint, typecheck, the compile, the source gates, the build and then the build gates, in that order', () => {
@@ -495,9 +550,16 @@ describe('labs.yml (§10.1)', () => {
       'tests/schema/receipt-support.ts',
       'src/receipts/atlas.ts',
       'vendor/kernelspace/**',
+      'public/labs/**',
+      'src/receipts/graders.ts',
+      'scripts/pack-kit.ts',
+      'scripts/pack-labs.ts',
       '.github/workflows/labs.yml',
     ])
     expect('workflow_dispatch' in labsOn).toBe(true)
+    // W2b-T71: what pack-kit --check compares (the committed packs) and the scripts that pack, which labs/** and scripts/labs/** do not cover.
+    for (const file of ['public/labs/manifest.json', 'src/receipts/graders.ts', 'scripts/pack-kit.ts', 'scripts/pack-labs.ts', 'scripts/labs/zip.ts', 'labs/kit/README.template.md', 'course.lock.json'])
+      expect(names(labsPaths, file), file).toBe(true)
   })
 
   test('has the cpu job (W2-T13): switched on by detect when the CPU environment, its fixture and the script exist and a change touched them, and it syncs from the lock and compares the vectors without writing the fixture', () => {
@@ -664,7 +726,7 @@ describe('labs.yml (§10.1)', () => {
     expect(grader).toContain('bun run verify:vectors')
   })
 
-  test('the grader job (W2-T02) checks the lock, syncs from it, runs the tests as TRACKER words the command, runs the installed command, then the two gates, and then the receipt fixtures and forgeries of W2-T08, in that order; W2-T04 puts the check of the engine environments beside the lock check of the grader', () => {
+  test('the grader job (W2-T02) checks the lock, syncs from it, runs the tests as TRACKER words the command, runs the installed command, then the two gates, then the check that the packed kit is what its sources pack to (W2b-T71), and then the receipt fixtures and forgeries of W2-T08, in that order; W2-T04 puts the check of the engine environments beside the lock check of the grader', () => {
     expect(runsOf('labs.yml', 'grader')).toEqual([
       'npm ci',
       'uv lock --check --project labs/grader',
@@ -674,6 +736,7 @@ describe('labs.yml (§10.1)', () => {
       'uv run --project labs/grader enginespace selftest --no-suite',
       'bun run verify:schema',
       'bun run verify:vectors',
+      'bun scripts/pack-kit.ts --check',
       'bun test tests/verify/bestiary.test.ts tests/verify/fixtures.test.ts',
     ])
     // The commands of TRACKER's acceptance 1 and 4, word for word.
@@ -730,12 +793,14 @@ describe('reserved steps', () => {
     'W2-T01', 'W2-T03', 'W2-T05', 'W2-T06', 'W2-T09', 'W2-T10', 'W2-T28', 'W2-T43', 'W2b-T01',
     // Wave 1 of the second plan, in wave-2m1a and wave-2m1b: the tasks of W2 that the two halves built, and every W2b task that merged, which
     // the exit review of wave 1b (W2b-T39) marked `[=]`. W2-T16 waits for the owner's weights job and stays `[~]`;
-    // W2-T44 stays `[ ]`, because tests/content/predict.test.ts holds its heading open.
+    // W2-T44 and W2b-T39 were marked in W2b-T69 (the line below).
     'W2-T14', 'W2-T18', 'W2-T42', 'W2b-T02', 'W2b-T43', 'W2b-T03', 'W2b-T04', 'W2b-T05', 'W2b-T06', 'W2b-T07', 'W2b-T40', 'W2b-T09',
     'W2b-T10', 'W2b-T11', 'W2b-T12', 'W2b-T13', 'W2b-T14', 'W2b-T15', 'W2b-T45', 'W2b-T16', 'W2b-T41', 'W2b-T17', 'W2b-T18', 'W2b-T19', 'W2b-T20',
     'W2b-T22', 'W2b-T21', 'W2b-T44', 'W2b-T23', 'W2b-T24', 'W2b-T25', 'W2b-T47', 'W2b-T30', 'W2b-T48', 'W2b-T49', 'W2b-T31', 'W2b-T50', 'W2b-T37',
     'W2b-T42', 'W2b-T26', 'W2b-T27', 'W2b-T46', 'W2b-T28', 'W2b-T29', 'W2b-T32', 'W2b-T51', 'W2b-T52', 'W2b-T33', 'W2b-T34', 'W2b-T35', 'W2b-T36',
     'W2b-T53',
+    // Marked `[=]` with W2b-T69: the tasks of wave 1 whose markers were stale. W2-T08 is above, and stays `[~]` until the owner's fixtures (W2-T12).
+    'W2-T02', 'W2-T07', 'W2-T13', 'W2-T44', 'W2b-T39',
   ]
 
   /** A reserved step is one whose whole command is the echo. A step that echoes it only where a file is missing (the content compile, prepare-pages, the labs) switches on by file, and is not reserved. */

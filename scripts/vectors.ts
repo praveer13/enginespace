@@ -38,7 +38,7 @@ import { BESTIARY, FINE_BAND, REFERENCE, SPARSE_BAND, SPEC_BAND, chiSquare, dist
 import type { PairBand } from '../packages/sim/spec'
 import { ENGINE_DEFAULTS, TICK_CARD, defaultCaptureSizes, mrv1RoundedSizes, runStepLoop, s5Card, vllmCaptureSizes } from '../packages/sim/steploop'
 import type { GpuCard, GraphSettings, S5HostTerm, StepLoopConfig, StepLoopRun } from '../packages/sim/steploop'
-import { CLEAN_JITTER, DEFAULT_JITTER, attributeSteps, encodeTrace, traceChecks, traceFromRun, traceToJson } from '../packages/sim/trace'
+import { CLEAN_JITTER, DEFAULT_JITTER, attributeSteps, causeKind, checkHunt, encodeTrace, huntCase, huntTraces, referenceSplit, traceChecks, traceFromRun, traceToJson } from '../packages/sim/trace'
 import type { Attribution, JitterSpec } from '../packages/sim/trace'
 import { addresses, applyOp, contiguousView, fewestPlan, goalAfter, gridCoverage, isContiguous, naivePlan, programCells } from '../packages/sim/tensor'
 import type { ShiftOp, TView } from '../packages/sim/tensor'
@@ -906,6 +906,45 @@ const trace: VectorModel = {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
+// trace-hunt
+
+/** A Gap Hunt case as a fixture writes it: the seed it is drawn by and the level (GAMES.md section 6). */
+interface TraceHuntInput {
+  readonly seed: number
+  readonly level: string
+}
+
+const traceHuntInputs: Record<string, TraceHuntInput> = {}
+for (const level of ['read', 'gap', 'graphs', 'attribute']) {
+  for (const seed of [1, 2, 3, 5, 8, 13]) traceHuntInputs[`${level} level, seed ${seed}`] = { seed, level }
+}
+
+function traceHuntOutput(input: TraceHuntInput): unknown {
+  const traces = huntTraces(input.seed, input.level)
+  const c = huntCase(traces, input.seed, input.level)
+  const ref = referenceSplit(c)
+  return {
+    traces: traces.map((t) => sha256(encodeTrace(t))),
+    traceIndex: traces.indexOf(c.trace),
+    step: c.step,
+    ask: c.ask,
+    segments: ref.marks.map((m) => [m.fromNs, m.toNs, m.category]),
+    overlapNs: ref.overlapNs,
+    largestGap: ref.largestGap,
+    causeKind: ref.largestGap === null ? null : causeKind(c.trace, ref.largestGap.cause),
+    perfect: checkHunt(c, ref.marks, ref.largestGap?.cause ?? null),
+  }
+}
+
+const traceHunt: VectorModel = {
+  model: 'trace-hunt',
+  file: `${FIXTURE_DIR}/trace-hunt.json`,
+  header:
+    'Golden vectors for the cases of packages/sim/trace/hunt.ts (GAMES.md section 6): each maps a seed and a level to the SHA-256 of the traces the level draws from, the step and ask of the case drawn, its reference split (the partition of the step, the hidden CPU ns, the largest gap and its cause as an event id), the kind of that cause, and what checkHunt says of the reference answer. Regenerate only with `bun scripts/vectors.ts --write`, and review the diff like code.',
+  cases: () => Object.entries(traceHuntInputs).map(([name, input]) => ({ name, input, run: () => traceHuntOutput(input) })),
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------
 // bench
 
 /** An arrival schedule as a fixture writes it: a replayed slice is named by its file. */
@@ -1709,7 +1748,7 @@ const tensor: VectorModel = {
   cases: () => Object.entries(tensorInputs).map(([name, input]) => ({ name, input, run: () => tensorOutput(input) })),
 }
 
-export const MODELS: readonly VectorModel[] = [workload, steploop, steploopV1, trace, bench, spec, lifecycle, kv, brokenBench, tensor]
+export const MODELS: readonly VectorModel[] = [workload, steploop, steploopV1, trace, traceHunt, bench, spec, lifecycle, kv, brokenBench, tensor]
 
 // ---------------------------------------------------------------------------------------------------------------------------
 // fixtures

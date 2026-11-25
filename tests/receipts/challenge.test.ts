@@ -209,9 +209,18 @@ describe('the state of a challenge', () => {
 })
 
 describe('the command', () => {
+  test('is no command for a lab with no page: it says the lab is not published, and the bare `enginespace` is printed nowhere', () => {
+    const token = issueChallenge('tr8.replay.s2', AT, 0, entropyOf(5)).token
+    const parts = gradeCommandParts('tr8.replay.s2')
+    expect(parts.published).toBe(false)
+    expect(parts.before).toContain('not published yet')
+    expect(gradeCommand('tr8.replay.s2', token)).not.toContain('enginespace grade')
+    expect(gradeCommandParts('tr0.forward.s3').published).toBe(true)
+    expect(token).toMatch(/^[A-Za-z0-9.:_-]+$/)
+  })
+
   test('is the grader command of A§9.4, with the stage and the token and nothing a shell would read', () => {
     const token = issueChallenge('tr8.replay.s2', AT, 0, entropyOf(5)).token
-    expect(gradeCommand('tr8.replay.s2', token)).toBe(`enginespace grade tr8.replay.s2 --challenge ${token}`)
     expect(token).toMatch(/^[A-Za-z0-9.:_-]+$/)
   })
 
@@ -224,6 +233,6 @@ describe('the command', () => {
       expect(gradeCommandParts(stage.id).before + token + gradeCommandParts(stage.id).after).toBe(gradeCommand(stage.id, token))
     }
     const token = issueChallenge('tr0.forward.s3', AT, 0, entropyOf(7)).token
-    expect(gradeCommand('tr0.forward.s3', token)).toBe(`uv run --project envs/cpu enginespace grade tr0.forward.s3 --challenge ${token}`)
+    expect(gradeCommand('tr0.forward.s3', token)).toBe(`uv run --project envs/cpu enginespace grade tr0.forward.s3 --challenge ${token} --assisted <none|explain|code> --agent <yes|no>`)
   })
 })

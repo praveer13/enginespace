@@ -270,13 +270,8 @@ test.describe('reduced motion (A§6.9): a batch cuts to its end', () => {
     await page.getByLabel('Tokens per round').fill('2.4')
     await page.keyboard.press('Enter')
     await settle(page)
-    // The first draw also lays the page out again: the note under the view takes a line more, the scene's box is that much shorter, and
-    // the scene fits its labels and its camera to the new box. Those are redraws of a resize, each on demand, and on busy cores they fall
-    // in frames of their own: four or five in 133 of 200 runs on four cores beside three busy loops, two in 57 of 60 runs without them
-    // [measured 2026-11-22 at 325d044b]. The draw counted is the next one, in a box that stays where it is; the checks after it, that no
-    // animation frame is asked for and that the governor never sampled one, cover both draws.
-    await draw(page)
-    await settle(page)
+    // The first draw is the one counted: the legend and the note hold their full height in 3D, so the scene's box stays where it is
+    // and the draw is a redraw of the bars alone.
     const place = await stage(page).boundingBox()
     const before = (await probe(page))?.frames ?? 0
     await draw(page)
@@ -289,6 +284,73 @@ test.describe('reduced motion (A§6.9): a batch cuts to its end', () => {
     expect(await page.evaluate(() => window.__raf ?? 0)).toBe(after)
     expect((await probe(page))?.p95, 'the governor never sampled an animation').toBeNull()
   })
+})
+
+test.describe('DC-A: the 3D stage keeps its box on the commit, the first draw and the result', () => {
+  for (const [width, height] of [
+    [1440, 900],
+    [1280, 800],
+  ] as const) {
+    test(`at ${width} x ${height}: the stage, the legend and the note keep their rectangles`, async ({ page }) => {
+      test.setTimeout(120_000)
+      await page.setViewportSize({ width, height })
+      await open(page, 'chain', 1)
+      await settle(page)
+      const rects = async () => ({
+        stage: await stage(page).boundingBox(),
+        legend: await page.locator('[data-vf-legend]').boundingBox(),
+        note: await page.locator('.es-vf__note').first().boundingBox(),
+      })
+      const start = await rects()
+      expect(start.stage?.height, 'the stage has a box').toBeGreaterThan(0)
+      await page.getByLabel('Tokens per round').fill('2.4')
+      await page.keyboard.press('Enter')
+      await settle(page)
+      expect(await rects(), 'after the commit').toEqual(start)
+      await draw(page)
+      await settle(page)
+      expect(await rects(), 'after the first draw').toEqual(start)
+      await focusGame(page)
+      await page.getByRole('button', { name: 'Finish', exact: true }).click()
+      await expect(page.locator('[data-result]')).toBeVisible()
+      await settle(page)
+      // At the result the goal line above says the answer is in, in the room it held from the start: the sizes and places of the parts
+      // inside the frame are compared, and then the whole rectangles.
+      const end = await rects()
+      const inside = (at: Awaited<ReturnType<typeof rects>>) => ({
+        stage: [at.stage?.width, at.stage?.height],
+        legend: [at.legend?.width, at.legend?.height, (at.legend?.y ?? 0) - (at.stage?.y ?? 0)],
+        note: [at.note?.width, at.note?.height, (at.note?.y ?? 0) - (at.stage?.y ?? 0)],
+      })
+      expect(inside(end), 'at the result').toEqual(inside(start))
+      expect(end, 'at the result').toEqual(start)
+    })
+  }
+})
+
+test.describe('the weight labels of the dock do not touch on a phone', () => {
+  for (const [width, height] of [
+    [390, 844],
+    [360, 800],
+    [320, 640],
+  ] as const) {
+    test(`at ${width} x ${height}: the six names stand apart`, async ({ page }) => {
+      await page.setViewportSize({ width, height })
+      await open(page, 'greedy-ngram', 1, false)
+      await page.getByRole('button', { name: 'Accepted', exact: true }).click()
+      await expect(weight(page, 0)).toBeVisible()
+      const names = await page.locator('.es-vf-stepper__label').evaluateAll((labels) =>
+        labels.map((label) => {
+          const range = document.createRange()
+          range.selectNodeContents(label)
+          const box = range.getBoundingClientRect()
+          return { left: box.left, right: box.right, name: label.textContent }
+        }),
+      )
+      expect(names).toHaveLength(6)
+      for (let i = 1; i < names.length; i++) expect(names[i].left - names[i - 1].right, `${names[i - 1].name} and ${names[i].name}`).toBeGreaterThanOrEqual(2)
+    })
+  }
 })
 
 test.describe('the views and the camera (A§6.8)', () => {

@@ -91,7 +91,7 @@ describe('/evidence', () => {
   })
 
   test('offers the means to keep a copy straight away, and the tape is a printer warming up until the ledger has opened', () => {
-    expect(headings(html, 2)).toEqual(['What you did', 'GPU lab results', 'Keep a copy'])
+    expect(headings(html, 2)).toEqual(['What you did', 'Lab results', 'Keep a copy'])
     expect(html).toMatch(/<button[^>]*>Export evidence<\/button>/)
     expect(html).toMatch(/aria-label="Where your progress is kept" aria-busy="true"/)
     expect(html).toContain('Warming up')

@@ -67,7 +67,7 @@ describe('the page while the ledger opens', () => {
   const html = view({ ready: false })
 
   test('is one heading and its lead, and the lists are tickets that are still printing', () => {
-    expect(headings(html, 1)).toEqual(['GPU lab results'])
+    expect(headings(html, 1)).toEqual(['Lab results'])
     expect(html).toContain('Loading your challenges')
     expect(html).toContain('Loading your results')
     expect(html).not.toContain('class="es-held"')
@@ -218,7 +218,7 @@ describe('one receipt, opened at its hash', () => {
   const html = view({ held, receipts: [record], open: record.sha256 })
 
   test('is the page with the way back, and not the lists', () => {
-    expect(headings(html, 1)).toEqual(['GPU lab results'])
+    expect(headings(html, 1)).toEqual(['Lab results'])
     expect(html).toContain('data-view="receipt"')
     expect(html).toContain('<a class="es-link" href="/receipts" data-discover="true">All results</a>')
     expect(html).not.toContain('>Get a challenge</h2>')
@@ -339,7 +339,7 @@ describe('one receipt, opened at its hash', () => {
   })
 
   test('has the one heading of the page, whichever view', () => {
-    for (const page of [html, view({ ready: false, open: record.sha256 }), view({ open: sha256('nothing') })]) expect(headings(page, 1)).toEqual(['GPU lab results'])
+    for (const page of [html, view({ ready: false, open: record.sha256 }), view({ open: sha256('nothing') })]) expect(headings(page, 1)).toEqual(['Lab results'])
   })
 })
 
@@ -387,9 +387,18 @@ describe('the ticket a challenge is printed on', () => {
   })
 
   test('prints the command, with the token in it, and a way to copy each', () => {
-    expect(text(html)).toContain(`enginespace grade tr8.replay.s2 --challenge ${event.data.token}`)
+    const page = ledger.challenge('2026-11-09T12:30:00.000Z', 'tr0.forward.s3', 6) as ChallengeEvent
+    const shown = text(render(createElement(ChallengeTicket, { event: page, durable: true, memoryOnly: false })))
+    expect(shown).toContain(`uv run --project envs/cpu enginespace grade tr0.forward.s3 --challenge ${page.data.token}`)
+    expect(shown).toContain('Copy the token')
+    expect(shown).toContain('Copy the command')
+  })
+
+  test('prints no command for a lab with no page: it says the lab is not published and offers nothing to copy but the token', () => {
+    expect(text(html)).toContain(`This lab is not published yet, so there is no command to run.`)
+    expect(text(html)).not.toContain('enginespace grade')
     expect(text(html)).toContain('Copy the token')
-    expect(text(html)).toContain('Copy the command')
+    expect(text(html)).not.toContain('Copy the command')
   })
 
   test('says when it was issued and when it stops being good, and points at the lab', () => {

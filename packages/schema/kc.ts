@@ -28,7 +28,7 @@ export const kcSchema = z.strictObject({
    * The task that will add the KC's first item, game level or lab check, as in `W1-T14`, or `W1b-T08` for W1's carry-over and `W2b-T29` for W2's second build. Until
    * W1-T38 a KC may wait on one; that task fails on any that remain.
    */
-  planned: z.string().regex(/^(?:W[0-3]|W[12]b)-T[0-9]{2}$/, 'must name a tracker task such as W1-T14, W1b-T08 or W2b-T29').optional(),
+  planned: z.string().regex(/^(?:W[0-3]|W[12]b)-T[0-9]{2,3}$/, 'must name a tracker task such as W1-T14, W1b-T08 or W2b-T105').optional(),
 })
 
 export type Kc = z.infer<typeof kcSchema>

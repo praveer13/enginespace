@@ -43,6 +43,7 @@ export const DEFEND_COPY = {
   practice: (when: string) => `Recorded as practice. The next attempt that counts opens ${when}.`,
   practiceOpen: 'Recorded as practice. The next attempt counts.',
   practiceNothing: 'Practice: nothing was recorded, because this receipt is not one this browser verified.',
+  practiceSynthetic: 'Practice: nothing was recorded, because this receipt is a synthetic one.',
   notRecorded: (why: string) => `This attempt could not be recorded: ${why}`,
   again: 'Try new questions',
 } as const

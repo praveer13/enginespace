@@ -11,7 +11,8 @@ import { describe, expect, test } from 'bun:test'
 import { createElement as h, type ReactElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { StaticRouter } from 'react-router'
-import { decodeEvent, stampEvent } from '@es/ledger'
+import { buildExport, decodeEvent, parseExport, serializeExport, stampEvent } from '@es/ledger'
+import { canonicalJson } from '@es/sim/core/json'
 import type { LedgerEvent, WriterContext } from '@es/ledger'
 import { applyAction, drawInBand, finishRun, GAMES, levelOf, startRun } from '@es/play'
 import type { RunResult } from '@es/play'
@@ -23,11 +24,12 @@ import { verifierSession } from '@es/play/verifier/session'
 import { excessPlates } from '@es/play/verifier/state'
 import { findBanned } from '@/copy/banned'
 import { Frame } from '@/games/kit/Frame'
-import { playDraft, provenanceOf } from '@/games/kit/record'
+import { leftDraft } from '@/games/kit/left'
+import { playDraft, provenanceOf, sha256Text } from '@/games/kit/record'
 import { ProveContext, type ProveFrame } from '@/prove/context'
 import { PROVE_COPY } from '@/prove/copy'
 import ProveSession, { ProvePanel } from '@/prove/ProveSession'
-import { afterAttempt, openAt, openKey, opensWords, PROVE_WINDOW_MS, proveRef, stakeAt, stakeOf } from '@/prove/window'
+import { afterAttempt, aliveAt, BEAT_MS, LAPSE_MS, openAt, openKey, openRecord, opensWords, PROVE_WINDOW_MS, proveRef, stakeAt, stakeOf } from '@/prove/window'
 
 const HOUR = 3_600_000
 const T0 = Date.parse('2026-11-20T09:00:00.000Z')
@@ -119,11 +121,90 @@ describe('the window, with a set clock (ASSESSMENT §7.3)', () => {
     for (const bad of [null, 'x', { at: 3 }, { at: 'not a time' }, {}]) expect(openAt(bad)).toBeNull()
   })
 
+  test('an attempt left before its end is an event: it counts from the time it started, a miss, and the open record is not needed', () => {
+    const began = new Date(T0).toISOString()
+    const left = { ...play(REF, T0 + 40 * 60_000, 'proved', false), data: { actions: '[]', actionsSha256: 'a'.repeat(64), left: began } } as unknown as LedgerEvent
+    // The event was written 40 minutes after the run began; the window starts when the run did.
+    expect(stakeOf([left], REF, T0 + HOUR)).toEqual({ counts: false, last: { at: T0, ok: false, left: true }, opensAt: T0 + 24 * HOUR })
+    expect(stakeOf([left], REF, T0 + 24 * HOUR).counts).toBe(true)
+  })
+
+  test('the open record holds when it started and when its tab last said it was alive; an older record holds only the first and is read as lapsed', () => {
+    const at = new Date(T0).toISOString()
+    const beat = new Date(T0 + 30_000).toISOString()
+    expect(openRecord({ at, beat })).toEqual({ began: at, at: T0, beat: T0 + 30_000 })
+    expect(openRecord({ at })).toEqual({ began: at, at: T0, beat: T0 })
+    expect(BEAT_MS).toBe(30_000)
+    expect(LAPSE_MS).toBeGreaterThan(2 * BEAT_MS)
+    const older = openRecord({ at })
+    if (older === null) throw new Error('an older record is read')
+    expect(aliveAt(older, T0 + LAPSE_MS - 1)).toBe(true)
+    expect(aliveAt(older, T0 + LAPSE_MS)).toBe(false)
+    // One beat keeps it alive for a lapse from the beat, and a beat never reads as earlier than the start.
+    const kept = openRecord({ at, beat })
+    if (kept === null) throw new Error('a beat is read')
+    expect(aliveAt(kept, T0 + 30_000 + LAPSE_MS - 1)).toBe(true)
+    expect(aliveAt(kept, T0 + 30_000 + LAPSE_MS)).toBe(false)
+    expect(openRecord({ at, beat: new Date(T0 - 5_000).toISOString() })?.beat).toBe(T0)
+    for (const bad of [null, 'x', { at: 3 }, { at: 'not a time' }, {}]) expect(openRecord(bad)).toBeNull()
+  })
+
+  test('an attempt open in another tab holds the window as a miss does, and says it is another tab', () => {
+    expect(stakeOf([], REF, T0 + HOUR, 'play', T0, true)).toEqual({ counts: false, last: { at: T0, ok: false, left: true, elsewhere: true }, opensAt: T0 + 24 * HOUR })
+  })
+
+  test('the event of a left attempt is a miss of the level, proved when it counted, unseen when it was a graded run, and the codec takes it', async () => {
+    const began = new Date(T0).toISOString()
+    const proved = await leftDraft({ game: 'verifier', level: 'exact', began, prove: { counts: true } }, async () => 'b'.repeat(64))
+    expect(proved).toMatchObject({ kind: 'play', ref: REF, score: 0, ok: false, provenance: 'proved', data: { actions: '[]', left: began } })
+    expect('seed' in proved).toBe(false)
+    const graded = await leftDraft({ game: 'verifier', level: 'exact', began, seed: 7, rev: 'abcd1234' }, async () => 'b'.repeat(64))
+    expect(graded).toMatchObject({ provenance: 'unseen', seed: 7, rev: 'abcd1234', ok: false })
+    const practice = await leftDraft({ game: 'verifier', level: 'exact', began, prove: { counts: false } }, async () => 'b'.repeat(64))
+    expect(practice.provenance).toBe('practice')
+    for (const draft of [proved, graded, practice]) {
+      const decoded = decodeEvent(stampEvent(writer(T0 + HOUR), draft))
+      expect(decoded.ok).toBe(true)
+    }
+  })
+
+  test('left.ts writes again the lines it shares with record.ts, and they agree: the provenance of a left run is the one a run of that stamp has, and the hash is the same', async () => {
+    const began = new Date(T0).toISOString()
+    for (const prove of [undefined, { counts: true }, { counts: false }]) {
+      const draft = await leftDraft({ game: 'verifier', level: 'exact', began, ...(prove === undefined ? {} : { prove }) })
+      expect(draft.provenance).toBe(provenanceOf('graded', prove))
+      expect(draft.data.actions).toBe(canonicalJson([]))
+      expect(draft.data.actionsSha256).toBe(await sha256Text(canonicalJson([])))
+    }
+  })
+
+  test('the export shows a left attempt as a miss, and a file of schema version 2 with no such event still reads', async () => {
+    const began = new Date(T0).toISOString()
+    const event = stampEvent(writer(T0 + HOUR), await leftDraft({ game: 'verifier', level: 'exact', began, prove: { counts: true } }, async () => 'b'.repeat(64)))
+    const file = buildExport({ ledger: { events: [event], receipts: [] }, exportedAt: new Date(T0 + 2 * HOUR).toISOString(), device: 'dev-a1' })
+    const text = serializeExport(file)
+    const parsed = parseExport(text)
+    expect(parsed.ok).toBe(true)
+    if (parsed.ok) expect(parsed.file.events[0]).toMatchObject({ ref: REF, ok: false, provenance: 'proved', data: { left: began } })
+    // A file that an earlier build wrote holds schema version 2 and a play event without `left`: it is read as it is, and needs no migration.
+    const older = JSON.stringify({ ...JSON.parse(text), schemaVersion: 2, events: [{ ...JSON.parse(text).events[0], data: { actions: '[]', actionsSha256: 'b'.repeat(64) } }] })
+    const reread = parseExport(older)
+    expect(reread.ok).toBe(true)
+    if (reread.ok) expect(reread.file.events[0].kind === 'play' && reread.file.events[0].data.left).toBeFalsy()
+  })
+
   test('when the next attempt opens, in words: today, tomorrow, or a date', () => {
     const utc = { timeZone: 'UTC', locale: 'en-GB' }
     expect(opensWords(T0 + 3 * HOUR, T0, utc)).toBe('at 12:00 today')
     expect(opensWords(T0 + 24 * HOUR, T0, utc)).toBe('at 09:00 tomorrow')
     expect(opensWords(T0 + 72 * HOUR, T0, utc)).toBe('at 09:00 on 23 November')
+  })
+
+  test('the time is read on the 24-hour clock of /receipts, with no locale given, and midnight is 00:00', () => {
+    const utc = { timeZone: 'UTC' }
+    expect(opensWords(T0 + 6 * HOUR, T0, utc)).toBe('at 15:00 today')
+    expect(opensWords(T0 + 15 * HOUR, T0, utc)).toBe('at 00:00 tomorrow')
+    for (const at of [3, 6, 15, 20, 24, 30, 72]) expect(opensWords(T0 + at * HOUR, T0, utc)).not.toMatch(/[AP]M|am|pm/i)
   })
 })
 
@@ -172,6 +253,12 @@ describe('the panel', () => {
     expect(panel({ attested: true })).not.toMatch(/<button[^>]*disabled=""/)
   })
 
+  test('keeps Start disabled while the ledger is read, even once the box is ticked, and says a miss uses up the day', () => {
+    expect(panel({ stake: null, attested: true })).toMatch(/<button[^>]*disabled=""[^>]*>.*Start the Prove run/)
+    expect(panel({ stake: { counts: true, last: null, opensAt: null }, attested: true })).not.toMatch(/<button[^>]*disabled=""/)
+    expect(words(panel())).toContain('a miss uses up the day')
+  })
+
   test('says what an attempt now is worth, from the window: counts, or practice until it opens', () => {
     expect(panel({ stake: null })).toContain(PROVE_COPY.reading)
     const passed = panel({ stake: { counts: false, last: { at: T0, ok: true }, opensAt: T0 + 24 * HOUR }, when: 'at 09:00 tomorrow' })
@@ -180,6 +267,10 @@ describe('the panel', () => {
     expect(words(missed)).toContain(PROVE_COPY.waitMissed('at 09:00 tomorrow'))
     const left = panel({ stake: { counts: false, last: { at: T0, ok: false, left: true }, opensAt: T0 + 24 * HOUR }, when: 'at 09:00 tomorrow' })
     expect(words(left)).toContain(PROVE_COPY.waitLeft('at 09:00 tomorrow'))
+    const elsewhere = panel({ stake: { counts: false, last: { at: T0, ok: false, left: true, elsewhere: true }, opensAt: T0 + 24 * HOUR }, when: 'at 09:00 tomorrow' })
+    expect(words(elsewhere)).toContain(PROVE_COPY.waitElsewhere('at 09:00 tomorrow'))
+    // An attempt open in another tab is not said to have been left.
+    expect(words(elsewhere)).not.toContain('was left')
     expect(words(panel())).toContain('leaving the run before its end, or reloading the page, counts as a miss')
   })
 
@@ -206,7 +297,7 @@ describe('the frame in a Prove run', () => {
   const prove: ProveFrame = {
     level: 'one-group',
     hidden: h('p', { 'data-probe': 'hidden' }, PROVE_COPY.hidden),
-    foot: h('span', { 'data-probe': 'foot' }, PROVE_COPY.footCounts),
+    foot: () => h('span', { 'data-probe': 'foot' }, PROVE_COPY.footCounts),
     after: () => h('p', { 'data-probe': 'after' }),
   }
   const frame = (over: Record<string, unknown> = {}, value: ProveFrame | null = prove, ledger = true) =>

@@ -12,7 +12,7 @@ import { LessonGuessContext } from '@/games/kit/lessonGuess'
 import { changeLine } from './announce'
 import { earlyKey, heldKey, KEY_SETTLE, seatInDock } from './hand'
 import { Words } from './CodeWords'
-import { choicesOf, picks } from './focus'
+import { choicesOf, nextBlock, picks } from './focus'
 import type { ShiftMode, ShiftRun } from './types'
 import { choiceLabel, opButton, orderChoice, pairChoice, shapeChoice, UNIT_WORDS } from './words'
 
@@ -81,7 +81,11 @@ function useRow(count: number) {
     event.preventDefault()
     const to = Math.max(0, Math.min(next, buttons.length - 1))
     setAt(to)
-    buttons[to]?.focus()
+    const target = buttons[to]
+    if (target === undefined) return
+    // The page stays where it is (DC-F); a box that scrolls inside the dock brings the button into its own view.
+    target.focus({ preventScroll: true })
+    seatInDock(target)
   }
   return { stop, onKeyDown, note: setAt }
 }
@@ -171,8 +175,13 @@ const PICKER_HEAD: Readonly<Record<OpKind, string>> = {
 function OpBar({ run, view, rings }: { run: ShiftRun; view: ShiftView; rings: Rings }) {
   const layout = view.layout
   const offered = view.offered
+  // `contiguous()` on a tensor that is contiguous already moves nothing, so it is not offered there: its button stays where it is, so that the
+  // bar does not change its width or wrap under the hand when a transpose makes the tensor not contiguous, and it says why it cannot be pressed.
+  const idle = (kind: OpKind): boolean => kind === 'contiguous' && layout?.contiguous === true
   const [open, setOpen] = useState<OpKind | null>(null)
   const bar = useRow(offered.length)
+  // The bar's one tab stop is the last button pressed, or the nearest that can be pressed.
+  const stop = idle(offered[bar.stop] ?? 'view') ? offered.reduce((last, kind, at) => (idle(kind) ? last : at), 0) : bar.stop
   const shape = layout?.table.map((row) => row.size) ?? []
   const choices = open === null ? [] : choicesOf(open, shape)
   const pickerRow = useRow(choices.length)
@@ -214,7 +223,10 @@ function OpBar({ run, view, rings }: { run: ShiftRun; view: ShiftView; rings: Ri
     const kind = returnTo.current
     if (kind === null) return
     returnTo.current = null
-    barRef.current?.querySelector<HTMLButtonElement>(`button[data-op="${kind}"]`)?.focus({ preventScroll: true })
+    // The button that opened the picker, or the bar's own stop where that button is no longer offered (`contiguous()` has made the tensor contiguous).
+    const named = barRef.current?.querySelector<HTMLButtonElement>(`button[data-op="${kind}"]`)
+    const button = named !== null && named !== undefined && !named.disabled ? named : barRef.current?.querySelector<HTMLButtonElement>('button[data-roving][tabindex="0"]:not(:disabled)')
+    button?.focus({ preventScroll: true })
   })
 
   const apply = (op: ShiftOp) => {
@@ -250,7 +262,9 @@ function OpBar({ run, view, rings }: { run: ShiftRun; view: ShiftView; rings: Ri
                 className="es-shift-dock__op"
                 data-roving=""
                 data-op={kind}
-                tabIndex={at === bar.stop ? 0 : -1}
+                tabIndex={at === stop ? 0 : -1}
+                disabled={idle(kind)}
+                title={idle(kind) ? 'The tensor is contiguous already: there is nothing to copy.' : undefined}
                 aria-expanded={picks(kind) ? open === kind : undefined}
                 aria-controls={picks(kind) && open === kind ? pickerId : undefined}
                 onFocus={() => bar.note(at)}
@@ -324,7 +338,25 @@ function OpBar({ run, view, rings }: { run: ShiftRun; view: ShiftView; rings: Ri
 /* The grid's steppers                                                                                                */
 /* ------------------------------------------------------------------------------------------------------------------ */
 
-function Stepper({ name, face, value, min, max, onSet, ringMore }: { name: string; face: ReactNode; value: number; min: number; max: number; onSet: (value: number) => void; ringMore: Ring }) {
+function Stepper({
+  name,
+  face,
+  value,
+  min,
+  max,
+  onSet,
+  ringMore,
+  next = (at, step) => (step === 'more' ? at + 1 : at - 1),
+}: {
+  name: string
+  face: ReactNode
+  value: number
+  min: number
+  max: number
+  onSet: (value: number) => void
+  ringMore: Ring
+  next?: (value: number, step: 'less' | 'more') => number
+}) {
   // The first press ends the first run, and its ring goes from round the button: the button is drawn again, and focus stays on it, so
   // a key held on "one more" keeps counting.
   const group = useRef<HTMLDivElement>(null)
@@ -345,14 +377,14 @@ function Stepper({ name, face, value, min, max, onSet, ringMore }: { name: strin
       <span className="es-shift-dock__stepper-name" aria-hidden="true">
         {face}
       </span>
-      <button type="button" className="es-shift-dock__step" data-step="less" aria-label={`${name}: one less`} disabled={value <= min} onClick={() => set('less', value - 1)}>
+      <button type="button" className="es-shift-dock__step" data-step="less" aria-label={`${name}: one less`} disabled={value <= min} onClick={() => set('less', next(value, 'less'))}>
         <span aria-hidden="true" className="es-shift-dock__step-mark" data-sign="less" />
       </button>
       <output className="es-shift-dock__value font-numeric" aria-live="off">
         {value}
       </output>
       <Ringed on={ringMore}>
-        <button type="button" className="es-shift-dock__step" data-step="more" aria-label={`${name}: one more`} disabled={value >= max} onClick={() => set('more', value + 1)}>
+        <button type="button" className="es-shift-dock__step" data-step="more" aria-label={`${name}: one more`} disabled={value >= max} onClick={() => set('more', next(value, 'more'))}>
           <span aria-hidden="true" className="es-shift-dock__step-mark" data-sign="more" />
         </button>
       </Ringed>
@@ -385,6 +417,7 @@ function GridControls({ run, view, mode, rings }: { run: ShiftRun; view: ShiftVi
             value={grid.block[d] ?? 1}
             min={1}
             max={BLOCK_MAX}
+            next={(at, step) => nextBlock(at, step, 1, BLOCK_MAX)}
             onSet={(value) => run.dispatch({ t: 'block', dim: d, value })}
             ringMore={ringOf(rings, (action) => action.t === 'block' && action.dim === d)}
           />
@@ -411,7 +444,7 @@ function GridControls({ run, view, mode, rings }: { run: ShiftRun; view: ShiftVi
             Launch
           </Button>
         </Ringed>
-        <span className="es-shift-dock__note">{mode === 'graded' && !grid.readoutsShown ? 'A graded run shows the counts after Launch.' : 'BLOCK must be a power of two.'}</span>
+        <span className="es-shift-dock__note">{mode === 'graded' && !grid.readoutsShown ? 'A graded run shows the counts after Launch.' : 'Setting BLOCK sets the grid to cover the tensor; change the grid after.'}</span>
       </div>
     </div>
   )
@@ -477,7 +510,12 @@ export function Controls({ run, mode }: ControlsProps) {
   const ringed = JSON.stringify(run.intro.ring)
   useEffect(() => {
     const ring = body.current?.querySelector<HTMLElement>('.es-shift-dock__ring:not(.es-shift-dock__ring--spent, .es-shift-dock__ring--gone)')
-    if (ring !== null && ring !== undefined) seatInDock(ring)
+    if (ring === null || ring === undefined) return
+    // Where the steppers stand one under another (a phone under 24rem), BLOCK's last dimension is seated with the ringed first one, so its
+    // "one more" is whole in the dock while the first-move strip is held over the ringed one, and nothing need move under the hand.
+    const last = [...(body.current?.querySelectorAll<HTMLElement>('[data-stepper^="BLOCK along"]') ?? [])].at(-1)
+    if (last !== undefined && !last.contains(ring)) seatInDock(last)
+    seatInDock(ring)
   }, [ringed, guessing])
 
   // When the guess closes or a new target opens, focus goes to the bar's first control if the learner's focus was in the dock or nowhere. On

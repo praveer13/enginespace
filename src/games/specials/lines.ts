@@ -4,7 +4,7 @@
  * both registered (src/games/registry.ts); every other game of the roster is listed with what it teaches, says it is not published
  * yet, and is never a link to a page that is not there. A level's best attempt is worked out from the ledger's events the same way.
  */
-import type { GameEntry } from '@es/play'
+import type { GameRow } from '@es/play'
 import type { RosterEntry } from '@es/play/roster'
 import type { LedgerEvent } from '@es/ledger'
 import { attemptWord } from '@/progress/next'
@@ -45,10 +45,10 @@ export interface UnpublishedLine extends Line {
 export type GameLine = PublishedLine | UnpublishedLine
 
 /**
- * The roster, in the order of the course, with each game that is built carrying the levels and the words its registry record says, and
+ * The roster, in the order of the course, with each game that is built carrying the levels its row says (the roster's words, which a test holds to the registry's), and
  * each game that is not saying what the roster says.
  */
-export function gameLines(roster: readonly RosterEntry[], registered: (id: string) => GameEntry | undefined, playable: (id: string) => boolean): readonly GameLine[] {
+export function gameLines(roster: readonly RosterEntry[], registered: (id: string) => GameRow | undefined, playable: (id: string) => boolean): readonly GameLine[] {
   return roster.map((entry): GameLine => {
     const built = registered(entry.id)
     if (built !== undefined && playable(entry.id)) {
@@ -56,10 +56,10 @@ export function gameLines(roster: readonly RosterEntry[], registered: (id: strin
         published: true,
         id: built.id,
         title: built.title,
-        subtitle: built.subtitle,
+        subtitle: entry.subtitle,
         role: entry.role,
         modules: built.modules,
-        has3d: built.has3d,
+        has3d: entry.has3d,
         levels: built.levels.map((level) => ({
           id: level.id,
           title: level.title,

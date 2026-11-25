@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { GAMES } from '@es/play'
+import { ROWS } from '@es/play/rows'
 import { useMap } from '@/content/load-map'
 import { useIndex } from '@/content/load'
 import { calibrationRows } from '@/evidence/calibration'
@@ -10,6 +10,7 @@ import { activityRows, attemptCounts, skillCounts } from '@/evidence/rows'
 import { StorageTape } from '@/evidence/StorageTape'
 import { useEvidence } from '@/evidence/useEvidence'
 import { itemName, levelName, useProgress } from '@/progress/useProgress'
+import { readPlace } from '@/settings/bookmark'
 import './panels.css'
 
 /*
@@ -18,8 +19,8 @@ import './panels.css'
  * `useProgress`. Everything shown is derived here from the events and never stored; `EvidenceView` draws it.
  */
 
-/** A game's home module: the first its registry entry lists (packages/play/types.ts). */
-const homeModule = (game: string): string | undefined => GAMES.get(game)?.modules[0]
+/** A game's home module: the first its row lists (packages/play/types.ts). */
+const homeModule = (game: string): string | undefined => ROWS.get(game)?.modules[0]
 
 export function Component() {
   const evidence = useEvidence()
@@ -28,7 +29,7 @@ export function Component() {
   const mapValue = map.status === 'ready' ? map.value : null
   const { progress, next, last } = useProgress(mapValue)
   const counts = useMemo(() => countEvents(evidence.events, homeModule), [evidence.events])
-  const rows = useMemo(() => (mapValue === null ? null : activityRows(evidence.events, { lessons: mapValue.lessons, levelName, itemName })), [evidence.events, mapValue])
+  const rows = useMemo(() => (mapValue === null ? null : activityRows(evidence.events, { lessons: mapValue.lessons, levelName, itemName, bookmark: readPlace() })), [evidence.events, mapValue])
   const skills = useMemo(() => (progress === null ? null : skillCounts(progress.counts)), [progress])
   const attempts = useMemo(() => attemptCounts(evidence.events), [evidence.events])
   const calibration = useMemo(() => calibrationRows(evidence.events), [evidence.events])

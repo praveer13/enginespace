@@ -15,15 +15,17 @@ export const PROVE_COPY = {
     'The readouts stay hidden until your answer is in. The drawing and State as a table are there as usual.',
     'No undo and no clock: take as long as you need.',
     'A run that misses can be played again at once on fresh numbers, recorded as practice. The next attempt that counts opens 24 hours after the last one that counted.',
-    'An attempt counts from the moment you press Start: leaving the run before its end, or reloading the page, counts as a miss.',
+    'An attempt counts from the moment you press Start: leaving the run before its end, or reloading the page, counts as a miss, and your record shows it.',
   ],
   reading: 'Reading your record of past attempts…',
-  counts: 'This attempt counts: a pass is recorded as proved.',
+  counts: 'This attempt counts, pass or miss. A pass is recorded as proved; a miss uses up the day.',
   waitPassed: (when: string) => `You have proved this level. The next attempt that counts opens ${when}; a run before then is recorded as practice.`,
   waitMissed: (when: string) =>
     `Your last attempt that counted did not pass. The next one that counts opens ${when}; a run before then is recorded as practice.`,
   waitLeft: (when: string) =>
     `Your last attempt that counted was left before its end, so it counts as a miss. The next one that counts opens ${when}; a run before then is recorded as practice.`,
+  waitElsewhere: (when: string) =>
+    `An attempt that counts is open in another tab. A run here is recorded as practice; once that attempt ends or is left, the next one that counts opens ${when}.`,
   attest: 'My coding agent and any AI chat are closed.',
   start: 'Start the Prove run',
   back: 'Back to practice',

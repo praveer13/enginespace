@@ -53,7 +53,7 @@ Prove: Tensor views' Fewest copies, in Prove mode, on three new targets with you
 
 ## The part on your laptop
 
-The laptop part is a lab: Qwen3-0.6B's forward pass, written in plain PyTorch and run on your laptop's CPU, first without a KV cache and then with one. The lab runs on your laptop's CPU, outside the browser, and needs no GPU. The course's grader runs Hugging Face transformers on the same CPU, in `float32`, and compares your logits with its own. The bar is a largest difference of 0.001 [estimated] in any logit.
+The laptop part is a lab: Qwen3-0.6B's forward pass, written in plain PyTorch and run on your laptop's CPU, first without a KV cache and then with one. The lab runs on your laptop's CPU, outside the browser, and needs no GPU. The course's grader runs Hugging Face transformers on the same CPU, in `float32`, and compares your logits with its own. The bar is a largest difference of 0.001 [estimated] in any logit. How far below it a correct forward pass lands on the pinned weights has not been measured yet [unverified].
 
 The lab has three stages, and each is graded by the checks it names:
 
@@ -64,6 +64,8 @@ The lab has three stages, and each is graded by the checks it names:
 The lab loads one model, Qwen3-0.6B at the revision `c1899de2`. Its model card names the licence. {{claim:qwen3.revision.licence}} Its configuration names the dtype it was saved in, and the lab runs in `float32`, so it converts what it loads. {{claim:qwen3.config.stored-dtype}} The hub lists the checkpoint's size and its hash, and the course has not fetched the file, so neither is checked. {{claim:qwen3.weights.bytes}} {{claim:qwen3.weights.sha256}}
 
 Nothing on this page is a run of your machine. The grader runs only on your laptop, and the course has run none of the three stages on the pinned weights, so no logit, difference or time on this page was measured. The lab's own page says where each stage stands, in the same words.
+
+The Tests of the third and fifth lessons ask about the first and second lessons for now; their own questions are being written.
 
 Credit follows the same line. The module is browser-complete when the lessons' Tests and the graded levels of Tensor views are credited. It is complete when the lab's receipts are credited as well, and a Prove run with the agent closed is on record.
 

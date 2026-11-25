@@ -10,7 +10,9 @@ import { PrimaryButton } from '@/design/components/PrimaryButton'
 import { Readout } from '@/design/components/Readout'
 import { TextLink } from '@/design/components/TextLink'
 import { formatReadout } from '@/design/format'
-import { useBest } from '@/games/kit/best'
+import { ranToEnd } from '@/evidence/ran'
+import { useEvidence } from '@/evidence/useEvidence'
+import { bestOf } from '@/games/kit/best'
 import { Debrief as Result } from '@/games/kit/Debrief'
 import { LessonRunContext } from '@/games/kit/lessonRun'
 import { verdictOf } from '@/games/kit/verdict'
@@ -290,14 +292,22 @@ function Facts({ run, outcome }: { run: VerifierRun; outcome: VerifierOutcome })
   }
 }
 
-/** The learner's best on this level, from the ledger's runs of it. Rendered only on a page that has a ledger. */
+/**
+ * The learner's best on this level, from the ledger's runs of it, with its unit and whether a run has passed: a score is out of 1, and a
+ * miss can score 0.99 on a level that passes only at exactly 0, so the number alone would read as a near pass. Rendered only on a page that
+ * has a ledger.
+ */
 function Best({ level }: { level: string }) {
-  const best = useBest('verifier', level)
+  const { ready, events } = useEvidence()
+  if (!ready) return null
+  const best = bestOf(events, 'verifier', level)
   if (best === null) return null
+  const passed = events.some((event) => event.kind === 'play' && event.ref === `play:verifier/${level}` && event.ok === true && ranToEnd(event))
   return (
     <>
       {' '}
-      Your best on this level: <span className="font-numeric">{best.score.toFixed(2)}</span> ({num(best.runs)} {best.runs === 1 ? 'run' : 'runs'} kept).
+      Your best score on this level: <span className="font-numeric">{best.score.toFixed(2)}</span> out of 1, from {num(best.runs)} {best.runs === 1 ? 'run' : 'runs'};{' '}
+      {passed ? 'a run of it has passed.' : 'no run has passed yet.'}
     </>
   )
 }
@@ -339,9 +349,12 @@ export function Debrief({ run, outcome, next, onNext, embedded = false, onGraded
           <Button variant="quiet" aria-describedby={againId} onClick={() => (run.mode === 'graded' ? newNumbers() : run.restart())}>
             Run again
           </Button>
-          <Button variant="quiet" onClick={newNumbers}>
-            New numbers
-          </Button>
+          {/* In a graded or Prove run Run again already draws fresh numbers, so a second button that does the same is left out. */}
+          {run.mode === 'graded' ? null : (
+            <Button variant="quiet" onClick={newNumbers}>
+              New numbers
+            </Button>
+          )}
           {onGraded === null ? null : (
             <Button variant="quiet" onClick={onGraded}>
               Start a graded run
@@ -352,7 +365,7 @@ export function Debrief({ run, outcome, next, onNext, embedded = false, onGraded
     >
       <div className="es-vf-debrief__body" data-verifier-debrief="">
         <p id={againId} data-run-again="">
-          <strong>Run again:</strong> the level asks the same question on {run.mode === 'graded' ? 'fresh numbers' : 'the same numbers'}; New numbers draws a fresh pair of distributions.
+          <strong>Run again:</strong> the level asks the same question on {run.mode === 'graded' ? 'fresh numbers.' : 'the same numbers; New numbers draws a fresh pair of distributions.'}
           {run.ledger ? <Best level={view.level} /> : null}
         </p>
         <p className="es-vf-debrief__stamp">The figures below are of a made-up world.</p>

@@ -1,4 +1,4 @@
-import { GAMES } from '@es/play'
+import { ROWS } from '@es/play/rows'
 import { TagLegend, UNVERIFIED_MEANS } from '@/design/components/Stamp'
 import { TextLink } from '@/design/components/TextLink'
 import { WorldCard as FloorCard } from '@/games/engine-floor/Card'
@@ -64,7 +64,7 @@ export function Component() {
           <div className="es-about__cards">
             {MODELS.map(({ game, card }) => (
               <article key={game} className="es-about__card" aria-labelledby={`ab-card-${game}`}>
-                <h3 id={`ab-card-${game}`}>{GAMES.get(game)?.title ?? game}</h3>
+                <h3 id={`ab-card-${game}`}>{ROWS.get(game)?.title ?? game}</h3>
                 {card ?? <p>Not published yet.</p>}
               </article>
             ))}

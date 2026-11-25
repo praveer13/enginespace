@@ -21,6 +21,7 @@ import { momentAt, type Named } from './moments'
 import { nextTouch, publishRun, retireRun, useRunPlace, type LiveRun } from './RunContext'
 import { useGameInput } from './useGameInput'
 import { useRun, type RunCore, type RunOutcome } from './useRun'
+import { exposeSeed, writesSeed } from './seed-hook'
 import { usePhone } from './usePhone'
 import { ViewSwitch, type GameView } from './ViewSwitch'
 import './frame.css'
@@ -102,6 +103,8 @@ export interface FrameProps<Level, State, Action extends GameAction, View, Score
   level: string
   levelTitle: string
   seed: Seed
+  /** False leaves `data-seed` out of the page in graded and Prove runs; a test build reads the seed through `window.__esSeed`. The built games keep it. */
+  seedInPage?: boolean
   mode: GameMode
   /** The content revision, which the run record carries (A§4.2). */
   rev?: string
@@ -204,6 +207,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
   // not come, or a ledger that does not answer, must not leave a phone's dock empty, so after a moment the controls show as they would without the strip.
   const [stripLate, setStripLate] = useState(false)
   const stripAwaited = intro !== null
+  useEffect(() => (props.seedInPage === false ? exposeSeed(() => seed) : undefined), [props.seedInPage, seed])
   useEffect(() => {
     if (!stripAwaited) return
     const timer = window.setTimeout(() => setStripLate(true), 1500)
@@ -366,7 +370,10 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
     const was = hadIntro.current
     hadIntro.current = intro !== null
     if (!was || intro !== null || !focusIsLost()) return
-    const first = container.current?.querySelector<HTMLElement>('[data-dock-main] :is(button, input):not(:disabled)')
+    // The paired guess puts its "How sure are you?" plates above or beside the number: the number is the decision, so focus goes to it, and the
+    // plates (optional, never a gate) are one Tab away.
+    const controls = [...(container.current?.querySelectorAll<HTMLElement>('[data-dock-main] :is(button, input):not(:disabled)') ?? [])]
+    const first = controls.find((control) => control.closest('.es-guess__sure') === null) ?? controls[0]
     ;(first ?? container.current)?.focus({ preventScroll: true })
   })
   // A swap of views can leave focus on a node that is gone, and a restart replaces the button that was pressed: focus goes back to the game.
@@ -448,6 +455,19 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
   const prove = useContext(ProveContext)
   const proving = prove !== null && mode === 'graded' && prove.level === level
   const modeWord = proving ? 'Prove run' : mode === 'practice' ? 'practice' : 'graded'
+
+  // A graded run left after a move and before its end is written as a run left (left.ts, fetched only here); a Prove run writes its own.
+  const turns = useRef(0)
+  useEffect(() => {
+    turns.current = run.turns
+  })
+  const watching = ledger && mode === 'graded' && !proving
+  useEffect(() => {
+    if (!watching) return
+    const watch = import('./left').then((left) => left.guardLeft(() => turns.current > 0 && !ended.current, { game: game.id, level, seed, rev }))
+    return () => void watch.then((stop) => stop())
+  }, [watching, game.id, level, seed, rev])
+
   const goal = props.goal(api)
   const [goalOpen, setGoalOpen] = useState(false)
   // The Keyboard list's button: in the title strip on a wide screen, and inside How to play on a phone (REDESIGN §3.5).
@@ -478,7 +498,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
       aria-labelledby={headingId}
       data-game={game.id}
       data-level={level}
-      data-seed={seed}
+      data-seed={writesSeed(props.seedInPage, mode) ? seed : undefined}
       data-mode={mode}
       data-view={view}
       data-phase={outcome === null ? 'play' : 'result'}
@@ -656,7 +676,7 @@ function FrameRunView<L, S, A extends GameAction, V, C, K>(props: RunViewProps<L
           )}
         </div>
         <div className="es-frame__mode">
-          {proving ? prove.foot : props.modeSwitch}
+          {proving ? prove.foot(outcome === null ? null : outcome.record) : props.modeSwitch}
           {!proving && ledger && !embedded && game.prove === level ? (
             <Link className="es-button" data-variant="plate" data-size="sm" to={`/play/${game.id}?level=${level}&mode=prove`} data-prove-entry="">
               Prove it with your agent closed

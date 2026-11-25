@@ -259,6 +259,7 @@ export function Swimlane({ view, size = 'frame', tools = null }: SwimlaneProps) 
     const to = right ? x + Math.min(target?.room ?? 120, 160) : x + 24
     if (from < node.scrollLeft + g.gutter || to > node.scrollLeft + node.clientWidth) node.scrollLeft = Math.max(0, right ? x - g.gutter - 24 : to - node.clientWidth)
     if (head.current !== null) head.current.style.transform = `translateX(${-node.scrollLeft}px)`
+    node.style.setProperty('--es-lanes-x', `${node.scrollLeft}px`)
   }, [keepRow, lanes, g.row, g.head, g.gutter, scroller])
 
   const rowStop = Math.max(0, Math.min(focusAt ?? cursorRow, view.laid.length - 1))
@@ -325,6 +326,8 @@ export function Swimlane({ view, size = 'frame', tools = null }: SwimlaneProps) 
         tabIndex={0}
         onScroll={(event) => {
           if (head.current !== null) head.current.style.transform = `translateX(${-event.currentTarget.scrollLeft}px)`
+          // The "now" word stands in the gutter however far the box is scrolled sideways, as the column heads do.
+          event.currentTarget.style.setProperty('--es-lanes-x', `${event.currentTarget.scrollLeft}px`)
         }}
       >
         <div className="es-lanes__sheet-box" style={{ width: lanes.width, height: lanes.height - g.head }}>

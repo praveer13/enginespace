@@ -292,6 +292,14 @@ describe('scores outside [0, 1]', () => {
     expect(accepts({ ...copy(EXAMPLES.receipt), provenance: 'invented' })).toBe(false)
   })
 
+  test('a play event may say the run was left before its end, with the instant it began (schema version 3), and nothing else of the kind', () => {
+    const play = copy(EXAMPLES.play) as unknown as { data: Record<string, unknown> }
+    expect(accepts({ ...play, data: { ...play.data, left: '2026-11-04T09:30:00.000Z' } })).toBe(true)
+    // An older event, with no `left`, is read as it is: a ledger of schema version 2 needs no migration.
+    expect(accepts(play)).toBe(true)
+    for (const left of [true, 1, '2026-11-04', '', null]) expect(accepts({ ...play, data: { ...play.data, left } })).toBe(false)
+  })
+
   test('a score of 1.0001 says where it went wrong', () => {
     expect(reason({ ...EXAMPLES.item, score: 1.0001 })).toContain('score')
   })

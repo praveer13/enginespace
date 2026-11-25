@@ -170,9 +170,9 @@ The prediction this lesson makes about a real engine is a price: what graphs cos
 
 This lesson tests three skills: saying which fields of a batch's descriptor choose the graph that replays it, in the pinned runner and in the legacy one, and what runs when none matches (`tr2.dispatch-keys`), saying which mode a workload and a backend need and why the mode requested is not always the mode that runs (`tr2.graph-modes`), and saying why capture takes memory before the KV cache is sized (`tr2.graph-memory`). The questions are three items on fresh seeds. Two give a batch and a configuration and ask which graph replays, and one gives a card and the graphs' estimate and asks for the KV cache that is left. The graded `close` level then asks for all of it at once, on a fresh seed with the agent closed. It needs, on three fresh seeds, zero dependency violations and useful tokens per GPU-ms at least 97% [estimated] of the reference configuration's.
 
-> **Practice.** Items from the generator family `tr2.dispatch-key`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr2.dispatch-key`, level `2`, `2` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
-> **Practice.** Items from the generator family `tr2.kv-after-graphs`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
+> **Test.** Items from the generator family `tr2.kv-after-graphs`, level `2`, `1` per attempt, drawn on fresh seeds in the lesson. Ask the learner to answer before you discuss one.
 
 > **Play.** The game `loop`, level `close`, in `graded` mode. It runs in the lesson. Ask the learner to play it before you discuss it: its reference run stays hidden until the debrief.
 

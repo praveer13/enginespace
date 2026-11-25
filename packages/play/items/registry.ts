@@ -21,6 +21,14 @@ import { paddingWaste } from './families/tr2/padding-waste'
 import { preemptVictim } from './families/tr2/preempt-victim'
 import { runnerFallback } from './families/tr2/runner-fallback'
 import { stepOrder } from './families/tr2/step-order'
+import { captureWindow } from './families/tr3/capture-window'
+import { flatCurve } from './families/tr3/flat-curve'
+import { floor } from './families/tr3/floor'
+import { gapCause } from './families/tr3/gap-cause'
+import { insideAGraph } from './families/tr3/inside-a-graph'
+import { launchAndKernel } from './families/tr3/launch-and-kernel'
+import { providerPreflight } from './families/tr3/provider-preflight'
+import { whichCategory } from './families/tr3/which-category'
 import { blocksHeld } from './families/tr5a/blocks-held'
 import { hitLength } from './families/tr5a/hit-length'
 import { pagesForAdapter } from './families/tr5a/pages-for-adapter'
@@ -55,6 +63,14 @@ export const FAMILIES: readonly Gen[] = [
   preemptVictim,
   runnerFallback,
   stepOrder,
+  captureWindow,
+  flatCurve,
+  floor,
+  gapCause,
+  insideAGraph,
+  launchAndKernel,
+  providerPreflight,
+  whichCategory,
   blocksHeld,
   hitLength,
   pagesForAdapter,
