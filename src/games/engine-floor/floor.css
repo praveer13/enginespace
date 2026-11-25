@@ -242,6 +242,8 @@
   z-index: 2;
   left: 2px;
   translate: 0 -35%;
+  /* Kept in the gutter when the box is scrolled sideways (View2D.tsx sets the scroll as --es-lanes-x). */
+  transform: translateX(var(--es-lanes-x, 0px));
   padding-right: 2px;
   background: var(--es-paper);
   font-size: var(--es-size-micro);
@@ -1186,6 +1188,19 @@
   background: var(--es-paper);
 }
 
+/* A learner who scrolls the actions into view keeps the whole 44 px target of each control on the screen: the scroll leaves the margin. */
+.es-floor-actions__row button {
+  scroll-margin-block: var(--es-space-2);
+}
+
+/* On a phone the two actions are pressed with a finger, so each keeps the 44 px target the parts rules ask of a control (DESIGN); a short
+   phone's foot no longer cuts it, since the target is the box itself. */
+@media (max-width: 63.999rem) {
+  .es-floor-actions__row .es-button[data-size='sm'] {
+    min-height: 2.75rem;
+  }
+}
+
 /* In a lesson the dock follows the page where it has no height of its own (a narrow column, a short phone): there the actions follow the
    list, not the screen's foot. */
 .es-frame[data-placement='embed'] .es-floor-actions {
@@ -1277,6 +1292,13 @@
 
 .es-floor-strip__stamp {
   flex: none;
+}
+
+/* The stamp's 44 px touch box gives its extra height back to the line (parts.css, a stamp's trigger), which leaves it 12 px under the
+   line's foot; at the readout's foot that puts the focus ring (3 px at a 2 px offset) past the screen. The bottom margin goes, so the touch
+   box ends on the strip's own foot and the ring is inside it. */
+.es-floor-strip__stamp.es-pop[data-variant='stamp'] > .es-pop__trigger {
+  margin-block-end: 2px;
 }
 
 /*
@@ -1563,6 +1585,26 @@
   }
 }
 
+/* On a phone's pinned dock the number and Commit come before the sentences that help to guess it (how to count, why there is no skip), so
+   the decision is whole over the readout at every height that pins the dock; the choices say the hint as their description. */
+@media (max-width: 63.999rem) and (min-height: 700px) {
+  .es-frame[data-placement='page'][data-game='engine-floor'] :is(.es-floor-predict__hint, .es-floor-predict__why) {
+    order: 1;
+  }
+}
+
+/* Only the phones whose dock leaves Commit's foot a few pixels under the screen (700 to 820 px tall) take the tighter gaps; a taller or
+   wider phone keeps the desk's rhythm. */
+@media (max-width: 63.999rem) and (min-height: 700px) and (max-height: 820px) {
+  .es-frame[data-placement='page'][data-game='engine-floor'] .es-floor-predict {
+    gap: var(--es-space-1);
+  }
+
+  .es-frame[data-placement='page'][data-game='engine-floor'] .es-floor-predict__choices {
+    gap: var(--es-space-1);
+  }
+}
+
 @media (max-width: 63.999rem) and (min-height: 700px) {
   .es-frame[data-placement='page'][data-game='engine-floor'] .es-frame__dock-main {
     padding-block: var(--es-space-1);
@@ -1575,7 +1617,7 @@
   /* The dock has one height while the path is laid, the list's box taking what the rest leaves (three tiles and a little more); a stopped
      run's note scrolls under the actions, and a named moment stands over the drawing's foot, just above the dock, so that neither moves
      what the dock holds. */
-  .es-frame:is([data-placement='page'], [data-placement='embed'])[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__dock {
+  .es-frame:is([data-placement='page'], [data-placement='embed'])[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__dock {
     height: max(33svh, 21rem);
     max-height: none;
   }
@@ -1585,7 +1627,9 @@
   .es-frame:is([data-placement='page'], [data-placement='embed'])[data-game='engine-floor'] .es-frame__dock-main > .es-intro[data-intro='point'] {
     position: absolute;
     right: var(--es-space-2);
-    bottom: calc(100% + var(--es-space-1));
+    /* Over the drawing's empty foot and clear of its legend: the legend's two rows and the room round them stand between the dock's top and
+       the card's foot. */
+    bottom: calc(100% + 3.75rem);
     left: var(--es-space-2);
     z-index: 3;
     margin: 0;
@@ -1769,28 +1813,37 @@
    the legend gains a word for each mechanism laid, so the dock under the drawing does not move as the path grows. Nothing in the frame
    changes height then, so the browser is not asked to keep a part of it in place by scrolling the page. */
 @media (max-width: 63.999rem) {
-  .es-frame[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) {
+  .es-frame[data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) {
     overflow-anchor: none;
   }
 
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__diagram {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__diagram {
     height: clamp(16rem, 32svh + 5rem, 27rem);
   }
 
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__view {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__view {
     flex: 1 1 0;
     min-height: 0;
     max-height: none;
     overflow: hidden;
   }
 
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) :is(.es-frame__surface, .es-lanes[data-floor-lanes]) {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) :is(.es-frame__surface, .es-lanes[data-floor-lanes]) {
     height: 100%;
   }
 }
 
 @media (max-width: 63.999rem) and (min-height: 700px) {
-  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock[data-step='lay']) .es-frame__diagram {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__diagram {
     height: max(10rem, calc(67svh - 23rem));
+  }
+}
+
+/* The legend over the drawing gains a second row as the path grows; a floor under the diagram keeps the lane box a few rows tall at 800
+   and 812 px tall phones, where the 10rem floor left it 6 px. It stops at 820: a taller phone has the room, and the floor there put the
+   drawing's foot under the dock's top, where the coach card clipped the legend's second row. */
+@media (max-width: 63.999rem) and (min-height: 700px) and (max-height: 820px) {
+  .es-frame[data-placement='page'][data-game='engine-floor'][data-phase='play']:has(.es-floor-dock:is([data-step='lay'], [data-step='predict'])) .es-frame__diagram {
+    height: max(15rem, calc(67svh - 23rem));
   }
 }

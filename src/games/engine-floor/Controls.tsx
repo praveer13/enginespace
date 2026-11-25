@@ -104,6 +104,7 @@ function ScenarioCard({ view, graded }: { view: FloorView; graded: ReactNode }) 
 function Prediction({ controls, shown }: { controls: FloorControls; shown: boolean }) {
   const { view, choices, pick, setPick, commit } = controls
   const question = useId()
+  const hint = useId()
   // In a lesson whose guess asks this question, the lesson's words stand in, and how sure the learner is goes with it.
   const lesson = useContext(LessonGuessContext)
   // At a desk the question, its six numbers and Commit come into view together in the dock, which may have to scroll to hold them under the
@@ -127,8 +128,10 @@ function Prediction({ controls, shown }: { controls: FloorControls; shown: boole
       <h3 id={question} className="es-floor-predict__ask">
         {lesson?.ask ?? FLOOR_QUESTION}
       </h3>
-      <p className="es-floor-predict__hint">{PREDICT_HINT}</p>
-      <div role="group" aria-labelledby={question} className="es-floor-predict__choices">
+      <p id={hint} className="es-floor-predict__hint">
+        {PREDICT_HINT}
+      </p>
+      <div role="group" aria-labelledby={question} aria-describedby={hint} className="es-floor-predict__choices">
         {choices.map((n) => (
           <Button key={n} variant={pick === n ? 'ink' : 'plate'} aria-pressed={pick === n} aria-label={`${n} ${n === 1 ? 'boundary' : 'boundaries'}`} onClick={() => setPick(n)}>
             {n}
