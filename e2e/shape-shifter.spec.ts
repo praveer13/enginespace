@@ -53,7 +53,8 @@ async function tap(page: Page, action: ShiftAction) {
     await page.locator(`[data-shift-bar] [data-op="${action.op.op}"]`).click()
     if (action.op.op !== 'contiguous') await page.locator(`[data-shift-picker] [data-choice="${face(action.op)}"]`).click()
   } else if (action.t === 'block') {
-    for (let v = 1; v < action.value; v++) await page.getByRole('button', { name: `BLOCK along dimension ${action.dim}: one more` }).click()
+    // BLOCK steps through the powers of two, the values a launch takes.
+    for (let v = 1; v < action.value; v *= 2) await page.getByRole('button', { name: `BLOCK along dimension ${action.dim}: one more` }).click()
   } else if (action.t === 'launch') await page.getByRole('button', { name: 'Launch', exact: true }).click()
 }
 
@@ -320,7 +321,7 @@ test.describe('the first move pressed again', () => {
     { width: 360, height: 800 },
     { width: 360, height: 640 },
   ]) {
-    test(`at ${viewport.width} x ${viewport.height} the ringed BLOCK "one more" stays where it was pressed, and four presses at that spot count four`, async ({ page }) => {
+    test(`at ${viewport.width} x ${viewport.height} the ringed BLOCK "one more" stays where it was pressed, and four presses at that spot count four steps of BLOCK`, async ({ page }) => {
       await page.setViewportSize(viewport)
       await openLevel(page, 'grid', 'fresh')
       const intro = game(page).locator('.es-intro').first()
@@ -342,7 +343,7 @@ test.describe('the first move pressed again', () => {
         const now = await more.boundingBox()
         expect([press, Math.round(now?.x ?? -1), Math.round(now?.y ?? -1)]).toEqual([press, Math.round(box.x), Math.round(box.y)])
       }
-      await expect(page.locator('[data-stepper="BLOCK along dimension 0"] output')).toHaveText('5')
+      await expect(page.locator('[data-stepper="BLOCK along dimension 0"] output')).toHaveText('16')
     })
   }
 })
@@ -619,4 +620,137 @@ test.describe('a 1-D target is one row', () => {
       expect(await page.evaluate(() => window.scrollX)).toBe(0)
     })
   }
+})
+
+test.describe('what the words and the controls mean (W2b-T80)', () => {
+  test('`contiguous()` is offered once the tensor is not contiguous, and not before; the readout and the target say what they count', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openLevel(page, 'views')
+    await guess(page, 24)
+    const bar = page.locator('[data-shift-bar]')
+    // The start is contiguous: its `contiguous()` is there, dashed, and cannot be pressed. The bar is as wide and as high as it will be.
+    await expect(bar.locator('[data-op="contiguous"]')).toBeDisabled()
+    await expect(bar.locator('[data-op]')).toHaveCount(4)
+    const rows = () => bar.evaluate((element) => Math.round(element.getBoundingClientRect().height))
+    const high = await rows()
+    await tap(page, { t: 'op', op: { op: 'transpose', a: 0, b: 1 } })
+    await expect(bar.locator('[data-op="contiguous"]')).toBeEnabled()
+    expect(await rows()).toBe(high)
+    // After a transpose every element already reads in the order the target asks for, and the line says "in this order", not where they sit.
+    await expect(page.locator('[data-readout-id="in-place"] dt')).toHaveText('in order with the target')
+    await expect(page.locator('[data-readout-id="in-place"] dd')).toContainText('24 of 24')
+    await expect(page.locator('[data-shift-inplace]')).toHaveText('24 of 24 in order')
+    // Pressing `contiguous()` leaves it idle, where it was, and focus is still on the bar, on a button that can be pressed.
+    await bar.locator('[data-op="contiguous"]').click()
+    await expect(bar.locator('[data-op="contiguous"]')).toBeDisabled()
+    expect(await rows()).toBe(high)
+    await expect.poll(() => page.evaluate(() => (document.activeElement?.closest('[data-shift-bar]') ?? null) !== null && !(document.activeElement as HTMLButtonElement).disabled)).toBe(true)
+  })
+
+  test('a copy beyond the reference\'s says so when it is made, and the line holds no count', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openLevel(page, 'views')
+    await guess(page, 24)
+    for (const action of [
+      { t: 'op', op: { op: 'transpose', a: 0, b: 1 } },
+      { t: 'op', op: { op: 'contiguous' } },
+      { t: 'op', op: { op: 'transpose', a: 0, b: 1 } },
+    ] as ShiftAction[])
+      await tap(page, action)
+    await expect(game(page).locator('[data-moment="extra-copy-0"]')).toHaveCount(0)
+    await tap(page, { t: 'op', op: { op: 'contiguous' } })
+    const line = game(page).locator('[data-moment="extra-copy-0"]')
+    await expect(line).toBeVisible()
+    await expect(line).toContainText('more copies than the reference makes on this target')
+    await expect(line).not.toContainText(/\d/)
+  })
+
+  test('BLOCK steps through the powers of two, and no line says BLOCK must be a power of two beside a valid one', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openLevel(page, 'grid')
+    await guess(page, 80)
+    await page.waitForTimeout(1000)
+    const value = page.locator('[data-stepper="BLOCK along dimension 1"] output')
+    const more = page.getByRole('button', { name: 'BLOCK along dimension 1: one more' })
+    const less = page.getByRole('button', { name: 'BLOCK along dimension 1: one less' })
+    const seen: string[] = []
+    for (let press = 0; press < 5; press++) {
+      await more.click()
+      seen.push((await value.textContent()) ?? '')
+    }
+    expect(seen).toEqual(['2', '4', '8', '16', '32'])
+    await expect(more).toBeDisabled()
+    await less.click()
+    await expect(value).toHaveText('16')
+    await expect(page.locator('[data-shift-steppers]')).not.toContainText('BLOCK must be a power of two')
+  })
+
+  test('the level menu and Next level add a step of history: Back and Forward bring the level they left, and a reload stays on the level', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openLevel(page, 'views')
+    const level = () => game(page).getAttribute('data-level')
+    const url = () => new URL(page.url()).searchParams.get('level')
+    await page.getByLabel('Level').selectOption('stride-zero')
+    await expect.poll(url).toBe('stride-zero')
+    await expect.poll(level).toBe('stride-zero')
+    await page.goBack()
+    await expect.poll(url).toBe('views')
+    await expect.poll(level).toBe('views')
+    await page.goForward()
+    await expect.poll(url).toBe('stride-zero')
+    await expect.poll(level).toBe('stride-zero')
+    await page.reload({ waitUntil: 'networkidle' })
+    await expect(game(page)).toBeVisible()
+    expect(await level()).toBe('stride-zero')
+    // Next level at a result is a step of its own, in the address as well as on the page, and Back returns to the level that ended.
+    await openLevel(page, 'views')
+    await guess(page, 24)
+    for (const action of ghostActions(buildLevel('views', 30))) await tap(page, action)
+    await expect(verdict(page)).toHaveText('Finished (practice)')
+    await page.getByRole('button', { name: /^Next level/ }).click()
+    await expect.poll(url).toBe('stride-zero')
+    await expect.poll(level).toBe('stride-zero')
+    await page.goBack()
+    await expect.poll(url).toBe('views')
+    await expect.poll(level).toBe('views')
+    await page.goForward()
+    await expect.poll(level).toBe('stride-zero')
+    await page.reload({ waitUntil: 'networkidle' })
+    await expect(game(page)).toBeVisible()
+    expect(await level()).toBe('stride-zero')
+  })
+
+  test('a double click on the last choice keeps focus on the result, and not on the whole game', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openLevel(page, 'views')
+    await guess(page, 24)
+    await tap(page, { t: 'op', op: { op: 'transpose', a: 0, b: 1 } })
+    await page.locator('[data-shift-bar] [data-op="reshape"]').click()
+    await page.locator('[data-shift-picker] [data-choice="[24]"]').dblclick()
+    await expect(verdict(page)).toHaveText('Finished (practice)')
+    await page.waitForTimeout(400)
+    const held = await page.evaluate(() => {
+      const here = document.activeElement
+      return { inResult: here?.closest('[data-result]') !== null && here?.closest('[data-result]') !== undefined, whole: here?.matches('section[data-game]') ?? false }
+    })
+    expect(held).toEqual({ inResult: true, whole: false })
+  })
+
+  test('a practice `grid` has no New numbers (it has one tensor), and a practice view level has', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 })
+    await openLevel(page, 'grid')
+    await guess(page, 80)
+    for (const action of ghostActions(buildLevel('grid', 0))) await tap(page, action)
+    await expect(verdict(page)).toHaveText('Finished (practice)')
+    await expect(page.getByRole('button', { name: 'Run again' })).toBeVisible()
+    // Neither the result's nor the foot's.
+    await expect(page.getByRole('button', { name: 'New numbers' })).toHaveCount(0)
+    // Its goal line does not hold the count its guess asks for, and the debrief sets a sum against a sum.
+    await expect(game(page).locator('.es-goal')).not.toContainText('80 lanes')
+    await openLevel(page, 'views')
+    await guess(page, 24)
+    for (const action of ghostActions(buildLevel('views', 30))) await tap(page, action)
+    await expect(verdict(page)).toHaveText('Finished (practice)')
+    await expect(page.locator('[data-result]').getByRole('button', { name: 'New numbers' })).toBeVisible()
+  })
 })

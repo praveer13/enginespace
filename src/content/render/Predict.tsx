@@ -431,7 +431,7 @@ function RevealView({ block, committed, revealed, headingRef }: RevealViewProps)
             </p>
           )}
           <p className="es-guess__run">
-            Read from your run of {rosterEntry(run.game)?.title ?? run.game}, on seed {run.seed.toString(16).toUpperCase().padStart(8, '0')}.
+            Read from your run of {rosterEntry(run.game)?.title ?? run.game}.
           </p>
         </>
       )}

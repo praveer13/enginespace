@@ -44,6 +44,16 @@ function controlOf(target: EventTarget | null): string {
   return `${element.tagName}|${element.getAttribute('aria-label') ?? ''}|${(element.textContent ?? '').trim()}`
 }
 
+/**
+ * Whether a press is the press before it again, moments later at the same spot, on a control that came up there or on none: a double click
+ * on the last choice of a run, whose second press lands on the result. The browser's own answer to such a press, moving focus to the nearest
+ * thing that can have it (the whole game), is wrong: focus stays on the result. Pure.
+ */
+export function pressesAgain(before: Press | null, now: Press): boolean {
+  if (before === null || (now.control !== '' && now.control === before.control)) return false
+  return now.t - before.t <= SAME_TIME && Math.hypot(now.x - before.x, now.y - before.y) <= SAME_SPOT
+}
+
 /** Ignores stray presses inside `root` (see above). Returns the undo. */
 export function guardPresses(root: HTMLElement): () => void {
   let before: Press | null = null
@@ -51,6 +61,11 @@ export function guardPresses(root: HTMLElement): () => void {
   const down = (event: PointerEvent) => {
     before = now
     now = { x: event.clientX, y: event.clientY, t: event.timeStamp, control: controlOf(event.target) }
+  }
+  // The second press of a double click lands on what the first one brought up. It does not take focus from where the result put it.
+  const mouse = (event: MouseEvent) => {
+    if (now === null || !pressesAgain(before, { ...now, control: controlOf(event.target) })) return
+    event.preventDefault()
   }
   const click = (event: MouseEvent) => {
     // A key's click has no pointer (detail 0), and is never a stray.
@@ -60,9 +75,11 @@ export function guardPresses(root: HTMLElement): () => void {
     event.stopPropagation()
   }
   root.addEventListener('pointerdown', down, true)
+  root.addEventListener('mousedown', mouse, true)
   root.addEventListener('click', click, true)
   return () => {
     root.removeEventListener('pointerdown', down, true)
+    root.removeEventListener('mousedown', mouse, true)
     root.removeEventListener('click', click, true)
   }
 }

@@ -63,7 +63,7 @@ const COPIES: Readonly<Record<string, Readonly<Record<string, LevelWords>>>> = {
  * the reference's copies, or its masked lanes, and cannot beat them, so the line states the reference's own count (GAMES.md §4.3).
  */
 const NUMBER_STATED: Readonly<Record<string, RegExp>> = {
-  'shape-shifter': /^The reference (does it with \d+ cop(y|ies)|leaves \d+ lanes masked)\.$/,
+  'shape-shifter': /^(The reference does it with \d+ cop(y|ies)\.|Match the reference's masked lanes, the fewest any launch can leave; its count shows when you launch\.)$/,
 }
 
 /** A goal line's three parts and its end: each a sentence, the end beginning "Ends". */
@@ -232,6 +232,7 @@ describe('Tensor views: every level has a title, a goal line and its pass rule, 
   function figuresOf(level: ShiftLevel): Set<number> {
     // 0 is the engine's name of a thing: "stride 0" is what an expanded dimension has.
     const out = new Set<number>([level.needed, 0])
+    if (level.kind === 'layout' && level.attemptCap !== null) out.add(level.attemptCap)
     if (level.kind === 'grid') {
       out.add(level.cap)
       for (const task of level.tasks) {
@@ -275,7 +276,7 @@ describe('Tensor views: every level has a title, a goal line and its pass rule, 
       const where = `shape-shifter/${level.id}/${level.seed}`
       expect([where, words.passRule !== undefined, words.practiceRule !== undefined]).toEqual([where, level.graded, !level.graded])
       if (words.passRule !== undefined) expect([where, words.goal.beat]).toEqual([where, words.passRule])
-      else expect([where, /^The reference /.test(words.goal.beat)]).toEqual([where, true])
+      else expect([where, /^(The reference |Match the reference's )/.test(words.goal.beat)]).toEqual([where, true])
       if (level.graded) expect([where, /^Passes /.test(words.goal.beat)]).toEqual([where, true])
     }
   })
@@ -291,7 +292,8 @@ describe('Tensor views: every level has a title, a goal line and its pass rule, 
         expect([where, words.passRule?.includes(`on each of ${level.needed} new tensors`)]).toEqual([where, true])
         expect([where, words.goal.ends.includes(`all ${level.needed} tensors`)]).toEqual([where, true])
       } else {
-        expect([where, words.practiceRule?.endsWith(`: ${level.tasks[0].least}.`), words.goal.beat.includes(` ${level.tasks[0].least} lanes`)]).toEqual([where, true, true])
+        // The practice goal line does not hold the answer of the guess that asks for the reference's masked lanes: it says to match them, and the count comes at the launch.
+        expect([where, words.practiceRule?.endsWith(`: ${level.tasks[0].least}.`), words.goal.beat.includes(String(level.tasks[0].least))]).toEqual([where, true, false])
       }
     }
   })
@@ -317,20 +319,23 @@ describe('Tensor views: every level has a title, a goal line and its pass rule, 
     const goal = (id: string) => copyOf(shiftLevel(id, SHAPE_SHIFTER.levels.find((entry) => entry.id === id)?.practiceSeed ?? 0)).goal
     expect(goal('views')).toEqual({
       aim: 'Read this tensor column by column, as one row of 24 elements, with as few copies as you can.',
-      controls: 'You choose one operation at a time: `transpose`, `view`, `reshape` or `contiguous()`.',
+      controls:
+        'You choose one operation at a time: `transpose` swaps two dimensions, `view` reads the buffer as another shape, `reshape` does that or copies and `contiguous()` copies into row order.',
       beat: 'The reference does it with 1 copy.',
       ends: 'Ends when your tensor matches the target.',
     })
     expect(goal('stride-zero').aim).toBe('Make a [4, 6] tensor whose every row is this row of 6, and that you can write to.')
     expect(goal('three-d').aim).toBe("Turn the projection's [4, 8] output into one contiguous block per head, [2, 4, 4]: heads, tokens, head size.")
     expect(goal('grid').aim).toBe('Cover every element of this [12, 20] tensor exactly once, with as few masked lanes as you can, in at most 6 programs.')
-    expect(goal('grid').beat).toBe('The reference leaves 80 lanes masked.')
+    expect(goal('grid').beat).toBe("Match the reference's masked lanes, the fewest any launch can leave; its count shows when you launch.")
   })
 
   test("`fewest`'s pass rule is the fix round's: copies equal the reference's on each of 3 new targets, and no view was refused", () => {
     const words = copyOf(shiftLevel('fewest', 1000))
     expect(words.passRule).toBe("Passes when, on each of 3 new targets, your copies equal the reference's and no `view` was refused.")
-    expect(words.goal.controls).toBe('You choose one operation at a time: `view`, `transpose`, `permute` or `contiguous()`. There is no undo, and a `view` the strides cannot express fails that target.')
+    expect(words.goal.controls).toBe(
+      'You choose one operation at a time: `view` reads the buffer as another shape, `transpose` swaps two dimensions, `permute` reorders the dimensions and `contiguous()` copies into row order. There is no undo, a `view` the strides cannot express fails that target, and so does the 12th operation without the layout.',
+    )
     expect(words.goal.ends).toBe('Ends when each of the 3 targets is reached or has failed.')
   })
 
@@ -341,7 +346,7 @@ describe('Tensor views: every level has a title, a goal line and its pass rule, 
     expect(goal).toEqual({
       aim: 'Reach each target with as few copies as you can.',
       controls:
-        'You choose one operation at a time: `view`, `transpose`, `permute` or `contiguous()`. In practice the targets are the same each time and Undo takes a move back: a `view` the strides cannot express fails that target until you undo it.',
+        'You choose one operation at a time: `view` reads the buffer as another shape, `transpose` swaps two dimensions, `permute` reorders the dimensions and `contiguous()` copies into row order. In practice the targets are the same each time and Undo takes a move back: a `view` the strides cannot express fails that target until you undo it, and so does the 12th operation without the layout.',
       beat: "Practice is not graded. The graded rule: Passes when, on each of 3 new targets, your copies equal the reference's and no `view` was refused.",
       ends: 'Ends when each of the 3 targets is reached or has failed.',
     })

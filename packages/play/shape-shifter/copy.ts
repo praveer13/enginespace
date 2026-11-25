@@ -10,6 +10,7 @@
 import { numel } from '@es/sim/tensor'
 import type { GoalLine } from '../types'
 import { kindName, programLabel, shapeText, tupleText } from './labels'
+import { FEWEST_ATTEMPT_CAP } from './levels'
 import type { GridLevel, LayoutLevel, Moment, OpKind, ShiftLevel, ShiftLevelId } from './types'
 
 export const SHIFT_TITLES: Readonly<Record<ShiftLevelId, string>> = {
@@ -40,15 +41,29 @@ export interface ShiftCopy {
 
 const code = (name: string): string => `\`${name}\``
 
-/** `a`, `a or b`, `a, b or c`, each operation in code. */
-function orList(kinds: readonly OpKind[]): string {
-  const names = kinds.map((k) => code(kindName(k)))
-  return names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}`
-}
-
 const plural = (n: number, one: string, many: string): string => `${n} ${n === 1 ? one : many}`
 
-const stepControls = (kinds: readonly OpKind[]): string => `You choose one operation at a time: ${orList(kinds)}.`
+/**
+ * What each operation does, in the words the goal line gives it the first time it names it: no operation is named before a line says what
+ * it is. `reshape` is the pinned PyTorch's rule (its documentation: a view where the shapes are compatible, a copy where not).
+ */
+const DOES: Readonly<Record<OpKind, string>> = {
+  transpose: 'swaps two dimensions',
+  view: 'reads the buffer as another shape',
+  reshape: 'does that or copies',
+  permute: 'reorders the dimensions',
+  expand: 'repeats it along a new first dimension, at stride 0',
+  contiguous: 'copies into row order',
+  slice: 'keeps every step-th element of a dimension',
+}
+
+/** `a` does this, `b` does that and `c` does the other, each operation in code. */
+function doList(kinds: readonly OpKind[]): string {
+  const parts = kinds.map((k) => `${code(kindName(k))} ${DOES[k]}`)
+  return parts.length === 1 ? parts[0] : `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}`
+}
+
+const stepControls = (kinds: readonly OpKind[]): string => `You choose one operation at a time: ${doList(kinds)}.`
 
 function layoutCopy(level: LayoutLevel): ShiftCopy {
   const task = level.tasks[0]
@@ -98,7 +113,7 @@ function layoutCopy(level: LayoutLevel): ShiftCopy {
         title: SHIFT_TITLES.fewest,
         goal: {
           aim: 'Reach each target with as few copies as you can.',
-          controls: `${stepControls(level.offered)} There is no undo, and a ${code('view')} the strides cannot express fails that target.`,
+          controls: `${stepControls(level.offered)} There is no undo, a ${code('view')} the strides cannot express fails that target, and so does the ${level.attemptCap ?? FEWEST_ATTEMPT_CAP}th operation without the layout.`,
           beat: rule,
           ends: `Ends when each of the ${n} targets is reached or has failed.`,
         },
@@ -118,10 +133,10 @@ const fewestRule = (n: number): string => `Passes when, on each of ${n} new targ
  * fails its target only until it is undone; the graded rule is said as the graded run's. A graded or Prove run reads the level's own line
  * (layoutCopy).
  */
-export function fewestPracticeGoal(offered: readonly OpKind[], needed: number): GoalLine {
+export function fewestPracticeGoal(offered: readonly OpKind[], needed: number, cap: number = FEWEST_ATTEMPT_CAP): GoalLine {
   return {
     aim: 'Reach each target with as few copies as you can.',
-    controls: `${stepControls(offered)} In practice the targets are the same each time and Undo takes a move back: a ${code('view')} the strides cannot express fails that target until you undo it.`,
+    controls: `${stepControls(offered)} In practice the targets are the same each time and Undo takes a move back: a ${code('view')} the strides cannot express fails that target until you undo it, and so does the ${cap}th operation without the layout.`,
     beat: `Practice is not graded. The graded rule: ${fewestRule(needed)}`,
     ends: `Ends when each of the ${needed} targets is reached or has failed.`,
   }
@@ -137,7 +152,7 @@ function gridCopy(level: GridLevel): ShiftCopy {
       goal: {
         aim: `Cover every element of this ${shapeText(task.shape)} tensor exactly once, with as few masked lanes as you can, in at most ${level.cap} programs.`,
         controls,
-        beat: `The reference leaves ${task.least} lanes masked.`,
+        beat: "Match the reference's masked lanes, the fewest any launch can leave; its count shows when you launch.",
         ends: 'Ends when you launch.',
       },
       prompt: 'A kernel launches one program for each BLOCK-sized tile of the tensor, and a lane past the edge is masked. Choose BLOCK and the grid, and count what each edge masks.',
@@ -185,7 +200,8 @@ export const SHIFT_PARTS: readonly ShiftPart[] = [
   {
     id: 'table',
     name: 'Shape and strides',
-    sentence: 'One row per dimension: its size, and its stride, how far in the buffer one step along it moves. Strides and addresses count elements, not bytes; the dtype gives the bytes.',
+    sentence:
+      'One row per dimension: its size, and its stride, how far in the buffer one step along it moves. Under it the offset: the address of the first element. Strides, offsets and addresses count elements, not bytes; the dtype gives the bytes.',
     engine: 'Tensor.stride',
     levels: VIEW_LEVELS,
     claim: 'torch.stride.definition',
@@ -242,7 +258,7 @@ export const SHIFT_PARTS: readonly ShiftPart[] = [
   {
     id: 'mask',
     name: 'Mask',
-    sentence: "A lane is one element position of a program's BLOCK, the course's word. A lane whose offset is past the edge is masked: its load and its store do nothing.",
+    sentence: "A lane is one element position of a program's BLOCK, the course's word. A lane whose position is past the tensor's edge is masked: its load and its store do nothing.",
     engine: 'tl.load',
     levels: ['grid'],
     claim: 'triton.load-mask',
@@ -262,20 +278,23 @@ export function momentLine(m: Moment, level: ShiftLevel): string {
     case 'view-free':
       return `The buffer did not move. ${code(kindName(m.op))} is a view: the strides went from ${tupleText(m.before)} to ${tupleText(m.after)}.`
     case 'view-refused': {
-      const last = level.kind === 'layout' && level.failOnRefusal ? 'This target has failed.' : `${code('reshape')} would copy.`
+      const last = level.kind === 'layout' && level.failOnRefusal ? 'This target has failed.' : `${code('reshape')} would copy, as PyTorch 2.14's does.`
       return `${code('view')} cannot give ${shapeText(m.shape)} here: the stride order jumps where the new shape needs one stride. ${last}`
     }
     case 'copy':
       return `${code(kindName(m.op))} moved ${m.n} elements into a new buffer, every one of them. The stride order now reads row by row.`
-    case 'stride-zero':
-      return `Stride 0: the ${m.rows} rows read the same ${m.m} elements. Writing to one row would change them all.`
+    case 'stride-zero': {
+      // A rank-2 result repeats rows; a rank-3 result repeats whole grids of rows, which the diagram calls slices.
+      const unit = m.rank > 2 ? 'slices' : 'rows'
+      return `Stride 0: the ${m.rows} ${unit} read the same ${m.m} elements. Writing to one ${unit === 'rows' ? 'row' : 'slice'} would change them all.`
+    }
     case 'wrong-order': {
       // `view` and `reshape` read the elements in row-major order of the tensor as it stands, not in the buffer's order; `fewest` offers no `reshape`.
       const keep = level.kind === 'layout' && level.offered.includes('reshape') ? `${code('view')} and ${code('reshape')} keep` : `${code('view')} keeps`
-      return `The shape matches the target and the order does not: ${m.k} of ${m.n} elements are in place. ${keep} the elements in the order you read them, row by row; ${code('permute')} changes which dimension moves fastest.`
+      return `The shape matches the target and the order does not: ${m.k} of ${m.n} elements are in the target's order. ${keep} the elements in the order you read them, row by row; ${code('permute')} changes which dimension moves fastest.`
     }
     case 'masked':
-      return `Program ${programLabel(m.index)} runs ${m.lanes} lanes and ${m.masked} are masked: their offsets are past the edge, so the mask is false there.`
+      return `Program ${programLabel(m.index)} runs ${m.lanes} lanes and ${m.masked} are masked: their positions are past the edge, so the mask is false there.`
     case 'uncovered':
       return `${m.n} elements are not covered: along dimension ${m.dim} the grid needs cdiv(${m.size}, ${m.block}) = ${m.g} programs.`
     case 'not-pow2':
@@ -284,3 +303,6 @@ export function momentLine(m: Moment, level: ShiftLevel): string {
       return `At most ${m.cap} programs: this grid launches ${m.n}.`
   }
 }
+
+/** The line said when a target has more copies than the reference makes on it: it names no count, so a graded run's number is not given away. */
+export const EXTRA_COPY_LINE = `That is more copies than the reference makes on this target, so it cannot pass as it stands.`

@@ -7,9 +7,10 @@
  */
 import { addresses, gridCoverage, isContiguous, numel, programCells } from '@es/sim/tensor'
 import type { GoalLine } from '../types'
-import { copyOf, momentLine, partsOf } from './copy'
+import { copyOf, EXTRA_COPY_LINE, momentLine, partsOf } from './copy'
 import type { ShiftPart, ShiftPredictCopy } from './copy'
-import { inPlace, jumpOf, reaches } from './engine'
+import { inPlace, jumpOf, nodeOf, reaches, step } from './engine'
+import type { Node } from './engine'
 import type { GridLaunch, GridLevel, GridRun, LayoutLevel, LayoutRun, OpKind, ShiftLevelId, ShiftState } from './types'
 
 /** Addresses in a row of the buffer (GAMES.md §4.1). */
@@ -206,6 +207,33 @@ function gridView(level: GridLevel, at: number, run: GridRun, turn: number): Gri
   }
 }
 
+/**
+ * The turn of each target's copy that is more than the reference makes on it, one moment for each target (`extra-copy-<target>`), read from
+ * the operations played: a copy is an operation that moved elements. It is a function of the state, so an undo takes it away, and it holds
+ * no state of its own, so a graded run and its replay are what they were.
+ */
+function extraCopies(s: ShiftState): MomentView[] {
+  const { level } = s
+  if (level.kind !== 'layout') return []
+  const out: MomentView[] = []
+  level.tasks.forEach((task, at) => {
+    const run = s.runs[at]
+    if (run === undefined || run.kind !== 'layout' || run.copies <= task.copies) return
+    let node: Node = nodeOf(task.start)
+    let copies = 0
+    for (let i = 0; i < run.ops.length; i++) {
+      const next = step(node, run.ops[i])
+      if ('error' in next) break
+      node = next.node
+      if (next.copied > 0 && ++copies === task.copies + 1) {
+        out.push({ id: `extra-copy-${at}`, task: at, turn: run.placed[i] ?? 0, line: EXTRA_COPY_LINE })
+        break
+      }
+    }
+  })
+  return out
+}
+
 /** The state as the diagram and the mirror draw it. */
 export function shiftView(s: ShiftState): ShiftView {
   const { level } = s
@@ -223,7 +251,7 @@ export function shiftView(s: ShiftState): ShiftView {
     offered: level.kind === 'layout' ? level.offered : [],
     task: { at: s.at, of: level.tasks.length },
     done: s.done,
-    moments: s.moments.map((m) => ({ id: m.id, task: m.task, turn: m.turn, line: momentLine(m, level) })),
+    moments: [...s.moments.map((m) => ({ id: m.id, task: m.task, turn: m.turn, line: momentLine(m, level) })), ...extraCopies(s)],
     layout: level.kind === 'layout' && run.kind === 'layout' ? layoutView(level, s.at, run, turn) : null,
     grid: level.kind === 'grid' && run.kind === 'grid' ? gridView(level, s.at, run, turn) : null,
   }

@@ -48,6 +48,35 @@ function drawFor(level: string, mode: ShiftMode): { level: string; seed: number 
   return mode === 'graded' && levelOf(SHAPE_SHIFTER, level)?.graded ? { level, seed: freshSeed(level) } : null
 }
 
+/** Whether the address is the game's own page, where `?level=` names the level (ARCHITECTURE §3.1). A lesson's embed has no such address. */
+const onOwnPage = (): boolean => typeof window !== 'undefined' && /\/play\/[^/]+\/?$/.test(window.location.pathname)
+
+/**
+ * Puts the level in the address as a step of history, so Back returns to the level the learner left and Forward to this one, and a reload
+ * stays on it. `current` is the entry the learner is leaving, kept as it is: the level menu rewrites the address of the entry it stands on
+ * (LevelMenu, src/design) when it has told the game, so the game first adds an entry beside the one it leaves.
+ */
+function pushLevel(level: string | null, how: 'leave' | 'enter'): void {
+  if (!onOwnPage()) return
+  try {
+    const url = new URL(window.location.href)
+    if (level !== null) url.searchParams.set('level', level)
+    if (how === 'enter' && url.href === window.location.href) return
+    window.history.pushState(window.history.state, '', url)
+  } catch {
+    // A page that will not take a new entry keeps the one it has.
+  }
+}
+
+/** The level the address names now, or null where it names none. */
+const levelOfAddress = (): string | null => {
+  try {
+    return new URL(window.location.href).searchParams.get('level')
+  } catch {
+    return null
+  }
+}
+
 export default function Game({ level, mode: asked = 'practice', placement = 'page', rev, onFinish }: GameProps) {
   const known = (id: string | undefined) => SHAPE_SHIFTER.levels.find((entry) => entry.id === id)?.id ?? SHAPE_SHIFTER.levels[0].id
   const [prop, setProp] = useState({ level, mode: asked })
@@ -68,6 +97,25 @@ export default function Game({ level, mode: asked = 'practice', placement = 'pag
   const after = embedded || proving ? null : (SHAPE_SHIFTER.levels[at + 1] ?? null)
   const graded = mode === 'graded' && entry.graded
   const seed = graded ? (drawn !== null && drawn.level === entry.id ? drawn.seed : entry.practiceSeed) : entry.practiceSeed
+
+  // Back and Forward bring the level of the entry they land on. The level shown is kept in a ref so that an entry for the level already shown
+  // (a hash, a reload of the same address) starts nothing over.
+  const shown = useRef(levelId)
+  useEffect(() => {
+    shown.current = levelId
+  }, [levelId])
+  useEffect(() => {
+    if (embedded) return
+    const landed = () => {
+      const id = known(levelOfAddress() ?? undefined)
+      if (id === shown.current) return
+      setLevelId(id)
+      setMode('practice')
+      setDrawn(null)
+    }
+    window.addEventListener('popstate', landed)
+    return () => window.removeEventListener('popstate', landed)
+  }, [embedded])
 
   function choose(next: string, nextMode: ShiftMode) {
     const target = levelOf(SHAPE_SHIFTER, next) ?? SHAPE_SHIFTER.levels[0]
@@ -92,6 +140,8 @@ export default function Game({ level, mode: asked = 'practice', placement = 'pag
       levels={SHAPE_SHIFTER.levels.map((candidate) => ({ id: candidate.id, title: candidate.title, mode: candidate.id === entry.id ? (graded ? 'graded' : 'practice') : candidate.graded ? 'graded' : 'practice' }))}
       onChange={(id) => {
         moved.current = true
+        // The menu rewrites the address of the entry it stands on, so the entry the learner leaves is added again first.
+        pushLevel(null, 'leave')
         choose(id, 'practice')
       }}
     />
@@ -135,6 +185,7 @@ export default function Game({ level, mode: asked = 'practice', placement = 'pag
         onNext={() => {
           if (after === null) return
           moved.current = true
+          pushLevel(after.id, 'enter')
           choose(after.id, 'practice')
         }}
       />

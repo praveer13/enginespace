@@ -34,7 +34,7 @@ import { copyOf as huntCopy, marksLine, overlapLine, stepLine, unaccountedLine, 
 import { debriefOf as huntDebrief } from '@es/play/gap-hunt/debrief'
 import { buildLevel as huntLevel } from '@es/play/gap-hunt/levels'
 import { huntInit, huntReduce, ghostActions as huntGhostActions } from '@es/play/gap-hunt/session'
-import { copyOf as shiftCopy, momentLine as shiftMoment, SHIFT_PARTS } from '@es/play/shape-shifter/copy'
+import { copyOf as shiftCopy, EXTRA_COPY_LINE, momentLine as shiftMoment, SHIFT_PARTS } from '@es/play/shape-shifter/copy'
 import { buildLevel as shiftLevel } from '@es/play/shape-shifter/levels'
 import { shiftSession } from '@es/play/shape-shifter/session'
 import type { ShiftAction } from '@es/play/shape-shifter/types'
@@ -223,7 +223,8 @@ function shiftWords(): string[] {
     shiftMoment({ id: 'view-refused', task: 0, turn: 0, shape: [24] }, shiftLevel('views', 30)),
     shiftMoment({ id: 'view-refused', task: 0, turn: 0, shape: [24] }, shiftLevel('fewest', 1000)),
     shiftMoment({ id: 'copy', task: 0, turn: 0, op: 'contiguous', n: 24 }, shiftLevel('views', 30)),
-    shiftMoment({ id: 'stride-zero', task: 0, turn: 0, rows: 4, m: 6 }, shiftLevel('stride-zero', 10)),
+    shiftMoment({ id: 'stride-zero', task: 0, turn: 0, rows: 4, m: 6, rank: 2 }, shiftLevel('stride-zero', 10)),
+    shiftMoment({ id: 'stride-zero', task: 0, turn: 0, rows: 3, m: 6, rank: 3 }, shiftLevel('stride-zero', 10)),
     shiftMoment({ id: 'wrong-order', task: 0, turn: 0, k: 8, n: 32 }, shiftLevel('three-d', 26)),
     shiftMoment({ id: 'masked', task: 0, turn: 0, index: [0, 0], lanes: 64, masked: 16 }, grid),
     shiftMoment({ id: 'uncovered', task: 0, turn: 0, n: 48, dim: 1, size: 20, block: 4, g: 5 }, grid),
@@ -244,7 +245,7 @@ function shiftWords(): string[] {
   const move = (...ops: ShiftOp[]) => ops.reduce((s, o) => shiftSession.reduce(s, { t: 'op', op: o }), shiftSession.init(three))
   const wasteful = move({ op: 'reshape', shape: [4, 2, 4] }, { op: 'permute', order: [0, 2, 1] }, { op: 'contiguous' }, { op: 'permute', order: [0, 2, 1] }, { op: 'permute', order: [1, 0, 2] }, { op: 'contiguous' })
   mistakes.push(shiftSession.debrief(wasteful, shiftSession.ghost(three)).sentence, shiftSession.debrief(move({ op: 'reshape', shape: [2, 4, 4] }), shiftSession.ghost(three)).sentence)
-  return [...words, ...parts, ...moments, ...debriefs, ...mistakes]
+  return [...words, ...parts, ...moments, EXTRA_COPY_LINE, ...debriefs, ...mistakes]
 }
 
 /** The text of rich text: its words, without its numbers or its code. */

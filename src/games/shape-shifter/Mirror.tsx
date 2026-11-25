@@ -78,7 +78,7 @@ function LayoutMirror({ id, layout, pick, onPick }: { id: string; layout: Layout
             Shape <span className="font-numeric">{tupleText(shape)}</span>, strides <span className="font-numeric">{tupleText(strides)}</span>, offset {n(layout.offset)},{' '}
             {layout.contiguous ? 'contiguous' : 'not contiguous'}. Copies {n(layout.readouts.copies)}, elements moved {n(layout.readouts.moved)}, operations {n(layout.readouts.operations)}.
             Target: shape <span className="font-numeric">{shapeText(layout.target.shape)}</span>, contiguous {layout.target.contiguous ? 'required' : 'not required'},{' '}
-            {n(layout.target.inPlace)} of {n(layout.target.of)} elements in place{layout.target.met ? ', reached' : ''}. The buffer holds addresses {n(layout.buffer.first)} to{' '}
+            {n(layout.target.inPlace)} of {n(layout.target.of)} elements in the target&apos;s order{layout.target.met ? ', reached' : ''}. The buffer holds addresses {n(layout.buffer.first)} to{' '}
             {n(layout.buffer.first + layout.buffer.cells.length - 1)}
             {old === null ? '' : '; a copy wrote it this turn, and the old buffer is shown dashed over it'}. Every figure is the course&apos;s model.
           </>

@@ -34,7 +34,7 @@ export interface Revealed {
   readonly score: number
   /** The model's sentence about what it read. */
   readonly reads: string
-  /** What the count counted, by name: the stages, for Request path. Empty where the model names nothing. */
+  /** What the count counted, by name: the stages, for Request path. Absent where the model names nothing; empty where it counted nothing. */
   readonly counted?: readonly string[]
   /** The run the answer was read from, or null for an answer revealed at commit (D-067), which reads no run. */
   readonly run: { readonly game: string; readonly level: string; readonly seed: number } | null

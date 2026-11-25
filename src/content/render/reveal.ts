@@ -75,8 +75,9 @@ export async function reveal(input: RevealInput): Promise<Revealed> {
   const truth = reference.truth(record)
   const verdict = gradePrediction(input.block.answer, input.committed.value, truth)
   const unsaved = await writeEvent(predictDraft(input, truth, verdict))
-  const counted = reference.counted?.(record) ?? []
-  return { truth, ok: verdict.ok, score: verdict.score, reads: reference.reads, counted, run: { game: record.game, level: record.level, seed: record.seed }, working: [], sources: [], tag: null, unsaved }
+  // A reference that names what it counted may say "none"; one that names nothing says nothing, because "none on this path" would not be known.
+  const counted = reference.counted?.(record)
+  return { truth, ok: verdict.ok, score: verdict.score, reads: reference.reads, ...(counted === undefined ? {} : { counted }), run: { game: record.game, level: record.level, seed: record.seed }, working: [], sources: [], tag: null, unsaved }
 }
 
 /**

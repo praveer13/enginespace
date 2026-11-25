@@ -14,7 +14,7 @@ In Rust, a slice `&v[a..b]` is a pointer, a length and a stride of one that nobo
 - A **view** is a new tensor that reads another tensor's buffer through new metadata. `transpose` and `view` make views.
 - A **copy** writes a new buffer, with every element moved into it. `contiguous()` makes one when the tensor is not contiguous, and `reshape` makes a view where it can and a copy where it cannot.
 
-The level draws the tensor's cells, a table of its shape and strides beside them, and the buffer under the cells. The target counts the elements in place: those that already sit where the target reads them. Turn the tensor so that it reads column by column.
+The level draws the tensor's cells, a table of its shape and strides beside them, and the buffer under the cells. The target counts the elements already in its order: those that match it when read row by row. Turn the tensor so that it reads column by column.
 
 > **Predict `tr0.l1.p1`.** The level's tensor has shape (4, 6) [synthetic], and the reference reads it column by column, as one row, with one copy. How many elements will that copy move?
 >
